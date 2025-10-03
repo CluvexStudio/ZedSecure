@@ -38,7 +38,7 @@ jobs:
         run: flutter pub get
         
       - name: Build APK - Split per ABI
-        run: flutter build apk --release --split-per-abi
+        run: flutter build apk --release --split-per-abi --target-platform android-arm,android-arm64
         
       - name: Build Universal APK
         run: flutter build apk --release

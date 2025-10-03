@@ -27,9 +27,7 @@ android {
 
         manifestPlaceholders.put("io.flutter.embedding.android.EnableImpeller", "false")
         
-        ndk {
-            abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a"))
-        }
+        // Removed conflicting ndk abiFilters configuration to allow Flutter's split APK feature to work
     }
 
     packagingOptions {
