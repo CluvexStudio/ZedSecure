@@ -7,6 +7,7 @@ class V2RayConfig {
   final String fullConfig;
   bool isConnected;
   final String source;
+  final String? subscriptionId; // To track which subscription a config belongs to
 
   V2RayConfig({
     required this.id,
@@ -17,6 +18,7 @@ class V2RayConfig {
     required this.fullConfig,
     this.isConnected = false,
     this.source = 'manual',
+    this.subscriptionId, // Nullable for backward compatibility
   });
 
   factory V2RayConfig.fromJson(Map<String, dynamic> json) {
@@ -29,6 +31,7 @@ class V2RayConfig {
       fullConfig: json['fullConfig'] as String,
       isConnected: json['isConnected'] as bool? ?? false,
       source: json['source'] as String? ?? 'manual',
+      subscriptionId: json['subscriptionId'] as String?,
     );
   }
 
@@ -42,6 +45,7 @@ class V2RayConfig {
       'fullConfig': fullConfig,
       'isConnected': isConnected,
       'source': source,
+      'subscriptionId': subscriptionId,
     };
   }
 
@@ -54,6 +58,7 @@ class V2RayConfig {
     String? fullConfig,
     bool? isConnected,
     String? source,
+    String? subscriptionId,
   }) {
     return V2RayConfig(
       id: id ?? this.id,
@@ -64,6 +69,7 @@ class V2RayConfig {
       fullConfig: fullConfig ?? this.fullConfig,
       isConnected: isConnected ?? this.isConnected,
       source: source ?? this.source,
+      subscriptionId: subscriptionId ?? this.subscriptionId,
     );
   }
 

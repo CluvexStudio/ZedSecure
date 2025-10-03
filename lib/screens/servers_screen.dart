@@ -378,6 +378,12 @@ class _ServersScreenState extends State<ServersScreen> {
               ),
               onPressed: () => _handleConnect(config),
             ),
+            // Add menu button for manual configs
+            if (config.source == 'manual')
+              IconButton(
+                icon: const Icon(FluentIcons.more),
+                onPressed: () => _showManualConfigMenu(config),
+              ),
           ],
         ),
       ),

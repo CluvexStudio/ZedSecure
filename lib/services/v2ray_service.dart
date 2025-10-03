@@ -182,7 +182,7 @@ class V2RayService extends ChangeNotifier {
     }
   }
 
-  Future<List<V2RayConfig>> parseSubscriptionUrl(String url) async {
+  Future<List<V2RayConfig>> parseSubscriptionUrl(String url, {String? subscriptionId}) async {
     try {
       final response = await http
           .get(Uri.parse(url))
@@ -197,7 +197,7 @@ class V2RayService extends ChangeNotifier {
         throw Exception('Failed to load subscription: HTTP ${response.statusCode}');
       }
 
-      return _parseContent(response.body, source: 'subscription');
+      return _parseContent(response.body, source: 'subscription', subscriptionId: subscriptionId);
     } catch (e) {
       debugPrint('Error parsing subscription: $e');
       
@@ -217,9 +217,9 @@ class V2RayService extends ChangeNotifier {
     }
   }
 
-  Future<List<V2RayConfig>> parseSubscriptionContent(String content) async {
+  Future<List<V2RayConfig>> parseSubscriptionContent(String content, {String? subscriptionId}) async {
     try {
-      return _parseContent(content, source: 'subscription');
+      return _parseContent(content, source: 'subscription', subscriptionId: subscriptionId);
     } catch (e) {
       debugPrint('Error parsing subscription content: $e');
       
@@ -247,7 +247,7 @@ class V2RayService extends ChangeNotifier {
     }
   }
 
-  List<V2RayConfig> _parseContent(String content, {String source = 'subscription'}) {
+  List<V2RayConfig> _parseContent(String content, {String source = 'subscription', String? subscriptionId}) {
     final List<V2RayConfig> configs = [];
 
     try {
@@ -295,6 +295,7 @@ class V2RayService extends ChangeNotifier {
               configType: configType,
               fullConfig: line,
               source: source,
+              subscriptionId: subscriptionId, // Add subscriptionId if provided
             ),
           );
         }
