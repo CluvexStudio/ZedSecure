@@ -16,7 +16,9 @@ class _PerAppProxyScreenState extends State<PerAppProxyScreen> {
   bool _isLoading = true;
   String _searchQuery = '';
 
-  static const MethodChannel _appListChannel = MethodChannel('com.zedsecure.vpn/app_list');
+  static const MethodChannel _appListChannel = MethodChannel(
+    'com.zedsecure.vpn/app_list',
+  );
 
   @override
   void initState() {
@@ -33,15 +35,19 @@ class _PerAppProxyScreenState extends State<PerAppProxyScreen> {
       final prefs = await SharedPreferences.getInstance();
       _selectedApps = prefs.getStringList('blocked_apps') ?? [];
 
-      final List<dynamic> result = await _appListChannel.invokeMethod('getInstalledApps');
-      
+      final List<dynamic> result = await _appListChannel.invokeMethod(
+        'getInstalledApps',
+      );
+
       setState(() {
         _apps = result
-            .map((app) => {
-                  'packageName': app['packageName'] as String,
-                  'name': app['name'] as String,
-                  'isSystemApp': app['isSystemApp'] as bool,
-                })
+            .map(
+              (app) => {
+                'packageName': app['packageName'] as String,
+                'name': app['name'] as String,
+                'isSystemApp': app['isSystemApp'] as bool,
+              },
+            )
             .toList();
         _isLoading = false;
       });
@@ -60,8 +66,12 @@ class _PerAppProxyScreenState extends State<PerAppProxyScreen> {
   List<Map<String, dynamic>> get _filteredApps {
     if (_searchQuery.isEmpty) return _apps;
     return _apps.where((app) {
-      return app['name'].toString().toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          app['packageName'].toString().toLowerCase().contains(_searchQuery.toLowerCase());
+      return app['name'].toString().toLowerCase().contains(
+            _searchQuery.toLowerCase(),
+          ) ||
+          app['packageName'].toString().toLowerCase().contains(
+            _searchQuery.toLowerCase(),
+          );
     }).toList();
   }
 
@@ -69,7 +79,10 @@ class _PerAppProxyScreenState extends State<PerAppProxyScreen> {
   Widget build(BuildContext context) {
     return ScaffoldPage(
       header: PageHeader(
-        title: const Text('Per-App Proxy', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Per-App Proxy',
+          style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+        ),
         commandBar: FilledButton(
           onPressed: () async {
             await _saveSelection();
@@ -128,7 +141,9 @@ class _PerAppProxyScreenState extends State<PerAppProxyScreen> {
                     Button(
                       onPressed: () {
                         setState(() {
-                          _selectedApps = _apps.map((app) => app['packageName'] as String).toList();
+                          _selectedApps = _apps
+                              .map((app) => app['packageName'] as String)
+                              .toList();
                         });
                       },
                       child: const Text('Select All'),
@@ -152,55 +167,52 @@ class _PerAppProxyScreenState extends State<PerAppProxyScreen> {
             child: _isLoading
                 ? const Center(child: ProgressRing())
                 : _filteredApps.isEmpty
-                    ? const Center(
-                        child: Text('No apps found'),
-                      )
-                    : ListView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: _filteredApps.length,
-                        itemBuilder: (context, index) {
-                          final app = _filteredApps[index];
-                          final packageName = app['packageName'] as String;
-                          final isSelected = _selectedApps.contains(packageName);
-                          
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 8),
-                            decoration: AppTheme.glassDecoration(
-                              borderRadius: 8,
-                              opacity: isSelected ? 0.1 : 0.05,
-                            ),
-                            child: ListTile(
-                              title: Text(app['name'] as String),
-                              subtitle: Text(packageName),
-                              trailing: Checkbox(
-                                checked: isSelected,
-                                onChanged: (value) {
-                                  setState(() {
-                                    if (value == true) {
-                                      _selectedApps.add(packageName);
-                                    } else {
-                                      _selectedApps.remove(packageName);
-                                    }
-                                  });
-                                },
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  if (isSelected) {
-                                    _selectedApps.remove(packageName);
-                                  } else {
-                                    _selectedApps.add(packageName);
-                                  }
-                                });
-                              },
-                            ),
-                          );
-                        },
-                      ),
+                ? const Center(child: Text('No apps found'))
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: _filteredApps.length,
+                    itemBuilder: (context, index) {
+                      final app = _filteredApps[index];
+                      final packageName = app['packageName'] as String;
+                      final isSelected = _selectedApps.contains(packageName);
+
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        decoration: AppTheme.glassDecoration(
+                          borderRadius: 8,
+                          opacity: isSelected ? 0.1 : 0.05,
+                        ),
+                        child: ListTile(
+                          title: Text(app['name'] as String),
+                          subtitle: Text(packageName),
+                          trailing: Checkbox(
+                            checked: isSelected,
+                            onChanged: (value) {
+                              setState(() {
+                                if (value == true) {
+                                  _selectedApps.add(packageName);
+                                } else {
+                                  _selectedApps.remove(packageName);
+                                }
+                              });
+                            },
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              if (isSelected) {
+                                _selectedApps.remove(packageName);
+                              } else {
+                                _selectedApps.add(packageName);
+                              }
+                            });
+                          },
+                        ),
+                      );
+                    },
+                  ),
           ),
         ],
       ),
     );
   }
 }
-

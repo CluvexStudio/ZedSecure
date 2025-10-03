@@ -26,6 +26,10 @@ android {
         versionName = "1.0.1"
 
         manifestPlaceholders.put("io.flutter.embedding.android.EnableImpeller", "false")
+        
+        ndk {
+            abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a"))
+        }
     }
 
     packagingOptions {

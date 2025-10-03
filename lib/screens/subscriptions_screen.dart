@@ -28,7 +28,8 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     _suggestedSubscription = Subscription(
       id: 'suggested_cloudflare_plus',
       name: 'Suggested - IRDevs',
-      url: 'https://raw.githubusercontent.com/darkvpnapp/CloudflarePlus/refs/heads/main/proxy',
+      url:
+          'https://raw.githubusercontent.com/darkvpnapp/CloudflarePlus/refs/heads/main/proxy',
       lastUpdate: DateTime.now(),
       configCount: 0,
     );
@@ -42,7 +43,9 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     final service = Provider.of<V2RayService>(context, listen: false);
     final subs = await service.loadSubscriptions();
 
-    final hasSuggested = subs.any((sub) => sub.id == 'suggested_cloudflare_plus');
+    final hasSuggested = subs.any(
+      (sub) => sub.id == 'suggested_cloudflare_plus',
+    );
     if (hasSuggested) {
       _isSuggestedActive = true;
     }
@@ -57,7 +60,10 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
   Widget build(BuildContext context) {
     return ScaffoldPage(
       header: PageHeader(
-        title: const Text('Subscriptions', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Subscriptions',
+          style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+        ),
         commandBar: FilledButton(
           onPressed: _showAddSubscriptionDialog,
           child: const Row(
@@ -120,7 +126,11 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         const SizedBox(height: 100),
-                        Icon(FluentIcons.cloud, size: 64, color: Colors.grey[80]),
+                        Icon(
+                          FluentIcons.cloud,
+                          size: 64,
+                          color: Colors.grey[80],
+                        ),
                         const SizedBox(height: 16),
                         const Text(
                           'No custom subscriptions',
@@ -152,10 +162,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Colors.orange.withOpacity(0.3),
-          width: 1,
-        ),
+        border: Border.all(color: Colors.orange.withOpacity(0.3), width: 1),
       ),
       child: ListTile(
         leading: Container(
@@ -177,7 +184,11 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
             ],
           ),
           child: const Center(
-            child: Icon(FluentIcons.cloud_download, color: Colors.white, size: 24),
+            child: Icon(
+              FluentIcons.cloud_download,
+              color: Colors.white,
+              size: 24,
+            ),
           ),
         ),
         title: Text(
@@ -270,17 +281,11 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
           children: [
             const Text('Name'),
             const SizedBox(height: 8),
-            TextBox(
-              controller: nameController,
-              placeholder: 'My Subscription',
-            ),
+            TextBox(controller: nameController, placeholder: 'My Subscription'),
             const SizedBox(height: 16),
             const Text('URL'),
             const SizedBox(height: 8),
-            TextBox(
-              controller: urlController,
-              placeholder: 'https://...',
-            ),
+            TextBox(controller: urlController, placeholder: 'https://...'),
           ],
         ),
         actions: [
@@ -301,8 +306,12 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
               final service = Provider.of<V2RayService>(context, listen: false);
 
               try {
-                final subscriptionId = DateTime.now().millisecondsSinceEpoch.toString();
-                final configs = await service.parseSubscriptionUrl(urlController.text, subscriptionId: subscriptionId);
+                final subscriptionId = DateTime.now().millisecondsSinceEpoch
+                    .toString();
+                final configs = await service.parseSubscriptionUrl(
+                  urlController.text,
+                  subscriptionId: subscriptionId,
+                );
 
                 // The configs already have the subscriptionId from parseSubscriptionUrl
                 final subscriptionConfigs = configs;
@@ -329,7 +338,9 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                     builder: (context, close) {
                       return InfoBar(
                         title: const Text('Success'),
-                        content: Text('Added ${subscriptionConfigs.length} servers'),
+                        content: Text(
+                          'Added ${subscriptionConfigs.length} servers',
+                        ),
                         severity: InfoBarSeverity.success,
                       );
                     },
@@ -363,15 +374,20 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     final service = Provider.of<V2RayService>(context, listen: false);
 
     try {
-      final configs = await service.parseSubscriptionUrl(subscription.url, subscriptionId: subscription.id);
+      final configs = await service.parseSubscriptionUrl(
+        subscription.url,
+        subscriptionId: subscription.id,
+      );
 
       // Add subscription ID to configs
-      final subscriptionConfigs = configs.map((config) => 
-        config.copyWith(
-          source: 'subscription',
-          subscriptionId: subscription.id,
-        )
-      ).toList();
+      final subscriptionConfigs = configs
+          .map(
+            (config) => config.copyWith(
+              source: 'subscription',
+              subscriptionId: subscription.id,
+            ),
+          )
+          .toList();
 
       final existingConfigs = await service.loadConfigs();
       final allConfigs = [...existingConfigs, ...subscriptionConfigs];
@@ -423,41 +439,48 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     final service = Provider.of<V2RayService>(context, listen: false);
 
     try {
-      final configs = await service.parseSubscriptionUrl(subscription.url, subscriptionId: subscription.id);
+      final configs = await service.parseSubscriptionUrl(
+        subscription.url,
+        subscriptionId: subscription.id,
+      );
 
       final existingConfigs = await service.loadConfigs();
-      
+
       // Create a map of fullConfig to identify configs
       final newConfigMap = <String, bool>{};
       for (var config in configs) {
         newConfigMap[config.fullConfig] = true;
       }
-      
+
       // Filter out subscription configs that belong to this subscription but are deleted
       final filteredConfigs = existingConfigs.where((config) {
         // Keep all manual configs
         if (config.source == 'manual') return true;
-        
+
         // Keep subscription configs that don't belong to this subscription
-        if (config.source == 'subscription' && config.subscriptionId != subscription.id) {
+        if (config.source == 'subscription' &&
+            config.subscriptionId != subscription.id) {
           return true;
         }
-        
+
         // For configs belonging to this subscription, only keep if they're in the new list
-        if (config.source == 'subscription' && config.subscriptionId == subscription.id) {
+        if (config.source == 'subscription' &&
+            config.subscriptionId == subscription.id) {
           return newConfigMap.containsKey(config.fullConfig);
         }
-        
+
         return true;
       }).toList();
 
       // Add subscription source info and subscriptionId to new configs
-      final subscriptionConfigs = configs.map((config) => 
-        config.copyWith(
-          source: 'subscription',
-          subscriptionId: subscription.id,
-        )
-      ).toList();
+      final subscriptionConfigs = configs
+          .map(
+            (config) => config.copyWith(
+              source: 'subscription',
+              subscriptionId: subscription.id,
+            ),
+          )
+          .toList();
 
       final allConfigs = [...filteredConfigs, ...subscriptionConfigs];
       await service.saveConfigs(allConfigs);
@@ -510,7 +533,9 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
       context: context,
       builder: (context) => ContentDialog(
         title: const Text('Delete Subscription'),
-        content: Text('Are you sure you want to delete "${subscription.name}"?'),
+        content: Text(
+          'Are you sure you want to delete "${subscription.name}"?',
+        ),
         actions: [
           Button(
             onPressed: () {
@@ -525,14 +550,15 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
               _subscriptions.removeWhere((s) => s.id == subscription.id);
 
               final service = Provider.of<V2RayService>(context, listen: false);
-              
+
               // Remove configs associated with this subscription
               final existingConfigs = await service.loadConfigs();
               final filteredConfigs = existingConfigs.where((config) {
                 // Keep configs that don't belong to this subscription
-                return !(config.source == 'subscription' && config.subscriptionId == subscription.id);
+                return !(config.source == 'subscription' &&
+                    config.subscriptionId == subscription.id);
               }).toList();
-              
+
               await service.saveConfigs(filteredConfigs);
               await service.saveSubscriptions(_subscriptions);
               await _loadSubscriptions();
@@ -557,4 +583,3 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     );
   }
 }
-
