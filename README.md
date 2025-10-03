@@ -87,7 +87,7 @@ Test server latency with ICMP and TCP ping methods. Automatically sort servers b
 ### Subscription Management
 - Auto-update servers from subscription URLs
 - Separate manual and subscription configs
-- Suggested subscription (CloudflarePlus)
+- Suggested subscription
 
 ## Project Structure
 

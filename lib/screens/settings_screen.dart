@@ -41,102 +41,92 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     return ScaffoldPage(
       header: const PageHeader(
-        title: Text('Settings', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+        title: Text(
+          'Settings',
+          style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+        ),
       ),
       content: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _buildSection(
-            'General',
-            [
-              _buildSettingTile(
-                'Auto Connect',
-                'Automatically connect on app start',
-                FluentIcons.play_solid,
-                _autoConnect,
-                (value) {
-                  setState(() {
-                    _autoConnect = value;
-                  });
-                  _saveSetting('auto_connect', value);
-                },
-              ),
-              _buildSettingTile(
-                'Kill Switch',
-                'Block internet if VPN disconnects',
-                FluentIcons.shield_solid,
-                _killSwitch,
-                (value) {
-                  setState(() {
-                    _killSwitch = value;
-                  });
-                  _saveSetting('kill_switch', value);
-                },
-              ),
-            ],
-          ),
+          _buildSection('General', [
+            _buildSettingTile(
+              'Auto Connect',
+              'Automatically connect on app start',
+              FluentIcons.play_solid,
+              _autoConnect,
+              (value) {
+                setState(() {
+                  _autoConnect = value;
+                });
+                _saveSetting('auto_connect', value);
+              },
+            ),
+            _buildSettingTile(
+              'Kill Switch',
+              'Block internet if VPN disconnects',
+              FluentIcons.shield_solid,
+              _killSwitch,
+              (value) {
+                setState(() {
+                  _killSwitch = value;
+                });
+                _saveSetting('kill_switch', value);
+              },
+            ),
+          ]),
           const SizedBox(height: 24),
-          _buildSection(
-            'Network',
-            [
-              _buildNavigationTile(
-                'Per-App Proxy',
-                'Choose which apps use VPN',
-                FluentIcons.permissions,
-                () {
-                  Navigator.push(
-                    context,
-                    FluentPageRoute(builder: (context) => const PerAppProxyScreen()),
-                  );
-                },
-              ),
-            ],
-          ),
+          _buildSection('Network', [
+            _buildNavigationTile(
+              'Per-App Proxy',
+              'Choose which apps use VPN',
+              FluentIcons.permissions,
+              () {
+                Navigator.push(
+                  context,
+                  FluentPageRoute(
+                    builder: (context) => const PerAppProxyScreen(),
+                  ),
+                );
+              },
+            ),
+          ]),
           const SizedBox(height: 24),
-          _buildSection(
-            'Appearance',
-            [
-              _buildSettingTile(
-                'Dark Mode',
-                'Use dark theme',
-                FluentIcons.clear_night,
-                _darkMode,
-                (value) {
-                  setState(() {
-                    _darkMode = value;
-                  });
-                  _saveSetting('dark_mode', value);
-                },
-              ),
-            ],
-          ),
+          _buildSection('Appearance', [
+            _buildSettingTile(
+              'Dark Mode',
+              'Use dark theme',
+              FluentIcons.clear_night,
+              _darkMode,
+              (value) {
+                setState(() {
+                  _darkMode = value;
+                });
+                _saveSetting('dark_mode', value);
+              },
+            ),
+          ]),
           const SizedBox(height: 24),
-          _buildSection(
-            'Data',
-            [
-              _buildActionTile(
-                'Clear Server Cache',
-                'Clear all cached server data',
-                FluentIcons.clear,
-                () => _clearCache(),
-              ),
-              _buildActionTile(
-                'Clear All Data',
-                'Reset all settings and servers',
-                FluentIcons.delete,
-                () => _clearAllData(),
-              ),
-            ],
-          ),
+          _buildSection('Data', [
+            _buildActionTile(
+              'Clear Server Cache',
+              'Clear all cached server data',
+              FluentIcons.clear,
+              () => _clearCache(),
+            ),
+            _buildActionTile(
+              'Clear All Data',
+              'Reset all settings and servers',
+              FluentIcons.delete,
+              () => _clearAllData(),
+            ),
+          ]),
           const SizedBox(height: 24),
-          _buildSection(
-            'About',
-            [
-              _buildInfoTile('App Name', 'Zed-Secure'),
-              _buildInfoTile('Version', '1.0.0'),
-              _buildInfoTile('Build', '1'),
-            ],
-          ),
+          _buildSection('About', [
+            _buildInfoTile('App Name', 'Zed-Secure'),
+            _buildInfoTile('Version', '1.0.0'),
+            _buildInfoTile('Build', '1'),
+          ]),
         ],
       ),
     );
@@ -177,16 +167,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             color: Colors.blue.withOpacity(0.2),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Center(
-            child: Icon(icon, color: Colors.blue, size: 20),
-          ),
+          child: Center(child: Icon(icon, color: Colors.blue, size: 20)),
         ),
         title: Text(title),
         subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
-        trailing: ToggleSwitch(
-          checked: value,
-          onChanged: onChanged,
-        ),
+        trailing: ToggleSwitch(checked: value, onChanged: onChanged),
       ),
     );
   }
@@ -207,16 +192,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             color: Colors.orange.withOpacity(0.2),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Center(
-            child: Icon(icon, color: Colors.orange, size: 20),
-          ),
+          child: Center(child: Icon(icon, color: Colors.orange, size: 20)),
         ),
         title: Text(title),
         subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
-        trailing: Button(
-          onPressed: onPressed,
-          child: const Text('Execute'),
-        ),
+        trailing: Button(onPressed: onPressed, child: const Text('Execute')),
       ),
     );
   }
@@ -237,9 +217,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             color: Colors.blue.withOpacity(0.2),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Center(
-            child: Icon(icon, color: Colors.blue, size: 20),
-          ),
+          child: Center(child: Icon(icon, color: Colors.blue, size: 20)),
         ),
         title: Text(title),
         subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
@@ -256,10 +234,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label),
-          Text(
-            value,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -270,7 +245,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (context) => ContentDialog(
         title: const Text('Clear Cache'),
-        content: const Text('This will clear all cached server data including ping results.'),
+        content: const Text(
+          'This will clear all cached server data including ping results.',
+        ),
         actions: [
           Button(
             onPressed: () {
@@ -310,7 +287,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (context) => ContentDialog(
         title: const Text('Clear All Data'),
-        content: const Text('This will delete all servers, subscriptions, and settings. This action cannot be undone.'),
+        content: const Text(
+          'This will delete all servers, subscriptions, and settings. This action cannot be undone.',
+        ),
         actions: [
           Button(
             onPressed: () {
@@ -350,4 +329,3 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 }
-

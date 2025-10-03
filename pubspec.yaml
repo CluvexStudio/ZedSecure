@@ -5,7 +5,7 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.7.2 <4.0.0'
+   sdk: ^3.9.2
 
 dependencies:
   flutter:
@@ -24,6 +24,7 @@ dependencies:
   provider: ^6.1.1
   shared_preferences: ^2.2.2
   connectivity_plus: ^5.0.0
+  qr_flutter: ^4.1.0
 
 dev_dependencies:
   flutter_test:

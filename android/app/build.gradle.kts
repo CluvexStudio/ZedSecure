@@ -26,6 +26,8 @@ android {
         versionName = "1.0.1"
 
         manifestPlaceholders.put("io.flutter.embedding.android.EnableImpeller", "false")
+        
+        // Removed conflicting ndk abiFilters configuration to allow Flutter's split APK feature to work
     }
 
     packagingOptions {
