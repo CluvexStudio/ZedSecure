@@ -4,6 +4,8 @@ import 'package:zedsecure/services/v2ray_service.dart';
 import 'package:zedsecure/models/v2ray_config.dart';
 import 'package:zedsecure/theme/app_theme.dart';
 import 'package:flutter/services.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import 'package:flutter/material.dart' as material;
 
 class ServersScreen extends StatefulWidget {
   const ServersScreen({super.key});
@@ -308,7 +310,7 @@ class _ServersScreenState extends State<ServersScreen> {
           width: 48,
           height: 48,
           decoration: BoxDecoration(
-            color: AppTheme.getPingColor(ping).withOpacity(0.2),
+            color: AppTheme.getPingColor(ping).withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Center(
@@ -331,7 +333,7 @@ class _ServersScreenState extends State<ServersScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: AppTheme.getPingColor(ping).withOpacity(0.2),
+                  color: AppTheme.getPingColor(ping).withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Text(
@@ -346,7 +348,7 @@ class _ServersScreenState extends State<ServersScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.grey.withOpacity(0.2),
+                  color: Colors.grey.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: const Text(
@@ -475,6 +477,160 @@ class _ServersScreenState extends State<ServersScreen> {
         );
       }
     }
+  }
+
+  Future<void> _showManualConfigMenu(V2RayConfig config) async {
+    await material.showModalBottomSheet(
+      context: context,
+      builder: (context) => material.SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            material.ListTile(
+              leading: Icon(FluentIcons.copy),
+              title: const Text('Copy Config Link'),
+              onTap: () {
+                _copyConfigLink(config);
+                Navigator.pop(context);
+              },
+            ),
+            material.ListTile(
+              leading: Icon(FluentIcons.camera),
+              title: const Text('Show QR Code'),
+              onTap: () {
+                Navigator.pop(context);
+                _showQRCode(config);
+              },
+            ),
+            material.ListTile(
+              leading: Icon(FluentIcons.delete),
+              title: const Text('Delete'),
+              onTap: () {
+                Navigator.pop(context);
+                _deleteConfig(config);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _copyConfigLink(V2RayConfig config) async {
+    final service = Provider.of<V2RayService>(context, listen: false);
+    await service.copyToClipboard(config.fullConfig);
+    
+    if (mounted) {
+      Navigator.pop(context); // Close the bottom sheet
+      await displayInfoBar(
+        context,
+        builder: (context, close) {
+          return const InfoBar(
+            title: Text('Copied'),
+            content: Text('Config link copied to clipboard'),
+            severity: InfoBarSeverity.success,
+          );
+        },
+        duration: const Duration(seconds: 2),
+      );
+    }
+  }
+
+  Future<void> _showQRCode(V2RayConfig config) async {
+    Navigator.pop(context); // Close the bottom sheet
+    
+    await _displayQRCode(config.fullConfig);
+  }
+
+  Future<void> _deleteConfig(V2RayConfig config) async {
+    Navigator.pop(context); // Close the bottom sheet
+    
+    await showDialog(
+      context: context,
+      builder: (context) => ContentDialog(
+        title: const Text('Delete Config'),
+        content: Text('Are you sure you want to delete "${config.remark}"?'),
+        actions: [
+          Button(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              Navigator.pop(context); // Close dialog
+              await _performDeleteConfig(config);
+            },
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _performDeleteConfig(V2RayConfig config) async {
+    final service = Provider.of<V2RayService>(context, listen: false);
+    
+    // Load all configs
+    final allConfigs = await service.loadConfigs();
+    
+    // Remove the selected config
+    final updatedConfigs = allConfigs.where((c) => c.id != config.id).toList();
+    
+    // Save the updated list
+    await service.saveConfigs(updatedConfigs);
+    
+    // Reload the configs in the UI
+    await _loadConfigs();
+    
+    if (mounted) {
+      await displayInfoBar(
+        context,
+        builder: (context, close) {
+          return const InfoBar(
+            title: Text('Deleted'),
+            content: Text('Config deleted successfully'),
+            severity: InfoBarSeverity.info,
+          );
+        },
+        duration: const Duration(seconds: 2),
+      );
+    }
+  }
+
+  Future<void> _displayQRCode(String configString) async {
+    await showDialog(
+      context: context,
+      builder: (context) => ContentDialog(
+        title: const Text('QR Code'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              QrImageView(
+                data: configString,
+                version: QrVersions.auto,
+                size: 200.0,
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Scan this QR code with your VPN app',
+                style: TextStyle(fontSize: 14),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          Button(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
   }
 }
 

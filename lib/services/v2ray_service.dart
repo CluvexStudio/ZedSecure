@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zedsecure/models/v2ray_config.dart';
 import 'package:zedsecure/models/subscription.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 
 class V2RayService extends ChangeNotifier {
   bool _isInitialized = false;
@@ -407,6 +408,10 @@ class V2RayService extends ChangeNotifier {
       _activeConfig = null;
       notifyListeners();
     }
+  }
+
+  Future<void> copyToClipboard(String text) async {
+    await Clipboard.setData(ClipboardData(text: text));
   }
 
   @override
