@@ -5,7 +5,6 @@ import 'package:zedsecure/models/v2ray_config.dart';
 import 'package:zedsecure/theme/app_theme.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:flutter/material.dart' as material;
 
 class ServersScreen extends StatefulWidget {
   const ServersScreen({super.key});
@@ -480,38 +479,47 @@ class _ServersScreenState extends State<ServersScreen> {
   }
 
   Future<void> _showManualConfigMenu(V2RayConfig config) async {
-    await material.showModalBottomSheet(
+    await showDialog(
       context: context,
-      builder: (context) => material.SafeArea(
-        child: Column(
+      builder: (context) => ContentDialog(
+        title: Text(config.remark),
+        content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            material.ListTile(
+            ListTile(
               leading: Icon(FluentIcons.copy),
               title: const Text('Copy Config Link'),
-              onTap: () {
-                _copyConfigLink(config);
+              onPressed: () {
                 Navigator.pop(context);
+                _copyConfigLink(config);
               },
             ),
-            material.ListTile(
+            ListTile(
               leading: Icon(FluentIcons.camera),
               title: const Text('Show QR Code'),
-              onTap: () {
+              onPressed: () {
                 Navigator.pop(context);
                 _showQRCode(config);
               },
             ),
-            material.ListTile(
+            ListTile(
               leading: Icon(FluentIcons.delete),
               title: const Text('Delete'),
-              onTap: () {
+              onPressed: () {
                 Navigator.pop(context);
                 _deleteConfig(config);
               },
             ),
           ],
         ),
+        actions: [
+          Button(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: const Text('Cancel'),
+          ),
+        ],
       ),
     );
   }
@@ -521,7 +529,6 @@ class _ServersScreenState extends State<ServersScreen> {
     await service.copyToClipboard(config.fullConfig);
     
     if (mounted) {
-      Navigator.pop(context); // Close the bottom sheet
       await displayInfoBar(
         context,
         builder: (context, close) {
@@ -537,14 +544,10 @@ class _ServersScreenState extends State<ServersScreen> {
   }
 
   Future<void> _showQRCode(V2RayConfig config) async {
-    Navigator.pop(context); // Close the bottom sheet
-    
     await _displayQRCode(config.fullConfig);
   }
 
   Future<void> _deleteConfig(V2RayConfig config) async {
-    Navigator.pop(context); // Close the bottom sheet
-    
     await showDialog(
       context: context,
       builder: (context) => ContentDialog(
