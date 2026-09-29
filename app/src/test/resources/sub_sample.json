@@ -1,0 +1,2880 @@
+[
+    {
+        "log": {
+            "access": "",
+            "error": "",
+            "loglevel": "warning"
+        },
+        "policy": {
+            "system": {
+                "statsOutboundDownlink": true,
+                "statsOutboundUplink": true
+            },
+            "levels": {
+                "8": {
+                    "connIdle": 300,
+                    "downlinkOnly": 1,
+                    "handshake": 4,
+                    "uplinkOnly": 1
+                }
+            }
+        },
+        "inbounds": [
+            {
+                "tag": "socks",
+                "port": 10808,
+                "listen": "0.0.0.0",
+                "protocol": "socks",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            },
+            {
+                "tag": "http",
+                "port": 10809,
+                "listen": "0.0.0.0",
+                "protocol": "http",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            }
+        ],
+        "outbounds": [
+            {
+                "protocol": "vless",
+                "tag": "proxy",
+                "settings": {
+                    "vnext": [
+                        {
+                            "address": "s0.example.com",
+                            "port": 33017,
+                            "users": [
+                                {
+                                    "id": "a47e4ce0-5873-0f6f-5822-ac2d4af7cb05",
+                                    "encryption": "none"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "streamSettings": {
+                    "network": "tcp",
+                    "tcpSettings": {
+                        "header": {
+                            "type": "http",
+                            "request": {
+                                "version": "1.1",
+                                "method": "GET",
+                                "path": [
+                                    "/"
+                                ],
+                                "headers": {
+                                    "Host": [
+                                        "amp-api-edge.apps.apple.com"
+                                    ],
+                                    "User-Agent": [],
+                                    "Accept-Encoding": [
+                                        "gzip, deflate"
+                                    ],
+                                    "Connection": [
+                                        "keep-alive"
+                                    ],
+                                    "Pragma": "no-cache"
+                                }
+                            },
+                            "response": {
+                                "version": "1.1",
+                                "status": "200",
+                                "reason": "OK",
+                                "headers": {
+                                    "Content-Type": [
+                                        "application/octet-stream",
+                                        "video/mpeg"
+                                    ],
+                                    "Transfer-Encoding": [
+                                        "chunked"
+                                    ],
+                                    "Connection": [
+                                        "keep-alive"
+                                    ],
+                                    "Pragma": "no-cache"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "protocol": "freedom",
+                "tag": "DIRECT"
+            },
+            {
+                "protocol": "blackhole",
+                "tag": "BLOCK"
+            }
+        ],
+        "dns": {
+            "servers": [
+                "1.1.1.1",
+                "8.8.8.8"
+            ]
+        },
+        "routing": {
+            "domainStrategy": "AsIs",
+            "rules": []
+        },
+        "remarks": "🇩🇪Server 1"
+    },
+    {
+        "log": {
+            "access": "",
+            "error": "",
+            "loglevel": "warning"
+        },
+        "policy": {
+            "system": {
+                "statsOutboundDownlink": true,
+                "statsOutboundUplink": true
+            },
+            "levels": {
+                "8": {
+                    "connIdle": 300,
+                    "downlinkOnly": 1,
+                    "handshake": 4,
+                    "uplinkOnly": 1
+                }
+            }
+        },
+        "inbounds": [
+            {
+                "tag": "socks",
+                "port": 10808,
+                "listen": "0.0.0.0",
+                "protocol": "socks",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            },
+            {
+                "tag": "http",
+                "port": 10809,
+                "listen": "0.0.0.0",
+                "protocol": "http",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            }
+        ],
+        "outbounds": [
+            {
+                "protocol": "vless",
+                "tag": "proxy",
+                "settings": {
+                    "vnext": [
+                        {
+                            "address": "s1.example.com",
+                            "port": 33017,
+                            "users": [
+                                {
+                                    "id": "cfcd3549-aee3-3938-f6d4-ea20e48fd7d2",
+                                    "encryption": "none"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "streamSettings": {
+                    "network": "tcp",
+                    "tcpSettings": {
+                        "header": {
+                            "type": "http",
+                            "request": {
+                                "version": "1.1",
+                                "method": "GET",
+                                "path": [
+                                    "/"
+                                ],
+                                "headers": {
+                                    "Host": [
+                                        "amp-api-edge.apps.apple.com"
+                                    ],
+                                    "User-Agent": [],
+                                    "Accept-Encoding": [
+                                        "gzip, deflate"
+                                    ],
+                                    "Connection": [
+                                        "keep-alive"
+                                    ],
+                                    "Pragma": "no-cache"
+                                }
+                            },
+                            "response": {
+                                "version": "1.1",
+                                "status": "200",
+                                "reason": "OK",
+                                "headers": {
+                                    "Content-Type": [
+                                        "application/octet-stream",
+                                        "video/mpeg"
+                                    ],
+                                    "Transfer-Encoding": [
+                                        "chunked"
+                                    ],
+                                    "Connection": [
+                                        "keep-alive"
+                                    ],
+                                    "Pragma": "no-cache"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "protocol": "freedom",
+                "tag": "DIRECT"
+            },
+            {
+                "protocol": "blackhole",
+                "tag": "BLOCK"
+            }
+        ],
+        "dns": {
+            "servers": [
+                "1.1.1.1",
+                "8.8.8.8"
+            ]
+        },
+        "routing": {
+            "domainStrategy": "AsIs",
+            "rules": []
+        },
+        "remarks": "🇫🇷Server 2"
+    },
+    {
+        "log": {
+            "access": "",
+            "error": "",
+            "loglevel": "warning"
+        },
+        "policy": {
+            "system": {
+                "statsOutboundDownlink": true,
+                "statsOutboundUplink": true
+            },
+            "levels": {
+                "8": {
+                    "connIdle": 300,
+                    "downlinkOnly": 1,
+                    "handshake": 4,
+                    "uplinkOnly": 1
+                }
+            }
+        },
+        "inbounds": [
+            {
+                "tag": "socks",
+                "port": 10808,
+                "listen": "0.0.0.0",
+                "protocol": "socks",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            },
+            {
+                "tag": "http",
+                "port": 10809,
+                "listen": "0.0.0.0",
+                "protocol": "http",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            }
+        ],
+        "outbounds": [
+            {
+                "protocol": "vless",
+                "tag": "proxy",
+                "settings": {
+                    "vnext": [
+                        {
+                            "address": "s2.example.com",
+                            "port": 33017,
+                            "users": [
+                                {
+                                    "id": "19137fc3-0a80-ddcb-2636-323989617c20",
+                                    "encryption": "none"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "streamSettings": {
+                    "network": "tcp",
+                    "tcpSettings": {
+                        "header": {
+                            "type": "http",
+                            "request": {
+                                "version": "1.1",
+                                "method": "GET",
+                                "path": [
+                                    "/"
+                                ],
+                                "headers": {
+                                    "Host": [
+                                        "amp-api-edge.apps.apple.com"
+                                    ],
+                                    "User-Agent": [],
+                                    "Accept-Encoding": [
+                                        "gzip, deflate"
+                                    ],
+                                    "Connection": [
+                                        "keep-alive"
+                                    ],
+                                    "Pragma": "no-cache"
+                                }
+                            },
+                            "response": {
+                                "version": "1.1",
+                                "status": "200",
+                                "reason": "OK",
+                                "headers": {
+                                    "Content-Type": [
+                                        "application/octet-stream",
+                                        "video/mpeg"
+                                    ],
+                                    "Transfer-Encoding": [
+                                        "chunked"
+                                    ],
+                                    "Connection": [
+                                        "keep-alive"
+                                    ],
+                                    "Pragma": "no-cache"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "protocol": "freedom",
+                "tag": "DIRECT"
+            },
+            {
+                "protocol": "blackhole",
+                "tag": "BLOCK"
+            }
+        ],
+        "dns": {
+            "servers": [
+                "1.1.1.1",
+                "8.8.8.8"
+            ]
+        },
+        "routing": {
+            "domainStrategy": "AsIs",
+            "rules": []
+        },
+        "remarks": "🇮🇹Server 3"
+    },
+    {
+        "log": {
+            "access": "",
+            "error": "",
+            "loglevel": "warning"
+        },
+        "policy": {
+            "system": {
+                "statsOutboundDownlink": true,
+                "statsOutboundUplink": true
+            },
+            "levels": {
+                "8": {
+                    "connIdle": 300,
+                    "downlinkOnly": 1,
+                    "handshake": 4,
+                    "uplinkOnly": 1
+                }
+            }
+        },
+        "inbounds": [
+            {
+                "tag": "socks",
+                "port": 10808,
+                "listen": "0.0.0.0",
+                "protocol": "socks",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            },
+            {
+                "tag": "http",
+                "port": 10809,
+                "listen": "0.0.0.0",
+                "protocol": "http",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            }
+        ],
+        "outbounds": [
+            {
+                "protocol": "vless",
+                "tag": "proxy",
+                "settings": {
+                    "vnext": [
+                        {
+                            "address": "s3.example.com",
+                            "port": 33017,
+                            "users": [
+                                {
+                                    "id": "802b152e-27e0-9e29-272c-1b0b187e6627",
+                                    "encryption": "none"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "streamSettings": {
+                    "network": "tcp",
+                    "tcpSettings": {
+                        "header": {
+                            "type": "http",
+                            "request": {
+                                "version": "1.1",
+                                "method": "GET",
+                                "path": [
+                                    "/"
+                                ],
+                                "headers": {
+                                    "Host": [
+                                        "amp-api-edge.apps.apple.com"
+                                    ],
+                                    "User-Agent": [],
+                                    "Accept-Encoding": [
+                                        "gzip, deflate"
+                                    ],
+                                    "Connection": [
+                                        "keep-alive"
+                                    ],
+                                    "Pragma": "no-cache"
+                                }
+                            },
+                            "response": {
+                                "version": "1.1",
+                                "status": "200",
+                                "reason": "OK",
+                                "headers": {
+                                    "Content-Type": [
+                                        "application/octet-stream",
+                                        "video/mpeg"
+                                    ],
+                                    "Transfer-Encoding": [
+                                        "chunked"
+                                    ],
+                                    "Connection": [
+                                        "keep-alive"
+                                    ],
+                                    "Pragma": "no-cache"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "protocol": "freedom",
+                "tag": "DIRECT"
+            },
+            {
+                "protocol": "blackhole",
+                "tag": "BLOCK"
+            }
+        ],
+        "dns": {
+            "servers": [
+                "1.1.1.1",
+                "8.8.8.8"
+            ]
+        },
+        "routing": {
+            "domainStrategy": "AsIs",
+            "rules": []
+        },
+        "remarks": "🇳🇱Server 4"
+    },
+    {
+        "log": {
+            "access": "",
+            "error": "",
+            "loglevel": "warning"
+        },
+        "policy": {
+            "system": {
+                "statsOutboundDownlink": true,
+                "statsOutboundUplink": true
+            },
+            "levels": {
+                "8": {
+                    "connIdle": 300,
+                    "downlinkOnly": 1,
+                    "handshake": 4,
+                    "uplinkOnly": 1
+                }
+            }
+        },
+        "inbounds": [
+            {
+                "tag": "socks",
+                "port": 10808,
+                "listen": "0.0.0.0",
+                "protocol": "socks",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            },
+            {
+                "tag": "http",
+                "port": 10809,
+                "listen": "0.0.0.0",
+                "protocol": "http",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            }
+        ],
+        "outbounds": [
+            {
+                "protocol": "vless",
+                "tag": "proxy",
+                "settings": {
+                    "vnext": [
+                        {
+                            "address": "s4.example.com",
+                            "port": 33017,
+                            "users": [
+                                {
+                                    "id": "bac0f26a-c8ab-1055-c140-91d176bbf016",
+                                    "encryption": "none"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "streamSettings": {
+                    "network": "tcp",
+                    "tcpSettings": {
+                        "header": {
+                            "type": "http",
+                            "request": {
+                                "version": "1.1",
+                                "method": "GET",
+                                "path": [
+                                    "/"
+                                ],
+                                "headers": {
+                                    "Host": [
+                                        "amp-api-edge.apps.apple.com"
+                                    ],
+                                    "User-Agent": [],
+                                    "Accept-Encoding": [
+                                        "gzip, deflate"
+                                    ],
+                                    "Connection": [
+                                        "keep-alive"
+                                    ],
+                                    "Pragma": "no-cache"
+                                }
+                            },
+                            "response": {
+                                "version": "1.1",
+                                "status": "200",
+                                "reason": "OK",
+                                "headers": {
+                                    "Content-Type": [
+                                        "application/octet-stream",
+                                        "video/mpeg"
+                                    ],
+                                    "Transfer-Encoding": [
+                                        "chunked"
+                                    ],
+                                    "Connection": [
+                                        "keep-alive"
+                                    ],
+                                    "Pragma": "no-cache"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "protocol": "freedom",
+                "tag": "DIRECT"
+            },
+            {
+                "protocol": "blackhole",
+                "tag": "BLOCK"
+            }
+        ],
+        "dns": {
+            "servers": [
+                "1.1.1.1",
+                "8.8.8.8"
+            ]
+        },
+        "routing": {
+            "domainStrategy": "AsIs",
+            "rules": []
+        },
+        "remarks": "🇸🇪Server 5"
+    },
+    {
+        "log": {
+            "access": "",
+            "error": "",
+            "loglevel": "warning"
+        },
+        "policy": {
+            "system": {
+                "statsOutboundDownlink": true,
+                "statsOutboundUplink": true
+            },
+            "levels": {
+                "8": {
+                    "connIdle": 300,
+                    "downlinkOnly": 1,
+                    "handshake": 4,
+                    "uplinkOnly": 1
+                }
+            }
+        },
+        "inbounds": [
+            {
+                "tag": "socks",
+                "port": 10808,
+                "listen": "0.0.0.0",
+                "protocol": "socks",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            },
+            {
+                "tag": "http",
+                "port": 10809,
+                "listen": "0.0.0.0",
+                "protocol": "http",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            }
+        ],
+        "outbounds": [
+            {
+                "protocol": "vless",
+                "tag": "proxy",
+                "settings": {
+                    "vnext": [
+                        {
+                            "address": "s5.example.com",
+                            "port": 33017,
+                            "users": [
+                                {
+                                    "id": "b967bea1-33e3-5d2c-1369-2e3e2f856422",
+                                    "encryption": "none"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "streamSettings": {
+                    "network": "tcp",
+                    "tcpSettings": {
+                        "header": {
+                            "type": "http",
+                            "request": {
+                                "version": "1.1",
+                                "method": "GET",
+                                "path": [
+                                    "/"
+                                ],
+                                "headers": {
+                                    "Host": [
+                                        "amp-api-edge.apps.apple.com"
+                                    ],
+                                    "User-Agent": [],
+                                    "Accept-Encoding": [
+                                        "gzip, deflate"
+                                    ],
+                                    "Connection": [
+                                        "keep-alive"
+                                    ],
+                                    "Pragma": "no-cache"
+                                }
+                            },
+                            "response": {
+                                "version": "1.1",
+                                "status": "200",
+                                "reason": "OK",
+                                "headers": {
+                                    "Content-Type": [
+                                        "application/octet-stream",
+                                        "video/mpeg"
+                                    ],
+                                    "Transfer-Encoding": [
+                                        "chunked"
+                                    ],
+                                    "Connection": [
+                                        "keep-alive"
+                                    ],
+                                    "Pragma": "no-cache"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "protocol": "freedom",
+                "tag": "DIRECT"
+            },
+            {
+                "protocol": "blackhole",
+                "tag": "BLOCK"
+            }
+        ],
+        "dns": {
+            "servers": [
+                "1.1.1.1",
+                "8.8.8.8"
+            ]
+        },
+        "routing": {
+            "domainStrategy": "AsIs",
+            "rules": []
+        },
+        "remarks": "🇹🇷Server 6"
+    },
+    {
+        "log": {
+            "access": "",
+            "error": "",
+            "loglevel": "warning"
+        },
+        "policy": {
+            "system": {
+                "statsOutboundDownlink": true,
+                "statsOutboundUplink": true
+            },
+            "levels": {
+                "8": {
+                    "connIdle": 300,
+                    "downlinkOnly": 1,
+                    "handshake": 4,
+                    "uplinkOnly": 1
+                }
+            }
+        },
+        "inbounds": [
+            {
+                "tag": "socks",
+                "port": 10808,
+                "listen": "0.0.0.0",
+                "protocol": "socks",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            },
+            {
+                "tag": "http",
+                "port": 10809,
+                "listen": "0.0.0.0",
+                "protocol": "http",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            }
+        ],
+        "outbounds": [
+            {
+                "protocol": "vless",
+                "tag": "proxy",
+                "settings": {
+                    "vnext": [
+                        {
+                            "address": "s6.example.com",
+                            "port": 33017,
+                            "users": [
+                                {
+                                    "id": "37f0292b-7132-1618-080e-a412c7373097",
+                                    "encryption": "none"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "streamSettings": {
+                    "network": "tcp",
+                    "tcpSettings": {
+                        "header": {
+                            "type": "http",
+                            "request": {
+                                "version": "1.1",
+                                "method": "GET",
+                                "path": [
+                                    "/"
+                                ],
+                                "headers": {
+                                    "Host": [
+                                        "amp-api-edge.apps.apple.com"
+                                    ],
+                                    "User-Agent": [],
+                                    "Accept-Encoding": [
+                                        "gzip, deflate"
+                                    ],
+                                    "Connection": [
+                                        "keep-alive"
+                                    ],
+                                    "Pragma": "no-cache"
+                                }
+                            },
+                            "response": {
+                                "version": "1.1",
+                                "status": "200",
+                                "reason": "OK",
+                                "headers": {
+                                    "Content-Type": [
+                                        "application/octet-stream",
+                                        "video/mpeg"
+                                    ],
+                                    "Transfer-Encoding": [
+                                        "chunked"
+                                    ],
+                                    "Connection": [
+                                        "keep-alive"
+                                    ],
+                                    "Pragma": "no-cache"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "protocol": "freedom",
+                "tag": "DIRECT"
+            },
+            {
+                "protocol": "blackhole",
+                "tag": "BLOCK"
+            }
+        ],
+        "dns": {
+            "servers": [
+                "1.1.1.1",
+                "8.8.8.8"
+            ]
+        },
+        "routing": {
+            "domainStrategy": "AsIs",
+            "rules": []
+        },
+        "remarks": "🇩🇪Server 7"
+    },
+    {
+        "log": {
+            "access": "",
+            "error": "",
+            "loglevel": "warning"
+        },
+        "policy": {
+            "system": {
+                "statsOutboundDownlink": true,
+                "statsOutboundUplink": true
+            },
+            "levels": {
+                "8": {
+                    "connIdle": 300,
+                    "downlinkOnly": 1,
+                    "handshake": 4,
+                    "uplinkOnly": 1
+                }
+            }
+        },
+        "inbounds": [
+            {
+                "tag": "socks",
+                "port": 10808,
+                "listen": "0.0.0.0",
+                "protocol": "socks",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            },
+            {
+                "tag": "http",
+                "port": 10809,
+                "listen": "0.0.0.0",
+                "protocol": "http",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            }
+        ],
+        "outbounds": [
+            {
+                "protocol": "vless",
+                "tag": "proxy",
+                "settings": {
+                    "vnext": [
+                        {
+                            "address": "s7.example.com",
+                            "port": 33017,
+                            "users": [
+                                {
+                                    "id": "7a2ed2d4-ce62-4e5e-ba24-42d102293429",
+                                    "encryption": "none"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "streamSettings": {
+                    "network": "tcp",
+                    "tcpSettings": {
+                        "header": {
+                            "type": "http",
+                            "request": {
+                                "version": "1.1",
+                                "method": "GET",
+                                "path": [
+                                    "/"
+                                ],
+                                "headers": {
+                                    "Host": [],
+                                    "User-Agent": [],
+                                    "Accept-Encoding": [
+                                        "gzip, deflate"
+                                    ],
+                                    "Connection": [
+                                        "keep-alive"
+                                    ],
+                                    "Pragma": "no-cache"
+                                }
+                            },
+                            "response": {
+                                "version": "1.1",
+                                "status": "200",
+                                "reason": "OK",
+                                "headers": {
+                                    "Content-Type": [
+                                        "application/octet-stream",
+                                        "video/mpeg"
+                                    ],
+                                    "Transfer-Encoding": [
+                                        "chunked"
+                                    ],
+                                    "Connection": [
+                                        "keep-alive"
+                                    ],
+                                    "Pragma": "no-cache"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "protocol": "freedom",
+                "tag": "DIRECT"
+            },
+            {
+                "protocol": "blackhole",
+                "tag": "BLOCK"
+            }
+        ],
+        "dns": {
+            "servers": [
+                "1.1.1.1",
+                "8.8.8.8"
+            ]
+        },
+        "routing": {
+            "domainStrategy": "AsIs",
+            "rules": []
+        },
+        "remarks": "🇫🇷Server 8"
+    },
+    {
+        "log": {
+            "access": "",
+            "error": "",
+            "loglevel": "warning"
+        },
+        "policy": {
+            "system": {
+                "statsOutboundDownlink": true,
+                "statsOutboundUplink": true
+            },
+            "levels": {
+                "8": {
+                    "connIdle": 300,
+                    "downlinkOnly": 1,
+                    "handshake": 4,
+                    "uplinkOnly": 1
+                }
+            }
+        },
+        "inbounds": [
+            {
+                "tag": "socks",
+                "port": 10808,
+                "listen": "0.0.0.0",
+                "protocol": "socks",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            },
+            {
+                "tag": "http",
+                "port": 10809,
+                "listen": "0.0.0.0",
+                "protocol": "http",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            }
+        ],
+        "outbounds": [
+            {
+                "protocol": "vless",
+                "tag": "proxy",
+                "settings": {
+                    "vnext": [
+                        {
+                            "address": "s8.example.com",
+                            "port": 80,
+                            "users": [
+                                {
+                                    "id": "0f1cbabc-8058-4e39-c8be-7e0b59101a1a",
+                                    "encryption": "none"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "streamSettings": {
+                    "network": "ws",
+                    "wsSettings": {
+                        "path": "/ws",
+                        "host": "s8.example.com"
+                    }
+                }
+            },
+            {
+                "protocol": "freedom",
+                "tag": "DIRECT"
+            },
+            {
+                "protocol": "blackhole",
+                "tag": "BLOCK"
+            }
+        ],
+        "dns": {
+            "servers": [
+                "1.1.1.1",
+                "8.8.8.8"
+            ]
+        },
+        "routing": {
+            "domainStrategy": "AsIs",
+            "rules": []
+        },
+        "remarks": "🇮🇹Server 9"
+    },
+    {
+        "log": {
+            "access": "",
+            "error": "",
+            "loglevel": "warning"
+        },
+        "policy": {
+            "system": {
+                "statsOutboundDownlink": true,
+                "statsOutboundUplink": true
+            },
+            "levels": {
+                "8": {
+                    "connIdle": 300,
+                    "downlinkOnly": 1,
+                    "handshake": 4,
+                    "uplinkOnly": 1
+                }
+            }
+        },
+        "inbounds": [
+            {
+                "tag": "socks",
+                "port": 10808,
+                "listen": "0.0.0.0",
+                "protocol": "socks",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            },
+            {
+                "tag": "http",
+                "port": 10809,
+                "listen": "0.0.0.0",
+                "protocol": "http",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            }
+        ],
+        "outbounds": [
+            {
+                "protocol": "vless",
+                "tag": "proxy",
+                "settings": {
+                    "vnext": [
+                        {
+                            "address": "s9.example.com",
+                            "port": 2095,
+                            "users": [
+                                {
+                                    "id": "7fa1930b-6ff2-f6bb-a851-32157f86ef1f",
+                                    "encryption": "none"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "streamSettings": {
+                    "network": "ws",
+                    "wsSettings": {
+                        "path": "/ws",
+                        "host": "s9.example.com"
+                    }
+                }
+            },
+            {
+                "protocol": "freedom",
+                "tag": "DIRECT"
+            },
+            {
+                "protocol": "blackhole",
+                "tag": "BLOCK"
+            }
+        ],
+        "dns": {
+            "servers": [
+                "1.1.1.1",
+                "8.8.8.8"
+            ]
+        },
+        "routing": {
+            "domainStrategy": "AsIs",
+            "rules": []
+        },
+        "remarks": "🇳🇱Server 10"
+    },
+    {
+        "log": {
+            "access": "",
+            "error": "",
+            "loglevel": "warning"
+        },
+        "policy": {
+            "system": {
+                "statsOutboundDownlink": true,
+                "statsOutboundUplink": true
+            },
+            "levels": {
+                "8": {
+                    "connIdle": 300,
+                    "downlinkOnly": 1,
+                    "handshake": 4,
+                    "uplinkOnly": 1
+                }
+            }
+        },
+        "inbounds": [
+            {
+                "tag": "socks",
+                "port": 10808,
+                "listen": "0.0.0.0",
+                "protocol": "socks",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            },
+            {
+                "tag": "http",
+                "port": 10809,
+                "listen": "0.0.0.0",
+                "protocol": "http",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            }
+        ],
+        "outbounds": [
+            {
+                "protocol": "vless",
+                "tag": "proxy",
+                "settings": {
+                    "vnext": [
+                        {
+                            "address": "s10.example.com",
+                            "port": 8080,
+                            "users": [
+                                {
+                                    "id": "50b2eb94-c9d0-bdea-b855-9ef13e617f08",
+                                    "encryption": "none"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "streamSettings": {
+                    "network": "ws",
+                    "wsSettings": {
+                        "path": "/ws",
+                        "host": "s10.example.com"
+                    }
+                }
+            },
+            {
+                "protocol": "freedom",
+                "tag": "DIRECT"
+            },
+            {
+                "protocol": "blackhole",
+                "tag": "BLOCK"
+            }
+        ],
+        "dns": {
+            "servers": [
+                "1.1.1.1",
+                "8.8.8.8"
+            ]
+        },
+        "routing": {
+            "domainStrategy": "AsIs",
+            "rules": []
+        },
+        "remarks": "🇸🇪Server 11"
+    },
+    {
+        "log": {
+            "access": "",
+            "error": "",
+            "loglevel": "warning"
+        },
+        "policy": {
+            "system": {
+                "statsOutboundDownlink": true,
+                "statsOutboundUplink": true
+            },
+            "levels": {
+                "8": {
+                    "connIdle": 300,
+                    "downlinkOnly": 1,
+                    "handshake": 4,
+                    "uplinkOnly": 1
+                }
+            }
+        },
+        "inbounds": [
+            {
+                "tag": "socks",
+                "port": 10808,
+                "listen": "0.0.0.0",
+                "protocol": "socks",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            },
+            {
+                "tag": "http",
+                "port": 10809,
+                "listen": "0.0.0.0",
+                "protocol": "http",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            }
+        ],
+        "outbounds": [
+            {
+                "protocol": "vless",
+                "tag": "proxy",
+                "settings": {
+                    "vnext": [
+                        {
+                            "address": "s11.example.com",
+                            "port": 2095,
+                            "users": [
+                                {
+                                    "id": "e8d8b304-f56e-fdff-87ff-d8700c2d2caa",
+                                    "encryption": "none"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "streamSettings": {
+                    "network": "ws",
+                    "wsSettings": {
+                        "path": "/ws",
+                        "host": "s11.example.com"
+                    }
+                }
+            },
+            {
+                "protocol": "freedom",
+                "tag": "DIRECT"
+            },
+            {
+                "protocol": "blackhole",
+                "tag": "BLOCK"
+            }
+        ],
+        "dns": {
+            "servers": [
+                "1.1.1.1",
+                "8.8.8.8"
+            ]
+        },
+        "routing": {
+            "domainStrategy": "AsIs",
+            "rules": []
+        },
+        "remarks": "🇹🇷Server 12"
+    },
+    {
+        "log": {
+            "access": "",
+            "error": "",
+            "loglevel": "warning"
+        },
+        "policy": {
+            "system": {
+                "statsOutboundDownlink": true,
+                "statsOutboundUplink": true
+            },
+            "levels": {
+                "8": {
+                    "connIdle": 300,
+                    "downlinkOnly": 1,
+                    "handshake": 4,
+                    "uplinkOnly": 1
+                }
+            }
+        },
+        "inbounds": [
+            {
+                "tag": "socks",
+                "port": 10808,
+                "listen": "0.0.0.0",
+                "protocol": "socks",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            },
+            {
+                "tag": "http",
+                "port": 10809,
+                "listen": "0.0.0.0",
+                "protocol": "http",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            }
+        ],
+        "outbounds": [
+            {
+                "protocol": "vless",
+                "tag": "proxy",
+                "settings": {
+                    "vnext": [
+                        {
+                            "address": "s12.example.com",
+                            "port": 2095,
+                            "users": [
+                                {
+                                    "id": "c67a70bd-e16d-5b67-e852-0246e76c0e6e",
+                                    "encryption": "none"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "streamSettings": {
+                    "network": "ws",
+                    "wsSettings": {
+                        "path": "/ws",
+                        "host": "s12.example.com"
+                    }
+                }
+            },
+            {
+                "protocol": "freedom",
+                "tag": "DIRECT"
+            },
+            {
+                "protocol": "blackhole",
+                "tag": "BLOCK"
+            }
+        ],
+        "dns": {
+            "servers": [
+                "1.1.1.1",
+                "8.8.8.8"
+            ]
+        },
+        "routing": {
+            "domainStrategy": "AsIs",
+            "rules": []
+        },
+        "remarks": "🇩🇪Server 13"
+    },
+    {
+        "log": {
+            "access": "",
+            "error": "",
+            "loglevel": "warning"
+        },
+        "policy": {
+            "system": {
+                "statsOutboundDownlink": true,
+                "statsOutboundUplink": true
+            },
+            "levels": {
+                "8": {
+                    "connIdle": 300,
+                    "downlinkOnly": 1,
+                    "handshake": 4,
+                    "uplinkOnly": 1
+                }
+            }
+        },
+        "inbounds": [
+            {
+                "tag": "socks",
+                "port": 10808,
+                "listen": "0.0.0.0",
+                "protocol": "socks",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            },
+            {
+                "tag": "http",
+                "port": 10809,
+                "listen": "0.0.0.0",
+                "protocol": "http",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            }
+        ],
+        "outbounds": [
+            {
+                "protocol": "vless",
+                "tag": "proxy",
+                "settings": {
+                    "vnext": [
+                        {
+                            "address": "s13.example.com",
+                            "port": 2095,
+                            "users": [
+                                {
+                                    "id": "48363e14-89b6-bf93-d306-1ba704560eec",
+                                    "encryption": "none"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "streamSettings": {
+                    "network": "ws",
+                    "wsSettings": {
+                        "path": "/ws",
+                        "host": "s13.example.com"
+                    }
+                }
+            },
+            {
+                "protocol": "freedom",
+                "tag": "DIRECT"
+            },
+            {
+                "protocol": "blackhole",
+                "tag": "BLOCK"
+            }
+        ],
+        "dns": {
+            "servers": [
+                "1.1.1.1",
+                "8.8.8.8"
+            ]
+        },
+        "routing": {
+            "domainStrategy": "AsIs",
+            "rules": []
+        },
+        "remarks": "🇫🇷Server 14"
+    },
+    {
+        "log": {
+            "access": "",
+            "error": "",
+            "loglevel": "warning"
+        },
+        "policy": {
+            "system": {
+                "statsOutboundDownlink": true,
+                "statsOutboundUplink": true
+            },
+            "levels": {
+                "8": {
+                    "connIdle": 300,
+                    "downlinkOnly": 1,
+                    "handshake": 4,
+                    "uplinkOnly": 1
+                }
+            }
+        },
+        "inbounds": [
+            {
+                "tag": "socks",
+                "port": 10808,
+                "listen": "0.0.0.0",
+                "protocol": "socks",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            },
+            {
+                "tag": "http",
+                "port": 10809,
+                "listen": "0.0.0.0",
+                "protocol": "http",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            }
+        ],
+        "outbounds": [
+            {
+                "protocol": "vless",
+                "tag": "proxy",
+                "settings": {
+                    "vnext": [
+                        {
+                            "address": "s14.example.com",
+                            "port": 2095,
+                            "users": [
+                                {
+                                    "id": "6509565c-2fa5-f91e-6859-29e327512ac7",
+                                    "encryption": "none"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "streamSettings": {
+                    "network": "ws",
+                    "wsSettings": {
+                        "path": "/ws",
+                        "host": "s14.example.com"
+                    }
+                }
+            },
+            {
+                "protocol": "freedom",
+                "tag": "DIRECT"
+            },
+            {
+                "protocol": "blackhole",
+                "tag": "BLOCK"
+            }
+        ],
+        "dns": {
+            "servers": [
+                "1.1.1.1",
+                "8.8.8.8"
+            ]
+        },
+        "routing": {
+            "domainStrategy": "AsIs",
+            "rules": []
+        },
+        "remarks": "🇮🇹Server 15"
+    },
+    {
+        "log": {
+            "access": "",
+            "error": "",
+            "loglevel": "warning"
+        },
+        "policy": {
+            "system": {
+                "statsOutboundDownlink": true,
+                "statsOutboundUplink": true
+            },
+            "levels": {
+                "8": {
+                    "connIdle": 300,
+                    "downlinkOnly": 1,
+                    "handshake": 4,
+                    "uplinkOnly": 1
+                }
+            }
+        },
+        "inbounds": [
+            {
+                "tag": "socks",
+                "port": 10808,
+                "listen": "0.0.0.0",
+                "protocol": "socks",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            },
+            {
+                "tag": "http",
+                "port": 10809,
+                "listen": "0.0.0.0",
+                "protocol": "http",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            }
+        ],
+        "outbounds": [
+            {
+                "protocol": "vless",
+                "tag": "proxy",
+                "settings": {
+                    "vnext": [
+                        {
+                            "address": "s15.example.com",
+                            "port": 80,
+                            "users": [
+                                {
+                                    "id": "92fe674c-43ea-fc69-536c-2e27d1d469a4",
+                                    "encryption": "none"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "streamSettings": {
+                    "network": "ws",
+                    "wsSettings": {
+                        "path": "/ws",
+                        "host": "s15.example.com"
+                    }
+                }
+            },
+            {
+                "protocol": "freedom",
+                "tag": "DIRECT"
+            },
+            {
+                "protocol": "blackhole",
+                "tag": "BLOCK"
+            }
+        ],
+        "dns": {
+            "servers": [
+                "1.1.1.1",
+                "8.8.8.8"
+            ]
+        },
+        "routing": {
+            "domainStrategy": "AsIs",
+            "rules": []
+        },
+        "remarks": "🇳🇱Server 16"
+    },
+    {
+        "log": {
+            "access": "",
+            "error": "",
+            "loglevel": "warning"
+        },
+        "policy": {
+            "system": {
+                "statsOutboundDownlink": true,
+                "statsOutboundUplink": true
+            },
+            "levels": {
+                "8": {
+                    "connIdle": 300,
+                    "downlinkOnly": 1,
+                    "handshake": 4,
+                    "uplinkOnly": 1
+                }
+            }
+        },
+        "inbounds": [
+            {
+                "tag": "socks",
+                "port": 10808,
+                "listen": "0.0.0.0",
+                "protocol": "socks",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            },
+            {
+                "tag": "http",
+                "port": 10809,
+                "listen": "0.0.0.0",
+                "protocol": "http",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            }
+        ],
+        "outbounds": [
+            {
+                "protocol": "vless",
+                "tag": "proxy",
+                "settings": {
+                    "vnext": [
+                        {
+                            "address": "s16.example.com",
+                            "port": 8080,
+                            "users": [
+                                {
+                                    "id": "8badd7d8-f6bc-b20e-455b-2cc1c98f7302",
+                                    "encryption": "none"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "streamSettings": {
+                    "network": "ws",
+                    "wsSettings": {
+                        "path": "/ws",
+                        "host": "s16.example.com"
+                    }
+                }
+            },
+            {
+                "protocol": "freedom",
+                "tag": "DIRECT"
+            },
+            {
+                "protocol": "blackhole",
+                "tag": "BLOCK"
+            }
+        ],
+        "dns": {
+            "servers": [
+                "1.1.1.1",
+                "8.8.8.8"
+            ]
+        },
+        "routing": {
+            "domainStrategy": "AsIs",
+            "rules": []
+        },
+        "remarks": "🇸🇪Server 17"
+    },
+    {
+        "log": {
+            "access": "",
+            "error": "",
+            "loglevel": "warning"
+        },
+        "policy": {
+            "system": {
+                "statsOutboundDownlink": true,
+                "statsOutboundUplink": true
+            },
+            "levels": {
+                "8": {
+                    "connIdle": 300,
+                    "downlinkOnly": 1,
+                    "handshake": 4,
+                    "uplinkOnly": 1
+                }
+            }
+        },
+        "inbounds": [
+            {
+                "tag": "socks",
+                "port": 10808,
+                "listen": "0.0.0.0",
+                "protocol": "socks",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            },
+            {
+                "tag": "http",
+                "port": 10809,
+                "listen": "0.0.0.0",
+                "protocol": "http",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            }
+        ],
+        "outbounds": [
+            {
+                "protocol": "vless",
+                "tag": "proxy",
+                "settings": {
+                    "vnext": [
+                        {
+                            "address": "s17.example.com",
+                            "port": 8080,
+                            "users": [
+                                {
+                                    "id": "3627fb37-5295-cbaf-e036-f6b8d229fc68",
+                                    "encryption": "none"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "streamSettings": {
+                    "network": "ws",
+                    "wsSettings": {
+                        "path": "/ws",
+                        "host": "s17.example.com"
+                    }
+                }
+            },
+            {
+                "protocol": "freedom",
+                "tag": "DIRECT"
+            },
+            {
+                "protocol": "blackhole",
+                "tag": "BLOCK"
+            }
+        ],
+        "dns": {
+            "servers": [
+                "1.1.1.1",
+                "8.8.8.8"
+            ]
+        },
+        "routing": {
+            "domainStrategy": "AsIs",
+            "rules": []
+        },
+        "remarks": "🇹🇷Server 18"
+    },
+    {
+        "log": {
+            "access": "",
+            "error": "",
+            "loglevel": "warning"
+        },
+        "policy": {
+            "system": {
+                "statsOutboundDownlink": true,
+                "statsOutboundUplink": true
+            },
+            "levels": {
+                "8": {
+                    "connIdle": 300,
+                    "downlinkOnly": 1,
+                    "handshake": 4,
+                    "uplinkOnly": 1
+                }
+            }
+        },
+        "inbounds": [
+            {
+                "tag": "socks",
+                "port": 10808,
+                "listen": "0.0.0.0",
+                "protocol": "socks",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            },
+            {
+                "tag": "http",
+                "port": 10809,
+                "listen": "0.0.0.0",
+                "protocol": "http",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            }
+        ],
+        "outbounds": [
+            {
+                "protocol": "vless",
+                "tag": "proxy",
+                "settings": {
+                    "vnext": [
+                        {
+                            "address": "s18.example.com",
+                            "port": 8080,
+                            "users": [
+                                {
+                                    "id": "e5cd8fb0-a84f-801d-4e09-5bd27215766c",
+                                    "encryption": "none"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "streamSettings": {
+                    "network": "ws",
+                    "wsSettings": {
+                        "path": "/ws",
+                        "host": "s18.example.com"
+                    }
+                }
+            },
+            {
+                "protocol": "freedom",
+                "tag": "DIRECT"
+            },
+            {
+                "protocol": "blackhole",
+                "tag": "BLOCK"
+            }
+        ],
+        "dns": {
+            "servers": [
+                "1.1.1.1",
+                "8.8.8.8"
+            ]
+        },
+        "routing": {
+            "domainStrategy": "AsIs",
+            "rules": []
+        },
+        "remarks": "🇩🇪Server 19"
+    },
+    {
+        "log": {
+            "access": "",
+            "error": "",
+            "loglevel": "warning"
+        },
+        "policy": {
+            "system": {
+                "statsOutboundDownlink": true,
+                "statsOutboundUplink": true
+            },
+            "levels": {
+                "8": {
+                    "connIdle": 300,
+                    "downlinkOnly": 1,
+                    "handshake": 4,
+                    "uplinkOnly": 1
+                }
+            }
+        },
+        "inbounds": [
+            {
+                "tag": "socks",
+                "port": 10808,
+                "listen": "0.0.0.0",
+                "protocol": "socks",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            },
+            {
+                "tag": "http",
+                "port": 10809,
+                "listen": "0.0.0.0",
+                "protocol": "http",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            }
+        ],
+        "outbounds": [
+            {
+                "protocol": "vless",
+                "tag": "proxy",
+                "settings": {
+                    "vnext": [
+                        {
+                            "address": "s19.example.com",
+                            "port": 80,
+                            "users": [
+                                {
+                                    "id": "917898d9-51e6-2692-03d9-30ed40cabe1c",
+                                    "encryption": "none"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "streamSettings": {
+                    "network": "ws",
+                    "wsSettings": {
+                        "path": "/ws",
+                        "host": "s19.example.com"
+                    }
+                }
+            },
+            {
+                "protocol": "freedom",
+                "tag": "DIRECT"
+            },
+            {
+                "protocol": "blackhole",
+                "tag": "BLOCK"
+            }
+        ],
+        "dns": {
+            "servers": [
+                "1.1.1.1",
+                "8.8.8.8"
+            ]
+        },
+        "routing": {
+            "domainStrategy": "AsIs",
+            "rules": []
+        },
+        "remarks": "🇫🇷Server 20"
+    },
+    {
+        "log": {
+            "access": "",
+            "error": "",
+            "loglevel": "warning"
+        },
+        "policy": {
+            "system": {
+                "statsOutboundDownlink": true,
+                "statsOutboundUplink": true
+            },
+            "levels": {
+                "8": {
+                    "connIdle": 300,
+                    "downlinkOnly": 1,
+                    "handshake": 4,
+                    "uplinkOnly": 1
+                }
+            }
+        },
+        "inbounds": [
+            {
+                "tag": "socks",
+                "port": 10808,
+                "listen": "0.0.0.0",
+                "protocol": "socks",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            },
+            {
+                "tag": "http",
+                "port": 10809,
+                "listen": "0.0.0.0",
+                "protocol": "http",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            }
+        ],
+        "outbounds": [
+            {
+                "protocol": "vless",
+                "tag": "proxy",
+                "settings": {
+                    "vnext": [
+                        {
+                            "address": "s20.example.com",
+                            "port": 2095,
+                            "users": [
+                                {
+                                    "id": "83df4894-2a4c-72bf-e2ac-42bba13e261e",
+                                    "encryption": "none"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "streamSettings": {
+                    "network": "ws",
+                    "wsSettings": {
+                        "path": "/ws",
+                        "host": "s20.example.com"
+                    }
+                }
+            },
+            {
+                "protocol": "freedom",
+                "tag": "DIRECT"
+            },
+            {
+                "protocol": "blackhole",
+                "tag": "BLOCK"
+            }
+        ],
+        "dns": {
+            "servers": [
+                "1.1.1.1",
+                "8.8.8.8"
+            ]
+        },
+        "routing": {
+            "domainStrategy": "AsIs",
+            "rules": []
+        },
+        "remarks": "🇮🇹Server 21"
+    },
+    {
+        "log": {
+            "access": "",
+            "error": "",
+            "loglevel": "warning"
+        },
+        "policy": {
+            "system": {
+                "statsOutboundDownlink": true,
+                "statsOutboundUplink": true
+            },
+            "levels": {
+                "8": {
+                    "connIdle": 300,
+                    "downlinkOnly": 1,
+                    "handshake": 4,
+                    "uplinkOnly": 1
+                }
+            }
+        },
+        "inbounds": [
+            {
+                "tag": "socks",
+                "port": 10808,
+                "listen": "0.0.0.0",
+                "protocol": "socks",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            },
+            {
+                "tag": "http",
+                "port": 10809,
+                "listen": "0.0.0.0",
+                "protocol": "http",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            }
+        ],
+        "outbounds": [
+            {
+                "protocol": "vless",
+                "tag": "proxy",
+                "settings": {
+                    "vnext": [
+                        {
+                            "address": "s21.example.com",
+                            "port": 80,
+                            "users": [
+                                {
+                                    "id": "4a183af0-f4c9-58a9-9ec8-9c3743c1afc1",
+                                    "encryption": "none"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "streamSettings": {
+                    "network": "ws",
+                    "wsSettings": {
+                        "path": "/ws",
+                        "host": "s21.example.com"
+                    }
+                }
+            },
+            {
+                "protocol": "freedom",
+                "tag": "DIRECT"
+            },
+            {
+                "protocol": "blackhole",
+                "tag": "BLOCK"
+            }
+        ],
+        "dns": {
+            "servers": [
+                "1.1.1.1",
+                "8.8.8.8"
+            ]
+        },
+        "routing": {
+            "domainStrategy": "AsIs",
+            "rules": []
+        },
+        "remarks": "🇳🇱Server 22"
+    },
+    {
+        "log": {
+            "access": "",
+            "error": "",
+            "loglevel": "warning"
+        },
+        "policy": {
+            "system": {
+                "statsOutboundDownlink": true,
+                "statsOutboundUplink": true
+            },
+            "levels": {
+                "8": {
+                    "connIdle": 300,
+                    "downlinkOnly": 1,
+                    "handshake": 4,
+                    "uplinkOnly": 1
+                }
+            }
+        },
+        "inbounds": [
+            {
+                "tag": "socks",
+                "port": 10808,
+                "listen": "0.0.0.0",
+                "protocol": "socks",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            },
+            {
+                "tag": "http",
+                "port": 10809,
+                "listen": "0.0.0.0",
+                "protocol": "http",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            }
+        ],
+        "outbounds": [
+            {
+                "protocol": "vless",
+                "tag": "proxy",
+                "settings": {
+                    "vnext": [
+                        {
+                            "address": "s22.example.com",
+                            "port": 80,
+                            "users": [
+                                {
+                                    "id": "8b7290ae-f146-6ee4-492c-160e2d083e63",
+                                    "encryption": "none"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "streamSettings": {
+                    "network": "ws",
+                    "wsSettings": {
+                        "path": "/ws",
+                        "host": "s22.example.com"
+                    }
+                }
+            },
+            {
+                "protocol": "freedom",
+                "tag": "DIRECT"
+            },
+            {
+                "protocol": "blackhole",
+                "tag": "BLOCK"
+            }
+        ],
+        "dns": {
+            "servers": [
+                "1.1.1.1",
+                "8.8.8.8"
+            ]
+        },
+        "routing": {
+            "domainStrategy": "AsIs",
+            "rules": []
+        },
+        "remarks": "🇸🇪Server 23"
+    },
+    {
+        "log": {
+            "access": "",
+            "error": "",
+            "loglevel": "warning"
+        },
+        "policy": {
+            "system": {
+                "statsOutboundDownlink": true,
+                "statsOutboundUplink": true
+            },
+            "levels": {
+                "8": {
+                    "connIdle": 300,
+                    "downlinkOnly": 1,
+                    "handshake": 4,
+                    "uplinkOnly": 1
+                }
+            }
+        },
+        "inbounds": [
+            {
+                "tag": "socks",
+                "port": 10808,
+                "listen": "0.0.0.0",
+                "protocol": "socks",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            },
+            {
+                "tag": "http",
+                "port": 10809,
+                "listen": "0.0.0.0",
+                "protocol": "http",
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": [
+                        "http",
+                        "tls"
+                    ],
+                    "routeOnly": false
+                },
+                "settings": {
+                    "auth": "noauth",
+                    "udp": true,
+                    "allowTransparent": false
+                }
+            }
+        ],
+        "outbounds": [
+            {
+                "protocol": "vless",
+                "tag": "proxy",
+                "settings": {
+                    "vnext": [
+                        {
+                            "address": "s23.example.com",
+                            "port": 80,
+                            "users": [
+                                {
+                                    "id": "7a1099d5-63e5-51c7-1200-5b02e6214183",
+                                    "encryption": "none"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "streamSettings": {
+                    "network": "ws",
+                    "wsSettings": {
+                        "path": "/ws",
+                        "host": "s23.example.com"
+                    }
+                }
+            },
+            {
+                "protocol": "freedom",
+                "tag": "DIRECT"
+            },
+            {
+                "protocol": "blackhole",
+                "tag": "BLOCK"
+            }
+        ],
+        "dns": {
+            "servers": [
+                "1.1.1.1",
+                "8.8.8.8"
+            ]
+        },
+        "routing": {
+            "domainStrategy": "AsIs",
+            "rules": []
+        },
+        "remarks": "🇹🇷Server 24"
+    }
+]

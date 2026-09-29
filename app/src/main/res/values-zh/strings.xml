@@ -1,0 +1,157 @@
+<resources>
+    <string name="brand_tagline">私密。快速。属于你。</string>
+
+    <string name="nav_home">主页</string>
+    <string name="nav_servers">服务器</string>
+    <string name="nav_locked">保险库</string>
+    <string name="nav_settings">设置</string>
+
+    <string name="servers_count">%1$d 个服务器</string>
+    <string name="servers_add">添加服务器</string>
+    <string name="servers_add_clipboard">从剪贴板导入</string>
+    <string name="servers_add_manual">手动添加</string>
+    <string name="servers_add_custom">自定义配置 (JSON)</string>
+    <string name="servers_imported">已导入 %1$d 个服务器</string>
+    <string name="servers_rename">重命名</string>
+    <string name="servers_actions">更多操作</string>
+    <string name="servers_empty_title">还没有服务器</string>
+    <string name="action_share">分享</string>
+    <string name="action_delete">删除</string>
+    <string name="action_save">保存</string>
+    <string name="action_search">搜索</string>
+    <string name="manual_remark">名称</string>
+    <string name="manual_password">密码</string>
+
+    <string name="state_idle">未连接</string>
+    <string name="state_connecting">正在连接…</string>
+    <string name="state_connected">已连接</string>
+    <string name="state_reconnecting">正在重连…</string>
+    <string name="state_disconnecting">正在断开…</string>
+    <string name="state_error">连接失败</string>
+
+    <string name="action_connect">连接</string>
+    <string name="action_disconnect">断开</string>
+    <string name="action_cancel">取消</string>
+    <string name="action_retry">重试</string>
+
+    <string name="home_no_config_title">没有活动配置</string>
+    <string name="home_select_config">选择配置</string>
+    <string name="home_upload">上传</string>
+    <string name="home_download">下载</string>
+    <string name="home_duration">时长</string>
+    <string name="home_ping">延迟</string>
+    <string name="home_tap_to_change">点击更换服务器</string>
+
+    <string name="info_details">连接详情</string>
+    <string name="info_isp">运营商</string>
+    <string name="info_location">位置</string>
+    <string name="info_refresh">刷新</string>
+
+    <string name="settings_title">设置</string>
+    <string name="settings_appearance">外观</string>
+    <string name="settings_theme">主题</string>
+    <string name="settings_language">语言</string>
+    <string name="settings_language_system">跟随系统</string>
+    <string name="settings_about">关于</string>
+
+    <string name="title_tunnels_settings">隧道</string>
+    <string name="title_dns_protocols">基于 DNS 的协议 (VayDNS 和 DNSTT)</string>
+    <string name="title_tor_settings">Tor</string>
+    <string name="title_ssh_settings">SSH 隧道</string>
+    <string name="kill_switch">断网保护</string>
+    <string name="kill_switch_sum">VPN 断开时阻断所有流量，防止泄露。</string>
+
+    <string name="psiphon_add_title">添加 Psiphon</string>
+    <string name="dns_tunnel_add_title">添加 DNS 隧道</string>
+    <string name="tor_add_title">添加 Tor</string>
+    <string name="tor_added">已添加 Tor</string>
+    <string name="ssh_add_title">添加 SSH 隧道</string>
+    <string name="snispoof_add_title">添加 SNI 伪装 (需 Root)</string>
+    <string name="snispoof_root_warn">⚠ 需要已 Root 的设备。此功能注入原始数据包（伪造 TLS ClientHello），必须 Root，未 Root 的手机无法使用。</string>
+    <string name="subs_add">添加订阅</string>
+
+    <string name="logs_title">日志</string>
+    <string name="oc_auth_title">身份验证</string>
+    <string name="oc_auth_connect">继续</string>
+    <string name="oc_auth_cancel">取消</string>
+    <string name="ikev2_requires_android11">IKEv2 需要 Android 11 或更高版本</string>
+
+    <string name="core_start_failed">内核启动失败</string>
+    <string name="core_start_failed_reason">内核启动失败：%1$s</string>
+    <string name="core_geo_code_missing">路由数据中的 %2$s 不包含“%1$s”。请在“设置 → 数据文件”中更换来源或更新文件。</string>
+    <string name="core_geo_file_missing">缺少路由数据文件 %1$s。请在“设置 → 数据文件”中下载。</string>
+    <string name="zsx_legacy">此锁定配置由旧版 ZedSecure 创建。请让分享者重新发送一份。</string>
+
+    <string name="notif_stage_preparing">正在准备…</string>
+    <string name="notif_stage_interface">正在设置网络接口…</string>
+    <string name="notif_stage_engine">正在启动内核…</string>
+    <string name="notif_stage_tunnel">正在建立隧道…</string>
+    <string name="notif_protocol">协议：%1$s</string>
+    <string name="notif_chip_connecting">连接中</string>
+    <string name="notif_chip_on">已开启</string>
+    <string name="notif_chip_off">已关闭</string>
+    <string name="notif_title_disconnected">隧道已停止</string>
+    <string name="notif_kill_switch_body">隧道已断开。断开连接前，终止开关将拦截所有流量。</string>
+    <string name="widget_description">连接或断开，并显示实时状态与本次流量。</string>
+    <string name="widget_no_server">未选择服务器</string>
+    <string name="chain_member_missing">代理链缺少：%1$s</string>
+    <string name="chain_udp_hop_unsupported">%1$s 不能排在 %2$s 之后 — 它需要 UDP</string>
+    <string name="crosschain_outer_failed">承载隧道无法连接</string>
+    <string name="tor_bootstrap_timeout">Tor 未能及时完成连接。请尝试网桥，或检查承载隧道。</string>
+    <string name="crosschain_inner_failed">出口隧道无法通过承载隧道连接</string>
+    <string name="crosschain_inner_unsupported">此引擎无法通过其他隧道连接</string>
+    <string name="crosschain_bad_carrier">%1$s 无法承载其他隧道</string>
+    <string name="crosschain_bad_dialer">%1$s 无法通过其他隧道连接</string>
+    <string name="crosschain_udp_unsupported">%1$s 需要 UDP，但 %2$s 只能转发 TCP。请选择支持 UDP 的载体，或不需要 UDP 的出口。</string>
+    <string name="masterdns_failed">MasterDNS 隧道未能建立</string>
+    <string name="masterdns_failed_reason">MasterDNS 隧道未能建立：%1$s</string>
+    <string name="masterdns_no_resolver">%1$d 个解析器均未通过测试。它们在此网络中被封锁，或域名、密钥与服务器不匹配。</string>
+    <string name="masterdns_session_refused">%1$d 个解析器可用，但服务器未接受会话（%2$s）。请检查密钥和加密方式，或服务器已离线。</string>
+    <string name="masterdns_stalled">超时时解析器仍在测试中（已检查 %1$d / %2$d，可用 %3$d）。请缩短解析器列表，或开启 DNS 池。</string>
+    <string name="ikev2_requires_ipsec">此设备不支持 IKEv2/IPsec VPN</string>
+    <string name="ikev2_vpn_manager_unavailable">系统 VPN 服务不可用</string>
+    <string name="ikev2_cert_unavailable">无法读取所选的客户端证书。请在配置中重新选择。</string>
+    <string name="ikev2_cert_not_exportable">该证书的私钥由硬件保护，无法用于 IKEv2。请改用软件证书。</string>
+    <string name="ikev2_ca_invalid">无法读取 CA 证书。请重新导入，或清除以使用系统证书库。</string>
+    <string name="ikev2_blocked_by_always_on">另一个应用占用了始终开启的 VPN，或已启用 VPN 锁定。</string>
+    <string name="ikev2_failed_generic">IKEv2 启动失败</string>
+    <string name="ikev2_ike_error">网关拒绝了连接。请检查凭据、身份和证书。</string>
+    <string name="ikev2_network_error">连接时发生网络错误</string>
+    <string name="ikev2_err_unknown_host">无法解析网关地址</string>
+    <string name="ikev2_err_timeout">网关无响应</string>
+    <string name="ikev2_err_network_lost">网络已断开</string>
+    <string name="ikev2_connect_timeout">网关未能及时完成握手</string>
+    <string name="ikev2_adopted_session">IKEv2（系统）</string>
+    <string name="openconnect_sso_title">SSO 登录</string>
+    <string name="oc_cert_title">不受信任的证书</string>
+    <string name="oc_cert_body">无法验证此网关的证书。只有在您认得下面的指纹时才继续。</string>
+    <string name="oc_cert_trust">信任并连接</string>
+    <string name="oc_cert_remember">不再为此服务器询问</string>
+    <string name="dns_tunnel_unreachable">DNS 隧道已启动但没有流量通过。请换一个解析器或传输方式。</string>
+    <string name="snispoof_no_traffic">SNI spoof 已启动但没有流量通过。请检查伪造 SNI 和干净 IP。</string>
+    <string name="snispoof_no_ack">边缘服务器未确认伪造数据包，连接全部被重置。此网络或此 Clean IP 不支持该方式，请更换 Clean IP。</string>
+    <string name="qr_scan_hint">将摄像头对准二维码</string>
+    <string name="qr_scan_chunk_progress">第 %1$d / %2$d 部分 — 请保持稳定</string>
+    <string name="tile_label">ZedSecure VPN</string>
+    <string name="switch_server_timeout">无法切换服务器——上一个连接未停止。</string>
+    <string name="engine_failed_with_reason">%1$s：%2$s</string>
+    <string name="engine_failed_ssh">SSH 连接失败</string>
+    <string name="engine_failed_dnstunnel">DNS 隧道启动失败</string>
+    <string name="engine_failed_ssh_over_dns">基于 DNS 的 SSH 连接失败</string>
+    <string name="engine_failed_snispoof">SNI 伪装启动失败</string>
+    <string name="engine_failed_tunnel">隧道启动失败</string>
+    <string name="engine_singbox_failed">sing-box 启动失败</string>
+    <string name="engine_missing_config">缺少配置</string>
+    <string name="engine_no_interface">无法创建 VPN 接口</string>
+    <string name="engine_snispoof_no_outbound">SNI 伪装：配置中没有代理出站</string>
+    <string name="engine_invalid_config_ssh">SSH 配置无效</string>
+    <string name="engine_invalid_config_dnstunnel">DNS 隧道配置无效</string>
+    <string name="engine_invalid_config_masterdns">MasterDNS 配置无效</string>
+    <string name="engine_invalid_config_openconnect">OpenConnect 配置无效</string>
+    <string name="deeplink_open_label">导入到 ZedSecure</string>
+    <string name="engine_ikev2_needs_app">始终开启的 VPN 无法启动 IKEv2 配置。请打开 ZedSecure 进行连接。</string>
+    <string name="auto_notif_remark">自动 · %1$s</string>
+    <string name="auto_no_members">该组中没有可供自动模式使用的服务器</string>
+    <string name="auto_group_all_short">全部服务器</string>
+    <string name="auto_group_manual_short">手动</string>
+</resources>

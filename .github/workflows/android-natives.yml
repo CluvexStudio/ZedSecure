@@ -1,0 +1,90 @@
+name: android-natives
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+env:
+  TOR_BUNDLE: "14.5.1"
+  SNOWFLAKE_VERSION: "v2.14.1"
+  SNISPOOF_VERSION: "v0.7.2"
+  HEV_RELEASE: "2.18.0"
+  ZEPTUN_RELEASE: "v1.1.1"
+
+jobs:
+  tor:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Tor, obfs4proxy and Conjure from the official Android bundle
+        run: |
+          set -e
+          for pair in "aarch64 arm64-v8a" "armv7 armeabi-v7a" "x86_64 x86_64"; do
+            set -- $pair
+            url="https://archive.torproject.org/tor-package-archive/torbrowser/${TOR_BUNDLE}/tor-expert-bundle-android-$1-${TOR_BUNDLE}.tar.gz"
+            rm -rf teb && mkdir teb && curl -fsSL "$url" | tar -xz -C teb
+            mkdir -p "out/$2"
+            cp teb/tor/libTor.so                            "out/$2/libtor.so"
+            cp teb/tor/pluggable_transports/lyrebird        "out/$2/libobfs4proxy.so"
+            if [ -f teb/tor/pluggable_transports/conjure-client ]; then
+              cp teb/tor/pluggable_transports/conjure-client "out/$2/libconjure.so"
+            else
+              echo "::warning::no conjure-client for $2"
+            fi
+          done
+          find out -type f -exec chmod +x {} +
+          ls -lR out
+      - uses: actions/upload-artifact@v4
+        with: { name: native-tor, path: "out/*", retention-days: 5 }
+
+  go-binaries:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-go@v5
+        with: { go-version: "1.24" }
+
+      - name: Snowflake and SNI-spoof for every ABI
+        run: |
+          set -e
+          NDK="$ANDROID_HOME/ndk/$(ls -1 "$ANDROID_HOME/ndk" | sort -V | tail -1)"
+          SNOWFLAKE=$(go mod download -json "gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake/v2@$SNOWFLAKE_VERSION" \
+            | python3 -c 'import sys, json; print(json.load(sys.stdin)["Dir"])')
+          [ -d "$SNOWFLAKE/client" ] || { echo "::error::snowflake $SNOWFLAKE_VERSION did not come through the Go module proxy"; exit 1; }
+          git clone -q --depth 1 -b "$SNISPOOF_VERSION" https://github.com/aleskxyz/SNI-Spoofing-Go.git snispoof
+          BIN="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          for triple in "arm64:arm64-v8a:aarch64-linux-android24-clang" \
+                        "arm:armeabi-v7a:armv7a-linux-androideabi24-clang" \
+                        "amd64:x86_64:x86_64-linux-android24-clang"; do
+            arch=${triple%%:*}; rest=${triple#*:}; abi=${rest%%:*}; cc=${rest#*:}
+            mkdir -p "out/$abi"
+            export CGO_ENABLED=1 CC="$BIN/$cc" GOOS=android GOARCH=$arch GOARM=7
+            ( cd "$SNOWFLAKE" && go build -trimpath -ldflags="-s -w -checklinkname=0" -o "$GITHUB_WORKSPACE/out/$abi/libsnowflake.so" ./client )
+            ( cd snispoof && go build -trimpath -ldflags="-s -w" -o "$GITHUB_WORKSPACE/out/$abi/libsnispoof.so" . )
+          done
+          ls -lR out
+      - uses: actions/upload-artifact@v4
+        with: { name: native-go, path: "out/*", retention-days: 5 }
+
+  prebuilt:
+    runs-on: ubuntu-latest
+    steps:
+      - name: hev-socks5-tunnel and zeptun from their own releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          for abi in arm64-v8a armeabi-v7a x86_64; do
+            mkdir -p "out/$abi"
+            gh release download "$HEV_RELEASE" --repo heiher/hev-socks5-tunnel \
+              --pattern "hev-socks5-tunnel-android-$abi" --output "out/$abi/libhev-socks5-tunnel.so" --clobber
+          done
+          gh release download "$ZEPTUN_RELEASE" --repo Noisemux/zeptun \
+            --pattern 'zeptun-android-jniLibs.zip' --output zeptun.zip --clobber
+          unzip -q -o zeptun.zip -d zep
+          cp -r zep/jniLibs/* out/
+          find out -type f -exec chmod +x {} +
+          ls -lR out
+      - uses: actions/upload-artifact@v4
+        with: { name: native-prebuilt, path: "out/*", retention-days: 5 }

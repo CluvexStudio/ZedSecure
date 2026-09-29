@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="widget_radius">20dp</dimen>
+    <dimen name="widget_inner_radius">14dp</dimen>
+
+    <color name="widget_bg">#FCF8FF</color>
+    <color name="widget_text">#1A1B20</color>
+    <color name="widget_text_dim">#5A5C66</color>
+    <color name="widget_accent">#5646D6</color>
+    <color name="widget_accent_off">#6E6A7A</color>
+    <color name="widget_on_accent">#FFFFFF</color>
+    <color name="widget_chip_bg">#EDE7F6</color>
+    <color name="widget_ok">#1F9D63</color>
+    <color name="widget_warn">#B3261E</color>
+</resources>

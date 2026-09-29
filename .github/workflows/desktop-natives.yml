@@ -1,0 +1,122 @@
+name: desktop-natives
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/desktop-natives.yml"
+      - "tools/core-sources.txt"
+      - "tools/singbox-tags.txt"
+
+permissions:
+  contents: read
+
+env:
+  HEV_RELEASE: "2.18.0"
+
+jobs:
+  xray:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version: "1.26.3" }
+      - run: ./tools/fetch-cores.sh vendor/xray-core reference/amneziawg-go reference/sing-openvpn
+      - name: Build patched Xray with every protocol and collect cronet
+        working-directory: vendor/xray-core
+        run: |
+          set -e
+          mkdir -p out
+          TAGS="$(paste -sd, "$GITHUB_WORKSPACE/tools/singbox-tags.txt"),with_purego"
+          LDFLAGS="-checklinkname=0 -s -w -X runtime.godebugDefault=multipathtcp=0,tlssha1=1"
+          CGO_ENABLED=0 GOOS=linux   GOARCH=amd64 go build -trimpath -tags "$TAGS" -ldflags="$LDFLAGS" -o out/xray-linux ./main
+          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -trimpath -tags "$TAGS" -ldflags="$LDFLAGS" -o out/xray.exe   ./main
+          go mod download github.com/sagernet/cronet-go/lib/linux_amd64 github.com/sagernet/cronet-go/lib/windows_amd64
+          lin=$(go list -m -f '{{.Dir}}' github.com/sagernet/cronet-go/lib/linux_amd64)
+          win=$(go list -m -f '{{.Dir}}' github.com/sagernet/cronet-go/lib/windows_amd64)
+          [ -n "$lin" ] && [ -n "$win" ] || { echo "::error::cronet modules did not resolve"; exit 1; }
+          cp "$lin/libcronet.so"  out/
+          cp "$win/libcronet.dll" out/
+          ls -l out
+      - uses: actions/upload-artifact@v4
+        with: { name: xray, path: "vendor/xray-core/out/*", retention-days: 30 }
+
+  xray-macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: macos-latest, arch: arm64 }
+          - { runner: macos-15-intel, arch: x86_64 }
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version: "1.26.3" }
+      - run: ./tools/fetch-cores.sh vendor/xray-core reference/amneziawg-go reference/sing-openvpn
+      - name: Build patched Xray with every protocol, cronet linked in
+        working-directory: vendor/xray-core
+        run: |
+          set -e
+          mkdir -p out
+          TAGS="$(paste -sd, "$GITHUB_WORKSPACE/tools/singbox-tags.txt")"
+          CGO_ENABLED=1 go build -trimpath -tags "$TAGS" \
+            -ldflags="-checklinkname=0 -s -w -X runtime.godebugDefault=multipathtcp=0,tlssha1=1" \
+            -o "out/xray-macos-${{ matrix.arch }}" ./main
+          file "out/xray-macos-${{ matrix.arch }}"
+          "out/xray-macos-${{ matrix.arch }}" version | head -1
+      - uses: actions/upload-artifact@v4
+        with: { name: "xray-macos-${{ matrix.arch }}", path: "vendor/xray-core/out/*", retention-days: 30 }
+
+  dns-tunnels:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version: "1.26.3" }
+      - run: ./tools/fetch-cores.sh vendor/AndroidLibXrayLite reference/vaydns
+      - name: Build zeddns
+        run: |
+          set -e
+          mkdir -p out
+          for t in "linux amd64 -linux" "windows amd64 -windows.exe" "darwin arm64 -macos-arm64" "darwin amd64 -macos-x86_64"; do
+            set -- $t
+            (cd vendor/AndroidLibXrayLite/zeddns && CGO_ENABLED=0 GOOS=$1 GOARCH=$2 \
+              go build -trimpath -ldflags="-s -w" -o "$GITHUB_WORKSPACE/out/zeddns$3" ./cmd/zeddns)
+          done
+          ls -l out
+      - uses: actions/upload-artifact@v4
+        with: { name: dns-tunnels, path: "out/zeddns*", retention-days: 30 }
+
+  hev:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Take hev-socks5-tunnel from its own release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          mkdir -p linux windows macos
+          gh release download "$HEV_RELEASE" --repo heiher/hev-socks5-tunnel \
+            --pattern "hev-socks5-tunnel-linux-x86_64" --output linux/hev-socks5-tunnel --clobber
+          gh release download "$HEV_RELEASE" --repo heiher/hev-socks5-tunnel \
+            --pattern "hev-socks5-tunnel-win64.zip" --output win64.zip --clobber
+          unzip -q -o win64.zip -d win64
+          for f in hev-socks5-tunnel.exe msys-2.0.dll wintun.dll; do
+            src=$(find win64 -type f -name "$f" | head -1)
+            [ -n "$src" ] || { echo "::error::$f is missing from the hev Windows release"; exit 1; }
+            cp "$src" "windows/$f"
+          done
+          gh release download "$HEV_RELEASE" --repo heiher/hev-socks5-tunnel \
+            --pattern "hev-socks5-tunnel-darwin-arm64" --output macos/hev-socks5-tunnel-arm64 --clobber
+          gh release download "$HEV_RELEASE" --repo heiher/hev-socks5-tunnel \
+            --pattern "hev-socks5-tunnel-darwin-x86_64" --output macos/hev-socks5-tunnel-x86_64 --clobber
+          chmod +x linux/hev-socks5-tunnel macos/*
+          ls -l linux windows macos
+      - uses: actions/upload-artifact@v4
+        with: { name: hev-linux, path: "linux/*", retention-days: 30 }
+      - uses: actions/upload-artifact@v4
+        with: { name: hev-windows, path: "windows/*", retention-days: 30 }
+      - uses: actions/upload-artifact@v4
+        with: { name: hev-macos, path: "macos/*", retention-days: 30 }

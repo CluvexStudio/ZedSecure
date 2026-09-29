@@ -1,0 +1,19 @@
+ZedSecure
+Copyright (C) 2026 CluvexStudio
+
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU Affero General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option) any
+later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License along
+with this program. If not, see <https://www.gnu.org/licenses/>.
+
+The combined core linked into this app (libgojni.so) also contains sing-box,
+sing-openvpn and Psiphon, which are GPL-3.0-or-later. Section 13 of GPL-3.0
+permits combining them with AGPL-3.0 code into one work, and each part keeps its
+own licence. Other components keep theirs as well; see NOTICE.

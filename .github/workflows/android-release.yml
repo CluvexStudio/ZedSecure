@@ -1,0 +1,172 @@
+name: android-release
+
+on:
+  workflow_dispatch:
+    inputs:
+      signing_key:
+        description: "play = the key Google Play already knows; upload = the CA key"
+        type: choice
+        default: play
+        options: [play, upload]
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  natives:
+    uses: ./.github/workflows/android-natives.yml
+
+  core:
+    name: zedcore.aar
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Make room
+        run: |
+          df -h / | tail -1
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/node_modules /opt/ghc \
+                      /usr/local/share/boost /usr/share/swift /usr/local/share/powershell \
+                      "$AGENT_TOOLSDIRECTORY/CodeQL" "$AGENT_TOOLSDIRECTORY/PyPy" \
+                      "$AGENT_TOOLSDIRECTORY/Ruby" /usr/local/.ghcup || true
+          sudo docker image prune --all --force >/dev/null 2>&1 || true
+          df -h / | tail -1
+
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "21" }
+      - uses: actions/setup-go@v5
+        with: { go-version: "1.26.3" }
+      - name: Install an NDK that can link cronet
+        run: |
+          set -e
+          echo "before: $(ls -1 "$ANDROID_HOME/ndk" | tr '\n' ' ')"
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null 2>&1 || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;28.2.13676358"
+          echo "after:  $(ls -1 "$ANDROID_HOME/ndk" | tr '\n' ' ')"
+          newest=$(ls -1 "$ANDROID_HOME/ndk" | sort -V | tail -1)
+          case "$newest" in
+            2[0-7].*) echo "::error::still on NDK $newest; its linker cannot read the cronet archive"; exit 1 ;;
+          esac
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/$newest" >> "$GITHUB_ENV"
+          for old in $(ls -1 "$ANDROID_HOME/ndk" | grep -v "^$newest$"); do
+            sudo rm -rf "$ANDROID_HOME/ndk/$old"
+          done
+          echo "will build with NDK $newest"
+          df -h / | tail -1
+
+      - name: Clone every engine at its pinned revision
+        env:
+          GIT_TOKEN: ${{ secrets.CORE_TOKEN || github.token }}
+        run: |
+          grep -v '^reference/openconnect' tools/core-sources.txt > /tmp/core.txt
+          cp /tmp/core.txt tools/core-sources.txt
+          ./tools/fetch-cores.sh
+
+      - name: gomobile
+        run: |
+          go install golang.org/x/mobile/cmd/gomobile@latest
+          go install golang.org/x/mobile/cmd/gobind@latest
+          echo "$HOME/go/bin" >> "$GITHUB_PATH"
+
+      - name: Build the combined core
+        env:
+          ZEDCORE_TMPDIR: ${{ runner.temp }}/zedcore
+        run: |
+          mkdir -p "$ZEDCORE_TMPDIR"
+          ./tools/build-zedcore.sh
+          ls -l app/libs/zedcore.aar
+
+      - uses: actions/upload-artifact@v4
+        with: { name: zedcore, path: app/libs/zedcore.aar, retention-days: 5 }
+
+  apk:
+    needs: [core, natives]
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "21" }
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Read the version
+        id: v
+        run: echo "name=$(grep '^zedsecure.versionName=' gradle.properties | cut -d= -f2)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/download-artifact@v4
+        with: { path: artifacts }
+
+      - name: Put every engine where the build expects it
+        run: |
+          set -e
+          mkdir -p app/libs app/src/main/jniLibs
+          cp artifacts/zedcore/zedcore.aar app/libs/
+          for a in artifacts/native-*/; do cp -r "$a"* app/src/main/jniLibs/ 2>/dev/null || true; done
+          echo "engines in place:"; find app/src/main/jniLibs -name '*.so' | sort
+          for abi in arm64-v8a armeabi-v7a x86_64; do
+            for lib in libtor libobfs4proxy libsnowflake libconjure libsnispoof libhev-socks5-tunnel libopenconnect libzeptun-jni; do
+              [ -f "app/src/main/jniLibs/$abi/$lib.so" ] || echo "::warning::$abi/$lib.so is missing; that protocol will not work"
+            done
+          done
+
+      - name: Unlock signing
+        env:
+          USE_PLAY: ${{ github.event.inputs.signing_key != 'upload' }}
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          PLAY_KEYSTORE_BASE64: ${{ secrets.PLAY_KEYSTORE_BASE64 }}
+          PLAY_KEYSTORE_PASSWORD: ${{ secrets.PLAY_KEYSTORE_PASSWORD }}
+          PLAY_KEY_ALIAS: ${{ secrets.PLAY_KEY_ALIAS }}
+          PLAY_KEY_PASSWORD: ${{ secrets.PLAY_KEY_PASSWORD }}
+        run: |
+          umask 077
+          if [ "$USE_PLAY" = "true" ]; then
+            printf '%s' "$PLAY_KEYSTORE_BASE64" | base64 -d > release.keystore
+            STORE_PW="$PLAY_KEYSTORE_PASSWORD"; KEY_PW="$PLAY_KEY_PASSWORD"; ALIAS="$PLAY_KEY_ALIAS"
+          else
+            printf '%s' "$KEYSTORE_BASE64" | base64 -d > release.keystore
+            STORE_PW="$KEYSTORE_PASSWORD"; KEY_PW="$KEY_PASSWORD"; ALIAS="$KEY_ALIAS"
+          fi
+          { echo "storeFile=release.keystore"; echo "storePassword=$STORE_PW"
+            echo "keyPassword=$KEY_PW"; echo "keyAlias=$ALIAS"; } > keystore.properties
+
+      - name: Test and build
+        run: ./gradlew --no-daemon :app:testDebugUnitTest :app:assembleRelease
+
+      - name: Name them for people
+        run: |
+          set -e
+          mkdir -p dist
+          V='${{ steps.v.outputs.name }}'
+          for abi in arm64-v8a armeabi-v7a x86_64; do
+            src="app/build/outputs/apk/release/app-$abi-release.apk"
+            [ -f "$src" ] || { echo "::error::$src was not built"; exit 1; }
+            cp "$src" "dist/ZedSecure-$V-$abi.apk"
+          done
+          ( cd dist && sha256sum ZedSecure-*.apk > SHA256SUMS.txt )
+          "$JAVA_HOME/bin/keytool" -printcert -jarfile "dist/ZedSecure-$V-arm64-v8a.apk" | grep -E 'Owner|SHA-256' | head -2
+          ls -l dist
+
+      - name: Forget the key
+        if: always()
+        run: shred -u release.keystore keystore.properties 2>/dev/null || rm -f release.keystore keystore.properties
+
+      - uses: actions/upload-artifact@v4
+        with: { name: android-apks, path: dist/*, retention-days: 30 }
+
+      - name: Publish the files
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" \
+            --title "ZedSecure ${{ steps.v.outputs.name }}" --notes "" --draft
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with: { name: test-results, path: app/build/reports/tests/, retention-days: 7 }

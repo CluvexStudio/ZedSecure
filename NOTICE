@@ -1,0 +1,141 @@
+ZedSecure — third-party notices
+===============================
+
+Country flag SVGs
+-----------------
+Source: flag-icons — https://github.com/lipis/flag-icons
+License: MIT
+
+The flag assets in `app/src/main/assets/flags/` are taken from the flag-icons
+project (4x3 set). They are used unmodified.
+
+    MIT License
+
+    Copyright (c) 2013 Panayiotis Lipiridis
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in
+    all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+    DEALINGS IN THE SOFTWARE.
+
+Xray-core
+---------
+Source: https://github.com/XTLS/Xray-core
+License: MPL-2.0
+
+hev-socks5-tunnel
+-----------------
+Source: https://github.com/heiher/hev-socks5-tunnel
+License: MIT
+
+SNI-Spoofing-Go
+---------------
+Source: https://github.com/aleskxyz/SNI-Spoofing-Go
+Commit: f60734498c5dcdfd85705f4a682af5871d01895c (built unmodified)
+License: GPL-3.0
+
+Shipped as `libsnispoof.so` in `app/src/main/jniLibs/<abi>/`: a standalone executable the app runs
+as a separate root process (`su -c`) and talks to only over a local TCP port and its command line.
+It is not linked into the app. Built with
+`GOOS=android CGO_ENABLED=1 go build -trimpath -buildmode=pie -ldflags="-s -w"` against the NDK
+clang for each ABI, with 16 KB page alignment. The corresponding source is the commit above; the
+full license text is in that repository's LICENSE file.
+
+Hidden space sim
+----------------
+The easter egg in `ui/easteregg/` is an original implementation, written for this app, of the
+game design of "Landroid" — the space exploration sim that has shipped as the Android platform
+easter egg since Android 14 (`frameworks/base/packages/EasterEgg`, Apache-2.0). The flight-stick
+control scheme, the Newtonian drift with a suspended-gravity launch window, the attitude-based
+landing criterion, the autopilot's chase/approach/land strategies and the phosphor-console
+telemetry are all taken from its design. No AOSP source is reproduced here.
+
+sing-box
+--------
+Source: https://github.com/SagerNet/sing-box
+License: GPL-3.0-or-later
+
+sing-openvpn
+------------
+Source: https://github.com/SagerNet/sing-openvpn
+License: GPL-3.0-or-later
+Our patched fork: https://github.com/CluvexStudio/sing-openvpn (branch `zedsecure`)
+
+AndroidLibXrayLite
+------------------
+Source: https://github.com/2dust/AndroidLibXrayLite
+License: LGPL-3.0
+Our patched fork: https://github.com/CluvexStudio/AndroidLibXrayLite (branch `zedsecure`)
+It also carries `zeddns`, the DNS-tunnel client written for this app.
+
+Xray-core patches
+-----------------
+Our patched fork: https://github.com/CluvexStudio/Xray-core (branch `zedsecure`)
+
+Psiphon
+-------
+Source: https://github.com/Psiphon-Labs/psiphon-tunnel-core
+License: GPL-3.0
+
+Tor, obfs4proxy, Snowflake
+--------------------------
+Source: https://gitlab.torproject.org/tpo/core/tor and the anti-censorship projects
+License: BSD-3-Clause
+
+dnstt
+-----
+Source: https://www.bamsoftware.com/software/dnstt/ — David Fifield
+License: public domain (CC0 1.0)
+The DNS tunnel speaks the dnstt wire format; the engine below is a fork of it.
+
+VayDNS
+------
+Source: https://github.com/anonvector/vaydns (module path github.com/net2share/vaydns)
+License: CC0 1.0 Universal
+A public-domain fork of dnstt. It is the engine behind both DNS-tunnel modes in
+this app, driven by our own `zeddns` package.
+
+MasterDNS
+---------
+Source: https://github.com/masterking32/MasterDnsVPN — Amin Mahmoudi
+License: MIT
+
+AmneziaWG
+---------
+Source: https://github.com/amnezia-vpn/amneziawg-go (a fork of WireGuard-go)
+License: MIT
+
+OpenConnect
+-----------
+Source: https://gitlab.com/openconnect/openconnect
+License: LGPL-2.1
+`app/src/main/jniLibs/<abi>/libopenconnect.so` is a build of our patched fork.
+Ask us for that source and we will provide it, as LGPL-2.1 section 6 requires.
+
+KCP, smux, uTLS
+---------------
+Sources: github.com/xtaci/kcp-go, github.com/xtaci/smux,
+         github.com/refraction-networking/utls
+Licenses: MIT, MIT, BSD-3-Clause
+
+JSch, Bouncy Castle, ZXing
+--------------------------
+Licenses: BSD-3-Clause, MIT, Apache-2.0
+
+Fonts
+-----
+Inter — SIL Open Font License 1.1 — https://github.com/rsms/inter
+Estedad — SIL Open Font License 1.1 — https://github.com/aminabedi68/Estedad

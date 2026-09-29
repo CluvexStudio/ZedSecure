@@ -1,0 +1,157 @@
+<resources>
+    <string name="brand_tagline">Приватно. Быстро. Ваше.</string>
+
+    <string name="nav_home">Главная</string>
+    <string name="nav_servers">Серверы</string>
+    <string name="nav_locked">Хранилище</string>
+    <string name="nav_settings">Настройки</string>
+
+    <string name="servers_count">%1$d серверов</string>
+    <string name="servers_add">Добавить сервер</string>
+    <string name="servers_add_clipboard">Импорт из буфера обмена</string>
+    <string name="servers_add_manual">Добавить вручную</string>
+    <string name="servers_add_custom">Своя конфигурация (JSON)</string>
+    <string name="servers_imported">Импортировано серверов: %1$d</string>
+    <string name="servers_rename">Переименовать</string>
+    <string name="servers_actions">Ещё действия</string>
+    <string name="servers_empty_title">Пока нет серверов</string>
+    <string name="action_share">Поделиться</string>
+    <string name="action_delete">Удалить</string>
+    <string name="action_save">Сохранить</string>
+    <string name="action_search">Поиск</string>
+    <string name="manual_remark">Название</string>
+    <string name="manual_password">Пароль</string>
+
+    <string name="state_idle">Не подключено</string>
+    <string name="state_connecting">Подключение…</string>
+    <string name="state_connected">Подключено</string>
+    <string name="state_reconnecting">Переподключение…</string>
+    <string name="state_disconnecting">Отключение…</string>
+    <string name="state_error">Ошибка подключения</string>
+
+    <string name="action_connect">Подключить</string>
+    <string name="action_disconnect">Отключить</string>
+    <string name="action_cancel">Отмена</string>
+    <string name="action_retry">Повторить</string>
+
+    <string name="home_no_config_title">Нет активной конфигурации</string>
+    <string name="home_select_config">Выбрать конфигурацию</string>
+    <string name="home_upload">Отдача</string>
+    <string name="home_download">Загрузка</string>
+    <string name="home_duration">Время</string>
+    <string name="home_ping">Пинг</string>
+    <string name="home_tap_to_change">Нажмите, чтобы сменить сервер</string>
+
+    <string name="info_details">Сведения о подключении</string>
+    <string name="info_isp">Провайдер</string>
+    <string name="info_location">Расположение</string>
+    <string name="info_refresh">Обновить</string>
+
+    <string name="settings_title">Настройки</string>
+    <string name="settings_appearance">Оформление</string>
+    <string name="settings_theme">Тема</string>
+    <string name="settings_language">Язык</string>
+    <string name="settings_language_system">Системный</string>
+    <string name="settings_about">О приложении</string>
+
+    <string name="title_tunnels_settings">Туннели</string>
+    <string name="title_dns_protocols">DNS-протоколы (VayDNS и DNSTT)</string>
+    <string name="title_tor_settings">Tor</string>
+    <string name="title_ssh_settings">SSH-туннель</string>
+    <string name="kill_switch">Аварийное отключение</string>
+    <string name="kill_switch_sum">Блокировать весь трафик при разрыве VPN, чтобы не было утечки.</string>
+
+    <string name="psiphon_add_title">Добавить Psiphon</string>
+    <string name="dns_tunnel_add_title">Добавить DNS-туннель</string>
+    <string name="tor_add_title">Добавить Tor</string>
+    <string name="tor_added">Tor добавлен</string>
+    <string name="ssh_add_title">Добавить SSH-туннель</string>
+    <string name="snispoof_add_title">Добавить SNI-спуфинг (root)</string>
+    <string name="snispoof_root_warn">⚠ Требуется устройство с root. Функция внедряет сырые пакеты (поддельный TLS ClientHello), для этого нужен root — на телефоне без root работать не будет.</string>
+    <string name="subs_add">Добавить подписку</string>
+
+    <string name="logs_title">Журнал</string>
+    <string name="oc_auth_title">Аутентификация</string>
+    <string name="oc_auth_connect">Продолжить</string>
+    <string name="oc_auth_cancel">Отмена</string>
+    <string name="ikev2_requires_android11">IKEv2 требует Android 11 или новее</string>
+
+    <string name="core_start_failed">Не удалось запустить ядро</string>
+    <string name="core_start_failed_reason">Не удалось запустить ядро: %1$s</string>
+    <string name="core_geo_code_missing">В данных маршрутизации нет «%1$s» в %2$s. Выберите другой источник или обновите файлы в «Настройки → Файлы данных».</string>
+    <string name="core_geo_file_missing">Файл данных маршрутизации %1$s отсутствует. Загрузите его в «Настройки → Файлы данных».</string>
+    <string name="zsx_legacy">Эта закрытая конфигурация создана в старой версии ZedSecure. Попросите отправителя прислать новую копию.</string>
+
+    <string name="notif_stage_preparing">Подготовка…</string>
+    <string name="notif_stage_interface">Настройка интерфейса…</string>
+    <string name="notif_stage_engine">Запуск ядра…</string>
+    <string name="notif_stage_tunnel">Открытие туннеля…</string>
+    <string name="notif_protocol">Протокол: %1$s</string>
+    <string name="notif_chip_connecting">Подключение</string>
+    <string name="notif_chip_on">Вкл</string>
+    <string name="notif_chip_off">Выкл</string>
+    <string name="notif_title_disconnected">Туннель остановлен</string>
+    <string name="notif_kill_switch_body">Туннель разорван. Аварийный выключатель блокирует трафик до отключения.</string>
+    <string name="widget_description">Подключение и отключение, статус и трафик сессии.</string>
+    <string name="widget_no_server">Сервер не выбран</string>
+    <string name="chain_member_missing">В цепочке отсутствуют: %1$s</string>
+    <string name="chain_udp_hop_unsupported">%1$s не может идти после %2$s в цепочке — нужен UDP</string>
+    <string name="crosschain_outer_failed">Не удалось подключить несущий туннель</string>
+    <string name="tor_bootstrap_timeout">Tor не смог завершить подключение вовремя. Попробуйте мост или проверьте несущий туннель.</string>
+    <string name="crosschain_inner_failed">Выходной туннель не смог подключиться через несущий</string>
+    <string name="crosschain_inner_unsupported">Этот движок не может подключаться через другой туннель</string>
+    <string name="crosschain_bad_carrier">%1$s не может нести другой туннель</string>
+    <string name="crosschain_bad_dialer">%1$s не может подключаться через другой туннель</string>
+    <string name="crosschain_udp_unsupported">%1$s требует UDP, но %2$s передаёт только TCP. Выберите носитель с поддержкой UDP или выход, которому UDP не нужен.</string>
+    <string name="masterdns_failed">Туннель MasterDNS не поднялся</string>
+    <string name="masterdns_failed_reason">Туннель MasterDNS не поднялся: %1$s</string>
+    <string name="masterdns_no_resolver">Ни один из %1$d резолверов не прошёл проверку. Они заблокированы в этой сети, либо домен или ключ не совпадают с сервером.</string>
+    <string name="masterdns_session_refused">Резолверы работают (%1$d), но сервер не принял сессию (%2$s). Проверьте ключ и метод шифрования — или сервер недоступен.</string>
+    <string name="masterdns_stalled">Время вышло, а резолверы ещё проверялись (проверено %1$d из %2$d, рабочих %3$d). Сократите список резолверов или включите пул DNS.</string>
+    <string name="ikev2_requires_ipsec">Это устройство не поддерживает VPN IKEv2/IPsec</string>
+    <string name="ikev2_vpn_manager_unavailable">Системная служба VPN недоступна</string>
+    <string name="ikev2_cert_unavailable">Не удалось прочитать выбранный клиентский сертификат. Выберите его заново.</string>
+    <string name="ikev2_cert_not_exportable">Закрытый ключ этого сертификата аппаратный и не подходит для IKEv2. Установите программный сертификат.</string>
+    <string name="ikev2_ca_invalid">Не удалось прочитать сертификат CA. Импортируйте заново или очистите.</string>
+    <string name="ikev2_blocked_by_always_on">Постоянным VPN владеет другое приложение либо включена блокировка VPN.</string>
+    <string name="ikev2_failed_generic">Не удалось запустить IKEv2</string>
+    <string name="ikev2_ike_error">Шлюз отклонил подключение. Проверьте данные, идентификатор и сертификат.</string>
+    <string name="ikev2_network_error">Сетевая ошибка при подключении</string>
+    <string name="ikev2_err_unknown_host">Не удалось разрешить адрес шлюза</string>
+    <string name="ikev2_err_timeout">Шлюз не ответил</string>
+    <string name="ikev2_err_network_lost">Сеть пропала</string>
+    <string name="ikev2_connect_timeout">Шлюз не завершил рукопожатие вовремя</string>
+    <string name="ikev2_adopted_session">IKEv2 (система)</string>
+    <string name="openconnect_sso_title">Вход через SSO</string>
+    <string name="oc_cert_title">Недоверенный сертификат</string>
+    <string name="oc_cert_body">Сертификат этого шлюза не удалось проверить. Продолжайте, только если узнаёте отпечаток ниже.</string>
+    <string name="oc_cert_trust">Доверять и подключиться</string>
+    <string name="oc_cert_remember">Больше не спрашивать для этого сервера</string>
+    <string name="dns_tunnel_unreachable">DNS-туннель запустился, но трафик не пошёл. Попробуйте другой резолвер или транспорт.</string>
+    <string name="snispoof_no_traffic">SNI spoof запустился, но трафик не пошёл. Проверьте фейковый SNI и чистый IP.</string>
+    <string name="snispoof_no_ack">Пограничный сервер не подтвердил поддельный пакет, и все соединения сбрасывались. Эта сеть или этот clean IP не подходят — попробуйте другой clean IP.</string>
+    <string name="qr_scan_hint">Наведите камеру на QR-код</string>
+    <string name="qr_scan_chunk_progress">Часть %1$d из %2$d — держите камеру ровно</string>
+    <string name="tile_label">ZedSecure VPN</string>
+    <string name="switch_server_timeout">Не удалось сменить сервер — предыдущее подключение не остановилось.</string>
+    <string name="engine_failed_with_reason">%1$s: %2$s</string>
+    <string name="engine_failed_ssh">Не удалось подключиться по SSH</string>
+    <string name="engine_failed_dnstunnel">DNS-туннель не запустился</string>
+    <string name="engine_failed_ssh_over_dns">Не удалось подключиться по SSH через DNS</string>
+    <string name="engine_failed_snispoof">SNI spoof не запустился</string>
+    <string name="engine_failed_tunnel">Туннель не запустился</string>
+    <string name="engine_singbox_failed">Не удалось запустить sing-box</string>
+    <string name="engine_missing_config">Конфигурация отсутствует</string>
+    <string name="engine_no_interface">Не удалось создать VPN-интерфейс</string>
+    <string name="engine_snispoof_no_outbound">SNI spoof: в конфиге нет прокси-выхода</string>
+    <string name="engine_invalid_config_ssh">Неверная конфигурация SSH</string>
+    <string name="engine_invalid_config_dnstunnel">Неверная конфигурация DNS-туннеля</string>
+    <string name="engine_invalid_config_masterdns">Неверная конфигурация MasterDNS</string>
+    <string name="engine_invalid_config_openconnect">Неверная конфигурация OpenConnect</string>
+    <string name="deeplink_open_label">Импорт в ZedSecure</string>
+    <string name="engine_ikev2_needs_app">Профиль IKEv2 нельзя запустить через постоянный VPN. Откройте ZedSecure, чтобы подключиться.</string>
+    <string name="auto_notif_remark">Авто · %1$s</string>
+    <string name="auto_no_members">В этой группе нет серверов, которые может использовать «Авто»</string>
+    <string name="auto_group_all_short">Все серверы</string>
+    <string name="auto_group_manual_short">Вручную</string>
+</resources>

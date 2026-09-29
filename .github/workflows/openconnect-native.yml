@@ -1,0 +1,96 @@
+name: openconnect-native
+
+on:
+  workflow_dispatch:
+  workflow_call:
+    secrets:
+      CORE_TOKEN:
+        required: false
+  push:
+    tags: ["openconnect-v*"]
+
+jobs:
+  openconnect-android:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [arm64, x86_64]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Clone the OpenConnect source at its pinned revision
+        id: source
+        env:
+          GIT_TOKEN: ${{ secrets.CORE_TOKEN || github.token }}
+        run: |
+          cp tools/core-sources.txt /tmp/all-sources.txt
+          grep '^reference/openconnect' tools/core-sources.txt > tools/core-sources.txt.oc
+          mv tools/core-sources.txt.oc tools/core-sources.txt
+          if ./tools/fetch-cores.sh; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::CluvexStudio/Openconnect could not be cloned, so this build has no OpenConnect. It is private: either make it public - LGPL-2.1 asks for the source of a modified OpenConnect anyway - or add a CORE_TOKEN secret with repo scope."
+          fi
+          cp /tmp/all-sources.txt tools/core-sources.txt
+
+      - name: Use the runner's NDK
+        if: steps.source.outputs.ok == 'true'
+        run: |
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/$(ls -1 "$ANDROID_HOME/ndk" | sort -V | tail -1)" >> "$GITHUB_ENV"
+
+      - name: Install autotools + pkg-config + patchelf
+        if: steps.source.outputs.ok == 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            autoconf automake libtool pkg-config gettext gperf bison patchelf make gcc
+
+      - name: Seed JNI headers into the per-triplet sysroot include
+        if: steps.source.outputs.ok == 'true'
+        working-directory: reference/openconnect
+        run: |
+          case "${{ matrix.arch }}" in
+            arm64)  triplet=aarch64-linux-android ;;
+            x86_64) triplet=x86_64-linux-android ;;
+          esac
+          inc="android/$triplet/sysroot/usr/include"
+          mkdir -p "$inc"
+          ndk_inc="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include"
+          for h in jni.h jni_md.h; do
+            [ -f "$ndk_inc/$h" ] && cp -n "$ndk_inc/$h" "$inc/" || true
+          done
+
+      - name: Build libopenconnect + static deps
+        if: steps.source.outputs.ok == 'true'
+        working-directory: reference/openconnect
+        run: |
+          set -e
+          ./autogen.sh
+          make -C android \
+            ARCH=${{ matrix.arch }} \
+            NDK="$ANDROID_NDK_HOME" \
+            -j"$(nproc)" \
+            openconnect
+
+      - name: Collect + rename the .so
+        if: steps.source.outputs.ok == 'true'
+        run: |
+          set -e
+          case "${{ matrix.arch }}" in
+            arm64)  triplet=aarch64-linux-android; abi=arm64-v8a ;;
+            x86_64) triplet=x86_64-linux-android;  abi=x86_64 ;;
+          esac
+          out="reference/openconnect/android/$triplet/out/lib"
+          mkdir -p "jniLibs/$abi"
+          so="$(ls "$out"/libopenconnect.so* | head -1)"
+          cp "$so" "jniLibs/$abi/libopenconnect.so"
+          patchelf --set-soname libopenconnect.so "jniLibs/$abi/libopenconnect.so" || true
+          ls -la "jniLibs/$abi"
+
+      - uses: actions/upload-artifact@v4
+        if: steps.source.outputs.ok == 'true'
+        with:
+          name: "openconnect-${{ matrix.arch }}"
+          path: "jniLibs/**/libopenconnect.so"

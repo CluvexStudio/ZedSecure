@@ -1,0 +1,261 @@
+name: desktop-release
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["desktop-v*"]
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  linux:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "21" }
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Read the version
+        id: v
+        run: echo "name=$(grep '^zedsecure.versionName=' gradle.properties | cut -d= -f2)" >> "$GITHUB_OUTPUT"
+
+      - name: Tools for .rpm and .AppImage
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq rpm fakeroot file desktop-file-utils
+          curl -sSLo /usr/local/bin/appimagetool \
+            https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x /usr/local/bin/appimagetool
+
+      - name: Fetch the bundled engines
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          NATIVES_RUN=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow desktop-natives.yml --status success --limit 1 --json databaseId --jq '.[0].databaseId')
+          [ -n "$NATIVES_RUN" ] || { echo "::error::no successful desktop-natives run yet"; exit 1; }
+          echo "engines from desktop-natives run $NATIVES_RUN"
+          dest=desktop/src/main/resources/bin/linux
+          mkdir -p "$dest" /tmp/nat
+          for pair in "xray:xray-linux:xray" \
+                      "hev-linux:hev-socks5-tunnel:hev-socks5-tunnel" \
+                      "dns-tunnels:zeddns-linux:zeddns"; do
+            art=${pair%%:*}; rest=${pair#*:}; from=${rest%%:*}; to=${rest#*:}
+            rm -rf /tmp/nat/$art
+            gh run download "$NATIVES_RUN" --repo "$GITHUB_REPOSITORY" --name "$art" --dir "/tmp/nat/$art" \
+              || { echo "::error::artifact '$art' is missing; run the desktop-natives workflow first"; exit 1; }
+            src=$(find "/tmp/nat/$art" -type f -name "$from*" | head -1)
+            [ -n "$src" ] || { echo "::error::'$from' was not in artifact '$art'"; exit 1; }
+            cp "$src" "$dest/$to"
+          done
+          chmod +x "$dest"/*
+          find /tmp/nat -name 'libcronet.so' -exec cp {} "$dest/" \; || true
+          ls -l "$dest"
+
+      - name: Check the engines the desktop launches are all here
+        run: ./gradlew --no-daemon :desktop:test
+
+      - name: Build .deb, .rpm and the application directory
+        run: ./gradlew --no-daemon :desktop:packageDeb :desktop:packageRpm :desktop:createDistributable
+
+      - name: Assemble the release files
+        id: pack
+        run: |
+          set -e
+          V='${{ steps.v.outputs.name }}'
+          mkdir -p dist
+          cp desktop/build/compose/binaries/main/deb/*.deb "dist/ZedSecure-$V-amd64.deb"
+          cp desktop/build/compose/binaries/main/rpm/*.rpm "dist/ZedSecure-$V-x86_64.rpm"
+
+          APP=$(ls -d desktop/build/compose/binaries/main/app/*/ | head -1)
+
+          tar -C "$(dirname "$APP")" -czf "dist/ZedSecure-$V-linux-x86_64.tar.gz" "$(basename "$APP")"
+
+          rm -rf AppDir && mkdir -p AppDir/usr
+          cp -a "$APP." AppDir/usr/
+          BIN=$(find AppDir/usr/bin -maxdepth 1 -type f -executable | head -1)
+          cp desktop/icons/zedsecure.png AppDir/zedsecure.png
+          cat > AppDir/zedsecure.desktop <<EOF
+          [Desktop Entry]
+          Type=Application
+          Name=ZedSecure
+          Exec=$(basename "$BIN")
+          Icon=zedsecure
+          Categories=Network;
+          Terminal=false
+          EOF
+          cat > AppDir/AppRun <<EOF
+          HERE=\$(dirname "\$(readlink -f "\$0")")
+          exec "\$HERE/usr/bin/$(basename "$BIN")" "\$@"
+          EOF
+          chmod +x AppDir/AppRun
+          ARCH=x86_64 appimagetool --no-appstream AppDir "dist/ZedSecure-$V-x86_64.AppImage"
+
+          ( cd dist && sha256sum ZedSecure-* > SHA256SUMS.txt )
+          ls -lh dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-linux
+          path: dist/*
+          retention-days: 14
+
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "21" }
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Read the version
+        id: v
+        shell: bash
+        run: echo "name=$(grep '^zedsecure.versionName=' gradle.properties | cut -d= -f2)" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch the bundled engines
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          NATIVES_RUN=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow desktop-natives.yml --status success --limit 1 --json databaseId --jq '.[0].databaseId')
+          [ -n "$NATIVES_RUN" ] || { echo "::error::no successful desktop-natives run yet"; exit 1; }
+          echo "engines from desktop-natives run $NATIVES_RUN"
+          dest=desktop/src/main/resources/bin/windows
+          mkdir -p "$dest" /tmp/nat
+          for pair in "xray:xray.exe:xray.exe" \
+                      "xray:libcronet.dll:libcronet.dll" \
+                      "hev-windows:hev-socks5-tunnel.exe:hev-socks5-tunnel.exe" \
+                      "hev-windows:msys-2.0.dll:msys-2.0.dll" \
+                      "hev-windows:wintun.dll:wintun.dll" \
+                      "dns-tunnels:zeddns-windows.exe:zeddns.exe"; do
+            art=${pair%%:*}; rest=${pair#*:}; from=${rest%%:*}; to=${rest#*:}
+            if [ ! -d "/tmp/nat/$art" ]; then
+              gh run download "$NATIVES_RUN" --repo "$GITHUB_REPOSITORY" --name "$art" --dir "/tmp/nat/$art" \
+                || { echo "::error::artifact '$art' is missing; run the desktop-natives workflow first"; exit 1; }
+            fi
+            src=$(find "/tmp/nat/$art" -type f -name "$from" | head -1)
+            [ -n "$src" ] || { echo "::error::'$from' was not in artifact '$art'"; exit 1; }
+            cp "$src" "$dest/$to"
+          done
+          ls -l "$dest"
+
+      - name: Check the engines the desktop launches are all here
+        run: ./gradlew --no-daemon :desktop:test
+
+      - name: Build the installer and the portable build
+        run: ./gradlew --no-daemon :desktop:packageMsi :desktop:createDistributable
+
+      - name: Assemble the release files
+        shell: bash
+        run: |
+          set -e
+          V='${{ steps.v.outputs.name }}'
+          mkdir -p dist
+          cp desktop/build/compose/binaries/main/msi/*.msi "dist/ZedSecure-$V-x86_64.msi"
+          app=$(ls -d desktop/build/compose/binaries/main/app/*/ | head -1)
+          ( cd "$(dirname "$app")" && 7z a -tzip -mx=9 "$OLDPWD/dist/ZedSecure-$V-windows-x86_64.zip" "$(basename "$app")" >/dev/null )
+          ( cd dist && sha256sum ZedSecure-* > SHA256SUMS-windows.txt )
+          ls -l dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-windows
+          path: dist/*
+          retention-days: 14
+
+  macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: macos-latest, arch: arm64 }
+          - { runner: macos-15-intel, arch: x86_64 }
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "21" }
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Read the version
+        id: v
+        run: echo "name=$(grep '^zedsecure.versionName=' gradle.properties | cut -d= -f2)" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch the bundled engines
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          set -e
+          NATIVES_RUN=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow desktop-natives.yml --status success --limit 1 --json databaseId --jq '.[0].databaseId')
+          [ -n "$NATIVES_RUN" ] || { echo "::error::no successful desktop-natives run yet"; exit 1; }
+          echo "engines from desktop-natives run $NATIVES_RUN"
+          dest=desktop/src/main/resources/bin/macos
+          mkdir -p "$dest" /tmp/nat
+          for pair in "xray-macos-$ARCH:xray-macos-$ARCH:xray" \
+                      "hev-macos:hev-socks5-tunnel-$ARCH:hev-socks5-tunnel" \
+                      "dns-tunnels:zeddns-macos-$ARCH:zeddns"; do
+            art=${pair%%:*}; rest=${pair#*:}; from=${rest%%:*}; to=${rest#*:}
+            if [ ! -d "/tmp/nat/$art" ]; then
+              gh run download "$NATIVES_RUN" --repo "$GITHUB_REPOSITORY" --name "$art" --dir "/tmp/nat/$art" \
+                || { echo "::error::artifact '$art' is missing; run the desktop-natives workflow first"; exit 1; }
+            fi
+            src=$(find "/tmp/nat/$art" -type f -name "$from" | head -1)
+            [ -n "$src" ] || { echo "::error::'$from' was not in artifact '$art'"; exit 1; }
+            cp "$src" "$dest/$to"
+          done
+          chmod +x "$dest"/*
+          file "$dest"/*
+
+      - name: Check the engines the desktop launches are all here
+        run: ./gradlew --no-daemon :desktop:test
+
+      - name: Build the disk image
+        run: ./gradlew --no-daemon :desktop:packageDmg
+
+      - name: Assemble the release files
+        run: |
+          set -e
+          V='${{ steps.v.outputs.name }}'
+          mkdir -p dist
+          cp desktop/build/compose/binaries/main/dmg/*.dmg "dist/ZedSecure-$V-macos-${{ matrix.arch }}.dmg"
+          ( cd dist && shasum -a 256 ZedSecure-* > "SHA256SUMS-macos-${{ matrix.arch }}.txt" )
+          ls -l dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-macos-${{ matrix.arch }}
+          path: dist/*
+          retention-days: 14
+
+  publish:
+    needs: [linux, windows, macos]
+    if: startsWith(github.ref, 'refs/tags/desktop-v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read the version
+        id: v
+        run: echo "name=$(grep '^zedsecure.versionName=' gradle.properties | cut -d= -f2)" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v4
+        with: { path: artifacts }
+      - name: Publish the pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          mkdir -p dist
+          find artifacts -type f -exec cp {} dist/ \;
+          ls -l dist
+          gh release create "${GITHUB_REF_NAME}" dist/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "ZedSecure Desktop ${{ steps.v.outputs.name }}" \
+            --prerelease --notes "" --draft
