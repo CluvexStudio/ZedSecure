@@ -51,6 +51,7 @@ TARGETS="${TARGETS:-android/arm64,android/arm,android/amd64}"
 
 RAW="$ROOT/app/libs/zedcore-raw.aar"
 OUT="$ROOT/app/libs/zedcore.aar"
+mkdir -p "$ROOT/app/libs"
 
 echo ">>> gomobile bind (Xray + sing-box + Psiphon + DNSTT + VayDNS + MasterDNS) with $(go version)"
 cd "$ROOT/vendor/AndroidLibXrayLite"
