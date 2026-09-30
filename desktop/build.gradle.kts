@@ -17,7 +17,7 @@ kotlin {
     }
 }
 
-val zedVersion = project.property("zedsecure.versionName") as String
+val zedVersion = project.property("zedsecure.desktopVersionName") as String
 
 val generateVersion by tasks.registering {
     val out = layout.buildDirectory.dir("generated/version")
@@ -74,7 +74,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Deb, TargetFormat.Rpm, TargetFormat.AppImage, TargetFormat.Msi, TargetFormat.Dmg)
             packageName = "ZedSecure"
-            packageVersion = project.property("zedsecure.versionName") as String
+            packageVersion = zedVersion
             description = "ZedSecure VPN client"
             vendor = "Cluvex Studio"
             linux {
