@@ -47,6 +47,7 @@ enum class LogLevel(val value: String) {
 enum class RunMode(val value: String) {
     Vpn("VPN"),
     ProxyOnly("Proxy only"),
+    SystemProxy("System proxy"),
 }
 
 enum class HevLogLevel(val value: String) {

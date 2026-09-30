@@ -296,6 +296,12 @@
     <string name="mode_proxy_explained">仅代理</string>
     <string name="mode_proxy_explained_body">运行本地 SOCKS 代理（开启后还有 HTTP），不建立隧道。只有指向该端口的应用才会走代理。仅适用于 Xray 配置；其他引擎始终以 VPN 方式运行。</string>
 
+    <string name="mode_system_proxy">系统代理</string>
+    <string name="mode_system_proxy_body">在 GNOME、KDE、Windows 或 macOS 上设置系统代理。浏览器和大多数应用会遵循它，无需管理员权限。这是默认模式。</string>
+    <string name="mode_socks">仅 SOCKS</string>
+    <string name="mode_socks_body">只在 127.0.0.1 上开启本地 SOCKS 和 HTTP 代理，不做其他更改。请自行在各应用中设置。</string>
+    <string name="mode_tun">TUN（VPN）</string>
+    <string name="mode_tun_body">通过虚拟网卡转发所有应用的流量，包括忽略系统代理的应用。需要管理员权限。目前仅支持 Linux。</string>
     <string name="group_all">全部</string>
     <string name="group_manual">手动</string>
 

@@ -14,6 +14,8 @@ import java.net.URI
 import javax.swing.JFileChooser
 
 object DesktopPlatform : Platform {
+    override val supportsSystemProxy: Boolean get() = true
+
     override fun copyToClipboard(text: String) {
         runCatching {
             Toolkit.getDefaultToolkit().systemClipboard.setContents(StringSelection(text), null)

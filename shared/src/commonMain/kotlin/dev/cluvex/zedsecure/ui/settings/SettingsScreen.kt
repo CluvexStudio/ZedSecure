@@ -1857,21 +1857,45 @@ private fun ModePage(
         contentPadding = contentPadding,
         modifier = modifier,
     ) {
+        val desktop = LocalPlatform.current.supportsSystemProxy
         SettingsGroup {
             SettingsListRow(
                 title = stringResource(Res.string.title_mode),
-                options = RunMode.entries.map { it to it.value },
+                options = if (desktop) {
+                    listOf(
+                        RunMode.SystemProxy to stringResource(Res.string.mode_system_proxy),
+                        RunMode.ProxyOnly to stringResource(Res.string.mode_socks),
+                        RunMode.Vpn to stringResource(Res.string.mode_tun),
+                    )
+                } else {
+                    listOf(RunMode.Vpn, RunMode.ProxyOnly).map { it to it.value }
+                },
                 selected = s.runMode,
                 onSelected = { v -> onUpdate { it.copy(runMode = v) } },
             )
-            SettingsInfoRow(
-                title = stringResource(Res.string.mode_vpn_explained),
-                body = stringResource(Res.string.mode_vpn_explained_body),
-            )
-            SettingsInfoRow(
-                title = stringResource(Res.string.mode_proxy_explained),
-                body = stringResource(Res.string.mode_proxy_explained_body),
-            )
+            if (desktop) {
+                SettingsInfoRow(
+                    title = stringResource(Res.string.mode_system_proxy),
+                    body = stringResource(Res.string.mode_system_proxy_body),
+                )
+                SettingsInfoRow(
+                    title = stringResource(Res.string.mode_socks),
+                    body = stringResource(Res.string.mode_socks_body),
+                )
+                SettingsInfoRow(
+                    title = stringResource(Res.string.mode_tun),
+                    body = stringResource(Res.string.mode_tun_body),
+                )
+            } else {
+                SettingsInfoRow(
+                    title = stringResource(Res.string.mode_vpn_explained),
+                    body = stringResource(Res.string.mode_vpn_explained_body),
+                )
+                SettingsInfoRow(
+                    title = stringResource(Res.string.mode_proxy_explained),
+                    body = stringResource(Res.string.mode_proxy_explained_body),
+                )
+            }
         }
     }
 }

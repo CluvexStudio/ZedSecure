@@ -296,6 +296,12 @@
     <string name="mode_proxy_explained">Только прокси</string>
     <string name="mode_proxy_explained_body">Запускает локальный SOCKS-прокси (и HTTP, если включён) без туннеля. Проходит трафик только приложений, направленных на порт. Работает с конфигами Xray; остальные движки всегда запускаются как VPN.</string>
 
+    <string name="mode_system_proxy">Системный прокси</string>
+    <string name="mode_system_proxy_body">Настраивает системный прокси в GNOME, KDE, Windows или macOS. Браузеры и большинство приложений используют его, права администратора не нужны. Режим по умолчанию.</string>
+    <string name="mode_socks">Только SOCKS</string>
+    <string name="mode_socks_body">Открывает только локальный прокси SOCKS и HTTP на 127.0.0.1 и больше ничего не меняет. Укажите его в нужных приложениях сами.</string>
+    <string name="mode_tun">TUN (VPN)</string>
+    <string name="mode_tun_body">Пропускает все приложения через виртуальный сетевой адаптер, даже те, что игнорируют системный прокси. Запрашивает права администратора. Пока только в Linux.</string>
     <string name="group_all">Все</string>
     <string name="group_manual">Вручную</string>
 

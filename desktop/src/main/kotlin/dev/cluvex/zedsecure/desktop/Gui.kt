@@ -66,6 +66,7 @@ fun main(args: Array<String>) {
         return
     }
     AppInfo.versionName = BUILD_VERSION
+    Runtime.getRuntime().addShutdownHook(Thread { runCatching { DesktopVpn.shutdown() } })
 
     runCatching {
         desktopSettings.settings.value.language.tag?.let {
@@ -214,7 +215,7 @@ fun main(args: Array<String>) {
                         val shown = (listOfNotNull(active) + profiles.filter { it.id != activeId }).take(TRAY_SERVERS)
                         Menu("Server") {
                             shown.forEach { profile ->
-                                RadioButtonItem(profile.name.take(48), selected = profile.id == activeId) {
+                                CheckboxItem(profile.name.take(48), checked = profile.id == activeId) { _ ->
                                     if (profile.id != activeId) {
                                         configRepository.setActive(profile.id)
                                         reconnectIfRunning()
@@ -228,16 +229,16 @@ fun main(args: Array<String>) {
                         }
                     }
                     Menu("Mode") {
-                        RadioButtonItem("VPN · all traffic", selected = settings.isVpnMode) {
-                            if (!settings.isVpnMode) {
-                                desktopSettings.update { it.copy(runMode = RunMode.Vpn) }
-                                reconnectIfRunning()
-                            }
-                        }
-                        RadioButtonItem("System proxy", selected = !settings.isVpnMode) {
-                            if (settings.isVpnMode) {
-                                desktopSettings.update { it.copy(runMode = RunMode.ProxyOnly) }
-                                reconnectIfRunning()
+                        listOf(
+                            RunMode.SystemProxy to "System proxy",
+                            RunMode.ProxyOnly to "SOCKS only",
+                            RunMode.Vpn to "TUN · all traffic",
+                        ).forEach { (mode, label) ->
+                            CheckboxItem(label, checked = settings.runMode == mode) { _ ->
+                                if (settings.runMode != mode) {
+                                    desktopSettings.update { it.copy(runMode = mode) }
+                                    reconnectIfRunning()
+                                }
                             }
                         }
                     }
@@ -250,13 +251,13 @@ fun main(args: Array<String>) {
                         windowVisible = !windowVisible
                         if (windowVisible) raiseWindow++
                     }
-                    Item("Quit ZedSecure") { DesktopVpn.stop(); exitApplication() }
+                    Item("Quit ZedSecure") { DesktopVpn.shutdown(); exitApplication() }
                 },
             )
         }
 
         Window(
-            onCloseRequest = { if (trayAvailable) windowVisible = false else { DesktopVpn.stop(); exitApplication() } },
+            onCloseRequest = { if (trayAvailable) windowVisible = false else { DesktopVpn.shutdown(); exitApplication() } },
             visible = windowVisible,
             title = "ZedSecure",
             icon = painterResource(Res.drawable.ic_zed_mark),

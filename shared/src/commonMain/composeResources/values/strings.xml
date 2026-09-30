@@ -295,6 +295,12 @@
     <string name="mode_proxy_explained">Proxy only</string>
     <string name="mode_proxy_explained_body">Runs the local SOCKS proxy (and HTTP, if enabled) without a tunnel. Only apps you point at the port are routed. Works with Xray configs; other engines always run as a VPN.</string>
 
+    <string name="mode_system_proxy">System proxy</string>
+    <string name="mode_system_proxy_body">Sets the system proxy on GNOME, KDE, Windows or macOS. Browsers and most apps follow it, and no administrator rights are needed. This is the default.</string>
+    <string name="mode_socks">SOCKS only</string>
+    <string name="mode_socks_body">Only opens a local SOCKS and HTTP proxy on 127.0.0.1 and changes nothing else. Point each app at it yourself.</string>
+    <string name="mode_tun">TUN (VPN)</string>
+    <string name="mode_tun_body">Sends every app through a virtual network adapter, including apps that ignore the system proxy. Asks for administrator rights. Linux only for now.</string>
     <string name="group_all">All</string>
     <string name="group_manual">Manual</string>
 

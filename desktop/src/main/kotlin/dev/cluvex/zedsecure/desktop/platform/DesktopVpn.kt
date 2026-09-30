@@ -19,6 +19,7 @@ import dev.cluvex.zedsecure.domain.config.SshProfile
 import dev.cluvex.zedsecure.domain.config.autoSelectTuning
 import dev.cluvex.zedsecure.domain.config.toBuildOptions
 import dev.cluvex.zedsecure.domain.model.AppSettings
+import dev.cluvex.zedsecure.domain.model.RunMode
 import java.io.File
 import java.net.InetAddress
 import kotlin.concurrent.thread
@@ -40,7 +41,7 @@ object DesktopVpn {
     @Volatile private var shimStatsRunning = false
     private var usedSystemProxy = false
 
-    @Volatile var useTun: Boolean = true
+    @Volatile var runMode: RunMode = RunMode.SystemProxy
 
     @Volatile var settingsProvider: () -> AppSettings = { AppSettings() }
 
@@ -61,7 +62,7 @@ object DesktopVpn {
         if (state.isActive || state.isTransitioning) { stop(); return }
         val profile = config.activeProfile() ?: run { VpnManager.onError("Select a config first"); return }
 
-        useTun = settingsProvider().isVpnMode
+        runMode = settingsProvider().runMode
 
         when {
             profile.dnsTunnelSettings() != null -> startDns(profile.name, profile.dnsTunnelSettings()!!)
@@ -239,6 +240,11 @@ object DesktopVpn {
         }
 
     private fun route(socksPort: Int, bypassIps: List<String>, udpOverTcp: Boolean): Boolean {
+        if (runMode == RunMode.ProxyOnly) {
+            LogBus.append("I/Desktop SOCKS and HTTP proxy on 127.0.0.1:$socksPort; the system proxy is left alone")
+            return true
+        }
+        val useTun = runMode == RunMode.Vpn
         if (useTun && !TunMode.supported()) {
             LogBus.append("W/Desktop VPN mode is not available on ${Os.current} yet; using the system proxy")
         }
@@ -279,17 +285,24 @@ object DesktopVpn {
     fun stop() {
         if (!VpnManager.onStopping()) return
         thread(name = "desktop-vpn-stop") {
-            shimStatsRunning = false
-            stats?.stop(); stats = null
-            singBoxStats?.stop(); singBoxStats = null
-            tun?.stop(); tun = null
-            shim?.stop(); shim = null
-            ssh?.stop(); ssh = null
-            dnsTunnel?.stop(); dnsTunnel = null
-            if (usedSystemProxy) { runCatching { SystemProxy.clear() }; usedSystemProxy = false }
-            xray?.stop(); xray = null
-            dev.cluvex.zedsecure.core.AutoSelect.end()
+            teardown()
             VpnManager.onDisconnected()
         }
+    }
+
+    fun shutdown() = teardown()
+
+    @Synchronized
+    private fun teardown() {
+        shimStatsRunning = false
+        stats?.stop(); stats = null
+        singBoxStats?.stop(); singBoxStats = null
+        tun?.stop(); tun = null
+        shim?.stop(); shim = null
+        ssh?.stop(); ssh = null
+        dnsTunnel?.stop(); dnsTunnel = null
+        if (usedSystemProxy) { runCatching { SystemProxy.clear() }; usedSystemProxy = false }
+        xray?.stop(); xray = null
+        dev.cluvex.zedsecure.core.AutoSelect.end()
     }
 }

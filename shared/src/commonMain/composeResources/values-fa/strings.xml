@@ -400,6 +400,12 @@
     <string name="mode_vpn_explained_body">یک تونل سیستمی می‌سازد تا همهٔ برنامه‌ها از آن عبور کنند. انتخاب معمول همین است.</string>
     <string name="mode_proxy_explained">فقط پروکسی</string>
     <string name="mode_proxy_explained_body">پروکسی محلی SOCKS (و در صورت فعال بودن، HTTP) را بدون تونل اجرا می‌کند. فقط برنامه‌هایی که به این پورت وصلشان کنید عبور می‌کنند. برای کانفیگ‌های Xray کار می‌کند؛ هسته‌های دیگر همیشه به‌صورت VPN اجرا می‌شوند.</string>
+    <string name="mode_system_proxy">پروکسی سیستم</string>
+    <string name="mode_system_proxy_body">پروکسی سیستم را روی GNOME، KDE، ویندوز یا مک تنظیم می‌کند. مرورگرها و بیشتر برنامه‌ها از آن پیروی می‌کنند و دسترسی مدیر لازم نیست. حالت پیش‌فرض همین است.</string>
+    <string name="mode_socks">فقط SOCKS</string>
+    <string name="mode_socks_body">فقط یک پروکسی SOCKS و HTTP محلی روی 127.0.0.1 باز می‌کند و چیز دیگری را تغییر نمی‌دهد. هر برنامه را خودتان روی آن تنظیم کنید.</string>
+    <string name="mode_tun">TUN (VPN)</string>
+    <string name="mode_tun_body">همهٔ برنامه‌ها را از یک کارت شبکهٔ مجازی عبور می‌دهد، حتی برنامه‌هایی که پروکسی سیستم را نادیده می‌گیرند. دسترسی مدیر می‌خواهد. فعلاً فقط روی لینوکس.</string>
     <string name="option_none">هیچ‌کدام</string>
 
     <string name="title_ui_settings">رابط کاربری</string>

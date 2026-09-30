@@ -53,6 +53,8 @@ interface Platform {
 
     val supportsQrScan: Boolean get() = false
 
+    val supportsSystemProxy: Boolean get() = false
+
     fun lanIpv4Addresses(): List<String> = emptyList()
 
     val supportsPerAppProxy: Boolean get() = false
