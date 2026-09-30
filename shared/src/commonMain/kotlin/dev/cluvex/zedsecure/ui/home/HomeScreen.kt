@@ -65,6 +65,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material3.WavyProgressIndicatorDefaults
+import androidx.compose.runtime.mutableFloatStateOf
+import dev.cluvex.zedsecure.ui.theme.MotionBudget
+import dev.cluvex.zedsecure.ui.theme.LocalMotionBudget
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -497,6 +501,16 @@ private fun StageColumn(
 
 @Composable
 private fun DecorativeBackdrop(reduceMotion: Boolean) {
+    val budget = LocalMotionBudget.current
+    if (budget != MotionBudget.Full) {
+        OrganicSurface(
+            brush = ZedGradients.idle,
+            modifier = Modifier
+                .size(300.dp)
+                .offset(x = 180.dp, y = (-130).dp),
+        )
+        return
+    }
     val spin by rememberInfiniteTransition(label = "backdrop").animateFloat(
         initialValue = 0f,
         targetValue = 360f,
@@ -532,12 +546,19 @@ private fun Hero(
         animationSpec = MaterialTheme.motionScheme.slowSpatialSpec(),
         label = "morph",
     )
-    val breathe by rememberInfiniteTransition(label = "breathe").animateFloat(
-        initialValue = 0.97f,
-        targetValue = 1.04f,
-        animationSpec = infiniteRepeatable(tween(2800), RepeatMode.Reverse),
-        label = "breathe",
-    )
+    val budget = LocalMotionBudget.current
+    val transitional = state == ConnectionState.Connecting || state == ConnectionState.Reconnecting
+    val breatheState = if (budget == MotionBudget.Full || budget == MotionBudget.Throttled && transitional) {
+        rememberInfiniteTransition(label = "breathe").animateFloat(
+            initialValue = 0.97f,
+            targetValue = 1.04f,
+            animationSpec = infiniteRepeatable(tween(2800), RepeatMode.Reverse),
+            label = "breathe",
+        )
+    } else {
+        remember { mutableFloatStateOf(1f) }
+    }
+    val breathe by breatheState
     val brush = when (state) {
         ConnectionState.Connected -> ZedGradients.forSession(sessionId)
         ConnectionState.Connecting, ConnectionState.Reconnecting -> ZedGradients.connecting
@@ -550,7 +571,17 @@ private fun Hero(
         modifier = Modifier
             .size(size)
             .tourTarget(TourTargets.CORE)
-            .scale(if (state.isActive) breathe else 1f)
+            .then(
+                if (budget == MotionBudget.Full) {
+                    Modifier.scale(if (state.isActive) breathe else 1f)
+                } else {
+                    Modifier.graphicsLayer {
+                        val s = if (state.isActive) breatheState.value else 1f
+                        scaleX = s
+                        scaleY = s
+                    }
+                },
+            )
 
             .pointerInput(onTap) {
                 detectTapGestures(
@@ -974,12 +1005,18 @@ private fun TrafficTile(
 
             Spacer(Modifier.height(size.gapDp.dp))
 
+            val motion = LocalMotionBudget.current
             LinearWavyProgressIndicator(
                 progress = { activity },
                 amplitude = { amplitude },
                 color = if (flowing) accent else MaterialTheme.colorScheme.outlineVariant,
                 trackColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
                 modifier = Modifier.fillMaxWidth(),
+                waveSpeed = if (motion == MotionBudget.Full || flowing && motion == MotionBudget.Throttled) {
+                    WavyProgressIndicatorDefaults.LinearDeterminateWavelength
+                } else {
+                    0.dp
+                },
             )
 
             Spacer(Modifier.height(6.dp))
@@ -1557,7 +1594,13 @@ private fun ConnectingBackdrop(state: ConnectionState, sessionId: Int, reduceMot
         label = "backdrop-intensity",
     )
 
-    val pulse by if (reduceMotion) {
+    val budget = LocalMotionBudget.current
+    val pulseRuns = !reduceMotion && when (budget) {
+        MotionBudget.Full -> true
+        MotionBudget.Throttled -> state == ConnectionState.Connecting || state == ConnectionState.Reconnecting
+        MotionBudget.Paused -> false
+    }
+    val pulse by if (!pulseRuns) {
         remember { mutableStateOf(0f) }
     } else {
         rememberInfiniteTransition(label = "backdrop-life").animateFloat(

@@ -51,7 +51,10 @@ import dev.cluvex.zedsecure.domain.model.ThemeMode
 import dev.cluvex.zedsecure.platform.AppInfo
 import dev.cluvex.zedsecure.ui.MainScaffold
 import dev.cluvex.zedsecure.ui.platform.LocalPlatform
+import dev.cluvex.zedsecure.ui.theme.LocalMotionBudget
+import dev.cluvex.zedsecure.ui.theme.MotionBudget
 import dev.cluvex.zedsecure.ui.theme.ZedSecureTheme
+import androidx.compose.ui.platform.LocalWindowInfo
 
 private val configRepository = ConfigRepository(DesktopKeyValueStore("configs"))
 private val desktopSettings = DesktopSettings(DesktopKeyValueStore("settings"))
@@ -288,13 +291,14 @@ fun main(args: Array<String>) {
             }
         }
 
+        val windowState = rememberWindowState(width = WIN_W, height = WIN_H, position = WindowPosition(Alignment.Center))
         Window(
             onCloseRequest = { if (trayAvailable) windowVisible = false else { DesktopVpn.shutdown(); exitApplication() } },
             visible = windowVisible,
             title = "ZedSecure",
             icon = painterResource(Res.drawable.ic_zed_mark),
             resizable = false,
-            state = rememberWindowState(width = WIN_W, height = WIN_H, position = WindowPosition(Alignment.Center)),
+            state = windowState,
         ) {
             LaunchedEffect(raiseWindow) {
                 if (raiseWindow > 0) {
@@ -320,7 +324,13 @@ fun main(args: Array<String>) {
                     languageTag = langTag,
                     fontScale = settings.uiFontScale.scale,
                 ) {
-                    CompositionLocalProvider(LocalPlatform provides DesktopPlatform) {
+                    val focused = LocalWindowInfo.current.isWindowFocused
+                    val motion = if (windowVisible && !windowState.isMinimized && focused) {
+                        MotionBudget.Throttled
+                    } else {
+                        MotionBudget.Paused
+                    }
+                    CompositionLocalProvider(LocalPlatform provides DesktopPlatform, LocalMotionBudget provides motion) {
                         MainScaffold(
                             settings = settings,
                             configRepository = configRepository,
