@@ -135,6 +135,12 @@ JSch, Bouncy Castle, ZXing
 --------------------------
 Licenses: BSD-3-Clause, MIT, Apache-2.0
 
+Compose Native Tray
+-------------------
+Source: https://github.com/kdroidFilter/ComposeNativeTray
+License: MIT
+The desktop tray icon on Linux.
+
 Fonts
 -----
 Inter — SIL Open Font License 1.1 — https://github.com/rsms/inter

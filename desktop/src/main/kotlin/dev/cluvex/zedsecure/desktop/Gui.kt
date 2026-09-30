@@ -41,6 +41,7 @@ import dev.cluvex.zedsecure.domain.model.RunMode
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.flow.first
 import org.jetbrains.compose.resources.painterResource
+import dev.cluvex.zedsecure.desktop.core.Os
 import dev.cluvex.zedsecure.desktop.platform.DesktopKeyValueStore
 import dev.cluvex.zedsecure.desktop.platform.DesktopProbe
 import dev.cluvex.zedsecure.desktop.platform.DesktopPlatform
@@ -106,8 +107,9 @@ fun main(args: Array<String>) {
             ImageLoader.Builder(ctx).components { add(SvgDecoder.Factory()) }.build()
         }
 
+        val nativeTray = remember { Os.current == Os.LINUX && LinuxDesktop.trayHostAvailable() }
         val trayAvailable = remember {
-            java.awt.SystemTray.isSupported() && runCatching {
+            nativeTray || java.awt.SystemTray.isSupported() && runCatching {
                 val st = java.awt.SystemTray.getSystemTray()
                 val img = java.awt.image.BufferedImage(16, 16, java.awt.image.BufferedImage.TYPE_INT_ARGB)
                 val probe = java.awt.TrayIcon(img)
@@ -173,7 +175,9 @@ fun main(args: Array<String>) {
                         Notification("ZedSecure", "Disconnected", Notification.Type.None)
                     else -> null
                 }
-                notice?.let { trayState.sendNotification(it) }
+                notice?.let {
+                    if (nativeTray) LinuxDesktop.notify(it.title, it.message) else trayState.sendNotification(it)
+                }
             }
             val statusLine = when {
                 connected -> "Connected · ${status.serverName ?: ""}".trimEnd(' ', '·')
@@ -188,72 +192,100 @@ fun main(args: Array<String>) {
                     append("\n↓ ").append(humanBps(status.downloadBps)).append("   ↑ ").append(humanBps(status.uploadBps))
                 }
             }
-            Tray(
-                state = trayState,
-                icon = painterResource(
-                    when {
-                        connected -> Res.drawable.ic_tray_connected
-                        connecting -> Res.drawable.ic_tray_connecting
-                        else -> Res.drawable.ic_tray_disconnected
-                    },
-                ),
-                tooltip = tip,
-                onAction = { windowVisible = true; raiseWindow++ },
-                menu = {
-                    Item("ZedSecure ${AppInfo.versionName}", enabled = false) {}
-                    Item(statusLine, enabled = false) {}
-                    if (connected) {
-                        Item("↓ ${humanBps(status.downloadBps)}    ↑ ${humanBps(status.uploadBps)}", enabled = false) {}
-                    }
-                    Separator()
-                    Item(
+            val active = profiles.firstOrNull { it.id == activeId }
+            val shown = (listOfNotNull(active) + profiles.filter { it.id != activeId }).take(TRAY_SERVERS)
+            val proxyPort = VpnManager.activeSocksPort ?: LocalProxy.SOCKS_PORT
+            val entries = buildList {
+                add(TrayEntry.Action("ZedSecure ${AppInfo.versionName}", enabled = false))
+                add(TrayEntry.Action(statusLine, enabled = false))
+                if (connected) {
+                    add(TrayEntry.Action("↓ ${humanBps(status.downloadBps)}    ↑ ${humanBps(status.uploadBps)}", enabled = false))
+                }
+                add(TrayEntry.Separator)
+                add(
+                    TrayEntry.Action(
                         if (connected || connecting) "Disconnect" else "Connect",
                         enabled = status.state != ConnectionState.Disconnecting,
-                    ) { DesktopVpn.toggle(configRepository) }
-                    if (profiles.isNotEmpty()) {
-                        val active = profiles.firstOrNull { it.id == activeId }
-                        val shown = (listOfNotNull(active) + profiles.filter { it.id != activeId }).take(TRAY_SERVERS)
-                        Menu("Server") {
-                            shown.forEach { profile ->
-                                CheckboxItem(profile.name.take(48), checked = profile.id == activeId) { _ ->
+                    ) { DesktopVpn.toggle(configRepository) },
+                )
+                if (profiles.isNotEmpty()) {
+                    add(
+                        TrayEntry.Sub(
+                            "Server",
+                            shown.map { profile ->
+                                TrayEntry.Check(profile.name.take(48), checked = profile.id == activeId) {
                                     if (profile.id != activeId) {
                                         configRepository.setActive(profile.id)
                                         reconnectIfRunning()
                                     }
                                 }
-                            }
-                            if (profiles.size > shown.size) {
-                                Separator()
-                                Item("All ${profiles.size} servers…") { windowVisible = true; raiseWindow++ }
-                            }
-                        }
-                    }
-                    Menu("Mode") {
+                            } + if (profiles.size > shown.size) {
+                                listOf(
+                                    TrayEntry.Separator,
+                                    TrayEntry.Action("All ${profiles.size} servers…") { windowVisible = true; raiseWindow++ },
+                                )
+                            } else {
+                                emptyList()
+                            },
+                        ),
+                    )
+                }
+                add(
+                    TrayEntry.Sub(
+                        "Mode",
                         listOf(
                             RunMode.SystemProxy to "System proxy",
                             RunMode.ProxyOnly to "SOCKS only",
                             RunMode.Vpn to "TUN · all traffic",
-                        ).forEach { (mode, label) ->
-                            CheckboxItem(label, checked = settings.runMode == mode) { _ ->
+                        ).map { (mode, label) ->
+                            TrayEntry.Check(label, checked = settings.runMode == mode) {
                                 if (settings.runMode != mode) {
                                     desktopSettings.update { it.copy(runMode = mode) }
                                     reconnectIfRunning()
                                 }
                             }
-                        }
-                    }
-                    val proxyPort = VpnManager.activeSocksPort ?: LocalProxy.SOCKS_PORT
-                    Item("Copy proxy address · 127.0.0.1:$proxyPort") {
-                        DesktopPlatform.copyToClipboard("127.0.0.1:$proxyPort")
-                    }
-                    Separator()
-                    Item(if (windowVisible) "Hide window" else "Show window") {
-                        windowVisible = !windowVisible
-                        if (windowVisible) raiseWindow++
-                    }
-                    Item("Quit ZedSecure") { DesktopVpn.shutdown(); exitApplication() }
+                        },
+                    ),
+                )
+                add(TrayEntry.Action("Copy proxy address · 127.0.0.1:$proxyPort") {
+                    DesktopPlatform.copyToClipboard("127.0.0.1:$proxyPort")
+                })
+                add(TrayEntry.Separator)
+                add(TrayEntry.Action(if (windowVisible) "Hide window" else "Show window") {
+                    windowVisible = !windowVisible
+                    if (windowVisible) raiseWindow++
+                })
+                add(TrayEntry.Action("Quit ZedSecure") { DesktopVpn.shutdown(); exitApplication() })
+            }
+            val trayIconKey = when {
+                connected -> "connected"
+                connecting -> "connecting"
+                else -> "disconnected"
+            }
+            val trayIcon = painterResource(
+                when (trayIconKey) {
+                    "connected" -> Res.drawable.ic_tray_connected
+                    "connecting" -> Res.drawable.ic_tray_connecting
+                    else -> Res.drawable.ic_tray_disconnected
                 },
             )
+            if (nativeTray) {
+                LinuxNativeTray(
+                    iconKey = trayIconKey,
+                    icon = trayIcon,
+                    tooltip = tip,
+                    onOpen = { windowVisible = true; raiseWindow++ },
+                    entries = entries,
+                )
+            } else {
+                Tray(
+                    state = trayState,
+                    icon = trayIcon,
+                    tooltip = tip,
+                    onAction = { windowVisible = true; raiseWindow++ },
+                    menu = { awtEntries(entries) },
+                )
+            }
         }
 
         Window(
