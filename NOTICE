@@ -108,6 +108,17 @@ License: CC0 1.0 Universal
 A public-domain fork of dnstt. It is the engine behind both DNS-tunnel modes in
 this app, driven by our own `zeddns` package.
 
+SlipNet
+-------
+Source: https://github.com/anonvector/SlipNet — anonvector
+
+Versions before 3.0.9 included SlipNet's dnstt fork (AGPL-3.0), noizdns, and
+vaydns-mobile in the core, including SlipNet's TCP transport. Since 3.0.9, the
+core uses zeddns, which has the same features with its own code. These features
+come from SlipNet: DNS over plain TCP, the fan-out and round-robin resolver
+modes with spread count, the DNS pool, the global resolver override and
+prevent-DNS-fallback settings, and the design and text of the DNS and SSH settings.
+
 MasterDNS
 ---------
 Source: https://github.com/masterking32/MasterDnsVPN — Amin Mahmoudi

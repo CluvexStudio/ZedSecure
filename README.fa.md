@@ -89,10 +89,20 @@ APK مخصوص دستگاهتان از [Releases](https://github.com/CluvexStudi
 
 ## سپاسگزاری
 
-تونل DNS با پروتکل [dnstt](https://www.bamsoftware.com/software/dnstt/) نوشتهٔ David Fifield کار
-می‌کند و روی [VayDNS](https://github.com/anonvector/vaydns) اجرا می‌شود؛ طراحی این بخش و
-تنظیماتش از [SlipNet](https://github.com/anonvector/SlipNet) الهام گرفته است. هیچ کدی از SlipNet
-استفاده نشده: موتور آن، `zeddns`، را خودمان نوشته‌ایم. ZedSecure همچنین روی
+حالت‌های DNSTT و VayDNS تونل DNS با کتابخانهٔ [VayDNS](https://github.com/net2share/vaydns)
+ساخته شده‌اند که فورکی از [dnstt](https://www.bamsoftware.com/software/dnstt/) است. حالت MasterDNS
+موتور جداگانه‌ای است که پایین‌تر از آن نام برده شده.
+
+ایده‌های اصلی این تونل از [SlipNet](https://github.com/anonvector/SlipNet) ساختهٔ anonvector
+آمده است: DNS روی TCP ساده (که VayDNS به‌تنهایی ندارد)، حالت‌های رزالور fan-out و round-robin
+همراه با تعداد پخش، استخر DNS که در هر اتصال سریع‌ترین رزالورها را انتخاب می‌کند، تنظیمات
+override سراسری رزالور و جلوگیری از fallback ی DNS، و طراحی و متن تنظیمات DNS و SSH.
+
+نسخه‌های پیش از 3.0.9 موتور خود SlipNet، از جمله لایهٔ انتقال TCP آن، را داخل هسته داشتند. از
+نسخهٔ 3.0.9 موتور `zeddns` است که برای همین اپ نوشته شده؛ همان قابلیت‌ها را دارد، اما با کد
+خودش.
+
+ZedSecure همچنین روی
 [Xray-core](https://github.com/XTLS/Xray-core)، [sing-box](https://github.com/SagerNet/sing-box)،
 [سایفون](https://github.com/Psiphon-Labs/psiphon-tunnel-core)، [Tor](https://www.torproject.org/)،
 [MasterDnsVPN](https://github.com/masterking32/MasterDnsVPN)،

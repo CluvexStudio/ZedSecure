@@ -82,17 +82,14 @@ the Android release in CI, and a `desktop-v*` tag builds the desktop one.
 
 ## Credits
 
-The DNS tunnel speaks the [dnstt](https://www.bamsoftware.com/software/dnstt/) protocol by David
-Fifield and runs on [VayDNS](https://github.com/anonvector/vaydns); its design and settings were
-inspired by [SlipNet](https://github.com/anonvector/SlipNet). None of SlipNet's code is used: the
-engine, `zeddns`, is our own. ZedSecure also stands on
-[Xray-core](https://github.com/XTLS/Xray-core), [sing-box](https://github.com/SagerNet/sing-box),
-[Psiphon](https://github.com/Psiphon-Labs/psiphon-tunnel-core), [Tor](https://www.torproject.org/),
-[MasterDnsVPN](https://github.com/masterking32/MasterDnsVPN),
-[AmneziaWG](https://github.com/amnezia-vpn/amneziawg-go),
-[OpenConnect](https://www.infradead.org/openconnect/) and
-[hev-socks5-tunnel](https://github.com/heiher/hev-socks5-tunnel). Their licences are in
-[NOTICE](NOTICE).
+The DNSTT and VayDNS modes of the DNS tunnel are built with the
+[VayDNS](https://github.com/net2share/vaydns) library, a fork of [dnstt](https://www.bamsoftware.com/software/dnstt/). The MasterDNS mode is a separate engine, credited below.
+
+The main ideas of the tunnel come from [SlipNet](https://github.com/anonvector/SlipNet) by anonvector: DNS over plain TCP (VayDNS does not have this by itself), the fan-out and round-robin resolver modes with spread count, the DNS pool that picks the fastest resolvers on each connect, the global resolver override and prevent-DNS-fallback settings, and the design and text of the DNS and SSH settings.
+
+Versions before 3.0.9 used SlipNet's own engine, including its TCP transport, inside the core. Since 3.0.9, the engine is `zeddns`, written for this app. It has the same features, but with its own code.
+
+ZedSecure also stands on [Xray-core](https://github.com/XTLS/Xray-core), [sing-box](https://github.com/SagerNet/sing-box), [Psiphon](https://github.com/Psiphon-Labs/psiphon-tunnel-core), [Tor](https://www.torproject.org/), [MasterDnsVPN](https://github.com/masterking32/MasterDnsVPN), [AmneziaWG](https://github.com/amnezia-vpn/amneziawg-go), [OpenConnect](https://www.infradead.org/openconnect/), and [hev-socks5-tunnel](https://github.com/heiher/hev-socks5-tunnel). Their licences are in [NOTICE](NOTICE).
 
 ## License
 
