@@ -108,7 +108,8 @@ jobs:
           [ "$got" = "ZedSecure $V" ]
           rm -rf /tmp/zs-tar && mkdir -p /tmp/zs-tar
           tar -xzf "dist/ZedSecure-$V-linux-x86_64.tar.gz" -C /tmp/zs-tar
-          got=$(find /tmp/zs-tar -path '*/bin/*' -type f -perm -u+x | head -1 | xargs -I{} {} --version)
+          bin=$(find /tmp/zs-tar -path '*/bin/*' -type f -perm -u+x | head -1)
+          got=$("$bin" --version)
           echo "tar.gz: $got"
           [ "$got" = "ZedSecure $V" ]
 
