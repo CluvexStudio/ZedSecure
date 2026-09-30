@@ -1,6 +1,10 @@
 package dev.cluvex.zedsecure.desktop.core
 
 import java.io.File
+import java.io.InputStream
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
+import java.util.concurrent.TimeUnit
 
 class XrayCore(private val workDir: File) {
     private var process: Process? = null
@@ -43,8 +47,21 @@ class XrayCore(private val workDir: File) {
     }
 
     fun stop() {
-        runCatching { process?.destroy() }
+        val running = process ?: return
         process = null
+        stopProcess(running)
+    }
+
+    companion object {
+        fun stopProcess(process: Process, graceMs: Long = 3_000) {
+            runCatching {
+                process.destroy()
+                if (!process.waitFor(graceMs, TimeUnit.MILLISECONDS)) {
+                    process.destroyForcibly()
+                    process.waitFor(2, TimeUnit.SECONDS)
+                }
+            }
+        }
     }
 }
 
@@ -58,7 +75,7 @@ object XrayBinary {
         }
         val stream = XrayBinary::class.java.getResourceAsStream("/bin/$sub/$name") ?: return null
         val out = File(workDir, name)
-        stream.use { input -> out.outputStream().use { input.copyTo(it) } }
+        if (!replace(stream, out) && !out.isFile) return null
         out.setExecutable(true)
 
         val cronet = when (Os.current) {
@@ -69,11 +86,22 @@ object XrayBinary {
         if (cronet != null) {
             XrayBinary::class.java.getResourceAsStream("/bin/$sub/$cronet")?.use { input ->
                 val lib = File(workDir, cronet)
-
                 val bytes = input.readBytes()
-                if (!lib.isFile || lib.length() != bytes.size.toLong()) lib.writeBytes(bytes)
+                if (!lib.isFile || lib.length() != bytes.size.toLong()) replace(bytes.inputStream(), lib)
             }
         }
         return out
+    }
+
+    fun replace(source: InputStream, target: File): Boolean {
+        val staged = File(target.parentFile, "${target.name}.new")
+        return runCatching {
+            source.use { input -> staged.outputStream().use { input.copyTo(it) } }
+            Files.move(staged.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
+            true
+        }.getOrElse {
+            staged.delete()
+            false
+        }
     }
 }

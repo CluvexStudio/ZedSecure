@@ -50,12 +50,35 @@ object DesktopPlatform : Platform {
     }
 
     override fun shareFiles(files: List<Pair<String, ByteArray>>) {
-        val chooser = JFileChooser().apply { dialogTitle = "Save" }
-        files.firstOrNull()?.let { (name, bytes) ->
-            chooser.selectedFile = File(System.getProperty("user.home"), name)
-            if (chooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
-                runCatching { chooser.selectedFile.writeBytes(bytes) }
-            }
+        if (files.isEmpty()) return
+        val named = uniqueNames(files.map { (name, bytes) -> dev.cluvex.zedsecure.crypto.zsxFileName(name) to bytes })
+        val home = File(System.getProperty("user.home"))
+        if (named.size == 1) {
+            val (name, bytes) = named.first()
+            val chooser = JFileChooser().apply { dialogTitle = "Save"; selectedFile = File(home, name) }
+            if (chooser.showSaveDialog(null) != JFileChooser.APPROVE_OPTION) return
+            runCatching { chooser.selectedFile.writeBytes(bytes) }.onFailure { toast(it.message ?: "Could not save") }
+            return
+        }
+        val chooser = JFileChooser().apply {
+            dialogTitle = "Save ${named.size} files"
+            fileSelectionMode = JFileChooser.DIRECTORIES_ONLY
+            currentDirectory = home
+        }
+        if (chooser.showSaveDialog(null) != JFileChooser.APPROVE_OPTION) return
+        val dir = chooser.selectedFile
+        val failed = named.count { (name, bytes) -> runCatching { File(dir, name).writeBytes(bytes) }.isFailure }
+        if (failed > 0) toast("Could not save $failed of ${named.size} files")
+    }
+
+    internal fun uniqueNames(files: List<Pair<String, ByteArray>>): List<Pair<String, ByteArray>> {
+        val used = mutableSetOf<String>()
+        return files.map { (name, bytes) ->
+            val stem = name.removeSuffix(".zsx")
+            var candidate = name
+            var n = 2
+            while (!used.add(candidate)) candidate = "$stem-${n++}.zsx"
+            candidate to bytes
         }
     }
 

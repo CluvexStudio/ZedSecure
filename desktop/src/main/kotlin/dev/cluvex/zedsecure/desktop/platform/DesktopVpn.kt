@@ -7,6 +7,7 @@ import dev.cluvex.zedsecure.core.VpnManager
 import dev.cluvex.zedsecure.data.config.ConfigRepository
 import dev.cluvex.zedsecure.desktop.core.DesktopDnsTunnel
 import dev.cluvex.zedsecure.desktop.core.HevBinary
+import dev.cluvex.zedsecure.desktop.core.LocalPortPicker
 import dev.cluvex.zedsecure.desktop.core.SystemProxy
 import dev.cluvex.zedsecure.desktop.core.Os
 import dev.cluvex.zedsecure.desktop.core.TunMode
@@ -95,15 +96,16 @@ object DesktopVpn {
                 sshPort
             } else port
 
-            val bridge = SocksTunBridge("127.0.0.1", SHIM_PORT, "127.0.0.1", upstreamPort, dnsHost = "8.8.8.8")
+            val shimPort = localPort(SHIM_PORT, setOf(port, upstreamPort))
+            val bridge = SocksTunBridge("127.0.0.1", shimPort, "127.0.0.1", upstreamPort, dnsHost = "8.8.8.8")
             shim = bridge
             if (!bridge.start()) { stop(); VpnManager.onError("Shim failed to start"); return@thread }
 
             val bypass = resolveHosts(dnsResolverHosts(dnsProfile) + listOfNotNull(dnsProfile.sshHost.takeIf { it.isNotBlank() }))
-            if (!route(SHIM_PORT, bypass, udpOverTcp = true)) {
+            if (!route(shimPort, bypass, udpOverTcp = true)) {
                 stop(); VpnManager.onError("Could not route traffic (TUN + system proxy failed)"); return@thread
             }
-            VpnManager.activeSocksPort = SHIM_PORT
+            VpnManager.activeSocksPort = shimPort
             startShimStats(bridge)
             VpnManager.onConnected(name)
         }
@@ -151,7 +153,12 @@ object DesktopVpn {
         }.getOrElse {
             VpnManager.onError(it.message ?: "This config type isn't supported on desktop yet"); return
         }
-        val json = DesktopXray.augmentWithMetrics(baseJson, METRICS_PORT)
+        val socksPort = localPort(LocalProxy.SOCKS_PORT)
+        val metricsPort = localPort(METRICS_PORT, setOf(socksPort))
+        val json = DesktopXray.augmentWithMetrics(
+            DesktopXray.withSocksPort(baseJson, LocalProxy.SOCKS_PORT, socksPort),
+            metricsPort,
+        )
         VpnManager.onStarting(name)
         thread(name = "desktop-xray") {
             val core = XrayCore(work)
@@ -159,23 +166,24 @@ object DesktopVpn {
             xray = core
             dev.cluvex.zedsecure.core.AutoSelect.activate()
             val bypass = resolveHosts(DesktopXray.extractServerHosts(json))
-            if (!route(LocalProxy.SOCKS_PORT, bypass, udpOverTcp = false)) {
+            if (!route(socksPort, bypass, udpOverTcp = false)) {
                 core.stop(); xray = null
                 VpnManager.onError("Could not route traffic (TUN + system proxy failed)"); return@thread
             }
-            VpnManager.activeSocksPort = LocalProxy.SOCKS_PORT
-            DesktopStats(METRICS_PORT).also { stats = it; it.start() }
+            VpnManager.activeSocksPort = socksPort
+            DesktopStats(metricsPort).also { stats = it; it.start() }
             VpnManager.onConnected(name)
         }
     }
 
     private fun startSingBoxConfig(name: String, profile: dev.cluvex.zedsecure.domain.config.VpnProfile) {
         val source = profile.source as? dev.cluvex.zedsecure.domain.config.ProfileSource.SingBoxConfig ?: return
+        val socksPort = localPort(LocalProxy.SOCKS_PORT)
         val prepared = runCatching {
             dev.cluvex.zedsecure.domain.config.SingBoxConfigs.prepareForDesktop(
                 source.json,
-                socksPort = LocalProxy.SOCKS_PORT,
-                clashApiPort = METRICS_PORT,
+                socksPort = socksPort,
+                clashApiPort = localPort(METRICS_PORT, setOf(socksPort)),
             )
         }.getOrElse { VpnManager.onError(it.message ?: "Not a usable sing-box config"); return }
         VpnManager.onStarting(name)
@@ -208,19 +216,27 @@ object DesktopVpn {
             val sshPort = controller.start()
             if (sshPort < 0) { VpnManager.onError("SSH failed to connect"); return@thread }
 
-            val bridge = SocksTunBridge("127.0.0.1", SHIM_PORT, "127.0.0.1", sshPort, dnsHost = "8.8.8.8")
+            val shimPort = localPort(SHIM_PORT, setOf(sshPort))
+            val bridge = SocksTunBridge("127.0.0.1", shimPort, "127.0.0.1", sshPort, dnsHost = "8.8.8.8")
             shim = bridge
             if (!bridge.start()) { controller.stop(); ssh = null; VpnManager.onError("Shim failed"); return@thread }
             val bypass = resolveHosts(listOf(sshProfile.host))
-            if (!route(SHIM_PORT, bypass, udpOverTcp = true)) {
+            if (!route(shimPort, bypass, udpOverTcp = true)) {
                 bridge.stop(); controller.stop(); ssh = null
                 VpnManager.onError("Could not route traffic"); return@thread
             }
-            VpnManager.activeSocksPort = SHIM_PORT
+            VpnManager.activeSocksPort = shimPort
             startShimStats(bridge)
             VpnManager.onConnected(name)
         }
     }
+
+    private fun localPort(preferred: Int, taken: Set<Int> = emptySet()): Int =
+        LocalPortPicker.pick(preferred, taken).also { port ->
+            if (port != preferred) {
+                LogBus.append("W/Desktop port $preferred is in use by another program; using $port instead")
+            }
+        }
 
     private fun route(socksPort: Int, bypassIps: List<String>, udpOverTcp: Boolean): Boolean {
         if (useTun && !TunMode.supported()) {

@@ -3,6 +3,8 @@ package dev.cluvex.zedsecure.desktop.platform
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlin.test.Test
@@ -86,5 +88,15 @@ class DesktopXrayTest {
         val out: JsonObject = json.parseToJsonElement(twice).jsonObject
         assertEquals("127.0.0.1:9200", out.getValue("metrics").jsonObject.getValue("listen").jsonPrimitive.content)
         assertEquals(1, twice.split("\"metrics\"").size - 1)
+    }
+
+    @Test
+    fun `only the SOCKS inbound moves to the new port`() {
+        val config = """{"inbounds":[{"tag":"socks-in","listen":"127.0.0.1","port":10808,"protocol":"socks"},""" +
+            """{"tag":"dns-in","port":10853,"protocol":"dokodemo-door"}],"outbounds":[{"protocol":"freedom"}]}"""
+        val moved = Json.parseToJsonElement(DesktopXray.withSocksPort(config, 10808, 10818)).jsonObject
+        val ports = moved["inbounds"]!!.jsonArray.map { it.jsonObject["port"]!!.jsonPrimitive.int }
+        assertEquals(listOf(10818, 10853), ports)
+        assertEquals(config, DesktopXray.withSocksPort(config, 10808, 10808))
     }
 }

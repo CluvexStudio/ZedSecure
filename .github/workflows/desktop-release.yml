@@ -89,6 +89,7 @@ jobs:
           Terminal=false
           EOF
           cat > AppDir/AppRun <<EOF
+          #!/bin/sh
           HERE=\$(dirname "\$(readlink -f "\$0")")
           exec "\$HERE/usr/bin/$(basename "$BIN")" "\$@"
           EOF
@@ -97,6 +98,19 @@ jobs:
 
           ( cd dist && sha256sum ZedSecure-* > SHA256SUMS.txt )
           ls -lh dist
+
+      - name: The AppImage and the tarball start
+        run: |
+          set -e
+          V='${{ steps.v.outputs.name }}'
+          got=$(APPIMAGE_EXTRACT_AND_RUN=1 "dist/ZedSecure-$V-x86_64.AppImage" --version)
+          echo "AppImage: $got"
+          [ "$got" = "ZedSecure $V" ]
+          rm -rf /tmp/zs-tar && mkdir -p /tmp/zs-tar
+          tar -xzf "dist/ZedSecure-$V-linux-x86_64.tar.gz" -C /tmp/zs-tar
+          got=$(find /tmp/zs-tar -path '*/bin/*' -type f -perm -u+x | head -1 | xargs -I{} {} --version)
+          echo "tar.gz: $got"
+          [ "$got" = "ZedSecure $V" ]
 
       - uses: actions/upload-artifact@v4
         with:
@@ -255,7 +269,11 @@ jobs:
           mkdir -p dist
           find artifacts -type f -exec cp {} dist/ \;
           ls -l dist
-          gh release create "${GITHUB_REF_NAME}" dist/* \
-            --repo "$GITHUB_REPOSITORY" \
-            --title "ZedSecure Desktop ${{ steps.v.outputs.name }}" \
-            --prerelease --notes "" --draft
+          if gh release view "${GITHUB_REF_NAME}" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "${GITHUB_REF_NAME}" dist/* --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "${GITHUB_REF_NAME}" dist/* \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "ZedSecure Desktop ${{ steps.v.outputs.name }}" \
+              --prerelease --notes "" --draft
+          fi

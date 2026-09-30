@@ -30,3 +30,10 @@ class ZsxWrongPasswordException : ZsxException("Incorrect password")
 class ZsxExpiredException : ZsxException("This locked config has expired")
 class ZsxPasswordRequiredException : ZsxException("A password is required")
 class ZsxLegacyException : ZsxException("This locked config was made by an older version of ZedSecure")
+
+fun zsxFileName(name: String): String {
+    val base = name.trim().ifBlank { "config" }
+        .replace(Regex("[^A-Za-z0-9._-]"), "_")
+        .take(48)
+    return if (base.endsWith(".zsx")) base else "$base.zsx"
+}

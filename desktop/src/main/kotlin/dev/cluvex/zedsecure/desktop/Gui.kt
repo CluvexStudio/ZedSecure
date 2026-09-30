@@ -30,6 +30,12 @@ import dev.cluvex.zedsecure.shared.resources.ic_tray_connected
 import dev.cluvex.zedsecure.shared.resources.ic_tray_connecting
 import dev.cluvex.zedsecure.shared.resources.ic_tray_disconnected
 import dev.cluvex.zedsecure.shared.resources.ic_zed_mark
+import dev.cluvex.zedsecure.shared.resources.zsx_expired
+import dev.cluvex.zedsecure.shared.resources.zsx_invalid
+import dev.cluvex.zedsecure.shared.resources.zsx_legacy
+import dev.cluvex.zedsecure.core.VaultImportBus
+import dev.cluvex.zedsecure.crypto.ZsxLegacyException
+import org.jetbrains.compose.resources.getString
 import dev.cluvex.zedsecure.domain.config.LocalProxy
 import dev.cluvex.zedsecure.domain.model.RunMode
 import androidx.compose.runtime.rememberCoroutineScope
@@ -54,7 +60,11 @@ private val WIN_H = 860.dp
 
 private const val TRAY_SERVERS = 30
 
-fun main() {
+fun main(args: Array<String>) {
+    if (args.firstOrNull() == "--version") {
+        println("ZedSecure $BUILD_VERSION")
+        return
+    }
     AppInfo.versionName = BUILD_VERSION
 
     runCatching {
@@ -110,6 +120,36 @@ fun main() {
         val connected = status.state == ConnectionState.Connected
         val trayScope = rememberCoroutineScope()
 
+        fun reconnectIfRunning() {
+            val state = VpnManager.status.value.state
+            if (state != ConnectionState.Connected && state != ConnectionState.Connecting) return
+            trayScope.launch {
+                DesktopVpn.stop()
+                kotlinx.coroutines.withTimeoutOrNull(15_000) {
+                    VpnManager.status.first { it.state == ConnectionState.Idle }
+                } ?: return@launch
+                DesktopVpn.toggle(configRepository)
+            }
+        }
+
+        fun importLockedConfig() {
+            trayScope.launch {
+                val pick = DesktopPlatform.pickFileBytes() ?: return@launch
+                val peeked = runCatching { configRepository.peekLocked(pick.bytes) }
+                val meta = peeked.getOrNull()
+                when {
+                    meta == null -> DesktopPlatform.toast(
+                        getString(
+                            if (peeked.exceptionOrNull() is ZsxLegacyException) Res.string.zsx_legacy
+                            else Res.string.zsx_invalid,
+                        ),
+                    )
+                    meta.isExpired -> DesktopPlatform.toast(getString(Res.string.zsx_expired))
+                    else -> VaultImportBus.request(pick.bytes, meta)
+                }
+            }
+        }
+
         if (trayAvailable) {
             val trayState = rememberTrayState()
             val profiles by configRepository.profiles.collectAsState()
@@ -145,16 +185,6 @@ fun main() {
                 append("ZedSecure · ").append(statusLine)
                 if (connected) {
                     append("\n↓ ").append(humanBps(status.downloadBps)).append("   ↑ ").append(humanBps(status.uploadBps))
-                }
-            }
-            fun reconnectIfRunning() {
-                if (!connected && !connecting) return
-                trayScope.launch {
-                    DesktopVpn.stop()
-                    kotlinx.coroutines.withTimeoutOrNull(15_000) {
-                        VpnManager.status.first { it.state == ConnectionState.Idle }
-                    } ?: return@launch
-                    DesktopVpn.toggle(configRepository)
                 }
             }
             Tray(
@@ -211,8 +241,9 @@ fun main() {
                             }
                         }
                     }
-                    Item("Copy proxy address · 127.0.0.1:${LocalProxy.SOCKS_PORT}") {
-                        DesktopPlatform.copyToClipboard("127.0.0.1:${LocalProxy.SOCKS_PORT}")
+                    val proxyPort = VpnManager.activeSocksPort ?: LocalProxy.SOCKS_PORT
+                    Item("Copy proxy address · 127.0.0.1:$proxyPort") {
+                        DesktopPlatform.copyToClipboard("127.0.0.1:$proxyPort")
                     }
                     Separator()
                     Item(if (windowVisible) "Hide window" else "Show window") {
@@ -261,9 +292,8 @@ fun main() {
                             settings = settings,
                             configRepository = configRepository,
                             onToggleConnection = { DesktopVpn.toggle(configRepository) },
-                            onImportZsx = {
-                                DesktopPlatform.toast("Locked (.zsx) configs aren't available on desktop yet")
-                            },
+                            onImportZsx = { importLockedConfig() },
+                            onActiveServerChanged = { reconnectIfRunning() },
                             onUpdateSettings = { transform -> desktopSettings.update(transform) },
                             onLanguage = { lang -> desktopSettings.update { it.copy(language = lang) } },
                         )

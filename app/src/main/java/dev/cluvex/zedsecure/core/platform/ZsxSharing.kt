@@ -14,7 +14,7 @@ object ZsxSharing {
     fun shareText(context: Context, fileName: String, text: String) {
         runCatching {
             val dir = File(context.cacheDir, "shared").apply { mkdirs() }
-            val file = File(dir, sanitizeFileName(fileName)).apply { writeText(text) }
+            val file = File(dir, dev.cluvex.zedsecure.crypto.zsxFileName(fileName)).apply { writeText(text) }
             val uri = FileProvider.getUriForFile(context, "${'$'}{context.packageName}.fileprovider", file)
             val intent = Intent(Intent.ACTION_SEND).apply {
                 type = "text/plain"
@@ -33,7 +33,7 @@ object ZsxSharing {
         val dir = File(context.cacheDir, "shared").apply { mkdirs() }
         val uris = ArrayList<Uri>()
         files.forEach { (name, bytes) ->
-            val file = File(dir, sanitizeFileName(name)).apply { writeBytes(bytes) }
+            val file = File(dir, dev.cluvex.zedsecure.crypto.zsxFileName(name)).apply { writeBytes(bytes) }
             uris += FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
         }
         val intent = if (uris.size == 1) {
@@ -52,12 +52,5 @@ object ZsxSharing {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
         context.startActivity(chooser)
-    }
-
-    private fun sanitizeFileName(name: String): String {
-        val base = name.trim().ifBlank { "config" }
-            .replace(Regex("[^A-Za-z0-9._-]"), "_")
-            .take(48)
-        return if (base.endsWith(".zsx")) base else "$base.zsx"
     }
 }
