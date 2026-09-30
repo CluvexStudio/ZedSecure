@@ -110,6 +110,11 @@ jobs:
             for lib in libtor libobfs4proxy libsnowflake libconjure libsnispoof libhev-socks5-tunnel libopenconnect libzeptun-jni; do
               [ -f "app/src/main/jniLibs/$abi/$lib.so" ] || echo "::warning::$abi/$lib.so is missing; that protocol will not work"
             done
+            for lib in libhev-socks5-tunnel libopenconnect libzeptun-jni; do
+              so="app/src/main/jniLibs/$abi/$lib.so"
+              [ -f "$so" ] || continue
+              readelf --dyn-syms -W "$so" | grep -qE ' (JNI_OnLoad|Java_)' || { echo "::error::$abi/$lib.so has no JNI entry points; the app would crash loading it"; exit 1; }
+            done
           done
 
       - name: Unlock signing

@@ -67,19 +67,35 @@ jobs:
       - uses: actions/upload-artifact@v4
         with: { name: native-go, path: "out/*", retention-days: 5 }
 
+  hev:
+    runs-on: ubuntu-latest
+    steps:
+      - name: hev-socks5-tunnel built as the JNI library the app loads
+        run: |
+          set -e
+          git clone -q --depth 1 --branch "$HEV_RELEASE" --recursive https://github.com/heiher/hev-socks5-tunnel hev/jni
+          NDK=$(ls -d "$ANDROID_HOME"/ndk/* | sort -V | tail -1)
+          "$NDK/ndk-build" -C hev -j"$(nproc)" APP_ABI="arm64-v8a armeabi-v7a x86_64" APP_MODULES=hev-socks5-tunnel
+          for abi in arm64-v8a armeabi-v7a x86_64; do
+            so="hev/libs/$abi/libhev-socks5-tunnel.so"
+            readelf -h "$so" | grep -q 'DYN (Shared object file)' || { echo "::error::$abi: hev is not a shared library"; exit 1; }
+            readelf --dyn-syms -W "$so" | grep -qw JNI_OnLoad || { echo "::error::$abi: hev has no JNI_OnLoad"; exit 1; }
+            grep -aq 'hev/htproxy/TProxyService' "$so" || { echo "::error::$abi: hev does not bind hev.htproxy.TProxyService"; exit 1; }
+            mkdir -p "out/$abi" && cp "$so" "out/$abi/"
+          done
+          ls -lR out
+      - uses: actions/upload-artifact@v4
+        with: { name: native-hev, path: "out/*", retention-days: 5 }
+
   prebuilt:
     runs-on: ubuntu-latest
     steps:
-      - name: hev-socks5-tunnel and zeptun from their own releases
+      - name: zeptun from its own release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -e
-          for abi in arm64-v8a armeabi-v7a x86_64; do
-            mkdir -p "out/$abi"
-            gh release download "$HEV_RELEASE" --repo heiher/hev-socks5-tunnel \
-              --pattern "hev-socks5-tunnel-android-$abi" --output "out/$abi/libhev-socks5-tunnel.so" --clobber
-          done
+          mkdir -p out
           gh release download "$ZEPTUN_RELEASE" --repo Noisemux/zeptun \
             --pattern 'zeptun-android-jniLibs.zip' --output zeptun.zip --clobber
           unzip -q -o zeptun.zip -d zep

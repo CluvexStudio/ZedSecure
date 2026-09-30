@@ -32,7 +32,7 @@ class SettingsRepository(context: Context) {
     val settings: StateFlow<AppSettings> = _settings.asStateFlow()
 
     private fun read(): AppSettings {
-        val d = AppSettings()
+        val d = AppSettings(useZepTun = true)
         return AppSettings(
 
             themeMode = prefs.enum("theme_mode", d.themeMode),
