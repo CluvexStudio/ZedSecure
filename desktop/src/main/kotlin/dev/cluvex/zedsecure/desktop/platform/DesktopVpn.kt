@@ -6,6 +6,8 @@ import dev.cluvex.zedsecure.core.SshController
 import dev.cluvex.zedsecure.core.VpnManager
 import dev.cluvex.zedsecure.data.config.ConfigRepository
 import dev.cluvex.zedsecure.desktop.core.DesktopDnsTunnel
+import dev.cluvex.zedsecure.desktop.core.DesktopPsiphon
+import dev.cluvex.zedsecure.desktop.core.DesktopTor
 import dev.cluvex.zedsecure.desktop.core.HevBinary
 import dev.cluvex.zedsecure.desktop.core.LocalPortPicker
 import dev.cluvex.zedsecure.desktop.core.SystemProxy
@@ -15,6 +17,7 @@ import dev.cluvex.zedsecure.desktop.core.XrayCore
 import dev.cluvex.zedsecure.domain.config.DnsTunnelProfile
 import dev.cluvex.zedsecure.domain.config.LocalPorts
 import dev.cluvex.zedsecure.domain.config.LocalProxy
+import dev.cluvex.zedsecure.domain.config.PsiphonProfile
 import dev.cluvex.zedsecure.domain.config.SshProfile
 import dev.cluvex.zedsecure.domain.config.autoSelectTuning
 import dev.cluvex.zedsecure.domain.config.toBuildOptions
@@ -38,6 +41,8 @@ object DesktopVpn {
     private var shim: SocksTunBridge? = null
     private var ssh: SshController? = null
     private var dnsTunnel: DesktopDnsTunnel? = null
+    @Volatile private var tor: DesktopTor? = null
+    @Volatile private var psiphon: DesktopPsiphon? = null
     @Volatile private var shimStatsRunning = false
     private var usedSystemProxy = false
 
@@ -65,6 +70,8 @@ object DesktopVpn {
         runMode = settingsProvider().runMode
 
         when {
+            profile.psiphonSettings() != null -> startPsiphon(profile.name, profile.psiphonSettings()!!)
+            profile.isTor -> startTor(profile.name)
             profile.dnsTunnelSettings() != null -> startDns(profile.name, profile.dnsTunnelSettings()!!)
             profile.sshSettings() != null -> startSsh(profile.name, profile.sshSettings()!!)
             profile.isSingBoxConfig -> startSingBoxConfig(profile.name, profile)
@@ -110,6 +117,81 @@ object DesktopVpn {
             startShimStats(bridge)
             VpnManager.onConnected(name)
         }
+    }
+
+    private fun startTor(name: String) {
+        VpnManager.onStarting(name)
+        thread(name = "desktop-tor") {
+            val engine = DesktopTor(settingsProvider(), work)
+            tor = engine
+            var reported = -1
+            val started = engine.start(onProgress = { pct ->
+                if (pct > reported) {
+                    reported = pct
+                    LogBus.append("I/Tor bootstrapped $pct%")
+                }
+            })
+            if (tor !== engine) return@thread
+            started.exceptionOrNull()?.let { e ->
+                tor = null
+                VpnManager.onError(e.message ?: "Tor failed to start")
+                return@thread
+            }
+            if (!connectThrough(engine.socksPort, "Tor")) {
+                engine.stop()
+                tor = null
+                return@thread
+            }
+            VpnManager.onConnected(name)
+        }
+    }
+
+    private fun startPsiphon(name: String, profile: PsiphonProfile) {
+        VpnManager.onStarting(name)
+        thread(name = "desktop-psiphon") {
+            val socksPort = localPort(LocalPorts.PSIPHON_SOCKS)
+            val httpPort = localPort(LocalPorts.PSIPHON_HTTP, setOf(socksPort))
+            val engine = DesktopPsiphon(profile, work, socksPort, httpPort)
+            psiphon = engine
+            val started = engine.start(onNotice = { notice ->
+                if (notice.type == "ConnectedServerRegion") {
+                    LogBus.append("I/Psiphon exit region ${notice.string("region").orEmpty()}")
+                }
+            })
+            if (psiphon !== engine) return@thread
+            started.exceptionOrNull()?.let { e ->
+                psiphon = null
+                VpnManager.onError(e.message ?: "Psiphon failed to start")
+                return@thread
+            }
+            if (!connectThrough(engine.socksPort, "Psiphon")) {
+                engine.stop()
+                psiphon = null
+                return@thread
+            }
+            VpnManager.onConnected(name)
+        }
+    }
+
+    private fun connectThrough(upstreamPort: Int, engine: String): Boolean {
+        val socksPort = localPort(LocalProxy.SOCKS_PORT, setOf(upstreamPort))
+        val metricsPort = localPort(METRICS_PORT, setOf(socksPort, upstreamPort))
+        val json = DesktopXray.augmentWithMetrics(DesktopXray.frontConfig(socksPort, upstreamPort), metricsPort)
+        val core = XrayCore(work)
+        if (!core.start(json)) {
+            VpnManager.onError("Core failed to start")
+            return false
+        }
+        xray = core
+        if (!route(socksPort, emptyList(), udpOverTcp = true, tunCarries = engine)) {
+            core.stop()
+            xray = null
+            VpnManager.onError("Could not route traffic (system proxy failed)")
+            return false
+        }
+        VpnManager.activeSocksPort = socksPort
+        DesktopStats(metricsPort).also { stats = it; it.start() }
+        return true
     }
 
     private fun dnsResolverHosts(p: DnsTunnelProfile): List<String> =
@@ -239,12 +321,15 @@ object DesktopVpn {
             }
         }
 
-    private fun route(socksPort: Int, bypassIps: List<String>, udpOverTcp: Boolean): Boolean {
+    private fun route(socksPort: Int, bypassIps: List<String>, udpOverTcp: Boolean, tunCarries: String? = null): Boolean {
         if (runMode == RunMode.ProxyOnly) {
             LogBus.append("I/Desktop SOCKS and HTTP proxy on 127.0.0.1:$socksPort; the system proxy is left alone")
             return true
         }
-        val useTun = runMode == RunMode.Vpn
+        if (runMode == RunMode.Vpn && tunCarries != null) {
+            LogBus.append("W/Desktop $tunCarries reaches too many servers to route around a tunnel; using the system proxy")
+        }
+        val useTun = runMode == RunMode.Vpn && tunCarries == null
         if (useTun && !TunMode.supported()) {
             LogBus.append("W/Desktop VPN mode is not available on ${Os.current} yet; using the system proxy")
         }
@@ -301,6 +386,8 @@ object DesktopVpn {
         stats?.stop(); stats = null
         singBoxStats?.stop(); singBoxStats = null
         tun?.stop(); tun = null
+        tor?.let { tor = null; it.stop() }
+        psiphon?.let { psiphon = null; it.stop() }
         shim?.stop(); shim = null
         ssh?.stop(); ssh = null
         dnsTunnel?.stop(); dnsTunnel = null

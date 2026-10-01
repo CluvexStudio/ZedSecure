@@ -14,6 +14,7 @@ permissions:
 
 env:
   HEV_RELEASE: "2.18.0"
+  TOR_BUNDLE: "14.5.1"
 
 jobs:
   xray:
@@ -88,6 +89,57 @@ jobs:
           ls -l out
       - uses: actions/upload-artifact@v4
         with: { name: dns-tunnels, path: "out/zeddns*", retention-days: 30 }
+
+  psiphon:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version: "1.26.3" }
+      - run: ./tools/fetch-cores.sh reference/psiphon-tunnel-core
+      - name: Build the Psiphon console client
+        run: |
+          set -e
+          mkdir -p out
+          for t in "linux amd64 -linux" "windows amd64 -windows.exe" "darwin arm64 -macos-arm64" "darwin amd64 -macos-x86_64"; do
+            set -- $t
+            (cd reference/psiphon-tunnel-core/ConsoleClient && CGO_ENABLED=0 GOOS=$1 GOARCH=$2 \
+              go build -trimpath -ldflags="-s -w" -o "$GITHUB_WORKSPACE/out/psiphon$3" .)
+          done
+          ls -l out
+      - uses: actions/upload-artifact@v4
+        with: { name: psiphon, path: "out/psiphon*", retention-days: 30 }
+
+  tor:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Tor, lyrebird and Conjure from the official desktop bundles
+        run: |
+          set -e
+          for pair in "linux-x86_64 tor-linux" "windows-x86_64 tor-windows" \
+                      "macos-aarch64 tor-macos-arm64" "macos-x86_64 tor-macos-x86_64"; do
+            set -- $pair
+            rm -rf teb && mkdir teb
+            curl -fsSL --retry 3 "https://archive.torproject.org/tor-package-archive/torbrowser/${TOR_BUNDLE}/tor-expert-bundle-$1-${TOR_BUNDLE}.tar.gz" | tar -xz -C teb
+            mkdir -p "$2/pt"
+            find teb/tor -maxdepth 1 -type f -exec cp {} "$2/" \;
+            for pt in lyrebird lyrebird.exe conjure-client conjure-client.exe; do
+              [ -f "teb/tor/pluggable_transports/$pt" ] && cp "teb/tor/pluggable_transports/$pt" "$2/pt/"
+            done
+            cp teb/data/geoip teb/data/geoip6 "$2/"
+            ls "$2" | grep -q -E '^tor(\.exe)?$' || { echo "::error::$1 has no tor binary"; exit 1; }
+            ls "$2/pt" | grep -q -E '^lyrebird(\.exe)?$' || { echo "::error::$1 has no lyrebird"; exit 1; }
+            chmod +x "$2"/* "$2"/pt/* 2>/dev/null || true
+            ls -lR "$2"
+          done
+      - uses: actions/upload-artifact@v4
+        with: { name: tor-linux, path: "tor-linux/", retention-days: 30 }
+      - uses: actions/upload-artifact@v4
+        with: { name: tor-windows, path: "tor-windows/", retention-days: 30 }
+      - uses: actions/upload-artifact@v4
+        with: { name: tor-macos-arm64, path: "tor-macos-arm64/", retention-days: 30 }
+      - uses: actions/upload-artifact@v4
+        with: { name: tor-macos-x86_64, path: "tor-macos-x86_64/", retention-days: 30 }
 
   hev:
     runs-on: ubuntu-latest

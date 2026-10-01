@@ -43,7 +43,8 @@ jobs:
           mkdir -p "$dest" /tmp/nat
           for pair in "xray:xray-linux:xray" \
                       "hev-linux:hev-socks5-tunnel:hev-socks5-tunnel" \
-                      "dns-tunnels:zeddns-linux:zeddns"; do
+                      "dns-tunnels:zeddns-linux:zeddns" \
+                      "psiphon:psiphon-linux:psiphon"; do
             art=${pair%%:*}; rest=${pair#*:}; from=${rest%%:*}; to=${rest#*:}
             rm -rf /tmp/nat/$art
             gh run download "$NATIVES_RUN" --repo "$GITHUB_REPOSITORY" --name "$art" --dir "/tmp/nat/$art" \
@@ -54,6 +55,12 @@ jobs:
           done
           chmod +x "$dest"/*
           find /tmp/nat -name 'libcronet.so' -exec cp {} "$dest/" \; || true
+          rm -rf "/tmp/nat/tor-linux" "$dest/tor"
+          gh run download "$NATIVES_RUN" --repo "$GITHUB_REPOSITORY" --name "tor-linux" --dir "/tmp/nat/tor-linux" \
+            || { echo "::error::artifact 'tor-linux' is missing; run the desktop-natives workflow first"; exit 1; }
+          cp -r "/tmp/nat/tor-linux" "$dest/tor"
+          cp app/src/main/assets/tor/bridges_default.lst "$dest/tor/"
+          ( cd "$dest/tor" && find . -type f ! -name files.txt | sed 's#^\./##' | sort > files.txt && cat files.txt )
           ls -l "$dest"
 
       - name: Check the engines the desktop launches are all here
@@ -149,7 +156,8 @@ jobs:
                       "hev-windows:hev-socks5-tunnel.exe:hev-socks5-tunnel.exe" \
                       "hev-windows:msys-2.0.dll:msys-2.0.dll" \
                       "hev-windows:wintun.dll:wintun.dll" \
-                      "dns-tunnels:zeddns-windows.exe:zeddns.exe"; do
+                      "dns-tunnels:zeddns-windows.exe:zeddns.exe" \
+                      "psiphon:psiphon-windows.exe:psiphon.exe"; do
             art=${pair%%:*}; rest=${pair#*:}; from=${rest%%:*}; to=${rest#*:}
             if [ ! -d "/tmp/nat/$art" ]; then
               gh run download "$NATIVES_RUN" --repo "$GITHUB_REPOSITORY" --name "$art" --dir "/tmp/nat/$art" \
@@ -159,6 +167,12 @@ jobs:
             [ -n "$src" ] || { echo "::error::'$from' was not in artifact '$art'"; exit 1; }
             cp "$src" "$dest/$to"
           done
+          rm -rf "/tmp/nat/tor-windows" "$dest/tor"
+          gh run download "$NATIVES_RUN" --repo "$GITHUB_REPOSITORY" --name "tor-windows" --dir "/tmp/nat/tor-windows" \
+            || { echo "::error::artifact 'tor-windows' is missing; run the desktop-natives workflow first"; exit 1; }
+          cp -r "/tmp/nat/tor-windows" "$dest/tor"
+          cp app/src/main/assets/tor/bridges_default.lst "$dest/tor/"
+          ( cd "$dest/tor" && find . -type f ! -name files.txt | sed 's#^\./##' | sort > files.txt && cat files.txt )
           ls -l "$dest"
 
       - name: Check the engines the desktop launches are all here
@@ -217,7 +231,8 @@ jobs:
           mkdir -p "$dest" /tmp/nat
           for pair in "xray-macos-$ARCH:xray-macos-$ARCH:xray" \
                       "hev-macos:hev-socks5-tunnel-$ARCH:hev-socks5-tunnel" \
-                      "dns-tunnels:zeddns-macos-$ARCH:zeddns"; do
+                      "dns-tunnels:zeddns-macos-$ARCH:zeddns" \
+                      "psiphon:psiphon-macos-$ARCH:psiphon"; do
             art=${pair%%:*}; rest=${pair#*:}; from=${rest%%:*}; to=${rest#*:}
             if [ ! -d "/tmp/nat/$art" ]; then
               gh run download "$NATIVES_RUN" --repo "$GITHUB_REPOSITORY" --name "$art" --dir "/tmp/nat/$art" \
@@ -228,6 +243,12 @@ jobs:
             cp "$src" "$dest/$to"
           done
           chmod +x "$dest"/*
+          rm -rf "/tmp/nat/tor-macos-$ARCH" "$dest/tor"
+          gh run download "$NATIVES_RUN" --repo "$GITHUB_REPOSITORY" --name "tor-macos-$ARCH" --dir "/tmp/nat/tor-macos-$ARCH" \
+            || { echo "::error::artifact 'tor-macos-$ARCH' is missing; run the desktop-natives workflow first"; exit 1; }
+          cp -r "/tmp/nat/tor-macos-$ARCH" "$dest/tor"
+          cp app/src/main/assets/tor/bridges_default.lst "$dest/tor/"
+          ( cd "$dest/tor" && find . -type f ! -name files.txt | sed 's#^\./##' | sort > files.txt && cat files.txt )
           file "$dest"/*
 
       - name: Check the engines the desktop launches are all here

@@ -9,7 +9,10 @@ import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.addJsonObject
 import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonArray
+import kotlinx.serialization.json.putJsonObject
 
 object DesktopXray {
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
@@ -30,6 +33,36 @@ object DesktopXray {
         )
         return JsonObject(root + ("inbounds" to moved)).toString()
     }
+
+    fun frontConfig(listenPort: Int, upstreamPort: Int): String = buildJsonObject {
+        putJsonObject("log") { put("loglevel", "warning") }
+        putJsonArray("inbounds") {
+            addJsonObject {
+                put("tag", "front-in")
+                put("listen", "127.0.0.1")
+                put("port", listenPort)
+                put("protocol", "socks")
+                putJsonObject("settings") {
+                    put("auth", "noauth")
+                    put("udp", true)
+                }
+            }
+        }
+        putJsonArray("outbounds") {
+            addJsonObject {
+                put("tag", "proxy")
+                put("protocol", "socks")
+                putJsonObject("settings") {
+                    putJsonArray("servers") {
+                        addJsonObject {
+                            put("address", "127.0.0.1")
+                            put("port", upstreamPort)
+                        }
+                    }
+                }
+            }
+        }
+    }.toString()
 
     fun augmentWithMetrics(config: String, metricsPort: Int): String {
         val root = runCatching { json.parseToJsonElement(config).jsonObject }.getOrNull() ?: return config
