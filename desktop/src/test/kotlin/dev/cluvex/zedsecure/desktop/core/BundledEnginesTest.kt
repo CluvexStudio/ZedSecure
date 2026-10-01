@@ -14,12 +14,19 @@ class BundledEnginesTest {
         Os.MACOS to ("macos" to listOf("xray", "hev-socks5-tunnel", "zeddns")),
     )
 
-    private val neverLaunched = listOf("psiphon-client", "masterdns-client", "snispoof", "snowflake-client", "tor")
+    private val neverLaunched = listOf("psiphon-client", "masterdns-client", "snispoof", "snowflake-client")
+
+    private val builtInCi = mapOf(
+        Os.LINUX to listOf("psiphon", "tor/files.txt", "tor/tor", "tor/pt/lyrebird", "tor/bridges_default.lst"),
+        Os.WINDOWS to listOf("psiphon.exe", "tor/files.txt", "tor/tor.exe", "tor/pt/lyrebird.exe", "tor/bridges_default.lst"),
+        Os.MACOS to listOf("psiphon", "tor/files.txt", "tor/tor", "tor/pt/lyrebird", "tor/bridges_default.lst"),
+    )
 
     @Test
     fun `this OS has every engine the desktop starts`() {
-        val (dir, names) = required[Os.current] ?: return
+        val (dir, base) = required[Os.current] ?: return
         if (!File(binDir, dir).isDirectory) return
+        val names = base + if (System.getenv("CI") == "true") builtInCi[Os.current].orEmpty() else emptyList()
         val missing = names.filterNot { File(binDir, "$dir/$it").exists() }
         if (missing.isNotEmpty()) {
             fail("not bundled for ${Os.current}, so these do nothing at run time: ${missing.joinToString()}")
