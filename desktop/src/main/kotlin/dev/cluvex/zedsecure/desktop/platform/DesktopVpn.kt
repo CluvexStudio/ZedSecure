@@ -46,7 +46,7 @@ object DesktopVpn {
     @Volatile private var tor: DesktopTor? = null
     @Volatile private var psiphon: DesktopPsiphon? = null
     @Volatile private var ikev2: DesktopIkev2? = null
-    @Volatile private var shimStatsRunning = false
+    private var meter: DesktopMeter? = null
     private var usedSystemProxy = false
 
     @Volatile var runMode: RunMode = RunMode.SystemProxy
@@ -194,6 +194,7 @@ object DesktopVpn {
             }
             LogBus.append("I/IKEv2 the system VPN '${DesktopIkev2.NAME}' carries all traffic")
             VpnManager.onConnected(name)
+            meter = DesktopMeter(totals = { null }).also { it.start() }
             while (ikev2 === engine) {
                 Thread.sleep(15_000)
                 if (ikev2 === engine && !engine.isUp()) {
@@ -381,21 +382,14 @@ object DesktopVpn {
     }
 
     private fun startShimStats(bridge: SocksTunBridge) {
-        shimStatsRunning = true
-        val startedAt = System.currentTimeMillis()
-        var totalDown = 0L; var totalUp = 0L; var lastAt = startedAt
-        thread(name = "desktop-shim-stats", isDaemon = true) {
-            while (shimStatsRunning) {
-                Thread.sleep(1000)
-                if (!shimStatsRunning) break
-                val (dDown, dUp) = bridge.readDelta()
-                totalDown += dDown; totalUp += dUp
-                val now = System.currentTimeMillis()
-                val dt = ((now - lastAt).coerceAtLeast(1)).toDouble() / 1000.0
-                lastAt = now
-                VpnManager.onMetrics(((now - startedAt) / 1000).toInt(), (dDown / dt).toLong(), (dUp / dt).toLong(), totalDown, totalUp)
-            }
-        }
+        var totalDown = 0L
+        var totalUp = 0L
+        meter = DesktopMeter(totals = {
+            val (down, up) = bridge.readDelta()
+            totalDown += down
+            totalUp += up
+            totalDown to totalUp
+        }).also { it.start() }
     }
 
     private fun resolveHosts(hosts: List<String>): List<String> = hosts.flatMap { host ->
@@ -414,7 +408,7 @@ object DesktopVpn {
 
     @Synchronized
     private fun teardown() {
-        shimStatsRunning = false
+        meter?.stop(); meter = null
         stats?.stop(); stats = null
         singBoxStats?.stop(); singBoxStats = null
         tun?.stop(); tun = null

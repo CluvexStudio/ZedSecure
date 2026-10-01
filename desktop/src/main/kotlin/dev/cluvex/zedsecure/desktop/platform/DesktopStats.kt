@@ -1,12 +1,10 @@
 package dev.cluvex.zedsecure.desktop.platform
 
-import dev.cluvex.zedsecure.core.VpnManager
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import java.net.HttpURLConnection
 import java.net.URL
-import kotlin.concurrent.thread
 
 class DesktopStats(private val metricsPort: Int) {
     companion object {
@@ -15,35 +13,11 @@ class DesktopStats(private val metricsPort: Int) {
     }
 
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
-    @Volatile private var running = false
-    private var worker: Thread? = null
+    private val meter = DesktopMeter(totals = { read()?.let { (up, down) -> down to up } })
 
-    fun start() {
-        if (running) return
-        running = true
-        val startedAt = System.currentTimeMillis()
-        var lastUp = 0L
-        var lastDown = 0L
-        var lastAt = startedAt
-        worker = thread(name = "desktop-stats", isDaemon = true) {
-            while (running) {
-                val (up, down) = read() ?: run { Thread.sleep(1000); null } ?: continue
-                val now = System.currentTimeMillis()
-                val dt = ((now - lastAt).coerceAtLeast(1)).toDouble() / 1000.0
-                val upBps = ((up - lastUp).coerceAtLeast(0) / dt).toLong()
-                val downBps = ((down - lastDown).coerceAtLeast(0) / dt).toLong()
-                lastUp = up; lastDown = down; lastAt = now
-                val duration = ((now - startedAt) / 1000).toInt()
-                VpnManager.onMetrics(duration, downBps, upBps, down, up)
-                Thread.sleep(1000)
-            }
-        }
-    }
+    fun start() = meter.start()
 
-    fun stop() {
-        running = false
-        worker = null
-    }
+    fun stop() = meter.stop()
 
     private fun read(): Pair<Long, Long>? = runCatching {
         val conn = (URL("http://127.0.0.1:$metricsPort/debug/vars").openConnection() as HttpURLConnection).apply {
