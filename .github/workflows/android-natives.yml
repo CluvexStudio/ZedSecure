@@ -18,7 +18,18 @@ jobs:
   tor:
     runs-on: ubuntu-latest
     steps:
-      - name: Tor, obfs4proxy and Conjure from the official Android bundle
+      - uses: actions/checkout@v4
+      - name: Tor with fake SNI, built from the release and our patch
+        run: |
+          set -e
+          NDK=$(ls -d "$ANDROID_HOME"/ndk/* | sort -V | tail -1)
+          NDK="$NDK" OUT="$PWD/out" WORK="$RUNNER_TEMP/tor-build" ./tools/build-tor-android.sh
+          for abi in arm64-v8a armeabi-v7a x86_64; do
+            so="out/$abi/libtor.so"
+            grep -aq -- '--fake-hosts' "$so" || { echo "::error::$abi tor was built without the fake SNI patch"; exit 1; }
+            readelf -lW "$so" | awk '$1=="LOAD"{print $NF}' | grep -qv 0x4000 && { echo "::error::$abi tor is not 16 KB aligned"; exit 1; } || true
+          done
+      - name: obfs4proxy and Conjure from the official Android bundle
         run: |
           set -e
           for pair in "aarch64 arm64-v8a" "armv7 armeabi-v7a" "x86_64 x86_64"; do
@@ -26,7 +37,6 @@ jobs:
             url="https://archive.torproject.org/tor-package-archive/torbrowser/${TOR_BUNDLE}/tor-expert-bundle-android-$1-${TOR_BUNDLE}.tar.gz"
             rm -rf teb && mkdir teb && curl -fsSL "$url" | tar -xz -C teb
             mkdir -p "out/$2"
-            cp teb/tor/libTor.so                            "out/$2/libtor.so"
             cp teb/tor/pluggable_transports/lyrebird        "out/$2/libobfs4proxy.so"
             if [ -f teb/tor/pluggable_transports/conjure-client ]; then
               cp teb/tor/pluggable_transports/conjure-client "out/$2/libconjure.so"

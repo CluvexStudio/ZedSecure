@@ -1,0 +1,246 @@
+diff --git a/src/app/config/config.c b/src/app/config/config.c
+index aac79aa53..d4cfdb6c0 100644
+--- a/src/app/config/config.c
++++ b/src/app/config/config.c
+@@ -773,6 +773,7 @@ static const config_var_t option_vars_[] = {
+   V(TestingBridgeBootstrapDownloadInitialDelay, CSV_INTERVAL, "0"),
+   V(TestingClientMaxIntervalWithoutRequest, INTERVAL, "10 minutes"),
+   V(TestingDirConnectionMaxStall, INTERVAL, "5 minutes"),
++  V(FakeHosts, STRING, NULL),
+   OBSOLETE("TestingConsensusMaxDownloadTries"),
+   OBSOLETE("ClientBootstrapConsensusMaxDownloadTries"),
+   OBSOLETE("ClientBootstrapConsensusAuthorityOnlyMaxDownloadTries"),
+@@ -2543,6 +2544,8 @@ static const struct {
+   { .name="--dbg-dump-subsystem-list",
+     .command=CMD_IMMEDIATE,
+     .quiet=QUIET_HUSH },
++  { .name="--fake-hosts",
++    .takes_argument=ARGUMENT_NECESSARY },
+   { .name=NULL },
+ };
+ 
+@@ -2911,6 +2914,14 @@ handle_cmdline_master_key(tor_cmdline_mode_t command, const char *value)
+   }
+ }
+ 
++/** Handles the -fake-hosts command line option. */
++static int
++handle_cmdline_fake_hosts(tor_cmdline_mode_t command, const char *value)
++{
++  get_options_mutable()->FakeHosts = tor_strdup(value);
++  return 0;
++}
++
+ /* Return true if <b>options</b> is using the default authorities, and false
+  * if any authority-related option has been overridden. */
+ int
+@@ -4654,6 +4665,15 @@ options_init_from_torrc(int argc, char **argv)
+     }
+   }
+ 
++  const config_line_t *hosts_line = config_line_find(cmdline_only_options,
++                                                   "--fake-hosts");
++  if (hosts_line) {
++    if (handle_cmdline_fake_hosts(command, hosts_line->value) < 0) {
++      retval = -1;
++      goto err;
++    }
++  }
++
+  err:
+   tor_free(cf);
+   tor_free(cf_defaults);
+diff --git a/src/app/config/or_options_st.h b/src/app/config/or_options_st.h
+index 2708afcbd..e6f8f9a06 100644
+--- a/src/app/config/or_options_st.h
++++ b/src/app/config/or_options_st.h
+@@ -1123,6 +1123,8 @@ struct or_options_t {
+    * in question to get its relevant configuration object.
+    */
+   struct config_suite_t *subconfigs_;
++
++  char *FakeHosts;
+ };
+ 
+ #endif /* !defined(TOR_OR_OPTIONS_ST_H) */
+diff --git a/src/lib/tls/ciphers.inc b/src/lib/tls/ciphers.inc
+index 882d9c694..b0c838ff4 100644
+--- a/src/lib/tls/ciphers.inc
++++ b/src/lib/tls/ciphers.inc
+@@ -14,16 +14,6 @@
+ #else
+    XCIPHER(0xc02f, TLS1_TXT_ECDHE_RSA_WITH_AES_128_GCM_SHA256)
+ #endif
+-#ifdef TLS1_TXT_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
+-    CIPHER(0xcca9, TLS1_TXT_ECDHE_ECDSA_WITH_CHACHA20_POLY1305)
+-#else
+-   XCIPHER(0xcca9, TLS1_TXT_ECDHE_ECDSA_WITH_CHACHA20_POLY1305)
+-#endif
+-#ifdef TLS1_TXT_ECDHE_RSA_WITH_CHACHA20_POLY1305
+-    CIPHER(0xcca8, TLS1_TXT_ECDHE_RSA_WITH_CHACHA20_POLY1305)
+-#else
+-   XCIPHER(0xcca8, TLS1_TXT_ECDHE_RSA_WITH_CHACHA20_POLY1305)
+-#endif
+ #ifdef TLS1_TXT_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+     CIPHER(0xc02c, TLS1_TXT_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384)
+ #else
+@@ -34,15 +24,15 @@
+ #else
+    XCIPHER(0xc030, TLS1_TXT_ECDHE_RSA_WITH_AES_256_GCM_SHA384)
+ #endif
+-#ifdef TLS1_TXT_ECDHE_ECDSA_WITH_AES_256_CBC_SHA
+-    CIPHER(0xc00a, TLS1_TXT_ECDHE_ECDSA_WITH_AES_256_CBC_SHA)
++#ifdef TLS1_TXT_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
++    CIPHER(0xcca9, TLS1_TXT_ECDHE_ECDSA_WITH_CHACHA20_POLY1305)
+ #else
+-   XCIPHER(0xc00a, TLS1_TXT_ECDHE_ECDSA_WITH_AES_256_CBC_SHA)
++   XCIPHER(0xcca9, TLS1_TXT_ECDHE_ECDSA_WITH_CHACHA20_POLY1305)
+ #endif
+-#ifdef TLS1_TXT_ECDHE_ECDSA_WITH_AES_128_CBC_SHA
+-    CIPHER(0xc009, TLS1_TXT_ECDHE_ECDSA_WITH_AES_128_CBC_SHA)
++#ifdef TLS1_TXT_ECDHE_RSA_WITH_CHACHA20_POLY1305
++    CIPHER(0xcca8, TLS1_TXT_ECDHE_RSA_WITH_CHACHA20_POLY1305)
+ #else
+-   XCIPHER(0xc009, TLS1_TXT_ECDHE_ECDSA_WITH_AES_128_CBC_SHA)
++   XCIPHER(0xcca8, TLS1_TXT_ECDHE_RSA_WITH_CHACHA20_POLY1305)
+ #endif
+ #ifdef TLS1_TXT_ECDHE_RSA_WITH_AES_128_CBC_SHA
+     CIPHER(0xc013, TLS1_TXT_ECDHE_RSA_WITH_AES_128_CBC_SHA)
+diff --git a/src/lib/tls/ciphers_v13.inc b/src/lib/tls/ciphers_v13.inc
+index 1f2aa68f4..0d19f5e57 100644
+--- a/src/lib/tls/ciphers_v13.inc
++++ b/src/lib/tls/ciphers_v13.inc
+@@ -1,15 +1,12 @@
+ /* Here are the TLS1.3 ciphers. Note that we don't have XCIPHER instances
+  * here, since we don't want to ever fake them.
+- *
+- * This matches Firefox's list:
+- *    https://searchfox.org/mozilla-central/source/security/nss/lib/ssl/ssl3con.c#100
+  */
+ #ifdef TLS1_3_RFC_AES_128_GCM_SHA256
+    CIPHER(0x1301, TLS1_3_RFC_AES_128_GCM_SHA256)
+ #endif
+-#ifdef TLS1_3_RFC_CHACHA20_POLY1305_SHA256
+-   CIPHER(0x1303, TLS1_3_RFC_CHACHA20_POLY1305_SHA256)
+-#endif
+ #ifdef TLS1_3_RFC_AES_256_GCM_SHA384
+    CIPHER(0x1302, TLS1_3_RFC_AES_256_GCM_SHA384)
+ #endif
++#ifdef TLS1_3_RFC_CHACHA20_POLY1305_SHA256
++   CIPHER(0x1303, TLS1_3_RFC_CHACHA20_POLY1305_SHA256)
++#endif
+diff --git a/src/lib/tls/tortls_openssl.c b/src/lib/tls/tortls_openssl.c
+index 3023d8e76..f9dbc80d4 100644
+--- a/src/lib/tls/tortls_openssl.c
++++ b/src/lib/tls/tortls_openssl.c
+@@ -15,6 +15,7 @@
+  */
+ 
+ #include "orconfig.h"
++#include "app/config/config.h"
+ 
+ #define TORTLS_PRIVATE
+ #define TORTLS_OPENSSL_PRIVATE
+@@ -640,6 +641,66 @@ tor_tls_debug_state_callback(const SSL *ssl, int type, int val)
+   /* LCOV_EXCL_STOP */
+ }
+ 
++#define MAX_HOSTNAME_LEN 255
++
++char *
++get_fake_host(void)
++{
++    const char *cmd_line = get_options()->FakeHosts;
++    if (cmd_line == NULL || *cmd_line == '\0') {
++        return NULL;
++    }
++
++    size_t length = strlen(cmd_line);
++    char *line = tor_malloc(length + 1);
++    memcpy(line, cmd_line, length + 1);
++
++    int count = 0;
++    for (char *p = line; *p; p++) {
++        if (*p == ',') count++;
++    }
++
++    int host_count = count + 1;
++    char **hosts = tor_malloc(sizeof(char*) * host_count);
++
++    int i = 0;
++    char *token = strtok(line, ",");
++    while (token && i < host_count) {
++        hosts[i++] = token;
++        token = strtok(NULL, ",");
++    }
++
++    if (i == 0) {
++        tor_free(line);
++        tor_free(hosts);
++        return NULL;
++    }
++
++    char *rnd = NULL;
++    for (int attempts = 0; attempts < i; attempts++) {
++        char *candidate = hosts[crypto_rand_int(i)];
++        if (strlen(candidate) <= MAX_HOSTNAME_LEN) {
++            rnd = candidate;
++            break;
++        }
++    }
++
++    if (rnd == NULL) {
++        tor_free(hosts);
++        tor_free(line);
++        return NULL;
++    }
++
++    size_t rnd_len = strlen(rnd);
++    char *host = tor_malloc(rnd_len + 1);
++    memcpy(host, rnd, rnd_len + 1);
++
++    tor_free(hosts);
++    tor_free(line);
++
++    return host;
++}
++
+ /** Create a new TLS object from a file descriptor, and a flag to
+  * determine whether it is functioning as a server.
+  */
+@@ -662,7 +723,12 @@ tor_tls_new(tor_socket_t sock, int isServer)
+ #ifdef SSL_set_tlsext_host_name
+   /* Browsers use the TLS hostname extension, so we should too. */
+   if (!isServer) {
+-    char *fake_hostname = crypto_random_hostname(4,25, "www.",".com");
++    char *fake_hostname = get_fake_host();
++    if (fake_hostname == NULL) {
++      fake_hostname = crypto_random_hostname(4,25, "www.",".com");
++    } else {
++      log_notice(LD_GENERAL, "Using SNI: %s", fake_hostname);
++    }
+     SSL_set_tlsext_host_name(result->ssl, fake_hostname);
+     tor_free(fake_hostname);
+   }
+@@ -672,6 +738,8 @@ tor_tls_new(tor_socket_t sock, int isServer)
+   if (openssl_bug_7712_is_present) {
+     /* We can't actually use TLS 1.3 until this bug is fixed. */
+     SSL_set_max_proto_version(result->ssl, TLS1_2_VERSION);
++  } else {
++    SSL_set_max_proto_version(result->ssl, TLS1_3_VERSION);
+   }
+ #endif /* defined(SSL_CTRL_SET_MAX_PROTO_VERSION) */
+ 
+@@ -687,12 +755,10 @@ tor_tls_new(tor_socket_t sock, int isServer)
+       isServer ? UNRESTRICTED_TLS1_2_SERVER_CIPHER_LIST : CLIENT_CIPHER_LIST);
+ 
+   bool tls13_ciphers_ok = true;
+-#ifdef HAVE_SSL_SET_CIPHERSUITES
+   if (!isServer) {
+     tls13_ciphers_ok =
+       SSL_set_ciphersuites(result->ssl, CLIENT_CIPHER_LIST_TLSv13);
+   }
+-#endif
+ 
+   if (!tls12_ciphers_ok || !tls13_ciphers_ok) {
+     tls_log_errors(NULL, LOG_WARN, LD_NET, "setting ciphers");
