@@ -94,6 +94,9 @@ Tor, obfs4proxy, Snowflake
 --------------------------
 Source: https://gitlab.torproject.org/tpo/core/tor and the anti-censorship projects
 License: BSD-3-Clause
+The Android tor is built from the 0.4.9.13 release with the fake SNI changes from
+Gedsh's tor branch for InviZible Pro (https://gitlab.torproject.org/Gedsh/tor, prod-0.4.9),
+kept as tools/tor-fake-sni.patch. The desktop builds use the official Tor Expert Bundle.
 
 dnstt
 -----
