@@ -49,7 +49,9 @@ class DesktopTorPsiphonTest {
 
     @Test
     fun `the torrc points every transport at the bundle and keeps tor's socks port`() {
-        val root = bundle(windows = false)
+        val windows = Os.current == Os.WINDOWS
+        val root = bundle(windows)
+        val lyrebird = File(root, "pt/lyrebird" + if (windows) ".exe" else "").absolutePath
         val torrc = DesktopTor.torrc(
             AppSettings(torBridgesMode = "default", torBridgeTransport = "obfs4"),
             root,
@@ -57,8 +59,8 @@ class DesktopTorPsiphonTest {
         )
 
         assertTrue("SocksPort 127.0.0.1:9250" in torrc, torrc)
-        assertTrue("ClientTransportPlugin obfs4,obfs3,scramblesuit,meek_lite,webtunnel exec ${root.absolutePath}/pt/lyrebird" in torrc, torrc)
-        assertTrue("ClientTransportPlugin snowflake exec ${root.absolutePath}/pt/lyrebird" in torrc, torrc)
+        assertTrue("ClientTransportPlugin obfs4,obfs3,scramblesuit,meek_lite,webtunnel exec $lyrebird" in torrc, torrc)
+        assertTrue("ClientTransportPlugin snowflake exec $lyrebird" in torrc, torrc)
         assertTrue("Bridge obfs4 192.0.2.1:443" in torrc, torrc)
         assertTrue("dnstt" !in torrc, torrc)
         root.deleteRecursively()
