@@ -18,7 +18,7 @@
 
           src = pkgs.fetchurl {
             url = "https://github.com/CluvexStudio/ZedSecure/releases/download/desktop-v${version}/ZedSecure-${version}-linux-x86_64.tar.gz";
-            hash = "sha256-k4H6RJUe7aHmQ8UT9GmTMIel37P4MRB/lTFQVV1bNFg=";
+            hash = "sha256-tWjEs9JKIbjqYrZJuTpfJNWS56M6q5jykPwaw9i7XNQ=";
           };
 
           nativeBuildInputs = with pkgs; [ autoPatchelfHook makeWrapper copyDesktopItems ];
