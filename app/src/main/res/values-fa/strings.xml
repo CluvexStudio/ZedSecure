@@ -608,6 +608,9 @@
     <string name="widget_no_server">سروری انتخاب نشده</string>
     <string name="chain_member_missing">اعضای گم‌شدهٔ زنجیره: %1$s</string>
     <string name="chain_udp_hop_unsupported">%1$s نمی‌تواند بعد از %2$s در زنجیره باشد — به UDP نیاز دارد</string>
+    <string name="chain_serverless_not_first">کانفیگ سرورلس فقط می‌تواند حلقهٔ اول زنجیره باشد</string>
+    <string name="chain_serverless_no_server">بعد از کانفیگ سرورلس یک سرور اضافه کنید</string>
+    <string name="chain_serverless_no_direct">کانفیگ سرورلس خروجی مستقیمی برای رسیدن به سرور بعدی ندارد</string>
     <string name="crosschain_outer_failed">تونل حامل نتوانست وصل شود</string>
     <string name="tor_bootstrap_timeout">تور نتوانست به‌موقع اتصالش را کامل کند. یک بریج امتحان کن یا تونل حامل را بررسی کن.</string>
     <string name="crosschain_inner_failed">تونل خروجی نتوانست از داخل حامل وصل شود</string>

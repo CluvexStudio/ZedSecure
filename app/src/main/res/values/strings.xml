@@ -620,6 +620,9 @@
     <string name="widget_preview_up" translatable="false">186 MB</string>
     <string name="chain_member_missing">Proxy chain is missing: %1$s</string>
     <string name="chain_udp_hop_unsupported">%1$s cannot follow %2$s in a chain — it needs UDP</string>
+    <string name="chain_serverless_not_first">A serverless config can only be the first link of a chain</string>
+    <string name="chain_serverless_no_server">Add a server after the serverless config</string>
+    <string name="chain_serverless_no_direct">The serverless config has no direct outbound to reach the next server through</string>
     <string name="crosschain_outer_failed">The carrier tunnel could not connect</string>
     <string name="tor_bootstrap_timeout">Tor could not finish connecting in time. Try a bridge, or check the carrier tunnel.</string>
     <string name="crosschain_inner_failed">The exit tunnel could not connect through the carrier</string>

@@ -96,6 +96,9 @@
     <string name="widget_no_server">未选择服务器</string>
     <string name="chain_member_missing">代理链缺少：%1$s</string>
     <string name="chain_udp_hop_unsupported">%1$s 不能排在 %2$s 之后 — 它需要 UDP</string>
+    <string name="chain_serverless_not_first">无服务器配置只能作为链的第一环</string>
+    <string name="chain_serverless_no_server">请在无服务器配置后添加一个服务器</string>
+    <string name="chain_serverless_no_direct">该无服务器配置没有可用于连接下一个服务器的直连出站</string>
     <string name="crosschain_outer_failed">承载隧道无法连接</string>
     <string name="tor_bootstrap_timeout">Tor 未能及时完成连接。请尝试网桥，或检查承载隧道。</string>
     <string name="crosschain_inner_failed">出口隧道无法通过承载隧道连接</string>

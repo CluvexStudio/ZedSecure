@@ -24,6 +24,14 @@ class UnsupportedTransportException(val transport: String) :
 class UdpHopUnsupportedException(val member: String, val previous: String) :
     Exception("$member cannot be chained after $previous, which does not carry UDP")
 
+class ServerlessHopException(val reason: Reason) : Exception(reason.message) {
+    enum class Reason(val message: String) {
+        NotFirst("A serverless config can only be the first link of a chain"),
+        NoServer("Add a server after the serverless config"),
+        NoDirectOutbound("The serverless config has no direct outbound to reach the next server through"),
+    }
+}
+
 object XrayJsonBuilder {
     private val prettyJson = Json { prettyPrint = true }
     private val leanJson = Json { ignoreUnknownKeys = true; isLenient = true }
@@ -47,6 +55,10 @@ object XrayJsonBuilder {
     private const val TAG_SOCKS_IN = "socks-in"
 
     private val LOCAL_INBOUND_PROTOCOLS = setOf("socks", "mixed")
+
+    private val DIRECT_PROTOCOLS = setOf("freedom", "direct")
+
+    const val SERVERLESS_DIALER_TAG = "serverless"
 
     private val DEAD_END_PROTOCOLS = setOf("blackhole", "block", "dns")
 
@@ -155,6 +167,12 @@ object XrayJsonBuilder {
             override val carriesUdp: Boolean get() = server.protocol.carriesUdp
         }
 
+        data class Serverless(val rawJson: String) : ChainHop {
+            override val label: String get() = "Serverless"
+            override val needsUdp: Boolean get() = false
+            override val carriesUdp: Boolean get() = true
+        }
+
         data class SingBox(val fragment: String, val carrier: String?, val server: SingBoxJson.Server) : ChainHop {
             override val label: String get() = server.label
             override val needsUdp: Boolean get() = server.udp
@@ -170,6 +188,10 @@ object XrayJsonBuilder {
         forSpeedtest: Boolean = false,
     ): String {
         require(hops.isNotEmpty()) { "a proxy chain needs at least one member" }
+        if (hops.drop(1).any { it is ChainHop.Serverless }) throw ServerlessHopException(ServerlessHopException.Reason.NotFirst)
+        val entry = hops.first() as? ChainHop.Serverless
+        val servers = if (entry != null) hops.drop(1) else hops
+        if (servers.isEmpty()) throw ServerlessHopException(ServerlessHopException.Reason.NoServer)
         hops.forEach { hop ->
             if (hop is ChainHop.Xray) {
                 val net = hop.server.transport.network.lowercase()
@@ -182,16 +204,23 @@ object XrayJsonBuilder {
                 throw UdpHopUnsupportedException(member = hop.label, previous = hops[i - 1].label)
             }
         }
-        val last = hops.lastIndex
+        val entryOutbounds = entry?.let { liftServerlessDialer(it.rawJson, udp = servers.first().needsUdp) }.orEmpty()
+        val last = servers.lastIndex
         fun tagOf(i: Int) = if (i == last) "proxy" else "proxy-h$i"
         return assemble(socksPort, options, forSpeedtest) {
             for (i in last downTo 0) {
-                val dialer = if (i == 0) entryDialer(options) else tagOf(i - 1)
-                when (val hop = hops[i]) {
+                val dialer = when {
+                    i > 0 -> tagOf(i - 1)
+                    entry != null -> SERVERLESS_DIALER_TAG
+                    else -> entryDialer(options)
+                }
+                when (val hop = servers[i]) {
                     is ChainHop.Xray -> add(proxyOutbound(hop.server, options, tag = tagOf(i), dialerProxy = dialer))
                     is ChainHop.SingBox -> add(singBoxOutbound(hop.fragment, hop.carrier, tagOf(i), dialer, options.singBox))
+                    is ChainHop.Serverless -> Unit
                 }
             }
+            entryOutbounds.forEach { add(it) }
         }
     }
 
@@ -261,15 +290,39 @@ object XrayJsonBuilder {
         val outbounds = (root["outbounds"] as? JsonArray)?.mapNotNull { it as? JsonObject } ?: return null
         fun tagOf(o: JsonObject) = (o["tag"] as? JsonPrimitive)?.content
         fun protocolOf(o: JsonObject) = (o["protocol"] as? JsonPrimitive)?.content?.lowercase()
+
+        val main = outbounds.firstOrNull { tagOf(it) == "proxy" && protocolOf(it) !in NON_PROXY_PROTOCOLS }
+            ?: outbounds.firstOrNull { protocolOf(it).let { p -> p != null && p !in NON_PROXY_PROTOCOLS } }
+            ?: return null
+        return liftWithDependencies(outbounds, main, tag)
+    }
+
+    internal fun liftServerlessDialer(rawJson: String, udp: Boolean): List<JsonObject> {
+        val root = leanJson.parseToJsonElement(Jsonc.strip(rawJson)) as? JsonObject
+            ?: throw ServerlessHopException(ServerlessHopException.Reason.NoDirectOutbound)
+        val outbounds = (root["outbounds"] as? JsonArray)?.mapNotNull { it as? JsonObject }.orEmpty()
+        fun tagOf(o: JsonObject) = (o["tag"] as? JsonPrimitive)?.content
+        fun protocolOf(o: JsonObject) = (o["protocol"] as? JsonPrimitive)?.content?.lowercase()
+        fun masked(o: JsonObject, kind: String) =
+            (((o["streamSettings"] as? JsonObject)?.get("finalmask") as? JsonObject)?.get(kind) as? JsonArray)
+                ?.isNotEmpty() == true
+        val direct = outbounds.filter { protocolOf(it) in DIRECT_PROTOCOLS }
+        val routed = if (udp) null else (root["routing"] as? JsonObject)?.let(::tlsRouteTag)
+            ?.let { routeTag -> direct.firstOrNull { tagOf(it) == routeTag } }
+        val chosen = routed
+            ?: direct.firstOrNull { masked(it, if (udp) "udp" else "tcp") }
+            ?: direct.firstOrNull()
+            ?: throw ServerlessHopException(ServerlessHopException.Reason.NoDirectOutbound)
+        return liftWithDependencies(outbounds, chosen, SERVERLESS_DIALER_TAG)
+    }
+
+    private fun liftWithDependencies(outbounds: List<JsonObject>, main: JsonObject, tag: String): List<JsonObject> {
+        fun tagOf(o: JsonObject) = (o["tag"] as? JsonPrimitive)?.content
         fun dependenciesOf(o: JsonObject): List<String> = listOfNotNull(
             ((o["streamSettings"] as? JsonObject)?.get("sockopt") as? JsonObject)
                 ?.let { (it["dialerProxy"] as? JsonPrimitive)?.content },
             (o["proxySettings"] as? JsonObject)?.let { (it["tag"] as? JsonPrimitive)?.content },
         ).filter { it.isNotBlank() }
-
-        val main = outbounds.firstOrNull { tagOf(it) == "proxy" && protocolOf(it) !in NON_PROXY_PROTOCOLS }
-            ?: outbounds.firstOrNull { protocolOf(it).let { p -> p != null && p !in NON_PROXY_PROTOCOLS } }
-            ?: return null
         val byTag = outbounds.mapNotNull { o -> tagOf(o)?.let { it to o } }.toMap()
 
         val kept = mutableListOf(main to tag)

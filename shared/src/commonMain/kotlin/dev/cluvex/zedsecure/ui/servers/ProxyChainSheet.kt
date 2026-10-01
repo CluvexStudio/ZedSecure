@@ -172,7 +172,14 @@ fun ProxyChainSheet(
                     options = available,
                     leading = { "＋" },
                     picked = { false },
-                    onSelect = { selected.add(it.id) },
+                    onSelect = { picked ->
+                        if (picked.isServerless) {
+                            selected.removeAll { id -> byId[id]?.isServerless == true }
+                            selected.add(0, picked.id)
+                        } else {
+                            selected.add(picked.id)
+                        }
+                    },
                 )
 
                 if (available.isEmpty() && query.isNotBlank()) {

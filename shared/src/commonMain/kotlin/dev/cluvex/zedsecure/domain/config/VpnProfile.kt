@@ -97,6 +97,8 @@ data class VpnProfile(
 ) {
     val isCustom: Boolean get() = source is ProfileSource.RawJson
 
+    val isServerless: Boolean by lazy { (source as? ProfileSource.RawJson)?.json?.let(CustomConfig::isServerless) == true }
+
     val isPsiphon: Boolean get() = source is ProfileSource.Psiphon
 
     val isDnsTunnel: Boolean get() = source is ProfileSource.DnsTunnel

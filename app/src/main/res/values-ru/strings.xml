@@ -96,6 +96,9 @@
     <string name="widget_no_server">Сервер не выбран</string>
     <string name="chain_member_missing">В цепочке отсутствуют: %1$s</string>
     <string name="chain_udp_hop_unsupported">%1$s не может идти после %2$s в цепочке — нужен UDP</string>
+    <string name="chain_serverless_not_first">Безсерверный конфиг может быть только первым звеном цепочки</string>
+    <string name="chain_serverless_no_server">Добавьте сервер после безсерверного конфига</string>
+    <string name="chain_serverless_no_direct">У безсерверного конфига нет прямого выхода для подключения к следующему серверу</string>
     <string name="crosschain_outer_failed">Не удалось подключить несущий туннель</string>
     <string name="tor_bootstrap_timeout">Tor не смог завершить подключение вовремя. Попробуйте мост или проверьте несущий туннель.</string>
     <string name="crosschain_inner_failed">Выходной туннель не смог подключиться через несущий</string>

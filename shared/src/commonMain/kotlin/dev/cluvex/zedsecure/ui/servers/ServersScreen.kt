@@ -324,7 +324,8 @@ fun ServersScreen(
     val servers = profiles.filterNot { it.isLocked }
 
     val chainCandidates = servers.filter {
-        it.rawPayload() != null && !it.isCustom && !it.isManagedTunnel && !it.isProxyChain && !it.isSingBoxConfig
+        it.rawPayload() != null && (!it.isCustom || it.isServerless) && !it.isManagedTunnel && !it.isProxyChain &&
+            !it.isSingBoxConfig
     }
 
     val spoofCandidates = servers.filter {

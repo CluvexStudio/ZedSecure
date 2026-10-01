@@ -648,6 +648,9 @@ class ConfigRepository(private val store: KeyValueStore) {
                     ?: run { missing += member.name; return@mapNotNull null }
                 return@mapNotNull XrayJsonBuilder.ChainHop.SingBox(src.json, src.carrier, server)
             }
+            (member.source as? ProfileSource.RawJson)?.takeIf { member.isServerless }?.let { src ->
+                return@mapNotNull XrayJsonBuilder.ChainHop.Serverless(src.json)
+            }
             val payload = member.rawPayload()
             if (payload == null) {
                 missing += member.name

@@ -101,6 +101,13 @@ class StartPlanner(context: Context) {
             appContext.getString(R.string.crosschain_udp_unsupported, e.protocol, e.carrier)
         is dev.cluvex.zedsecure.domain.config.UdpHopUnsupportedException ->
             appContext.getString(R.string.chain_udp_hop_unsupported, e.member, e.previous)
+        is dev.cluvex.zedsecure.domain.config.ServerlessHopException -> appContext.getString(
+            when (e.reason) {
+                dev.cluvex.zedsecure.domain.config.ServerlessHopException.Reason.NotFirst -> R.string.chain_serverless_not_first
+                dev.cluvex.zedsecure.domain.config.ServerlessHopException.Reason.NoServer -> R.string.chain_serverless_no_server
+                dev.cluvex.zedsecure.domain.config.ServerlessHopException.Reason.NoDirectOutbound -> R.string.chain_serverless_no_direct
+            },
+        )
         is dev.cluvex.zedsecure.domain.config.AutoSelectNoMembersException ->
             appContext.getString(R.string.auto_no_members)
         else -> appContext.getString(R.string.config_invalid)

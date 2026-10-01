@@ -60,6 +60,17 @@ object CustomConfig {
 
     private val UDP_PROTOCOLS = setOf("wireguard", "hysteria2", "hysteria")
 
+    private val SERVERLESS_PROTOCOLS = setOf("freedom", "direct", "blackhole", "block", "dns", "loopback")
+
+    fun isServerless(rawJson: String): Boolean {
+        val obj = runCatching { json.parseToJsonElement(Jsonc.strip(rawJson)) }.getOrNull() as? JsonObject ?: return false
+        val protocols = (obj["outbounds"] as? JsonArray)?.mapNotNull { ob ->
+            runCatching { (ob as? JsonObject)?.get("protocol")?.jsonPrimitive?.content?.lowercase() }.getOrNull()
+        }.orEmpty()
+        return protocols.isNotEmpty() && protocols.all { it in SERVERLESS_PROTOCOLS } &&
+            protocols.any { it == "freedom" || it == "direct" }
+    }
+
     fun tcpProbeable(rawJson: String): Boolean {
         val obj = runCatching { json.parseToJsonElement(Jsonc.strip(rawJson)) }.getOrNull() as? JsonObject
             ?: return false
