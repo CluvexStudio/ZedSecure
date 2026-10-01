@@ -6,6 +6,7 @@ import dev.cluvex.zedsecure.core.SshController
 import dev.cluvex.zedsecure.core.VpnManager
 import dev.cluvex.zedsecure.data.config.ConfigRepository
 import dev.cluvex.zedsecure.desktop.core.DesktopDnsTunnel
+import dev.cluvex.zedsecure.desktop.core.DesktopIkev2
 import dev.cluvex.zedsecure.desktop.core.DesktopPsiphon
 import dev.cluvex.zedsecure.desktop.core.DesktopTor
 import dev.cluvex.zedsecure.desktop.core.HevBinary
@@ -15,6 +16,7 @@ import dev.cluvex.zedsecure.desktop.core.Os
 import dev.cluvex.zedsecure.desktop.core.TunMode
 import dev.cluvex.zedsecure.desktop.core.XrayCore
 import dev.cluvex.zedsecure.domain.config.DnsTunnelProfile
+import dev.cluvex.zedsecure.domain.config.Ikev2Profile
 import dev.cluvex.zedsecure.domain.config.LocalPorts
 import dev.cluvex.zedsecure.domain.config.LocalProxy
 import dev.cluvex.zedsecure.domain.config.PsiphonProfile
@@ -43,6 +45,7 @@ object DesktopVpn {
     private var dnsTunnel: DesktopDnsTunnel? = null
     @Volatile private var tor: DesktopTor? = null
     @Volatile private var psiphon: DesktopPsiphon? = null
+    @Volatile private var ikev2: DesktopIkev2? = null
     @Volatile private var shimStatsRunning = false
     private var usedSystemProxy = false
 
@@ -70,6 +73,7 @@ object DesktopVpn {
         runMode = settingsProvider().runMode
 
         when {
+            profile.ikev2Settings() != null -> startIkev2(profile.name, profile.ikev2Settings()!!)
             profile.psiphonSettings() != null -> startPsiphon(profile.name, profile.psiphonSettings()!!)
             profile.isTor -> startTor(profile.name)
             profile.dnsTunnelSettings() != null -> startDns(profile.name, profile.dnsTunnelSettings()!!)
@@ -170,6 +174,34 @@ object DesktopVpn {
                 return@thread
             }
             VpnManager.onConnected(name)
+        }
+    }
+
+    private fun startIkev2(name: String, profile: Ikev2Profile) {
+        VpnManager.onStarting(name)
+        thread(name = "desktop-ikev2") {
+            val engine = DesktopIkev2(profile, work)
+            ikev2 = engine
+            val connected = engine.connect()
+            if (ikev2 !== engine) {
+                if (connected.isSuccess) engine.disconnect()
+                return@thread
+            }
+            connected.exceptionOrNull()?.let { e ->
+                ikev2 = null
+                VpnManager.onError(e.message ?: "IKEv2 failed to connect")
+                return@thread
+            }
+            LogBus.append("I/IKEv2 the system VPN '${DesktopIkev2.NAME}' carries all traffic")
+            VpnManager.onConnected(name)
+            while (ikev2 === engine) {
+                Thread.sleep(15_000)
+                if (ikev2 === engine && !engine.isUp()) {
+                    ikev2 = null
+                    VpnManager.onError("IKEv2 disconnected")
+                    break
+                }
+            }
         }
     }
 
@@ -387,6 +419,7 @@ object DesktopVpn {
         singBoxStats?.stop(); singBoxStats = null
         tun?.stop(); tun = null
         tor?.let { tor = null; it.stop() }
+        ikev2?.let { ikev2 = null; it.disconnect() }
         psiphon?.let { psiphon = null; it.stop() }
         shim?.stop(); shim = null
         ssh?.stop(); ssh = null
