@@ -46,6 +46,15 @@ object XrayJsonBuilder {
 
     private const val TAG_SOCKS_IN = "socks-in"
 
+    private val LOCAL_INBOUND_PROTOCOLS = setOf("socks", "mixed")
+
+    private val DEAD_END_PROTOCOLS = setOf("blackhole", "block", "dns")
+
+    private val UNPROBEABLE_RULE_KEYS = setOf(
+        "domain", "domains", "inboundTag", "source", "sourceIP", "sourcePort", "localIP", "localPort",
+        "user", "attrs", "process", "vlessRoute",
+    )
+
     private const val TAG_DNS_OUT = "dns-out"
 
     private const val FAKEDNS_POOL = "198.18.0.0/15"
@@ -741,7 +750,7 @@ object XrayJsonBuilder {
                         var rewroteSocks = false
                         (v as? JsonArray)?.forEach { ib ->
                             if (!rewroteSocks && ib is JsonObject &&
-                                (ib["protocol"] as? JsonPrimitive)?.content == "socks"
+                                (ib["protocol"] as? JsonPrimitive)?.content?.lowercase() in LOCAL_INBOUND_PROTOCOLS
                             ) {
                                 add(buildJsonObject {
                                     ib.forEach { (key, x) -> if (key != "port" && key != "listen") put(key, x) }
@@ -757,7 +766,9 @@ object XrayJsonBuilder {
                     }
 
                     "outbounds" -> putJsonArray("outbounds") {
-                        (v as? JsonArray)?.forEach { ob ->
+                        val outbounds = (v as? JsonArray).orEmpty()
+                        val ordered = if (forSpeedtest) probeFirst(outbounds, root["routing"] as? JsonObject) else outbounds
+                        ordered.forEach { ob ->
                             add(if (ob is JsonObject) sanitizeOutbound(ob, forSpeedtest) else ob)
                         }
                     }
@@ -767,7 +778,8 @@ object XrayJsonBuilder {
                         if (geoAssetsAvailable || v !is JsonObject) v else stripGeoFromRouting(v),
                     )
                     "dns", "fakedns" -> if (!forSpeedtest) put(k, v)
-                    "policy", "stats" -> Unit
+                    "policy" -> if (!forSpeedtest) put("policy", withStatsPolicy(v as? JsonObject))
+                    "stats" -> Unit
 
                     "log" -> put("log", quietAccessLog(v))
                     else -> put(k, v)
@@ -781,13 +793,74 @@ object XrayJsonBuilder {
             }
 
             if (!forSpeedtest) {
-                put("policy", statsPolicy())
+                if (root["policy"] !is JsonObject) put("policy", statsPolicy())
                 putJsonObject("stats") {}
             }
         }
 
         return if (forSpeedtest) leanJson.encodeToString(JsonObject.serializer(), patched)
         else prettyJson.encodeToString(JsonObject.serializer(), patched)
+    }
+
+    private fun withStatsPolicy(policy: JsonObject?): JsonObject {
+        val base = statsPolicy()
+        if (policy == null) return base
+        return buildJsonObject {
+            policy.forEach { (k, v) -> if (k != "levels" && k != "system") put(k, v) }
+            putJsonObject("levels") {
+                (base["levels"] as? JsonObject)?.forEach { (k, v) -> put(k, v) }
+                (policy["levels"] as? JsonObject)?.forEach { (k, v) -> put(k, v) }
+            }
+            putJsonObject("system") {
+                (policy["system"] as? JsonObject)?.forEach { (k, v) -> put(k, v) }
+                put("statsOutboundUplink", true)
+                put("statsOutboundDownlink", true)
+            }
+        }
+    }
+
+    private fun probeFirst(outbounds: List<JsonElement>, routing: JsonObject?): List<JsonElement> {
+        fun protocolOf(o: JsonObject) = (o["protocol"] as? JsonPrimitive)?.content?.lowercase()
+        val first = outbounds.firstOrNull() as? JsonObject ?: return outbounds
+        if (protocolOf(first) !in NON_PROXY_PROTOCOLS) return outbounds
+        val tag = routing?.let(::tlsRouteTag) ?: return outbounds
+        val target = outbounds.firstOrNull { (it as? JsonObject)?.get("tag")?.let { t -> (t as? JsonPrimitive)?.content } == tag }
+            as? JsonObject ?: return outbounds
+        if (protocolOf(target) in DEAD_END_PROTOCOLS) return outbounds
+        return listOf(target) + outbounds.filter { it !== target }
+    }
+
+    private fun tlsRouteTag(routing: JsonObject): String? {
+        val rules = routing["rules"] as? JsonArray ?: return null
+        for (element in rules) {
+            val rule = element as? JsonObject ?: continue
+            if (rule.keys.any { it in UNPROBEABLE_RULE_KEYS }) continue
+            val network = rule["network"]
+            if (network != null && "tcp" !in listValues(network)) continue
+            val port = rule["port"]
+            if (port != null && !portCovers(port, 443)) continue
+            val protocol = rule["protocol"]
+            if (protocol != null && "tls" !in listValues(protocol)) continue
+            val ips = rule["ip"]
+            if (ips != null && listValues(ips).none { it == "0.0.0.0/0" || it.startsWith("geoip:!") }) continue
+            return (rule["outboundTag"] as? JsonPrimitive)?.content
+        }
+        return null
+    }
+
+    private fun listValues(value: JsonElement): List<String> = when (value) {
+        is JsonArray -> value.mapNotNull { (it as? JsonPrimitive)?.content }
+        is JsonPrimitive -> value.content.split(',')
+        else -> emptyList()
+    }.map { it.trim().lowercase() }.filter { it.isNotEmpty() }
+
+    private fun portCovers(value: JsonElement, port: Int): Boolean = listValues(value).any { part ->
+        val bounds = part.split('-').mapNotNull { it.trim().toIntOrNull() }
+        when (bounds.size) {
+            1 -> bounds[0] == port
+            2 -> port in bounds[0]..bounds[1]
+            else -> false
+        }
     }
 
     fun referencesGeoData(rawJson: String): Boolean = runCatching {
