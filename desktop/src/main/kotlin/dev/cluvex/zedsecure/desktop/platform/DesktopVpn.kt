@@ -252,7 +252,10 @@ object DesktopVpn {
             val hev = HevBinary.extract(work)
             if (hev != null) {
                 LogBus.append("I/Desktop TUN bypass: ${bypassIps.joinToString().ifEmpty { "(none)" }}")
-                val t = TunMode(hev, "127.0.0.1", socksPort, work, bypassIps = bypassIps, udpOverTcp = udpOverTcp)
+                val t = TunMode(
+                    hev, "127.0.0.1", socksPort, work,
+                    bypassIps = bypassIps, udpOverTcp = udpOverTcp, askPassword = AdminPassword::ask,
+                )
                 if (t.start()) { tun = t; return true }
             }
             LogBus.append("W/Desktop TUN unavailable — falling back to system proxy")

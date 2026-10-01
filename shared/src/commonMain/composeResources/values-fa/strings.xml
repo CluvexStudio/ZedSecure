@@ -78,6 +78,7 @@
     <string name="subs_update_all">به‌روزرسانی همه</string>
     <string name="subs_updated">به‌روزرسانی شد: %1$d سرور</string>
     <string name="subs_failed">به‌روزرسانی سابسکریپشن ناموفق بود</string>
+    <string name="subs_saved_unreachable">سابسکریپشن «%1$s» ذخیره شد، اما الان دانلود نشد. وقتی وصل شدید آن را به‌روز کنید.</string>
     <string name="subs_rename">تغییر نام گروه</string>
     <string name="subs_delete_confirm_title">سابسکریپشن حذف شود؟</string>
     <string name="subs_delete_confirm_body">«%1$s» و همهٔ سرورهایش حذف می‌شوند.</string>
@@ -1360,4 +1361,10 @@
     <string name="tour_more_body">به‌روزرسانی همه‌ی سابسکریپشن‌ها، مرتب‌سازی بر اساس نتیجه‌ی تست، حذف تکراری‌ها، حذف نامعتبرها، خروجی گرفتن از همه، یا پاک‌کردن کل لیست.</string>
     <string name="tour_settings_title">تنظیمات</string>
     <string name="tour_settings_body">بقیه‌ی همه‌چیز در این تب است. برویم یکی‌یکی ببینیم.</string>
+    <string name="admin_password_title">رمز عبور مدیر سیستم</string>
+    <string name="admin_password_body">حالت TUN برای ساختن تونل به دسترسی روت نیاز دارد و پنجرهٔ رمز سیستم (polkit) در دسترس نیست. رمز عبوری را که برای sudo استفاده می‌کنید وارد کنید. این رمز فقط به sudo داده می‌شود و ذخیره نمی‌شود.</string>
+    <string name="admin_password_label">رمز عبور</string>
+    <string name="admin_password_wrong">رمز عبور اشتباه است. دوباره امتحان کنید.</string>
+    <string name="title_pref_software_rendering">رندر نرم‌افزاری</string>
+    <string name="summary_pref_software_rendering">پنجره را بدون کارت گرافیک رسم می‌کند؛ برای وقتی که صفحه چشمک می‌زند، سیاه می‌شود یا کارت گرافیک مشکل پیدا می‌کند. بعد از اجرای دوباره اعمال می‌شود. می‌توانید برنامه را با --software-rendering هم اجرا کنید.</string>
 </resources>

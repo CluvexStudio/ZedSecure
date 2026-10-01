@@ -55,6 +55,8 @@ interface Platform {
 
     val supportsSystemProxy: Boolean get() = false
 
+    val supportsSoftwareRendering: Boolean get() = false
+
     fun lanIpv4Addresses(): List<String> = emptyList()
 
     val supportsPerAppProxy: Boolean get() = false

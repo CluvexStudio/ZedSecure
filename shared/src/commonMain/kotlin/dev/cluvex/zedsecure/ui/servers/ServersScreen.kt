@@ -137,6 +137,15 @@ fun ServersScreen(
     val lockedCannotShare = stringResource(Res.string.locked_cannot_share)
 
     fun toastImportFailure(e: Throwable) {
+        if (e is ConfigRepository.SubscriptionNotFetchedException) {
+            scope.launch {
+                platform.toast(
+                    if (e.savedForLater) getString(Res.string.subs_saved_unreachable, e.name)
+                    else getString(Res.string.subs_failed),
+                )
+            }
+            return
+        }
         val ovpn = (e as? dev.cluvex.zedsecure.domain.config.OvpnConfig.UnsupportedException)?.reason
         val res = when {
             ovpn != null -> when (ovpn) {

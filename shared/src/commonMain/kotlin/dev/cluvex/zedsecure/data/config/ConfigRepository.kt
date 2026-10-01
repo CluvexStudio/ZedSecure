@@ -1026,27 +1026,46 @@ class ConfigRepository(private val store: KeyValueStore) {
         if (persist) persistProfiles()
     }
 
-    suspend fun importPasted(text: String): Result<PastedImport> =
-        if (looksLikeSubscriptionUrl(text)) {
-            importSubscriptionUrl(text.trim(), name = null)
-        } else runCatching {
+    suspend fun importPasted(text: String): Result<PastedImport> {
+        subscriptionUrlIn(text)?.let { return importSubscriptionUrl(it, name = null) }
+        val parsed = runCatching {
             lastImportDuplicates = 0
             val added = importText(text).getOrThrow()
             PastedImport(count = added, subscription = false, duplicates = lastImportDuplicates)
         }
+        if (parsed.getOrNull()?.let { it.count > 0 || it.duplicates > 0 } == true) return parsed
+        val url = soleUrlIn(text) ?: return parsed
+        return importSubscriptionUrl(url, name = null, keepIfUnreachable = false)
+    }
 
-    suspend fun importSubscriptionUrl(url: String, name: String?): Result<PastedImport> = runCatching {
+    suspend fun importSubscriptionUrl(
+        url: String,
+        name: String?,
+        keepIfUnreachable: Boolean = true,
+    ): Result<PastedImport> = runCatching {
         val existing = _subscriptions.value.firstOrNull { it.url.equals(url, ignoreCase = true) }
         val sub = existing ?: addSubscription(name = name?.trim().orEmpty(), url = url)
         val added = updateSubscription(sub.id).getOrElse { e ->
-
-            if (existing == null) removeSubscription(sub.id)
-            throw e
+            val savedForLater = existing == null && keepIfUnreachable && e is SubscriptionUnreachableException
+            if (existing == null && !savedForLater) removeSubscription(sub.id)
+            throw SubscriptionNotFetchedException(
+                name = _subscriptions.value.firstOrNull { it.id == sub.id }?.name ?: sub.name,
+                savedForLater = savedForLater,
+                cause = e,
+            )
         }
 
         val finalName = _subscriptions.value.firstOrNull { it.id == sub.id }?.name ?: sub.name
         PastedImport(count = added, subscription = true, subscriptionName = finalName)
     }
+
+    class SubscriptionUnreachableException(cause: Throwable) : Exception(cause.message, cause)
+
+    class SubscriptionNotFetchedException(
+        val name: String,
+        val savedForLater: Boolean,
+        cause: Throwable,
+    ) : Exception(cause.message, cause)
 
     data class PastedImport(
         val count: Int,
@@ -1119,12 +1138,22 @@ class ConfigRepository(private val store: KeyValueStore) {
         persistSubscriptions()
     }
 
-    fun looksLikeSubscriptionUrl(text: String): Boolean {
-        val t = text.trim()
-        if (t.isEmpty() || t.lineSequence().count() > 1 || t.any { it.isWhitespace() }) return false
+    fun looksLikeSubscriptionUrl(text: String): Boolean = subscriptionUrlIn(text) != null
 
-        return t.startsWith("http://", true) || t.startsWith("https://", true)
+    private fun subscriptionUrlIn(text: String): String? {
+        val t = text.withoutFormatChars().trim()
+        if (t.isEmpty() || t.any { it.isWhitespace() }) return null
+        return t.takeIf { it.startsWith("http://", true) || it.startsWith("https://", true) }
     }
+
+    private fun soleUrlIn(text: String): String? =
+        URL_IN_TEXT.findAll(text.withoutFormatChars())
+            .map { it.value.trimEnd(*URL_TRAILING_PUNCTUATION) }
+            .filter { it.length > "https://".length }
+            .distinct()
+            .singleOrNull()
+
+    private fun String.withoutFormatChars(): String = filterNot { it.category == CharCategory.FORMAT }
 
     private fun reuseIdentities(subscriptionId: String, previous: List<VpnProfile>) {
         if (previous.isEmpty()) return
@@ -1184,7 +1213,8 @@ class ConfigRepository(private val store: KeyValueStore) {
 
             if (sub.url.isBlank()) return@runCatching 0
             val primaryUa = resolveUa(sub.userAgent)
-            val response = fetch(sub.url, primaryUa)
+            val response = runCatching { fetch(sub.url, primaryUa) }
+                .getOrElse { throw SubscriptionUnreachableException(it) }
             val body = response.body
             var meta = SubscriptionHeaders.parse(response.headers)
 
@@ -1405,5 +1435,9 @@ class ConfigRepository(private val store: KeyValueStore) {
         const val SING_BOX_UA = "SFA/1.14.0"
 
         const val V2RAYNG_UA_PREFIX = "v2rayNG/"
+
+        private val URL_IN_TEXT = Regex("""https?://[^\s<>"'«»]+""", RegexOption.IGNORE_CASE)
+
+        private val URL_TRAILING_PUNCTUATION = charArrayOf('.', ',', ';', ':', '!', '?', ')', ']', '}', '،', '؛')
     }
 }

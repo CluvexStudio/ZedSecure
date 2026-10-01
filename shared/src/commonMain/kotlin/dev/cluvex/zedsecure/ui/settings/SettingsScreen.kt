@@ -832,6 +832,14 @@ private fun UiPage(
                 checked = s.reduceMotion,
                 onCheckedChange = { v -> onUpdate { it.copy(reduceMotion = v) } },
             )
+            if (LocalPlatform.current.supportsSoftwareRendering) {
+                SettingsSwitchRow(
+                    title = stringResource(Res.string.title_pref_software_rendering),
+                    summary = stringResource(Res.string.summary_pref_software_rendering),
+                    checked = s.softwareRendering,
+                    onCheckedChange = { v -> onUpdate { it.copy(softwareRendering = v) } },
+                )
+            }
             SettingsSwitchRow(
                 title = stringResource(Res.string.title_pref_dynamic_color),
                 summary = stringResource(Res.string.summary_pref_dynamic_color),

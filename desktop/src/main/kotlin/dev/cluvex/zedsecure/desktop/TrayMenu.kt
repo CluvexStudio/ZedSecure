@@ -75,7 +75,14 @@ private fun trayPng(key: String, icon: Painter): String {
 }
 
 @Composable
-fun LinuxNativeTray(iconKey: String, icon: Painter, tooltip: String, onOpen: () -> Unit, entries: List<TrayEntry>) {
+fun LinuxNativeTray(
+    iconKey: String,
+    icon: Painter,
+    tooltip: String,
+    onOpen: () -> Unit,
+    onFailure: () -> Unit,
+    entries: List<TrayEntry>,
+) {
     val iconPath = remember(iconKey) { trayPng(iconKey, icon) }
     DisposableEffect(Unit) {
         onDispose { runCatching { LinuxTrayInitializer.dispose(LINUX_TRAY_ID) } }
@@ -90,12 +97,21 @@ fun LinuxNativeTray(iconKey: String, icon: Painter, tooltip: String, onOpen: () 
                     onLeftClick = onOpen,
                     menuContent = { nativeEntries(entries) },
                 )
-            }.onFailure { System.err.println("tray: ${it.message}") }
+            }.onFailure {
+                System.err.println("tray: ${it.message}")
+                onFailure()
+            }
         }
     }
 }
 
 object LinuxDesktop {
+    fun nativeTrayLoads(): Boolean = runCatching {
+        Class.forName(NATIVE_TRAY_BRIDGE, true, LinuxTrayInitializer::class.java.classLoader)
+    }.onFailure { System.err.println("tray: native tray unavailable: ${it.message ?: it}") }.isSuccess
+
+    private const val NATIVE_TRAY_BRIDGE = "com.kdroid.composetray.lib.linux.LinuxNativeBridge"
+
     fun trayHostAvailable(): Boolean {
         val gdbus = exec(
             "gdbus", "call", "--session",

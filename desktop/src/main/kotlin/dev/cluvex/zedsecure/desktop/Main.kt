@@ -26,7 +26,7 @@ fun main(args: Array<String>) {
             println("xray core up; SOCKS on 127.0.0.1:$port")
             val tun = if (mode == "tun") {
                 val hev = HevBinary.extract(work) ?: return println("no hev binary for ${Os.current}")
-                TunMode(hev, "127.0.0.1", port, work).also {
+                TunMode(hev, "127.0.0.1", port, work, askPassword = ::consolePassword).also {
                     if (!it.start()) { xray.stop(); return println("TUN elevation failed") }
                 }
             } else {
@@ -40,7 +40,7 @@ fun main(args: Array<String>) {
         "tun" -> {
             val (h, p) = hostPort(args) ?: return usage()
             val hev = HevBinary.extract(work) ?: return println("No hev binary bundled for ${Os.current}")
-            val tun = TunMode(hev, h, p, work)
+            val tun = TunMode(hev, h, p, work, askPassword = ::consolePassword)
             if (tun.start()) {
                 println("TUN mode starting (approve the admin prompt). Ctrl+C to stop.")
                 Runtime.getRuntime().addShutdownHook(Thread { tun.stop(); SystemProxy.clear() })
@@ -70,3 +70,6 @@ private fun usage() {
         """.trimIndent(),
     )
 }
+
+private fun consolePassword(retry: Boolean): CharArray? =
+    System.console()?.readPassword(if (retry) "Wrong password, try again: " else "sudo password for TUN mode: ")

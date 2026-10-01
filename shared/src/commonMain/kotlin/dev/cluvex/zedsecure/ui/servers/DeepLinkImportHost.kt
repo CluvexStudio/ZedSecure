@@ -109,10 +109,15 @@ fun DeepLinkImportHost(repository: ConfigRepository, onImported: () -> Unit) {
                             if (r.count > 0) launch(Dispatchers.Main) { onImported() }
                         }
                         .onFailure { e ->
+                            if (e is ConfigRepository.SubscriptionNotFetchedException && e.savedForLater) {
+                                platform.toast(getString(Res.string.subs_saved_unreachable, e.name))
+                                return@onFailure
+                            }
                             platform.toast(
                                 getString(
                                     when {
-                                        request is DeepLinkRequest.Subscription -> Res.string.subs_failed
+                                        request is DeepLinkRequest.Subscription ||
+                                            e is ConfigRepository.SubscriptionNotFetchedException -> Res.string.subs_failed
                                         else -> when ((e as? ConfigParseException)?.reason) {
                                             ConfigParseException.Reason.UnsupportedSsCipher -> Res.string.import_err_ss_cipher
                                             ConfigParseException.Reason.MissingSsCipher -> Res.string.import_err_ss_no_cipher

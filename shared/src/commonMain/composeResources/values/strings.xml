@@ -67,6 +67,7 @@
     <string name="subs_update_all">Update all</string>
     <string name="subs_updated">Updated: %1$d servers</string>
     <string name="subs_failed">Subscription update failed</string>
+    <string name="subs_saved_unreachable">Subscription "%1$s" saved, but it couldn't be downloaded right now. Update it once you're connected.</string>
     <string name="subs_rename">Rename group</string>
     <string name="subs_delete_confirm_title">Delete subscription?</string>
     <string name="subs_delete_confirm_body">“%1$s” and all its servers will be removed.</string>
@@ -1367,4 +1368,10 @@
     <string name="tour_more_body">Update every subscription, sort by test results, delete duplicates, delete the ones that failed their test, export them all, or clear the list.</string>
     <string name="tour_settings_title">Settings</string>
     <string name="tour_settings_body">Everything else lives in this tab. Let us go through it.</string>
+    <string name="admin_password_title">Administrator password</string>
+    <string name="admin_password_body">TUN mode needs root to create the tunnel, and no system password prompt (polkit) is available. Enter the password you use with sudo. It goes only to sudo and is not saved.</string>
+    <string name="admin_password_label">Password</string>
+    <string name="admin_password_wrong">Wrong password. Try again.</string>
+    <string name="title_pref_software_rendering">Software rendering</string>
+    <string name="summary_pref_software_rendering">Draw the window without the graphics card, for when the screen flickers, goes black or the GPU acts up. Applies after a restart. You can also start the app with --software-rendering.</string>
 </resources>

@@ -68,6 +68,7 @@
     <string name="subs_update_all">Обновить все</string>
     <string name="subs_updated">Обновлено: %1$d серверов</string>
     <string name="subs_failed">Не удалось обновить подписку</string>
+    <string name="subs_saved_unreachable">Подписка «%1$s» сохранена, но сейчас её не удалось загрузить. Обновите её после подключения.</string>
     <string name="subs_rename">Переименовать группу</string>
     <string name="subs_delete_confirm_title">Удалить подписку?</string>
     <string name="subs_delete_confirm_body">«%1$s» и все её серверы будут удалены.</string>
@@ -1368,4 +1369,10 @@
     <string name="tour_more_body">Обновить все подписки, отсортировать по результатам проверки, удалить дубликаты, удалить не прошедшие проверку, выгрузить все или очистить список.</string>
     <string name="tour_settings_title">Настройки</string>
     <string name="tour_settings_body">Всё остальное — в этой вкладке. Пройдёмся по ней.</string>
+    <string name="admin_password_title">Пароль администратора</string>
+    <string name="admin_password_body">Режиму TUN нужны права root для создания туннеля, а системное окно ввода пароля (polkit) недоступно. Введите пароль, который вы используете для sudo. Он передаётся только sudo и не сохраняется.</string>
+    <string name="admin_password_label">Пароль</string>
+    <string name="admin_password_wrong">Неверный пароль. Попробуйте ещё раз.</string>
+    <string name="title_pref_software_rendering">Программная отрисовка</string>
+    <string name="summary_pref_software_rendering">Отрисовывать окно без видеокарты, если экран мерцает, гаснет или видеокарта ведёт себя странно. Применяется после перезапуска. Приложение также можно запустить с --software-rendering.</string>
 </resources>

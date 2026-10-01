@@ -68,6 +68,7 @@
     <string name="subs_update_all">全部更新</string>
     <string name="subs_updated">已更新：%1$d 个服务器</string>
     <string name="subs_failed">订阅更新失败</string>
+    <string name="subs_saved_unreachable">订阅“%1$s”已保存，但暂时无法下载。连接后请更新它。</string>
     <string name="subs_rename">重命名分组</string>
     <string name="subs_delete_confirm_title">删除订阅？</string>
     <string name="subs_delete_confirm_body">“%1$s”及其所有服务器都将被删除。</string>
@@ -1368,4 +1369,10 @@
     <string name="tour_more_body">更新全部订阅、按测速结果排序、删除重复项、删除测试失败的、导出全部，或清空列表。</string>
     <string name="tour_settings_title">设置</string>
     <string name="tour_settings_body">其余的一切都在这个标签页里。我们逐一看看。</string>
+    <string name="admin_password_title">管理员密码</string>
+    <string name="admin_password_body">TUN 模式需要 root 权限来创建隧道，但系统密码窗口（polkit）不可用。请输入你用于 sudo 的密码。它只会交给 sudo，不会被保存。</string>
+    <string name="admin_password_label">密码</string>
+    <string name="admin_password_wrong">密码错误，请重试。</string>
+    <string name="title_pref_software_rendering">软件渲染</string>
+    <string name="summary_pref_software_rendering">不使用显卡绘制窗口，适用于屏幕闪烁、黑屏或显卡异常的情况。重启后生效。也可以用 --software-rendering 启动应用。</string>
 </resources>

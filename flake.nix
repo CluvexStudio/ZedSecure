@@ -46,7 +46,8 @@
             cp -r ./* $out/share/zedsecure/
 
             bin=$(find $out/share/zedsecure/bin -maxdepth 1 -type f -perm -u+x | head -1)
-            makeWrapper "$bin" $out/bin/zedsecure
+            makeWrapper "$bin" $out/bin/zedsecure \
+              --prefix LD_LIBRARY_PATH : ${pkgs.lib.makeLibraryPath [ pkgs.systemdLibs ]}
 
             icon=$(find $out/share/zedsecure -name '*.png' | head -1)
             if [ -n "$icon" ]; then

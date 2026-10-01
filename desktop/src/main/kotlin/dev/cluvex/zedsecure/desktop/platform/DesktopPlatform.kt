@@ -15,6 +15,7 @@ import javax.swing.JFileChooser
 
 object DesktopPlatform : Platform {
     override val supportsSystemProxy: Boolean get() = true
+    override val supportsSoftwareRendering: Boolean get() = true
 
     override fun copyToClipboard(text: String) {
         runCatching {

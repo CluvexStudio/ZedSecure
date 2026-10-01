@@ -10,6 +10,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Notification
 import androidx.compose.ui.window.Tray
@@ -42,6 +43,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.flow.first
 import org.jetbrains.compose.resources.painterResource
 import dev.cluvex.zedsecure.desktop.core.Os
+import dev.cluvex.zedsecure.desktop.platform.AdminPassword
 import dev.cluvex.zedsecure.desktop.platform.DesktopKeyValueStore
 import dev.cluvex.zedsecure.desktop.platform.DesktopProbe
 import dev.cluvex.zedsecure.desktop.platform.DesktopPlatform
@@ -55,12 +57,21 @@ import dev.cluvex.zedsecure.ui.theme.LocalMotionBudget
 import dev.cluvex.zedsecure.ui.theme.MotionBudget
 import dev.cluvex.zedsecure.ui.theme.ZedSecureTheme
 import androidx.compose.ui.platform.LocalWindowInfo
+import java.awt.GraphicsEnvironment
 
 private val configRepository = ConfigRepository(DesktopKeyValueStore("configs"))
 private val desktopSettings = DesktopSettings(DesktopKeyValueStore("settings"))
 
 private val WIN_W = 420.dp
 private val WIN_H = 860.dp
+private val WIN_MIN_H = 480.dp
+private val SCREEN_MARGIN = 16.dp
+
+private fun fittedWindowHeight(): Dp {
+    val usable = runCatching { GraphicsEnvironment.getLocalGraphicsEnvironment().maximumWindowBounds.height }
+        .getOrNull()?.takeIf { it > 0 } ?: return WIN_H
+    return minOf(WIN_H, maxOf(WIN_MIN_H, usable.dp - SCREEN_MARGIN))
+}
 
 private const val TRAY_SERVERS = 30
 
@@ -71,6 +82,11 @@ fun main(args: Array<String>) {
     }
     AppInfo.versionName = BUILD_VERSION
     Runtime.getRuntime().addShutdownHook(Thread { runCatching { DesktopVpn.shutdown() } })
+
+    val softwareRendering = "--software-rendering" in args ||
+        System.getenv("ZEDSECURE_SOFTWARE_RENDERING")?.lowercase() in setOf("1", "true", "yes") ||
+        runCatching { desktopSettings.settings.value.softwareRendering }.getOrDefault(false)
+    if (softwareRendering) System.setProperty("skiko.renderApi", "SOFTWARE")
 
     runCatching {
         desktopSettings.settings.value.language.tag?.let {
@@ -110,8 +126,12 @@ fun main(args: Array<String>) {
             ImageLoader.Builder(ctx).components { add(SvgDecoder.Factory()) }.build()
         }
 
-        val nativeTray = remember { Os.current == Os.LINUX && LinuxDesktop.trayHostAvailable() }
-        val trayAvailable = remember {
+        val nativeTrayHost = remember {
+            Os.current == Os.LINUX && LinuxDesktop.trayHostAvailable() && LinuxDesktop.nativeTrayLoads()
+        }
+        var nativeTrayFailed by remember { mutableStateOf(false) }
+        val nativeTray = nativeTrayHost && !nativeTrayFailed
+        val trayAvailable = remember(nativeTray) {
             nativeTray || java.awt.SystemTray.isSupported() && runCatching {
                 val st = java.awt.SystemTray.getSystemTray()
                 val img = java.awt.image.BufferedImage(16, 16, java.awt.image.BufferedImage.TYPE_INT_ARGB)
@@ -278,6 +298,7 @@ fun main(args: Array<String>) {
                     icon = trayIcon,
                     tooltip = tip,
                     onOpen = { windowVisible = true; raiseWindow++ },
+                    onFailure = { nativeTrayFailed = true },
                     entries = entries,
                 )
             } else {
@@ -291,7 +312,7 @@ fun main(args: Array<String>) {
             }
         }
 
-        val windowState = rememberWindowState(width = WIN_W, height = WIN_H, position = WindowPosition(Alignment.Center))
+        val windowState = rememberWindowState(width = WIN_W, height = fittedWindowHeight(), position = WindowPosition(Alignment.Center))
         Window(
             onCloseRequest = { if (trayAvailable) windowVisible = false else { DesktopVpn.shutdown(); exitApplication() } },
             visible = windowVisible,
@@ -340,6 +361,14 @@ fun main(args: Array<String>) {
                             onUpdateSettings = { transform -> desktopSettings.update(transform) },
                             onLanguage = { lang -> desktopSettings.update { it.copy(language = lang) } },
                         )
+                        val passwordRequest by AdminPassword.request.collectAsState()
+                        passwordRequest?.let { request ->
+                            LaunchedEffect(request) {
+                                windowVisible = true
+                                raiseWindow++
+                            }
+                            AdminPasswordDialog(request.retry) { AdminPassword.answer(request, it) }
+                        }
                     }
                 }
             }

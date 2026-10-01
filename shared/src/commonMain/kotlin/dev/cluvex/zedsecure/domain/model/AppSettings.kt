@@ -258,6 +258,7 @@ data class AppSettings(
     val doubleColumnDisplay: Boolean = false,
     val groupAllDisplay: Boolean = true,
     val reduceMotion: Boolean = false,
+    val softwareRendering: Boolean = false,
 
     val speedFabAtEnd: Boolean = true,
     val speedFabY: Float = 0.45f,

@@ -274,6 +274,9 @@ object ConfigParser {
 
     private fun parseUserPass(link: String, protocol: Protocol): ServerConfig {
         val body = link.substringAfter("://")
+        if (protocol == Protocol.HTTP && hasPath(body)) {
+            throw ConfigParseException("A web address, not an HTTP proxy")
+        }
         val p = parseLink(body)
         if (p.host.isBlank()) throw ConfigParseException("Invalid ${protocol.id} link")
 
@@ -481,6 +484,9 @@ object ConfigParser {
         val query: Map<String, String>,
         val fragment: String,
     )
+
+    private fun hasPath(body: String): Boolean =
+        body.substringBefore('#').substringBefore('?').substringAfterLast('@').substringAfter('/', "").isNotEmpty()
 
     fun parseLink(input: String): LinkParts {
         var rest = input
