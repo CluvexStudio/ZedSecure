@@ -10,7 +10,7 @@
     flake-utils.lib.eachSystem [ "x86_64-linux" ] (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
-        version = "3.1.1";
+        version = "3.1.2";
 
         zedsecure = pkgs.stdenv.mkDerivation {
           pname = "zedsecure";
@@ -18,7 +18,7 @@
 
           src = pkgs.fetchurl {
             url = "https://github.com/CluvexStudio/ZedSecure/releases/download/desktop-v${version}/ZedSecure-${version}-linux-x86_64.tar.gz";
-            hash = "sha256-MV9k1zslmT8T9YOfheTeruJ+NZcvHHa9mtE8OpimvgA=";
+            hash = "sha256-k4H6RJUe7aHmQ8UT9GmTMIel37P4MRB/lTFQVV1bNFg=";
           };
 
           nativeBuildInputs = with pkgs; [ autoPatchelfHook makeWrapper copyDesktopItems ];
