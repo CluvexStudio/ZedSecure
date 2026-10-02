@@ -302,7 +302,7 @@
     <string name="mode_socks">仅 SOCKS</string>
     <string name="mode_socks_body">只在 127.0.0.1 上开启本地 SOCKS 和 HTTP 代理，不做其他更改。请自行在各应用中设置。</string>
     <string name="mode_tun">TUN（VPN）</string>
-    <string name="mode_tun_body">通过虚拟网卡转发所有应用的流量，包括忽略系统代理的应用。需要管理员权限。目前仅支持 Linux。</string>
+    <string name="mode_tun_body">通过虚拟网卡转发所有应用的流量，包括忽略系统代理的应用。每次连接都需要管理员权限。Tor 和 Psiphon 仍使用系统代理。</string>
     <string name="group_all">全部</string>
     <string name="group_manual">手动</string>
 
@@ -1373,6 +1373,15 @@
     <string name="admin_password_body">TUN 模式需要 root 权限来创建隧道，但系统密码窗口（polkit）不可用。请输入你用于 sudo 的密码。它只会交给 sudo，不会被保存。</string>
     <string name="admin_password_label">密码</string>
     <string name="admin_password_wrong">密码错误，请重试。</string>
-    <string name="title_pref_software_rendering">软件渲染</string>
-    <string name="summary_pref_software_rendering">不使用显卡绘制窗口，适用于屏幕闪烁、黑屏或显卡异常的情况。重启后生效。也可以用 --software-rendering 启动应用。</string>
+    <string name="title_pref_rendering">渲染</string>
+    <string name="rendering_auto">自动</string>
+    <string name="rendering_gpu">显卡</string>
+    <string name="rendering_software">软件</string>
+    <string name="rendering_sub_auto_gpu">自动：在这台电脑上由显卡绘制窗口。重启后生效。</string>
+    <string name="rendering_sub_auto_windows">自动：使用软件渲染，因为部分 Windows 显卡驱动绘制此窗口时会缺少文字、闪烁或完全不显示。重启后生效。</string>
+    <string name="rendering_sub_auto_nvidia">自动：使用软件渲染，因为 555 之前的 NVIDIA 驱动在 Wayland 下会让显卡绘制的窗口出现花屏。重启后生效。</string>
+    <string name="rendering_sub_manual">重启后生效。如果窗口闪烁、出现雪花或没有文字，请选择“软件”。也可以用 --software-rendering 或 --gpu-rendering 启动应用。</string>
+    <string name="update_check_summary_github">在 GitHub 上查找新版本</string>
+    <string name="rate_title_github">GitHub 上的 ZedSecure</string>
+    <string name="rate_summary_github">打开项目页面：点星、报告问题或查看代码</string>
 </resources>

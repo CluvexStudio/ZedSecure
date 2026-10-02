@@ -19,11 +19,11 @@ class TunMode(
     private val udpOverTcp: Boolean = false,
 
     private val askPassword: ((retry: Boolean) -> CharArray?)? = null,
-) {
+) : DesktopTun {
     private var process: Process? = null
     private var privateDir: File? = null
 
-    val tunName = when (Os.current) { Os.MACOS -> "utun123"; else -> "tun0" }
+    val tunName = "tun0"
 
     private enum class Outcome { Ready, Dismissed, Failed }
 
@@ -46,12 +46,7 @@ class TunMode(
         return cfg
     }
 
-    fun start(): Boolean = when (Os.current) {
-        Os.LINUX -> startLinux()
-        Os.WINDOWS -> startWindows(writeConfig(workDir))
-        Os.MACOS -> startMac(writeConfig(workDir))
-        else -> false
-    }
+    override fun start(): Boolean = Os.current == Os.LINUX && startLinux()
 
     private fun startLinux(): Boolean {
         val dir = createPrivateDir() ?: return false
@@ -205,43 +200,10 @@ class TunMode(
         (System.getenv("PATH").orEmpty().split(File.pathSeparator) + SAFE_PATH.split(':'))
             .any { it.isNotBlank() && File(it, command).canExecute() }
 
-    private fun startMac(cfg: File): Boolean {
-        val script = File(workDir, "tun-up.sh").apply {
-            writeText(
-                """
-                #!/bin/sh
-                "${hevBinary.absolutePath}" "${cfg.absolutePath}" &
-                HEV=$!
-                sleep 2
-                route -n add -net 0.0.0.0/1 -interface $tunName || true
-                route -n add -net 128.0.0.0/1 -interface $tunName || true
-                wait ${'$'}HEV
-                """.trimIndent(),
-            )
-            setExecutable(true)
-        }
-
-        val inner = "sh ${script.absolutePath}"
-        return launch("osascript", "-e", "do shell script \"$inner\" with administrator privileges")
-    }
-
-    private fun startWindows(cfg: File): Boolean {
-        val ps = "Start-Process -FilePath '${hevBinary.absolutePath}' -ArgumentList '\"${cfg.absolutePath}\"' -Verb RunAs -WindowStyle Hidden"
-        return launch("powershell", "-Command", ps)
-    }
-
-    private fun launch(vararg cmd: String): Boolean = try {
-        process = ProcessBuilder(*cmd).redirectErrorStream(true).directory(workDir).start()
-        Thread { runCatching { process?.inputStream?.bufferedReader()?.forEachLine { println("[tun] $it") } } }
-            .apply { isDaemon = true }.start()
-        true
-    } catch (e: Exception) {
-        System.err.println("tun elevation failed: ${e.message}")
-        false
-    }
-
     companion object {
-        fun supported(os: Os = Os.current): Boolean = os == Os.LINUX
+        fun supported(os: Os = Os.current): Boolean = os == Os.LINUX || os == Os.WINDOWS || os == Os.MACOS
+
+        fun usesZeptun(os: Os = Os.current): Boolean = os == Os.WINDOWS || os == Os.MACOS
 
         private const val READY_MARKER = "ZEDSECURE_TUN_READY"
         private const val PKEXEC_DISMISSED = 126
@@ -252,27 +214,33 @@ class TunMode(
             "/run/wrappers/bin:/run/current-system/sw/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
     }
 
-    fun stop() {
+    override fun stop() {
         val p = process
-        when (Os.current) {
-            Os.LINUX -> {
-                if (p != null) {
-                    runCatching { p.outputStream.close() }
-                    if (!p.waitFor(5, TimeUnit.SECONDS)) println("[tun] the root helper is still shutting down")
-                }
-                privateDir?.let { dir -> runCatching { dir.deleteRecursively() } }
-                privateDir = null
-            }
-            Os.MACOS -> {
-                runCatching { p?.destroy() }
-                exec("osascript", "-e", "do shell script \"pkill -f hev-socks5-tunnel\" with administrator privileges")
-            }
-            Os.WINDOWS -> {
-                runCatching { p?.destroy() }
-                exec("taskkill", "/IM", "hev-socks5-tunnel.exe", "/F")
-            }
-            else -> runCatching { p?.destroy() }
+        if (p != null) {
+            runCatching { p.outputStream.close() }
+            if (!p.waitFor(5, TimeUnit.SECONDS)) println("[tun] the root helper is still shutting down")
         }
+        privateDir?.let { dir -> runCatching { dir.deleteRecursively() } }
+        privateDir = null
         process = null
+    }
+
+    object Factory {
+        fun create(
+            workDir: File,
+            socksPort: Int,
+            bypassIps: List<String>,
+            udpOverTcp: Boolean,
+            dnsServers: String,
+            askPassword: ((retry: Boolean) -> CharArray?)?,
+        ): DesktopTun? = if (usesZeptun()) {
+            ZeptunBinary.extract(workDir)?.let {
+                ZeptunTun(it, socksPort, workDir, bypassIps = bypassIps, udpOverTcp = udpOverTcp, dnsServers = dnsServers)
+            }
+        } else {
+            HevBinary.extract(workDir)?.let {
+                TunMode(it, "127.0.0.1", socksPort, workDir, bypassIps = bypassIps, udpOverTcp = udpOverTcp, askPassword = askPassword)
+            }
+        }
     }
 }

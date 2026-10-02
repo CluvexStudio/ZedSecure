@@ -77,8 +77,8 @@ first time with right-click, then Open.
 ```
 
 The engines we patched are published as forks; [`tools/core-sources.txt`](tools/core-sources.txt)
-lists each one with the exact commit a release is built from. Pushing a `v*` tag builds and signs
-the Android release in CI, and a `desktop-v*` tag builds the desktop one.
+lists each one with the exact commit a release is built from. Pushing a `v*` tag builds Android and
+every desktop system in CI and puts them all in one release; Android and desktop share one version.
 
 ## Credits
 
@@ -89,7 +89,7 @@ The main ideas of the tunnel come from [SlipNet](https://github.com/anonvector/S
 
 Versions before 3.0.9 used SlipNet's own engine, including its TCP transport, inside the core. Since 3.0.9, the engine is `zeddns`, written for this app. It has the same features, but with its own code.
 
-ZedSecure also stands on [Xray-core](https://github.com/XTLS/Xray-core), [sing-box](https://github.com/SagerNet/sing-box), [Psiphon](https://github.com/Psiphon-Labs/psiphon-tunnel-core), [Tor](https://www.torproject.org/), [MasterDnsVPN](https://github.com/masterking32/MasterDnsVPN), [AmneziaWG](https://github.com/amnezia-vpn/amneziawg-go), [OpenConnect](https://www.infradead.org/openconnect/), and [hev-socks5-tunnel](https://github.com/heiher/hev-socks5-tunnel). Their licences are in [NOTICE](NOTICE).
+ZedSecure also stands on [Xray-core](https://github.com/XTLS/Xray-core), [sing-box](https://github.com/SagerNet/sing-box), [Psiphon](https://github.com/Psiphon-Labs/psiphon-tunnel-core), [Tor](https://www.torproject.org/), [MasterDnsVPN](https://github.com/masterking32/MasterDnsVPN), [AmneziaWG](https://github.com/amnezia-vpn/amneziawg-go), [OpenConnect](https://www.infradead.org/openconnect/), [hev-socks5-tunnel](https://github.com/heiher/hev-socks5-tunnel), and [zeptun](https://github.com/Noisemux/zeptun). Their licences are in [NOTICE](NOTICE).
 
 ## License
 

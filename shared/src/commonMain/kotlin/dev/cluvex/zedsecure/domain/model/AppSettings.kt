@@ -44,6 +44,8 @@ enum class LogLevel(val value: String) {
     None("none"),
 }
 
+enum class RenderingMode { Auto, Gpu, Software }
+
 enum class RunMode(val value: String) {
     Vpn("VPN"),
     ProxyOnly("Proxy only"),
@@ -258,7 +260,7 @@ data class AppSettings(
     val doubleColumnDisplay: Boolean = false,
     val groupAllDisplay: Boolean = true,
     val reduceMotion: Boolean = false,
-    val softwareRendering: Boolean = false,
+    val renderingMode: RenderingMode = RenderingMode.Auto,
 
     val speedFabAtEnd: Boolean = true,
     val speedFabY: Float = 0.45f,

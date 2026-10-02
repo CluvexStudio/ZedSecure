@@ -22,10 +22,13 @@ import dev.cluvex.zedsecure.shared.resources.*
 import dev.cluvex.zedsecure.platform.AppInfo
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
+import dev.cluvex.zedsecure.ui.platform.AutomaticRendering
 import dev.cluvex.zedsecure.ui.platform.LocalPlatform
 import dev.cluvex.zedsecure.ui.theme.applyThemeProfile
 import dev.cluvex.zedsecure.domain.model.AppLanguage
+import dev.cluvex.zedsecure.data.update.Distribution
 import dev.cluvex.zedsecure.domain.model.AppSettings
+import dev.cluvex.zedsecure.domain.model.RenderingMode
 import dev.cluvex.zedsecure.domain.model.CardCornerStyle
 import dev.cluvex.zedsecure.domain.model.ConnectButtonStyle
 import dev.cluvex.zedsecure.domain.model.DomainStrategy
@@ -372,14 +375,18 @@ private fun RootPage(
             stringResource(Res.string.settings_about),
             modifier = Modifier.tourTargetInPage(TourTargets.SETTINGS_ABOUT),
         ) {
+            val fromPlay = platform.distribution == Distribution.PlayStore
             SettingsMenuRow(
                 stringResource(Res.string.update_check_title),
-                if (checking) stringResource(Res.string.update_checking)
-                else stringResource(Res.string.update_check_summary),
+                when {
+                    checking -> stringResource(Res.string.update_checking)
+                    fromPlay -> stringResource(Res.string.update_check_summary)
+                    else -> stringResource(Res.string.update_check_summary_github)
+                },
             ) { if (!checking) { checking = true; checkTrigger++ } }
             SettingsMenuRow(
-                stringResource(Res.string.rate_title),
-                stringResource(Res.string.rate_summary),
+                stringResource(if (fromPlay) Res.string.rate_title else Res.string.rate_title_github),
+                stringResource(if (fromPlay) Res.string.rate_summary else Res.string.rate_summary_github),
             ) { platform.openStorePage() }
             SettingsMenuRow(
                 stringResource(Res.string.privacy_title),
@@ -832,12 +839,27 @@ private fun UiPage(
                 checked = s.reduceMotion,
                 onCheckedChange = { v -> onUpdate { it.copy(reduceMotion = v) } },
             )
-            if (LocalPlatform.current.supportsSoftwareRendering) {
-                SettingsSwitchRow(
-                    title = stringResource(Res.string.title_pref_software_rendering),
-                    summary = stringResource(Res.string.summary_pref_software_rendering),
-                    checked = s.softwareRendering,
-                    onCheckedChange = { v -> onUpdate { it.copy(softwareRendering = v) } },
+            LocalPlatform.current.automaticRendering?.let { automatic ->
+                SettingsListRow(
+                    title = stringResource(Res.string.title_pref_rendering),
+                    options = listOf(
+                        RenderingMode.Auto to stringResource(Res.string.rendering_auto),
+                        RenderingMode.Gpu to stringResource(Res.string.rendering_gpu),
+                        RenderingMode.Software to stringResource(Res.string.rendering_software),
+                    ),
+                    selected = s.renderingMode,
+                    onSelected = { v -> onUpdate { it.copy(renderingMode = v) } },
+                )
+                SettingsInfoRow(
+                    stringResource(Res.string.title_pref_rendering),
+                    stringResource(
+                        when {
+                            s.renderingMode != RenderingMode.Auto -> Res.string.rendering_sub_manual
+                            automatic == AutomaticRendering.SoftwareWindows -> Res.string.rendering_sub_auto_windows
+                            automatic == AutomaticRendering.SoftwareNvidiaWayland -> Res.string.rendering_sub_auto_nvidia
+                            else -> Res.string.rendering_sub_auto_gpu
+                        },
+                    ),
                 )
             }
             SettingsSwitchRow(
@@ -1241,39 +1263,41 @@ private fun VpnPage(
             )
         }
 
-        SettingsGroup {
-            SettingsInfoRow(
-                stringResource(Res.string.title_pref_use_hev_tunnel),
-                stringResource(Res.string.summary_pref_hev_tunnel_always_on),
-            )
-            SettingsListRow(
-                title = stringResource(Res.string.tun_engine_title),
-                options = listOf(
-                    true to stringResource(Res.string.tun_engine_zeptun),
-                    false to stringResource(Res.string.tun_engine_hev),
-                ),
-                selected = s.useZepTun,
-                enabled = hevOn,
-                onSelected = { v -> onUpdate { it.copy(useZepTun = v) } },
-            )
-            SettingsInfoRow(
-                stringResource(Res.string.tun_engine_title),
-                stringResource(Res.string.tun_engine_sub),
-            )
-            SettingsListRow(
-                title = stringResource(Res.string.title_pref_hev_tunnel_loglevel),
-                options = HevLogLevel.entries.map { it to it.value },
-                selected = s.hevTunLogLevel,
-                enabled = hevOn,
-                onSelected = { v -> onUpdate { it.copy(hevTunLogLevel = v) } },
-            )
-            SettingsEditRow(
-                title = stringResource(Res.string.title_pref_hev_tunnel_rw_timeout),
-                value = s.hevTunRwTimeout,
-                enabled = hevOn,
-                placeholder = stringResource(Res.string.summary_pref_hev_tunnel_rw_timeout),
-                onValueChanged = { v -> onUpdate { it.copy(hevTunRwTimeout = v) } },
-            )
+        if (LocalPlatform.current.choosesTunEngine) {
+            SettingsGroup {
+                SettingsInfoRow(
+                    stringResource(Res.string.title_pref_use_hev_tunnel),
+                    stringResource(Res.string.summary_pref_hev_tunnel_always_on),
+                )
+                SettingsListRow(
+                    title = stringResource(Res.string.tun_engine_title),
+                    options = listOf(
+                        true to stringResource(Res.string.tun_engine_zeptun),
+                        false to stringResource(Res.string.tun_engine_hev),
+                    ),
+                    selected = s.useZepTun,
+                    enabled = hevOn,
+                    onSelected = { v -> onUpdate { it.copy(useZepTun = v) } },
+                )
+                SettingsInfoRow(
+                    stringResource(Res.string.tun_engine_title),
+                    stringResource(Res.string.tun_engine_sub),
+                )
+                SettingsListRow(
+                    title = stringResource(Res.string.title_pref_hev_tunnel_loglevel),
+                    options = HevLogLevel.entries.map { it to it.value },
+                    selected = s.hevTunLogLevel,
+                    enabled = hevOn,
+                    onSelected = { v -> onUpdate { it.copy(hevTunLogLevel = v) } },
+                )
+                SettingsEditRow(
+                    title = stringResource(Res.string.title_pref_hev_tunnel_rw_timeout),
+                    value = s.hevTunRwTimeout,
+                    enabled = hevOn,
+                    placeholder = stringResource(Res.string.summary_pref_hev_tunnel_rw_timeout),
+                    onValueChanged = { v -> onUpdate { it.copy(hevTunRwTimeout = v) } },
+                )
+            }
         }
     }
 }
@@ -1866,19 +1890,20 @@ private fun ModePage(
         modifier = modifier,
     ) {
         val desktop = LocalPlatform.current.supportsSystemProxy
+        val tun = LocalPlatform.current.supportsTun
         SettingsGroup {
             SettingsListRow(
                 title = stringResource(Res.string.title_mode),
                 options = if (desktop) {
-                    listOf(
+                    listOfNotNull(
                         RunMode.SystemProxy to stringResource(Res.string.mode_system_proxy),
                         RunMode.ProxyOnly to stringResource(Res.string.mode_socks),
-                        RunMode.Vpn to stringResource(Res.string.mode_tun),
+                        (RunMode.Vpn to stringResource(Res.string.mode_tun)).takeIf { tun },
                     )
                 } else {
                     listOf(RunMode.Vpn, RunMode.ProxyOnly).map { it to it.value }
                 },
-                selected = s.runMode,
+                selected = if (desktop && !tun && s.runMode == RunMode.Vpn) RunMode.SystemProxy else s.runMode,
                 onSelected = { v -> onUpdate { it.copy(runMode = v) } },
             )
             if (desktop) {

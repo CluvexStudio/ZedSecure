@@ -17,7 +17,8 @@ WINDOW = "data:image/svg+xml;base64," + base64.b64encode(
 ).decode()
 
 PLATFORMS = [
-    ("Android 7+", "arm64-v8a suits almost every phone; armeabi-v7a is for older ones.", [
+    ("Android 7+", "Not sure which one? universal installs on every phone. arm64-v8a is smaller for 64-bit phones; armeabi-v7a is for phones with 32-bit Android.", [
+        ("-universal.apk", "APK", "universal", "android"),
         ("-arm64-v8a.apk", "APK", "arm64-v8a", "android"),
         ("-armeabi-v7a.apk", "APK", "armeabi-v7a", "android"),
         ("-x86_64.apk", "APK", "x86_64", "android"),
@@ -26,7 +27,7 @@ PLATFORMS = [
         ("-x86_64.msi", "Installer", "x64", WINDOW),
         ("-windows-x86_64.zip", "Portable", "x64", WINDOW),
     ]),
-    ("macOS 11+", "Apple Silicon for M-series Macs, Intel for older ones. The first launch needs right-click, then Open.", [
+    ("macOS 12+", "Apple Silicon for M-series Macs, Intel for older ones. The first launch needs right-click, then Open.", [
         ("-macos-arm64.dmg", "DMG", "Apple Silicon", "apple"),
         ("-macos-x86_64.dmg", "DMG", "Intel", "apple"),
     ]),
@@ -36,6 +37,22 @@ PLATFORMS = [
         ("-x86_64.rpm", "RPM", "Fedora · RHEL", "fedora"),
         ("-linux-x86_64.tar.gz", "tar.gz", "x64", "linux"),
     ]),
+]
+
+
+PLAY_NOTICE = [
+    "> [!NOTE]",
+    "> **Installed from Google Play?** Google signs the Play version with its own key, so this APK will not install over it "
+    "(\"App not installed\"). Update from Google Play, or save your configs (Servers › ⋮ › Export all), uninstall the Play "
+    "version, then install this APK.",
+    "",
+    '<div dir="rtl">',
+    "",
+    "> **نسخهٔ گوگل‌پلی را نصب دارید؟** گوگل نسخهٔ پلی را با کلید خودش امضا می‌کند، برای همین این APK روی آن نصب نمی‌شود "
+    "(«App not installed»). یا از گوگل‌پلی آپدیت کنید، یا اول از کانفیگ‌ها خروجی بگیرید (سرورها › ⋮ › خروجی گرفتن از همه)، "
+    "نسخهٔ پلی را پاک کنید و بعد این APK را نصب کنید.",
+    "",
+    "</div>",
 ]
 
 
@@ -132,6 +149,8 @@ def body(tag, notes, companion):
         "  </tbody>",
         "</table>",
     ]
+    if any(n.endswith(".apk") for n in names):
+        parts += ["", *PLAY_NOTICE]
     if notes:
         parts += ["", "### What's new", "", notes.strip()]
     footer = []

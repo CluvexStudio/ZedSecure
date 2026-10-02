@@ -8,8 +8,11 @@ on:
         type: choice
         default: play
         options: [play, upload]
-  push:
-    tags: ["v*"]
+  workflow_call:
+    inputs:
+      signing_key:
+        type: string
+        default: play
 
 permissions:
   contents: write
@@ -97,7 +100,9 @@ jobs:
         run: echo "name=$(grep '^zedsecure.versionName=' gradle.properties | cut -d= -f2)" >> "$GITHUB_OUTPUT"
 
       - uses: actions/download-artifact@v4
-        with: { path: artifacts }
+        with: { name: zedcore, path: artifacts/zedcore }
+      - uses: actions/download-artifact@v4
+        with: { pattern: "native-*", path: artifacts }
 
       - name: Put every engine where the build expects it
         run: |
@@ -119,7 +124,7 @@ jobs:
 
       - name: Unlock signing
         env:
-          USE_PLAY: ${{ github.event.inputs.signing_key != 'upload' }}
+          USE_PLAY: ${{ inputs.signing_key != 'upload' }}
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
@@ -153,7 +158,26 @@ jobs:
             [ -f "$src" ] || { echo "::error::$src was not built"; exit 1; }
             cp "$src" "dist/ZedSecure-$V-$abi.apk"
           done
-          ( cd dist && sha256sum ZedSecure-*.apk > SHA256SUMS.txt )
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          python3 tools/universal-apk.py "dist/ZedSecure-$V-arm64-v8a.apk" /tmp/universal.apk "dist/ZedSecure-$V-armeabi-v7a.apk"
+          "$BT/zipalign" -f -P 16 4 /tmp/universal.apk /tmp/universal-aligned.apk
+          STORE_PW=$(grep '^storePassword=' keystore.properties | cut -d= -f2-) \
+          KEY_PW=$(grep '^keyPassword=' keystore.properties | cut -d= -f2-) \
+          "$BT/apksigner" sign --ks release.keystore \
+            --ks-key-alias "$(grep '^keyAlias=' keystore.properties | cut -d= -f2-)" \
+            --ks-pass env:STORE_PW --key-pass env:KEY_PW \
+            --v1-signing-enabled false --v2-signing-enabled true --v3-signing-enabled false \
+            --out "dist/ZedSecure-$V-universal.apk" /tmp/universal-aligned.apk
+          rm -f /tmp/universal.apk /tmp/universal-aligned.apk
+          for apk in dist/ZedSecure-*.apk; do
+            "$BT/apksigner" verify "$apk"
+            a=$("$BT/apksigner" verify --print-certs "$apk" | grep -m1 'SHA-256' | awk '{print $NF}')
+            b=$("$BT/apksigner" verify --print-certs "dist/ZedSecure-$V-arm64-v8a.apk" | grep -m1 'SHA-256' | awk '{print $NF}')
+            [ "$a" = "$b" ] || { echo "::error::$apk is signed with a different key"; exit 1; }
+          done
+          "$BT/aapt2" dump badging "dist/ZedSecure-$V-universal.apk" | grep -q "native-code: 'arm64-v8a' 'armeabi-v7a'" \
+            || { echo "::error::the universal APK does not carry both ARM ABIs"; exit 1; }
+          ( cd dist && sha256sum ZedSecure-*.apk > SHA256SUMS-android.txt )
           "$JAVA_HOME/bin/keytool" -printcert -jarfile "dist/ZedSecure-$V-arm64-v8a.apk" | grep -E 'Owner|SHA-256' | head -2
           ls -l dist
 
@@ -163,14 +187,6 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with: { name: android-apks, path: dist/*, retention-days: 30 }
-
-      - name: Publish the files
-        if: startsWith(github.ref, 'refs/tags/v')
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" \
-            --title "ZedSecure ${{ steps.v.outputs.name }}" --notes "" --draft
 
       - uses: actions/upload-artifact@v4
         if: failure()

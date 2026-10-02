@@ -64,6 +64,62 @@ object DesktopXray {
         }
     }.toString()
 
+    fun bindOutbounds(config: String, iface: String, pinned: Map<String, List<String>> = emptyMap()): String {
+        val root = runCatching { json.parseToJsonElement(config).jsonObject }.getOrNull() ?: return config
+        val outbounds = root["outbounds"] as? JsonArray ?: return config
+        val bound = JsonArray(
+            outbounds.map { element ->
+                val outbound = element as? JsonObject ?: return@map element
+                val protocol = (outbound["protocol"] as? JsonPrimitive)?.content?.lowercase()
+                val stream = outbound["streamSettings"] as? JsonObject ?: JsonObject(emptyMap())
+                val sockopt = stream["sockopt"] as? JsonObject ?: JsonObject(emptyMap())
+                val skip = protocol in NOT_DIALING || sockopt.containsKey("dialerProxy") ||
+                    sockopt.containsKey("interface") || outbound.containsKey("proxySettings") || dialsLoopback(outbound)
+                if (skip) {
+                    outbound
+                } else {
+                    val resolvesPinned = !sockopt.containsKey("domainStrategy") && serverHostsOf(outbound).any { it in pinned }
+                    val options = sockopt + ("interface" to JsonPrimitive(iface)) +
+                        (if (resolvesPinned) mapOf("domainStrategy" to JsonPrimitive("UseIP")) else emptyMap())
+                    JsonObject(outbound + ("streamSettings" to JsonObject(stream + ("sockopt" to JsonObject(options)))))
+                }
+            },
+        )
+        val usable = pinned.filterValues { it.isNotEmpty() }
+        if (usable.isEmpty()) return JsonObject(root + ("outbounds" to bound)).toString()
+        val dns = root["dns"] as? JsonObject ?: JsonObject(emptyMap())
+        val hosts = dns["hosts"] as? JsonObject ?: JsonObject(emptyMap())
+        val added = usable.filterKeys { it !in hosts }.mapValues { (_, ips) -> JsonArray(ips.map(::JsonPrimitive)) }
+        val withHosts = JsonObject(dns + ("hosts" to JsonObject(hosts + added)))
+        return JsonObject(root + ("outbounds" to bound) + ("dns" to withHosts)).toString()
+    }
+
+    private val NOT_DIALING = setOf("blackhole", "block", "dns", "loopback", "autoselect")
+
+    private val LOOPBACK = setOf("127.0.0.1", "localhost", "::1")
+
+    private fun dialsLoopback(outbound: JsonObject): Boolean {
+        val settings = outbound["settings"] as? JsonObject ?: return false
+        val hosts = buildList {
+            listOf("servers", "vnext", "peers").forEach { key ->
+                (settings[key] as? JsonArray)?.forEach { entry ->
+                    val e = entry as? JsonObject ?: return@forEach
+                    listOf("address", "server", "endpoint").forEach { field ->
+                        (e[field] as? JsonPrimitive)?.content?.let { add(it) }
+                    }
+                }
+            }
+            listOf("address", "server").forEach { field -> (settings[field] as? JsonPrimitive)?.content?.let { add(it) } }
+        }
+        return hosts.any { hostOf(it) in LOOPBACK }
+    }
+
+    private fun hostOf(value: String): String = when {
+        value.startsWith("[") -> value.substringAfter("[").substringBefore("]")
+        value.count { it == ':' } == 1 -> value.substringBefore(':')
+        else -> value
+    }
+
     fun augmentWithMetrics(config: String, metricsPort: Int): String {
         val root = runCatching { json.parseToJsonElement(config).jsonObject }.getOrNull() ?: return config
         val out = buildJsonObject {
@@ -89,31 +145,31 @@ object DesktopXray {
         val root = runCatching { json.parseToJsonElement(config).jsonObject }.getOrNull() ?: return emptyList()
         val outbounds = root["outbounds"] as? JsonArray ?: return emptyList()
         val hosts = LinkedHashSet<String>()
-        outbounds.mapNotNull { it as? JsonObject }.forEach { ob ->
-            val settings = ob["settings"] as? JsonObject ?: return@forEach
-
-            if ((ob["protocol"] as? JsonPrimitive)?.content == "singbox") {
-                (settings["config"] as? JsonObject)?.let { fragment ->
-                    dev.cluvex.zedsecure.domain.config.SingBoxJson.servers(fragment.toString())
-                        .mapNotNull { it.address }
-                        .forEach { hosts += it }
-                }
-                return@forEach
-            }
-
-            (settings["vnext"] as? JsonArray).orEmptyAddresses(hosts, "address")
-            (settings["servers"] as? JsonArray).orEmptyAddresses(hosts, "address")
-            (settings["peers"] as? JsonArray).orEmptyAddresses(hosts, "endpoint")
-        }
+        outbounds.mapNotNull { it as? JsonObject }.forEach { hosts += serverHostsOf(it) }
         return hosts.filter { it.isNotBlank() && it != "127.0.0.1" && it != "localhost" && it != "•••" }
     }
 
-    private fun JsonArray?.orEmptyAddresses(into: MutableSet<String>, key: String) {
-        this?.mapNotNull { it as? JsonObject }?.forEach { obj ->
-            val v = runCatching { (obj[key] as? JsonPrimitive)?.content }.getOrNull()
+    private fun serverHostsOf(ob: JsonObject): List<String> {
+        val settings = ob["settings"] as? JsonObject ?: return emptyList()
+        val protocol = (ob["protocol"] as? JsonPrimitive)?.content?.lowercase()
+        if (protocol in NOT_DIALING || protocol == "freedom") return emptyList()
+        if (protocol == "singbox") {
+            val fragment = settings["config"] as? JsonObject ?: return emptyList()
+            return dev.cluvex.zedsecure.domain.config.SingBoxJson.servers(fragment.toString()).mapNotNull { it.address }
+        }
+        return buildList {
+            (settings["vnext"] as? JsonArray).collectHosts(this, "address", hasPort = false)
+            (settings["servers"] as? JsonArray).collectHosts(this, "address", hasPort = false)
+            (settings["peers"] as? JsonArray).collectHosts(this, "endpoint", hasPort = true)
+            (settings["address"] as? JsonPrimitive)?.content?.trim('[', ']')?.takeIf { it.isNotBlank() }?.let(::add)
+        }
+    }
 
-            val host = v?.substringBeforeLast(':')?.trim('[', ']')
-            if (!host.isNullOrBlank()) into += host
+    private fun JsonArray?.collectHosts(into: MutableList<String>, key: String, hasPort: Boolean) {
+        this?.mapNotNull { it as? JsonObject }?.forEach { obj ->
+            val v = runCatching { (obj[key] as? JsonPrimitive)?.content }.getOrNull()?.trim() ?: return@forEach
+            val host = if (hasPort) hostOf(v) else v.trim('[', ']')
+            if (host.isNotBlank()) into += host
         }
     }
 }

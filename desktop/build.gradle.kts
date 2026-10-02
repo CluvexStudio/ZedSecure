@@ -17,7 +17,7 @@ kotlin {
     }
 }
 
-val zedVersion = project.property("zedsecure.desktopVersionName") as String
+val zedVersion = project.property("zedsecure.versionName") as String
 
 val generateVersion by tasks.registering {
     val out = layout.buildDirectory.dir("generated/version")
@@ -91,6 +91,7 @@ compose.desktop {
             macOS {
                 iconFile.set(project.file("icons/zedsecure.icns"))
                 bundleID = "dev.cluvex.zedsecure"
+                minimumSystemVersion = "12.0"
             }
         }
     }

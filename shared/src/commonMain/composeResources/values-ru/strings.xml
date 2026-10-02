@@ -302,7 +302,7 @@
     <string name="mode_socks">Только SOCKS</string>
     <string name="mode_socks_body">Открывает только локальный прокси SOCKS и HTTP на 127.0.0.1 и больше ничего не меняет. Укажите его в нужных приложениях сами.</string>
     <string name="mode_tun">TUN (VPN)</string>
-    <string name="mode_tun_body">Пропускает все приложения через виртуальный сетевой адаптер, даже те, что игнорируют системный прокси. Запрашивает права администратора. Пока только в Linux.</string>
+    <string name="mode_tun_body">Пропускает все приложения через виртуальный сетевой адаптер, даже те, что игнорируют системный прокси. Запрашивает права администратора при каждом подключении. Tor и Psiphon по-прежнему используют системный прокси.</string>
     <string name="group_all">Все</string>
     <string name="group_manual">Вручную</string>
 
@@ -1373,6 +1373,15 @@
     <string name="admin_password_body">Режиму TUN нужны права root для создания туннеля, а системное окно ввода пароля (polkit) недоступно. Введите пароль, который вы используете для sudo. Он передаётся только sudo и не сохраняется.</string>
     <string name="admin_password_label">Пароль</string>
     <string name="admin_password_wrong">Неверный пароль. Попробуйте ещё раз.</string>
-    <string name="title_pref_software_rendering">Программная отрисовка</string>
-    <string name="summary_pref_software_rendering">Отрисовывать окно без видеокарты, если экран мерцает, гаснет или видеокарта ведёт себя странно. Применяется после перезапуска. Приложение также можно запустить с --software-rendering.</string>
+    <string name="title_pref_rendering">Отрисовка</string>
+    <string name="rendering_auto">Автоматически</string>
+    <string name="rendering_gpu">Видеокарта</string>
+    <string name="rendering_software">Программная</string>
+    <string name="rendering_sub_auto_gpu">Автоматически: на этом компьютере окно рисует видеокарта. Изменения вступят в силу после перезапуска.</string>
+    <string name="rendering_sub_auto_windows">Автоматически: программная отрисовка, потому что некоторые графические драйверы Windows рисуют это окно без текста, с мерцанием или не рисуют вовсе. Изменения вступят в силу после перезапуска.</string>
+    <string name="rendering_sub_auto_nvidia">Автоматически: программная отрисовка, потому что драйверы NVIDIA до 555 под Wayland искажают окна, которые рисует видеокарта. Изменения вступят в силу после перезапуска.</string>
+    <string name="rendering_sub_manual">Изменения вступят в силу после перезапуска. Выберите «Программная», если окно мерцает, рябит или в нём нет текста. Приложение также можно запустить с --software-rendering или --gpu-rendering.</string>
+    <string name="update_check_summary_github">Искать новую версию на GitHub</string>
+    <string name="rate_title_github">ZedSecure на GitHub</string>
+    <string name="rate_summary_github">Открыть страницу проекта: поставить звезду, сообщить о проблеме или посмотреть код</string>
 </resources>

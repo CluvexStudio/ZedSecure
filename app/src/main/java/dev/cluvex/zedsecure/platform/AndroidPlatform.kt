@@ -14,6 +14,8 @@ import androidx.core.graphics.drawable.toBitmap
 import android.graphics.Bitmap
 import dev.cluvex.zedsecure.core.platform.ZsxSharing
 import dev.cluvex.zedsecure.data.assets.GeoAssets
+import dev.cluvex.zedsecure.data.update.Distribution
+import dev.cluvex.zedsecure.data.update.GitHubReleases
 import dev.cluvex.zedsecure.data.update.PlayStore
 import dev.cluvex.zedsecure.data.assets.GeoAssetsRepository
 import dev.cluvex.zedsecure.ui.platform.FilePick
@@ -266,7 +268,32 @@ class AndroidPlatform(
         }
     }
 
+    override val distribution: Distribution by lazy {
+        if (signingCertSha256() == PlayStore.SIGNING_CERT_SHA256) Distribution.PlayStore else Distribution.GitHub
+    }
+
+    override val deviceAbis: List<String> get() = android.os.Build.SUPPORTED_ABIS.toList()
+
+    @Suppress("DEPRECATION")
+    private fun signingCertSha256(): String? = runCatching {
+        val pm = context.packageManager
+        val cert = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+            val info = pm.getPackageInfo(context.packageName, PackageManager.GET_SIGNING_CERTIFICATES).signingInfo
+            if (info == null) null
+            else if (info.hasMultipleSigners()) info.apkContentsSigners.firstOrNull()
+            else info.signingCertificateHistory.lastOrNull()
+        } else {
+            pm.getPackageInfo(context.packageName, PackageManager.GET_SIGNATURES).signatures?.firstOrNull()
+        } ?: return@runCatching null
+        java.security.MessageDigest.getInstance("SHA-256").digest(cert.toByteArray())
+            .joinToString("") { "%02x".format(it) }
+    }.getOrNull()
+
     override fun openStorePage() {
+        if (distribution != Distribution.PlayStore) {
+            openUri(GitHubReleases.PROJECT_URL)
+            return
+        }
         val opened = runCatching {
             context.startActivity(
                 Intent(Intent.ACTION_VIEW, Uri.parse(PlayStore.MARKET_URL)).apply {

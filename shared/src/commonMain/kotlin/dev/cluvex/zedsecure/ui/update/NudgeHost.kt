@@ -34,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.cluvex.zedsecure.core.VpnManager
+import dev.cluvex.zedsecure.data.update.Distribution
 import dev.cluvex.zedsecure.data.update.NudgePolicy
 import dev.cluvex.zedsecure.data.update.UpdateChecker
 import dev.cluvex.zedsecure.data.update.UpdateInfo
@@ -52,6 +53,7 @@ fun NudgeHost(
     settings: AppSettings,
     onUpdateSettings: ((AppSettings) -> AppSettings) -> Unit,
 ) {
+    val platform = LocalPlatform.current
     val status by VpnManager.status.collectAsStateWithLifecycle()
     val busy = status.state == ConnectionState.Connecting ||
         status.state == ConnectionState.Reconnecting ||
@@ -74,7 +76,12 @@ fun NudgeHost(
         } else {
             null
         }
-        val info = UpdateChecker.fetchLatest(socks, settings.language.tag ?: "en") ?: return@LaunchedEffect
+        val info = UpdateChecker.fetchLatest(
+            platform.distribution,
+            platform.deviceAbis,
+            socks,
+            settings.language.tag ?: "en",
+        ) ?: return@LaunchedEffect
         if (UpdateChecker.compareVersions(info.versionName, AppInfo.versionName) <= 0) return@LaunchedEffect
         val snoozed = info.versionName == settings.dismissedUpdateVersion &&
             now - settings.dismissedUpdateAtMs < NudgePolicy.UPDATE_DISMISS_SNOOZE_MS
@@ -82,6 +89,7 @@ fun NudgeHost(
     }
 
     LaunchedEffect(settings.successfulConnections, settings.ratePromptLastShownMs) {
+        if (platform.distribution != Distribution.PlayStore) return@LaunchedEffect
         if (settings.rateNeverAsk) return@LaunchedEffect
         if (settings.successfulConnections < NudgePolicy.RATE_MIN_CONNECTIONS) return@LaunchedEffect
         val now = currentTimeMillis()
@@ -164,7 +172,11 @@ fun UpdateDialog(info: UpdateInfo, onDismiss: () -> Unit) {
             }
         },
         confirmButton = {
-            Button(onClick = { platform.openStorePage(); onDismiss() }) {
+            Button(onClick = {
+                val url = info.downloadUrl
+                if (url != null) platform.openUri(url) else platform.openStorePage()
+                onDismiss()
+            }) {
                 Text(stringResource(Res.string.update_action_update))
             }
         },
@@ -236,7 +248,12 @@ fun ManualUpdateCheckHost(
         } else {
             null
         }
-        val info = UpdateChecker.fetchLatest(socks, settings.language.tag ?: "en")
+        val info = UpdateChecker.fetchLatest(
+            platform.distribution,
+            platform.deviceAbis,
+            socks,
+            settings.language.tag ?: "en",
+        )
         when {
             info == null -> platform.toast(failed)
             UpdateChecker.compareVersions(info.versionName, AppInfo.versionName) > 0 -> found = info

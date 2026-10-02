@@ -1,6 +1,7 @@
 package dev.cluvex.zedsecure.desktop.platform
 
 import dev.cluvex.zedsecure.domain.model.AppSettings
+import dev.cluvex.zedsecure.domain.model.RenderingMode
 import dev.cluvex.zedsecure.domain.model.RunMode
 import dev.cluvex.zedsecure.platform.KeyValueStore
 import kotlinx.serialization.json.Json
@@ -31,6 +32,19 @@ class DesktopSettingsModeTest {
         val store = MemoryStore()
         store.putString("settings", json.encodeToString(AppSettings.serializer(), AppSettings(runMode = RunMode.Vpn)))
         assertEquals(RunMode.SystemProxy, DesktopSettings(store).settings.value.runMode)
+    }
+
+    @Test
+    fun `the old software rendering switch carries over to the new setting`() {
+        val store = MemoryStore()
+        store.putString("run_mode_version", "2")
+        store.putString("settings", """{"runMode":"Vpn","softwareRendering":true}""")
+        assertEquals(RenderingMode.Software, DesktopSettings(store).settings.value.renderingMode)
+
+        val untouched = MemoryStore()
+        untouched.putString("run_mode_version", "2")
+        untouched.putString("settings", """{"softwareRendering":false}""")
+        assertEquals(RenderingMode.Auto, DesktopSettings(untouched).settings.value.renderingMode)
     }
 
     @Test

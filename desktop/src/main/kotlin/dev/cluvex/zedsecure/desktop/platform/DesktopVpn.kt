@@ -9,7 +9,8 @@ import dev.cluvex.zedsecure.desktop.core.DesktopDnsTunnel
 import dev.cluvex.zedsecure.desktop.core.DesktopIkev2
 import dev.cluvex.zedsecure.desktop.core.DesktopPsiphon
 import dev.cluvex.zedsecure.desktop.core.DesktopTor
-import dev.cluvex.zedsecure.desktop.core.HevBinary
+import dev.cluvex.zedsecure.desktop.core.DesktopTun
+import dev.cluvex.zedsecure.desktop.core.PhysicalInterface
 import dev.cluvex.zedsecure.desktop.core.LocalPortPicker
 import dev.cluvex.zedsecure.desktop.core.SystemProxy
 import dev.cluvex.zedsecure.desktop.core.Os
@@ -37,7 +38,7 @@ object DesktopVpn {
 
     private val work = File(System.getProperty("java.io.tmpdir"), "zedsecure").apply { mkdirs() }
     private var xray: XrayCore? = null
-    private var tun: TunMode? = null
+    private var tun: DesktopTun? = null
     private var stats: DesktopStats? = null
     private var singBoxStats: DesktopSingBoxStats? = null
     private var shim: SocksTunBridge? = null
@@ -271,12 +272,24 @@ object DesktopVpn {
         }
         val socksPort = localPort(LocalProxy.SOCKS_PORT)
         val metricsPort = localPort(METRICS_PORT, setOf(socksPort))
-        val json = DesktopXray.augmentWithMetrics(
+        val ported = DesktopXray.augmentWithMetrics(
             DesktopXray.withSocksPort(baseJson, LocalProxy.SOCKS_PORT, socksPort),
             metricsPort,
         )
         VpnManager.onStarting(name)
         thread(name = "desktop-xray") {
+            val json = if (runMode == RunMode.Vpn && TunMode.supported() && TunMode.usesZeptun()) {
+                val iface = PhysicalInterface.detect()
+                if (iface != null) {
+                    LogBus.append("I/Desktop the core's own connections leave through $iface, outside the tunnel")
+                    DesktopXray.bindOutbounds(ported, iface, pinServerAddresses(DesktopXray.extractServerHosts(ported)))
+                } else {
+                    LogBus.append("W/Desktop could not find the network adapter; only the servers are kept outside the tunnel")
+                    ported
+                }
+            } else {
+                ported
+            }
             val core = XrayCore(work)
             if (!core.start(json)) { VpnManager.onError("Core failed to start"); return@thread }
             xray = core
@@ -367,15 +380,11 @@ object DesktopVpn {
             LogBus.append("W/Desktop VPN mode is not available on ${Os.current} yet; using the system proxy")
         }
         if (useTun && TunMode.supported()) {
-            val hev = HevBinary.extract(work)
-            if (hev != null) {
-                LogBus.append("I/Desktop TUN bypass: ${bypassIps.joinToString().ifEmpty { "(none)" }}")
-                val t = TunMode(
-                    hev, "127.0.0.1", socksPort, work,
-                    bypassIps = bypassIps, udpOverTcp = udpOverTcp, askPassword = AdminPassword::ask,
-                )
-                if (t.start()) { tun = t; return true }
-            }
+            LogBus.append("I/Desktop TUN bypass: ${bypassIps.joinToString().ifEmpty { "(none)" }}")
+            val engine = TunMode.Factory.create(
+                work, socksPort, bypassIps, udpOverTcp, settingsProvider().vpnDns, AdminPassword::ask,
+            )
+            if (engine != null && engine.start()) { tun = engine; return true }
             LogBus.append("W/Desktop TUN unavailable — falling back to system proxy")
         }
         return if (SystemProxy.set("127.0.0.1", socksPort)) { usedSystemProxy = true; true } else false
@@ -391,6 +400,12 @@ object DesktopVpn {
             totalDown to totalUp
         }).also { it.start() }
     }
+
+    private fun pinServerAddresses(hosts: List<String>): Map<String, List<String>> =
+        hosts.filter { host -> host.any { it.isLetter() } && ':' !in host }.associateWith { host ->
+            val all = runCatching { InetAddress.getAllByName(host).toList() }.getOrDefault(emptyList())
+            all.filterIsInstance<java.net.Inet4Address>().ifEmpty { all }.mapNotNull { it.hostAddress }.distinct()
+        }.filterValues { it.isNotEmpty() }
 
     private fun resolveHosts(hosts: List<String>): List<String> = hosts.flatMap { host ->
         runCatching { InetAddress.getAllByName(host).map { it.hostAddress } }.getOrDefault(emptyList())

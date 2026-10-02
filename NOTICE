@@ -41,6 +41,22 @@ hev-socks5-tunnel
 Source: https://github.com/heiher/hev-socks5-tunnel
 License: MIT
 
+zeptun
+------
+Source: https://github.com/Noisemux/zeptun
+License: MIT (Copyright (c) 2026 Noisemux)
+
+The TUN engine on Android and on the Windows and macOS desktop builds, taken unmodified from the
+project's own release.
+
+Wintun
+------
+Source: https://www.wintun.net
+License: Wintun Prebuilt Binaries License (WireGuard LLC)
+
+`wintun.dll` ships unmodified next to `zeptun.exe` in the Windows build, which uses it only through
+the API in `wintun.h`. The license text ships beside it as `wintun-LICENSE.txt`.
+
 SNI-Spoofing-Go
 ---------------
 Source: https://github.com/aleskxyz/SNI-Spoofing-Go
