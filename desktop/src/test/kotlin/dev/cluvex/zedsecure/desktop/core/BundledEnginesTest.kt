@@ -10,8 +10,8 @@ class BundledEnginesTest {
 
     private val required = mapOf(
         Os.LINUX to ("linux" to listOf("xray", "libcronet.so", "hev-socks5-tunnel", "zeddns")),
-        Os.WINDOWS to ("windows" to listOf("xray.exe", "libcronet.dll", "hev-socks5-tunnel.exe", "zeddns.exe") + HevBinary.WINDOWS_COMPANIONS),
-        Os.MACOS to ("macos" to listOf("xray", "hev-socks5-tunnel", "zeddns")),
+        Os.WINDOWS to ("windows" to listOf("xray.exe", "libcronet.dll", "zeptun.exe", "zeddns.exe") + ZeptunBinary.WINDOWS_COMPANIONS),
+        Os.MACOS to ("macos" to listOf("xray", "zeptun", "zeddns")),
     )
 
     private val neverLaunched = listOf("psiphon-client", "masterdns-client", "snispoof", "snowflake-client")
@@ -58,21 +58,20 @@ class BundledEnginesTest {
     @Test
     fun `the required names are the ones the extractors ask for`() {
         assertTrue("hev-socks5-tunnel" in required.getValue(Os.LINUX).second)
-        assertTrue("hev-socks5-tunnel.exe" in required.getValue(Os.WINDOWS).second)
+        assertTrue("zeptun.exe" in required.getValue(Os.WINDOWS).second)
         assertTrue("zeddns" in required.getValue(Os.LINUX).second)
         assertTrue("zeddns.exe" in required.getValue(Os.WINDOWS).second)
         assertTrue("xray" in required.getValue(Os.LINUX).second)
         assertTrue("xray.exe" in required.getValue(Os.WINDOWS).second)
-        assertTrue("hev-socks5-tunnel" in required.getValue(Os.MACOS).second)
+        assertTrue("zeptun" in required.getValue(Os.MACOS).second)
         assertTrue("zeddns" in required.getValue(Os.MACOS).second)
         assertTrue("xray" in required.getValue(Os.MACOS).second)
     }
 
     @Test
-    fun `hev on Windows ships with the runtime and the Wintun driver it loads`() {
+    fun `zeptun on Windows ships with the Wintun driver it loads`() {
         val windows = required.getValue(Os.WINDOWS).second
-        assertTrue("msys-2.0.dll" in HevBinary.WINDOWS_COMPANIONS, "hev's Windows build is an MSYS2 program")
-        assertTrue("wintun.dll" in HevBinary.WINDOWS_COMPANIONS, "the TUN adapter comes from Wintun")
-        HevBinary.WINDOWS_COMPANIONS.forEach { assertTrue(it in windows, "$it is extracted but not required") }
+        assertTrue("wintun.dll" in ZeptunBinary.WINDOWS_COMPANIONS, "the TUN adapter comes from Wintun")
+        ZeptunBinary.WINDOWS_COMPANIONS.forEach { assertTrue(it in windows, "$it is extracted but not required") }
     }
 }

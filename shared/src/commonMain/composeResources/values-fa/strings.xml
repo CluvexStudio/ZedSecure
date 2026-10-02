@@ -406,7 +406,7 @@
     <string name="mode_socks">فقط SOCKS</string>
     <string name="mode_socks_body">فقط یک پروکسی SOCKS و HTTP محلی روی 127.0.0.1 باز می‌کند و چیز دیگری را تغییر نمی‌دهد. هر برنامه را خودتان روی آن تنظیم کنید.</string>
     <string name="mode_tun">TUN (VPN)</string>
-    <string name="mode_tun_body">همهٔ برنامه‌ها را از یک کارت شبکهٔ مجازی عبور می‌دهد، حتی برنامه‌هایی که پروکسی سیستم را نادیده می‌گیرند. دسترسی مدیر می‌خواهد. فعلاً فقط روی لینوکس.</string>
+    <string name="mode_tun_body">همهٔ برنامه‌ها را از یک کارت شبکهٔ مجازی عبور می‌دهد، حتی برنامه‌هایی که پروکسی سیستم را نادیده می‌گیرند. هر بار که وصل می‌شوید دسترسی مدیر سیستم می‌خواهد. Tor و سایفون همچنان از پروکسی سیستم استفاده می‌کنند.</string>
     <string name="option_none">هیچ‌کدام</string>
 
     <string name="title_ui_settings">رابط کاربری</string>
@@ -1365,6 +1365,15 @@
     <string name="admin_password_body">حالت TUN برای ساختن تونل به دسترسی روت نیاز دارد و پنجرهٔ رمز سیستم (polkit) در دسترس نیست. رمز عبوری را که برای sudo استفاده می‌کنید وارد کنید. این رمز فقط به sudo داده می‌شود و ذخیره نمی‌شود.</string>
     <string name="admin_password_label">رمز عبور</string>
     <string name="admin_password_wrong">رمز عبور اشتباه است. دوباره امتحان کنید.</string>
-    <string name="title_pref_software_rendering">رندر نرم‌افزاری</string>
-    <string name="summary_pref_software_rendering">پنجره را بدون کارت گرافیک رسم می‌کند؛ برای وقتی که صفحه چشمک می‌زند، سیاه می‌شود یا کارت گرافیک مشکل پیدا می‌کند. بعد از اجرای دوباره اعمال می‌شود. می‌توانید برنامه را با --software-rendering هم اجرا کنید.</string>
+    <string name="title_pref_rendering">رندر صفحه</string>
+    <string name="rendering_auto">خودکار</string>
+    <string name="rendering_gpu">کارت گرافیک</string>
+    <string name="rendering_software">نرم‌افزاری</string>
+    <string name="rendering_sub_auto_gpu">خودکار: روی این کامپیوتر کارت گرافیک پنجره را رسم می‌کند. تغییرات بعد از اجرای دوباره اعمال می‌شوند.</string>
+    <string name="rendering_sub_auto_windows">خودکار: رندر نرم‌افزاری، چون بعضی درایورهای گرافیک ویندوز این پنجره را بدون متن، با چشمک یا اصلاً رسم نمی‌کنند. تغییرات بعد از اجرای دوباره اعمال می‌شوند.</string>
+    <string name="rendering_sub_auto_nvidia">خودکار: رندر نرم‌افزاری، چون درایورهای NVIDIA قبل از ۵۵۵ زیر Wayland پنجره‌ای را که کارت گرافیک رسم می‌کند به‌هم‌ریخته و برفکی نشان می‌دهند. تغییرات بعد از اجرای دوباره اعمال می‌شوند.</string>
+    <string name="rendering_sub_manual">تغییرات بعد از اجرای دوباره اعمال می‌شوند. اگر پنجره چشمک می‌زند، برفکی است یا متن ندارد، «نرم‌افزاری» را انتخاب کنید. می‌توانید برنامه را با --software-rendering یا --gpu-rendering هم اجرا کنید.</string>
+    <string name="update_check_summary_github">جست‌وجوی نسخهٔ جدیدتر در گیت‌هاب</string>
+    <string name="rate_title_github">ZedSecure در گیت‌هاب</string>
+    <string name="rate_summary_github">صفحهٔ پروژه را باز کنید تا ستاره بدهید، مشکلی را گزارش کنید یا کد را ببینید</string>
 </resources>

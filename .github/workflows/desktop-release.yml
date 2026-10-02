@@ -2,8 +2,7 @@ name: desktop-release
 
 on:
   workflow_dispatch:
-  push:
-    tags: ["desktop-v*"]
+  workflow_call:
 
 permissions:
   contents: write
@@ -21,7 +20,7 @@ jobs:
 
       - name: Read the version
         id: v
-        run: echo "name=$(grep '^zedsecure.desktopVersionName=' gradle.properties | cut -d= -f2)" >> "$GITHUB_OUTPUT"
+        run: echo "name=$(grep '^zedsecure.versionName=' gradle.properties | cut -d= -f2)" >> "$GITHUB_OUTPUT"
 
       - name: Tools for .rpm and .AppImage
         run: |
@@ -103,7 +102,7 @@ jobs:
           chmod +x AppDir/AppRun
           ARCH=x86_64 appimagetool --no-appstream AppDir "dist/ZedSecure-$V-x86_64.AppImage"
 
-          ( cd dist && sha256sum ZedSecure-* > SHA256SUMS.txt )
+          ( cd dist && sha256sum ZedSecure-* > SHA256SUMS-linux.txt )
           ls -lh dist
 
       - name: The AppImage and the tarball start
@@ -138,7 +137,7 @@ jobs:
       - name: Read the version
         id: v
         shell: bash
-        run: echo "name=$(grep '^zedsecure.desktopVersionName=' gradle.properties | cut -d= -f2)" >> "$GITHUB_OUTPUT"
+        run: echo "name=$(grep '^zedsecure.versionName=' gradle.properties | cut -d= -f2)" >> "$GITHUB_OUTPUT"
 
       - name: Fetch the bundled engines
         shell: bash
@@ -153,9 +152,9 @@ jobs:
           mkdir -p "$dest" /tmp/nat
           for pair in "xray:xray.exe:xray.exe" \
                       "xray:libcronet.dll:libcronet.dll" \
-                      "hev-windows:hev-socks5-tunnel.exe:hev-socks5-tunnel.exe" \
-                      "hev-windows:msys-2.0.dll:msys-2.0.dll" \
-                      "hev-windows:wintun.dll:wintun.dll" \
+                      "zeptun-windows:zeptun.exe:zeptun.exe" \
+                      "zeptun-windows:wintun.dll:wintun.dll" \
+                      "zeptun-windows:wintun-LICENSE.txt:wintun-LICENSE.txt" \
                       "dns-tunnels:zeddns-windows.exe:zeddns.exe" \
                       "psiphon:psiphon-windows.exe:psiphon.exe"; do
             art=${pair%%:*}; rest=${pair#*:}; from=${rest%%:*}; to=${rest#*:}
@@ -175,7 +174,9 @@ jobs:
           ( cd "$dest/tor" && find . -type f ! -name files.txt | sed 's#^\./##' | sort > files.txt && cat files.txt )
           ls -l "$dest"
 
-      - name: Check the engines the desktop launches are all here
+      - name: Check the engines the desktop launches are all here, and that TUN carries traffic
+        env:
+          ZEDSECURE_LIVE_TUN: "1"
         run: ./gradlew --no-daemon :desktop:test
 
       - name: Build the installer and the portable build
@@ -216,7 +217,7 @@ jobs:
 
       - name: Read the version
         id: v
-        run: echo "name=$(grep '^zedsecure.desktopVersionName=' gradle.properties | cut -d= -f2)" >> "$GITHUB_OUTPUT"
+        run: echo "name=$(grep '^zedsecure.versionName=' gradle.properties | cut -d= -f2)" >> "$GITHUB_OUTPUT"
 
       - name: Fetch the bundled engines
         env:
@@ -230,7 +231,7 @@ jobs:
           dest=desktop/src/main/resources/bin/macos
           mkdir -p "$dest" /tmp/nat
           for pair in "xray-macos-$ARCH:xray-macos-$ARCH:xray" \
-                      "hev-macos:hev-socks5-tunnel-$ARCH:hev-socks5-tunnel" \
+                      "zeptun-macos:zeptun:zeptun" \
                       "dns-tunnels:zeddns-macos-$ARCH:zeddns" \
                       "psiphon:psiphon-macos-$ARCH:psiphon"; do
             art=${pair%%:*}; rest=${pair#*:}; from=${rest%%:*}; to=${rest#*:}
@@ -271,31 +272,3 @@ jobs:
           name: desktop-macos-${{ matrix.arch }}
           path: dist/*
           retention-days: 14
-
-  publish:
-    needs: [linux, windows, macos]
-    if: startsWith(github.ref, 'refs/tags/desktop-v')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Read the version
-        id: v
-        run: echo "name=$(grep '^zedsecure.desktopVersionName=' gradle.properties | cut -d= -f2)" >> "$GITHUB_OUTPUT"
-      - uses: actions/download-artifact@v4
-        with: { path: artifacts }
-      - name: Publish the pre-release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -e
-          mkdir -p dist
-          find artifacts -type f -exec cp {} dist/ \;
-          ls -l dist
-          if gh release view "${GITHUB_REF_NAME}" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release upload "${GITHUB_REF_NAME}" dist/* --repo "$GITHUB_REPOSITORY" --clobber
-          else
-            gh release create "${GITHUB_REF_NAME}" dist/* \
-              --repo "$GITHUB_REPOSITORY" \
-              --title "ZedSecure Desktop ${{ steps.v.outputs.name }}" \
-              --prerelease --notes "" --draft
-          fi

@@ -1,6 +1,5 @@
 package dev.cluvex.zedsecure.desktop
 
-import dev.cluvex.zedsecure.desktop.core.HevBinary
 import dev.cluvex.zedsecure.desktop.core.Os
 import dev.cluvex.zedsecure.desktop.core.SystemProxy
 import dev.cluvex.zedsecure.desktop.core.TunMode
@@ -25,8 +24,9 @@ fun main(args: Array<String>) {
             if (!xray.start(cfg.readText())) return println("xray core failed to start")
             println("xray core up; SOCKS on 127.0.0.1:$port")
             val tun = if (mode == "tun") {
-                val hev = HevBinary.extract(work) ?: return println("no hev binary for ${Os.current}")
-                TunMode(hev, "127.0.0.1", port, work, askPassword = ::consolePassword).also {
+                val engine = TunMode.Factory.create(work, port, emptyList(), false, "1.1.1.1", ::consolePassword)
+                    ?: run { xray.stop(); return println("no TUN engine bundled for ${Os.current}") }
+                engine.also {
                     if (!it.start()) { xray.stop(); return println("TUN elevation failed") }
                 }
             } else {
@@ -39,8 +39,9 @@ fun main(args: Array<String>) {
         }
         "tun" -> {
             val (h, p) = hostPort(args) ?: return usage()
-            val hev = HevBinary.extract(work) ?: return println("No hev binary bundled for ${Os.current}")
-            val tun = TunMode(hev, h, p, work, askPassword = ::consolePassword)
+            if (h != "127.0.0.1" && h != "localhost") return println("the TUN engine only reaches a SOCKS proxy on this machine")
+            val tun = TunMode.Factory.create(work, p, emptyList(), false, "1.1.1.1", ::consolePassword)
+                ?: return println("No TUN engine bundled for ${Os.current}")
             if (tun.start()) {
                 println("TUN mode starting (approve the admin prompt). Ctrl+C to stop.")
                 Runtime.getRuntime().addShutdownHook(Thread { tun.stop(); SystemProxy.clear() })

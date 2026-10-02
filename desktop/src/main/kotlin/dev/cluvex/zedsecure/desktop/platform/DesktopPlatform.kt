@@ -1,6 +1,8 @@
 package dev.cluvex.zedsecure.desktop.platform
 
 import dev.cluvex.zedsecure.core.LogBus
+import dev.cluvex.zedsecure.desktop.DesktopRendering
+import dev.cluvex.zedsecure.ui.platform.AutomaticRendering
 import dev.cluvex.zedsecure.ui.platform.FilePick
 import dev.cluvex.zedsecure.ui.platform.Platform
 import kotlinx.coroutines.Dispatchers
@@ -15,7 +17,9 @@ import javax.swing.JFileChooser
 
 object DesktopPlatform : Platform {
     override val supportsSystemProxy: Boolean get() = true
-    override val supportsSoftwareRendering: Boolean get() = true
+    override val automaticRendering: AutomaticRendering get() = DesktopRendering.automatic
+    override val supportsTun: Boolean get() = dev.cluvex.zedsecure.desktop.core.TunMode.supported()
+    override val choosesTunEngine: Boolean get() = false
 
     override fun copyToClipboard(text: String) {
         runCatching {

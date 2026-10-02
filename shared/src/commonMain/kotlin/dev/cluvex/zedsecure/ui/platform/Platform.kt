@@ -2,6 +2,8 @@ package dev.cluvex.zedsecure.ui.platform
 
 import androidx.compose.runtime.staticCompositionLocalOf
 import dev.cluvex.zedsecure.data.assets.GeoAssets
+import dev.cluvex.zedsecure.data.update.Distribution
+import dev.cluvex.zedsecure.data.update.GitHubReleases
 
 data class LiveStats(
 
@@ -55,7 +57,11 @@ interface Platform {
 
     val supportsSystemProxy: Boolean get() = false
 
-    val supportsSoftwareRendering: Boolean get() = false
+    val supportsTun: Boolean get() = true
+
+    val choosesTunEngine: Boolean get() = true
+
+    val automaticRendering: AutomaticRendering? get() = null
 
     fun lanIpv4Addresses(): List<String> = emptyList()
 
@@ -73,10 +79,19 @@ interface Platform {
 
     fun openBatteryOptimizationSettings() {}
 
+    val distribution: Distribution get() = Distribution.GitHub
+
+    val deviceAbis: List<String> get() = emptyList()
+
     fun openStorePage() {
-        openUri(dev.cluvex.zedsecure.data.update.PlayStore.WEB_URL)
+        openUri(
+            if (distribution == Distribution.PlayStore) dev.cluvex.zedsecure.data.update.PlayStore.WEB_URL
+            else GitHubReleases.PROJECT_URL,
+        )
     }
 }
+
+enum class AutomaticRendering { Gpu, SoftwareWindows, SoftwareNvidiaWayland }
 
 data class FilePick(val name: String, val bytes: ByteArray)
 

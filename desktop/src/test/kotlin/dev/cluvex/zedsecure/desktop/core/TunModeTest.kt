@@ -11,11 +11,14 @@ import kotlin.test.assertTrue
 
 class TunModeTest {
     @Test
-    fun `VPN mode runs only where hev gets both its routes`() {
-        assertTrue(TunMode.supported(Os.LINUX), "Linux routes the server around the tunnel and everything else into it")
-        assertFalse(TunMode.supported(Os.WINDOWS), "no routes are installed on Windows, so traffic would bypass the tunnel")
-        assertFalse(TunMode.supported(Os.MACOS), "the server is not routed around the tunnel on macOS, so it loops")
+    fun `every desktop system has a TUN engine that installs its own routes`() {
+        assertTrue(TunMode.supported(Os.LINUX))
+        assertTrue(TunMode.supported(Os.WINDOWS))
+        assertTrue(TunMode.supported(Os.MACOS))
         assertFalse(TunMode.supported(Os.OTHER))
+        assertFalse(TunMode.usesZeptun(Os.LINUX), "Linux keeps hev and its root helper")
+        assertTrue(TunMode.usesZeptun(Os.WINDOWS), "zeptun installs routes and DNS through IP Helper")
+        assertTrue(TunMode.usesZeptun(Os.MACOS), "zeptun splits the default route and binds its sockets")
     }
 
     @Test

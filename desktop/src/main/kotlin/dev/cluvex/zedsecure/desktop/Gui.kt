@@ -25,6 +25,7 @@ import coil3.compose.setSingletonImageLoaderFactory
 import coil3.svg.SvgDecoder
 import dev.cluvex.zedsecure.core.VpnManager
 import dev.cluvex.zedsecure.data.config.ConfigRepository
+import dev.cluvex.zedsecure.core.LogBus
 import dev.cluvex.zedsecure.domain.model.ConnectionState
 import dev.cluvex.zedsecure.shared.resources.Res
 import dev.cluvex.zedsecure.shared.resources.ic_tray_connected
@@ -38,11 +39,13 @@ import dev.cluvex.zedsecure.core.VaultImportBus
 import dev.cluvex.zedsecure.crypto.ZsxLegacyException
 import org.jetbrains.compose.resources.getString
 import dev.cluvex.zedsecure.domain.config.LocalProxy
+import dev.cluvex.zedsecure.domain.model.RenderingMode
 import dev.cluvex.zedsecure.domain.model.RunMode
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.flow.first
 import org.jetbrains.compose.resources.painterResource
 import dev.cluvex.zedsecure.desktop.core.Os
+import dev.cluvex.zedsecure.desktop.core.TunMode
 import dev.cluvex.zedsecure.desktop.platform.AdminPassword
 import dev.cluvex.zedsecure.desktop.platform.DesktopKeyValueStore
 import dev.cluvex.zedsecure.desktop.platform.DesktopProbe
@@ -83,10 +86,14 @@ fun main(args: Array<String>) {
     AppInfo.versionName = BUILD_VERSION
     Runtime.getRuntime().addShutdownHook(Thread { runCatching { DesktopVpn.shutdown() } })
 
-    val softwareRendering = "--software-rendering" in args ||
-        System.getenv("ZEDSECURE_SOFTWARE_RENDERING")?.lowercase() in setOf("1", "true", "yes") ||
-        runCatching { desktopSettings.settings.value.softwareRendering }.getOrDefault(false)
-    if (softwareRendering) System.setProperty("skiko.renderApi", "SOFTWARE")
+    val rendering = DesktopRendering.apply(
+        runCatching { desktopSettings.settings.value.renderingMode }.getOrDefault(RenderingMode.Auto),
+        args,
+    )
+    LogBus.append(
+        "I/Desktop rendering: ${if (rendering.software) "software" else "graphics card"} " +
+            "(${rendering.source.name.lowercase()}, automatic would pick ${rendering.automatic.name})",
+    )
 
     runCatching {
         desktopSettings.settings.value.language.tag?.let {
@@ -256,10 +263,10 @@ fun main(args: Array<String>) {
                 add(
                     TrayEntry.Sub(
                         "Mode",
-                        listOf(
+                        listOfNotNull(
                             RunMode.SystemProxy to "System proxy",
                             RunMode.ProxyOnly to "SOCKS only",
-                            RunMode.Vpn to "TUN · all traffic",
+                            (RunMode.Vpn to "TUN · all traffic").takeIf { TunMode.supported() },
                         ).map { (mode, label) ->
                             TrayEntry.Check(label, checked = settings.runMode == mode) {
                                 if (settings.runMode != mode) {

@@ -301,7 +301,7 @@
     <string name="mode_socks">SOCKS only</string>
     <string name="mode_socks_body">Only opens a local SOCKS and HTTP proxy on 127.0.0.1 and changes nothing else. Point each app at it yourself.</string>
     <string name="mode_tun">TUN (VPN)</string>
-    <string name="mode_tun_body">Sends every app through a virtual network adapter, including apps that ignore the system proxy. Asks for administrator rights. Linux only for now.</string>
+    <string name="mode_tun_body">Sends every app through a virtual network adapter, including apps that ignore the system proxy. Asks for administrator rights each time you connect. Tor and Psiphon keep using the system proxy.</string>
     <string name="group_all">All</string>
     <string name="group_manual">Manual</string>
 
@@ -1372,6 +1372,15 @@
     <string name="admin_password_body">TUN mode needs root to create the tunnel, and no system password prompt (polkit) is available. Enter the password you use with sudo. It goes only to sudo and is not saved.</string>
     <string name="admin_password_label">Password</string>
     <string name="admin_password_wrong">Wrong password. Try again.</string>
-    <string name="title_pref_software_rendering">Software rendering</string>
-    <string name="summary_pref_software_rendering">Draw the window without the graphics card, for when the screen flickers, goes black or the GPU acts up. Applies after a restart. You can also start the app with --software-rendering.</string>
+    <string name="title_pref_rendering">Rendering</string>
+    <string name="rendering_auto">Automatic</string>
+    <string name="rendering_gpu">Graphics card</string>
+    <string name="rendering_software">Software</string>
+    <string name="rendering_sub_auto_gpu">Automatic: the graphics card draws the window on this computer. Changes apply after a restart.</string>
+    <string name="rendering_sub_auto_windows">Automatic: software rendering, because some Windows graphics drivers draw this window without text, with flicker or not at all. Changes apply after a restart.</string>
+    <string name="rendering_sub_auto_nvidia">Automatic: software rendering, because NVIDIA drivers before 555 garble windows drawn by the graphics card under Wayland. Changes apply after a restart.</string>
+    <string name="rendering_sub_manual">Changes apply after a restart. Choose Software if the window flickers, shows static or has no text. You can also start the app with --software-rendering or --gpu-rendering.</string>
+    <string name="update_check_summary_github">Look for a newer version on GitHub</string>
+    <string name="rate_title_github">ZedSecure on GitHub</string>
+    <string name="rate_summary_github">Open the project page to star it, report a problem or read the code</string>
 </resources>

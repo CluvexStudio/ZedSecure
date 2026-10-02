@@ -84,8 +84,8 @@ APK مخصوص دستگاهتان از [Releases](https://github.com/CluvexStudi
 
 هسته‌هایی که تغییر داده‌ایم به‌صورت فورک منتشر شده‌اند؛ در
 [`tools/core-sources.txt`](tools/core-sources.txt) هر کدام با کامیت دقیقی که هر نسخه از آن ساخته
-می‌شود آمده است. زدن تگ `v*` نسخهٔ اندروید را در CI می‌سازد و امضا می‌کند، و تگ `desktop-v*`
-نسخهٔ دسکتاپ را.
+می‌شود آمده است. زدن تگ `v*` نسخهٔ اندروید و همهٔ نسخه‌های دسکتاپ را در CI می‌سازد و همه را در
+یک ریلیز می‌گذارد؛ اندروید و دسکتاپ یک شمارهٔ نسخه دارند.
 
 ## سپاسگزاری
 
@@ -107,8 +107,9 @@ ZedSecure همچنین روی
 [سایفون](https://github.com/Psiphon-Labs/psiphon-tunnel-core)، [Tor](https://www.torproject.org/)،
 [MasterDnsVPN](https://github.com/masterking32/MasterDnsVPN)،
 [AmneziaWG](https://github.com/amnezia-vpn/amneziawg-go)،
-[OpenConnect](https://www.infradead.org/openconnect/) و
-[hev-socks5-tunnel](https://github.com/heiher/hev-socks5-tunnel) بنا شده است. لایسنس هر کدام در
+[OpenConnect](https://www.infradead.org/openconnect/)،
+[hev-socks5-tunnel](https://github.com/heiher/hev-socks5-tunnel) و
+[zeptun](https://github.com/Noisemux/zeptun) بنا شده است. لایسنس هر کدام در
 [NOTICE](NOTICE) آمده است.
 
 ## لایسنس
