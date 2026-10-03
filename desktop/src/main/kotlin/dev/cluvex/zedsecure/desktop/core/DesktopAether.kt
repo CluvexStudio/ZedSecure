@@ -1,11 +1,13 @@
 package dev.cluvex.zedsecure.desktop.core
 
 import dev.cluvex.zedsecure.core.LogBus
+import dev.cluvex.zedsecure.core.VpnManager
 import dev.cluvex.zedsecure.domain.config.AetherCoreBuilder
 import dev.cluvex.zedsecure.domain.config.AetherProfile
 import java.io.File
 import java.net.InetSocketAddress
 import java.net.Socket
+import java.util.concurrent.atomic.AtomicBoolean
 
 class DesktopAether(
     private val profile: AetherProfile,
@@ -14,6 +16,7 @@ class DesktopAether(
 ) {
     @Volatile
     private var process: Process? = null
+    private val active = AtomicBoolean(false)
 
     fun start(): Result<Unit> {
         val bin = BundledBinary.extract(workDir, "aether", "aether.exe")
@@ -39,12 +42,19 @@ class DesktopAether(
                     LogBus.append("I/aether: $line")
                 }
             }
+            if (active.compareAndSet(true, false)) {
+                process = null
+                VpnManager.onError("Aether exited unexpectedly")
+            }
         }.apply { isDaemon = true; name = "aether-output" }.start()
 
         val deadline = System.currentTimeMillis() + 30_000L
         while (System.currentTimeMillis() < deadline) {
             if (!started.isAlive) return Result.failure(IllegalStateException("Aether exited unexpectedly"))
-            if (isPortOpen("127.0.0.1", socksPort)) return Result.success(Unit)
+            if (isPortOpen("127.0.0.1", socksPort)) {
+                active.set(true)
+                return Result.success(Unit)
+            }
             Thread.sleep(100)
         }
         stop()
@@ -52,6 +62,7 @@ class DesktopAether(
     }
 
     fun stop() {
+        active.set(false)
         val p = process ?: return
         process = null
         XrayCore.stopProcess(p)

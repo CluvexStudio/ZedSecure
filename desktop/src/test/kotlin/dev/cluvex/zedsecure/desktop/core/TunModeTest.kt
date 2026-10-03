@@ -38,6 +38,20 @@ class TunModeTest {
     }
 
     @Test
+    fun `the Linux helper script preserves CIDR notation without appending 32`() {
+        val dir = Files.createTempDirectory("tunmode-cidr").toFile()
+        val mode = TunMode(File(dir, "hev"), "127.0.0.1", 1080, dir, bypassIps = listOf("162.159.192.0/24", "203.0.113.7"))
+        val script = mode.writeLinuxScript(dir, File(dir, "hev"), mode.writeConfig(dir))
+        val text = script.readText()
+
+        assertTrue("ip route add 162.159.192.0/24 via \$ORIG_GW dev \$ORIG_DEV" in text)
+        assertTrue("ip route add 203.0.113.7/32 via \$ORIG_GW dev \$ORIG_DEV" in text)
+        assertTrue("ip route del 162.159.192.0/24 via \$ORIG_GW dev \$ORIG_DEV" in text)
+        assertTrue("ip route del 203.0.113.7/32 via \$ORIG_GW dev \$ORIG_DEV" in text)
+        dir.deleteRecursively()
+    }
+
+    @Test
     fun `the Linux helper brings tun up, says so, and cleans up once the app lets go`() {
         assumeTrue(Os.current == Os.LINUX)
         assumeTrue(javaClass.getResource("/bin/linux/hev-socks5-tunnel") != null)

@@ -100,12 +100,14 @@ object DesktopVpn {
                 return@thread
             }
             VpnManager.activeSocksPort = socksPort
-            if (!route(socksPort, emptyList(), udpOverTcp = false, tunCarries = "aether")) {
+            val bypass = aetherBypass(aetherProfile)
+            if (!route(socksPort, bypass, udpOverTcp = false)) {
                 a.stop()
                 aether = null
-                VpnManager.onError("Could not route traffic (system proxy failed)")
+                VpnManager.onError("Could not route traffic (TUN + system proxy failed)")
                 return@thread
             }
+            meter = DesktopMeter(totals = { null }).also { it.start() }
             VpnManager.onConnected(name)
         }
     }
@@ -436,6 +438,54 @@ object DesktopVpn {
     private fun resolveHosts(hosts: List<String>): List<String> = hosts.flatMap { host ->
         runCatching { InetAddress.getAllByName(host).map { it.hostAddress } }.getOrDefault(emptyList())
     }.distinct()
+
+    internal fun aetherBypass(profile: AetherProfile): List<String> {
+        val staticCidrs = mutableListOf(
+            "162.159.192.0/24",
+            "162.159.193.0/24",
+            "162.159.195.0/24",
+            "188.114.96.0/22",
+            "104.16.0.0/12",
+            "172.64.0.0/13",
+        )
+        val domainTargets = mutableListOf(
+            "api.cloudflareclient.com",
+            "consumer-masque.cloudflareclient.com",
+            "cloudflareaccess.com",
+        )
+        if (profile.teamName.isNotBlank()) {
+            domainTargets += "${profile.teamName}.cloudflareaccess.com"
+        }
+        fun extractHost(raw: String): String? {
+            val s = raw.trim()
+            if (s.isEmpty()) return null
+            val host = when {
+                s.startsWith("[") && "]" in s -> s.substringAfter('[').substringBefore(']')
+                "/" in s -> {
+                    staticCidrs += s
+                    return null
+                }
+                ':' in s && s.indexOf(':') == s.lastIndexOf(':') -> s.substringBefore(':')
+                else -> s
+            }.trim()
+            if (host.isEmpty()) return null
+            if ("/" in host) {
+                staticCidrs += host
+                return null
+            }
+            return host
+        }
+        listOf(profile.server, profile.wiwOuter, profile.wiwInner, profile.echDns).forEach { raw ->
+            extractHost(raw)?.let { domainTargets += it }
+        }
+        if (profile.psiphonCdnIps.isNotBlank()) {
+            profile.psiphonCdnIps.split(',', ' ', ';', '\n').forEach { raw ->
+                extractHost(raw)?.let { domainTargets += it }
+            }
+        }
+        val resolved = resolveHosts(domainTargets)
+        return (staticCidrs + resolved).filter { it.isNotBlank() }.distinct()
+    }
 
     fun stop() {
         if (!VpnManager.onStopping()) return

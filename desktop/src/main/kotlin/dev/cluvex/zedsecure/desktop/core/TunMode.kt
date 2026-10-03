@@ -95,10 +95,12 @@ class TunMode(
 
     internal fun writeLinuxScript(dir: File, hev: File, cfg: File): File {
         val bypassAdd = bypassIps.joinToString("\n") { ip ->
-            "ip route add $ip/32 via \$ORIG_GW dev \$ORIG_DEV 2>/dev/null || true"
+            val target = if ("/" in ip) ip else "$ip/32"
+            "ip route add $target via \$ORIG_GW dev \$ORIG_DEV 2>/dev/null || true"
         }
         val bypassDel = bypassIps.joinToString("\n") { ip ->
-            "  ip route del $ip/32 via \$ORIG_GW dev \$ORIG_DEV 2>/dev/null || true"
+            val target = if ("/" in ip) ip else "$ip/32"
+            "  ip route del $target via \$ORIG_GW dev \$ORIG_DEV 2>/dev/null || true"
         }
         return File(dir, "tun-up.sh").apply {
             writeText(

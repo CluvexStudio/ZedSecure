@@ -254,6 +254,7 @@ class ZeptunTun(
         private const val POLL_MS = 200L
 
         private val IPV4 = Regex("""^\d{1,3}(\.\d{1,3}){3}$""")
+        private val IPV4_CIDR = Regex("""^\d{1,3}(\.\d{1,3}){3}/\d{1,2}$""")
         private val IPV4_PORT = Regex("""^\d{1,3}(\.\d{1,3}){3}:\d{1,5}$""")
         private val IPV6_PORT = Regex("""^\[[0-9A-Fa-f:.]+]:\d{1,5}$""")
 
@@ -263,6 +264,8 @@ class ZeptunTun(
         internal fun hostPrefix(ip: String): String? {
             val value = ip.trim().removePrefix("[").removeSuffix("]")
             return when {
+                IPV4_CIDR.matches(value) -> value
+                "/" in value && isIpv6(value.substringBefore('/')) && value.substringAfter('/').toIntOrNull() != null -> value
                 IPV4.matches(value) -> "$value/32"
                 isIpv6(value) -> "$value/128"
                 else -> null

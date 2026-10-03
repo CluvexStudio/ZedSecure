@@ -16,12 +16,12 @@ class ZeptunTunTest {
 
     @Test
     fun `zeptun routes everything into the adapter and keeps the servers out of it`() {
-        val toml = tun(Os.WINDOWS, bypass = listOf("203.0.113.7", "2001:db8::7", "not-an-ip", "203.0.113.7")).toml()
+        val toml = tun(Os.WINDOWS, bypass = listOf("203.0.113.7", "2001:db8::7", "not-an-ip", "203.0.113.7", "162.159.192.0/24")).toml()
 
         assertTrue("name = \"ZedSecure\"" in toml, toml)
         assertTrue("server = \"127.0.0.1:10808\"" in toml, toml)
         assertTrue("auto_route = true" in toml, toml)
-        assertTrue("exclude = [\"203.0.113.7/32\", \"2001:db8::7/128\"]" in toml, toml)
+        assertTrue("exclude = [\"203.0.113.7/32\", \"2001:db8::7/128\", \"162.159.192.0/24\"]" in toml, toml)
         assertTrue("hijack = true" in toml && "upstream = \"1.1.1.1:53\"" in toml, toml)
         assertTrue("address = [\"172.19.0.1/30\", \"fdfe:dcba:9876::1/126\"]" in toml, toml)
         assertFalse("strict" in toml, "strict route would also block the core's own DNS to the domestic resolver")

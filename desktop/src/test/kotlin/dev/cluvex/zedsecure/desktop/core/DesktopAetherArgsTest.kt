@@ -87,4 +87,27 @@ class DesktopAetherArgsTest {
         assertEquals("162.159.192.1:2408", parsed.server)
         assertEquals(AetherProfile.CARRIER_CHAIN, parsed.torMode)
     }
+
+    @Test
+    fun `aetherBypass includes Cloudflare CIDRs and custom profile endpoints`() {
+        val profile = AetherProfile(
+            server = "162.159.192.1:2408",
+            wiwOuter = "162.159.193.1:2408",
+            wiwInner = "188.114.96.1:2408",
+            psiphonCdnIps = "104.16.1.1, 172.64.1.1",
+        )
+        val bypass = dev.cluvex.zedsecure.desktop.platform.DesktopVpn.aetherBypass(profile)
+
+        assertTrue("162.159.192.0/24" in bypass)
+        assertTrue("162.159.193.0/24" in bypass)
+        assertTrue("162.159.195.0/24" in bypass)
+        assertTrue("188.114.96.0/22" in bypass)
+        assertTrue("104.16.0.0/12" in bypass)
+        assertTrue("172.64.0.0/13" in bypass)
+        assertTrue("162.159.192.1" in bypass)
+        assertTrue("162.159.193.1" in bypass)
+        assertTrue("188.114.96.1" in bypass)
+        assertTrue("104.16.1.1" in bypass)
+        assertTrue("172.64.1.1" in bypass)
+    }
 }
