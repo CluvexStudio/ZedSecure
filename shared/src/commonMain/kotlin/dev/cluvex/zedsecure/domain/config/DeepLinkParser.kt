@@ -200,6 +200,7 @@ data class DeepLinkPreview(
             is ProfileSource.AutoSelect -> "Auto-select"
             is ProfileSource.SingBox -> "sing-box"
             is ProfileSource.SingBoxConfig -> "sing-box config"
+            is ProfileSource.Aether -> "Aether"
             is ProfileSource.Link, is ProfileSource.RawJson, is ProfileSource.Sealed -> "Config"
         }
     }

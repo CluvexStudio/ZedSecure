@@ -17,6 +17,8 @@ import dev.cluvex.zedsecure.domain.config.AutoMember
 import dev.cluvex.zedsecure.domain.config.AutoSelectBuild
 import dev.cluvex.zedsecure.domain.config.AutoSelectIds
 import dev.cluvex.zedsecure.domain.config.AutoSelectTuning
+import dev.cluvex.zedsecure.domain.config.AetherLink
+import dev.cluvex.zedsecure.domain.config.AetherProfile
 import dev.cluvex.zedsecure.domain.config.SniSpoofLink
 import dev.cluvex.zedsecure.domain.config.ZedLink
 import dev.cluvex.zedsecure.domain.config.ConfigParser
