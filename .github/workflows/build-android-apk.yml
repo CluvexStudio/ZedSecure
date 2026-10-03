@@ -76,44 +76,50 @@ jobs:
           # 1. arm64-v8a
           echo "Building libaether for arm64-v8a..."
           env \
-            CC_aarch64_linux_android="$TOOLCHAIN/aarch64-linux-android24-clang" \
-            CXX_aarch64_linux_android="$TOOLCHAIN/aarch64-linux-android24-clang++" \
-            AR_aarch64_linux_android="$TOOLCHAIN/llvm-ar" \
+            ANDROID_NDK_HOME="$ANDROID_NDK_ROOT" \
+            ANDROID_NDK_ROOT="$ANDROID_NDK_ROOT" \
             CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="$TOOLCHAIN/aarch64-linux-android24-clang" \
-            RUSTFLAGS="-C link-arg=-Wl,-z,max-page-size=16384" \
-            cargo build --release --locked --lib \
-              --manifest-path aether/Cargo.toml \
-              --target aarch64-linux-android \
-              -j $(nproc)
-          cp target/aarch64-linux-android/release/libaether.so "$GITHUB_WORKSPACE/app/src/main/jniLibs/arm64-v8a/libaether.so"
+            CARGO_TARGET_AARCH64_LINUX_ANDROID_RUSTFLAGS="-C link-arg=-Wl,-z,max-page-size=16384 -C link-arg=-Wl,-z,common-page-size=16384" \
+            CC_aarch64_linux_android="$TOOLCHAIN/clang" \
+            CXX_aarch64_linux_android="$TOOLCHAIN/clang++" \
+            CFLAGS_aarch64_linux_android="--target=aarch64-linux-android24" \
+            CXXFLAGS_aarch64_linux_android="--target=aarch64-linux-android24" \
+            AR_aarch64_linux_android="$TOOLCHAIN/llvm-ar" \
+            BINDGEN_EXTRA_CLANG_ARGS_aarch64_linux_android="--target=aarch64-linux-android --sysroot=$SYSROOT" \
+            cargo build --release --locked --features tor --manifest-path aether/Cargo.toml --target aarch64-linux-android --bin aether -j $(nproc)
+          cp aether/target/aarch64-linux-android/release/aether "$GITHUB_WORKSPACE/app/src/main/jniLibs/arm64-v8a/libaether.so"
 
           # 2. armeabi-v7a
           echo "Building libaether for armeabi-v7a..."
           env \
-            CC_armv7_linux_androideabi="$TOOLCHAIN/armv7a-linux-androideabi24-clang" \
-            CXX_armv7_linux_androideabi="$TOOLCHAIN/armv7a-linux-androideabi24-clang++" \
-            AR_armv7_linux_androideabi="$TOOLCHAIN/llvm-ar" \
+            ANDROID_NDK_HOME="$ANDROID_NDK_ROOT" \
+            ANDROID_NDK_ROOT="$ANDROID_NDK_ROOT" \
             CARGO_TARGET_ARMV7_LINUX_ANDROIDEABI_LINKER="$TOOLCHAIN/armv7a-linux-androideabi24-clang" \
-            RUSTFLAGS="-C link-arg=-Wl,-z,max-page-size=16384" \
-            cargo build --release --locked --lib \
-              --manifest-path aether/Cargo.toml \
-              --target armv7-linux-androideabi \
-              -j $(nproc)
-          cp target/armv7-linux-androideabi/release/libaether.so "$GITHUB_WORKSPACE/app/src/main/jniLibs/armeabi-v7a/libaether.so"
+            CARGO_TARGET_ARMV7_LINUX_ANDROIDEABI_RUSTFLAGS="-C link-arg=-Wl,-z,max-page-size=16384 -C link-arg=-Wl,-z,common-page-size=16384" \
+            CC_armv7_linux_androideabi="$TOOLCHAIN/clang" \
+            CXX_armv7_linux_androideabi="$TOOLCHAIN/clang++" \
+            CFLAGS_armv7_linux_androideabi="--target=armv7a-linux-androideabi24" \
+            CXXFLAGS_armv7_linux_androideabi="--target=armv7a-linux-androideabi24" \
+            AR_armv7_linux_androideabi="$TOOLCHAIN/llvm-ar" \
+            BINDGEN_EXTRA_CLANG_ARGS_armv7_linux_androideabi="--target=armv7-linux-androideabi --sysroot=$SYSROOT" \
+            cargo build --release --locked --features tor --manifest-path aether/Cargo.toml --target armv7-linux-androideabi --bin aether -j $(nproc)
+          cp aether/target/armv7-linux-androideabi/release/aether "$GITHUB_WORKSPACE/app/src/main/jniLibs/armeabi-v7a/libaether.so"
 
           # 3. x86_64
           echo "Building libaether for x86_64..."
           env \
-            CC_x86_64_linux_android="$TOOLCHAIN/x86_64-linux-android24-clang" \
-            CXX_x86_64_linux_android="$TOOLCHAIN/x86_64-linux-android24-clang++" \
-            AR_x86_64_linux_android="$TOOLCHAIN/llvm-ar" \
+            ANDROID_NDK_HOME="$ANDROID_NDK_ROOT" \
+            ANDROID_NDK_ROOT="$ANDROID_NDK_ROOT" \
             CARGO_TARGET_X86_64_LINUX_ANDROID_LINKER="$TOOLCHAIN/x86_64-linux-android24-clang" \
-            RUSTFLAGS="-C link-arg=-Wl,-z,max-page-size=16384" \
-            cargo build --release --locked --lib \
-              --manifest-path aether/Cargo.toml \
-              --target x86_64-linux-android \
-              -j $(nproc)
-          cp target/x86_64-linux-android/release/libaether.so "$GITHUB_WORKSPACE/app/src/main/jniLibs/x86_64/libaether.so"
+            CARGO_TARGET_X86_64_LINUX_ANDROID_RUSTFLAGS="-C link-arg=-Wl,-z,max-page-size=16384 -C link-arg=-Wl,-z,common-page-size=16384" \
+            CC_x86_64_linux_android="$TOOLCHAIN/clang" \
+            CXX_x86_64_linux_android="$TOOLCHAIN/clang++" \
+            CFLAGS_x86_64_linux_android="--target=x86_64-linux-android24" \
+            CXXFLAGS_x86_64_linux_android="--target=x86_64-linux-android24" \
+            AR_x86_64_linux_android="$TOOLCHAIN/llvm-ar" \
+            BINDGEN_EXTRA_CLANG_ARGS_x86_64_linux_android="--target=x86_64-linux-android --sysroot=$SYSROOT" \
+            cargo build --release --locked --features tor --manifest-path aether/Cargo.toml --target x86_64-linux-android --bin aether -j $(nproc)
+          cp aether/target/x86_64-linux-android/release/aether "$GITHUB_WORKSPACE/app/src/main/jniLibs/x86_64/libaether.so"
 
           ls -la "$GITHUB_WORKSPACE/app/src/main/jniLibs/"*
 
