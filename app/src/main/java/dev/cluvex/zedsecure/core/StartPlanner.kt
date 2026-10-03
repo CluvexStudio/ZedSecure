@@ -116,6 +116,7 @@ class StartPlanner(context: Context) {
     fun engineKindOf(profile: VpnProfile): String = when {
         profile.isCrossChain -> VpnManager.KIND_CROSS_CHAIN
         profile.psiphonSettings() != null -> VpnManager.KIND_PSIPHON
+        profile.aetherSettings() != null -> VpnManager.KIND_AETHER
         profile.dnsTunnelSettings() != null -> VpnManager.KIND_DNS_TUNNEL
         profile.masterDnsSettings() != null -> VpnManager.KIND_MASTERDNS
         profile.openConnectSettings() != null -> VpnManager.KIND_OPENCONNECT
@@ -158,6 +159,11 @@ class StartPlanner(context: Context) {
         profile.sshSettings()?.let {
             return kotlinx.serialization.json.Json.encodeToString(
                 dev.cluvex.zedsecure.domain.config.SshProfile.serializer(), it,
+            )
+        }
+        profile.aetherSettings()?.let {
+            return kotlinx.serialization.json.Json.encodeToString(
+                dev.cluvex.zedsecure.domain.config.AetherProfile.serializer(), it,
             )
         }
         profile.psiphonSettings()?.let { psiphon ->

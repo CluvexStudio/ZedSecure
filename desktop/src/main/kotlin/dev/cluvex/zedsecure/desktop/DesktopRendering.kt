@@ -49,10 +49,15 @@ object DesktopRendering {
     }
 
     fun apply(mode: RenderingMode, args: Array<String>): Decision {
+        val env = System.getenv()
+        System.setProperty("skiko.linux.autodetection", "true")
+        if (isWayland(env)) {
+            System.setProperty("skiko.vsync.enabled", "false")
+        }
         val decision = decide(
             mode = mode,
             args = args,
-            env = System.getenv(),
+            env = env,
             skikoProperty = System.getProperty("skiko.renderApi"),
             os = Os.current,
             nvidiaDriver = nvidiaDriverVersion(),

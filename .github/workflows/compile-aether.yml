@@ -1,0 +1,95 @@
+name: compile-aether
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/compile-aether.yml"
+
+jobs:
+  build-desktop-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-gnu
+      - name: Clone Aether source & submodules
+        run: |
+          git clone --recurse-submodules https://github.com/CluvexStudio/Aether.git aether-src
+      - name: Build Aether Linux x86_64
+        working-directory: aether-src/aether
+        run: |
+          cargo build --release --locked --features tor --bin aether
+          mkdir -p ../out/linux
+          cp target/release/aether ../out/linux/aether
+          chmod +x ../out/linux/aether
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aether-linux-x86_64
+          path: aether-src/out/linux/aether
+          retention-days: 30
+
+  build-android-natives:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android
+      - name: Set up NDK
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r27c
+          add-to-path: true
+      - name: Clone Aether source & submodules
+        run: |
+          git clone --recurse-submodules https://github.com/CluvexStudio/Aether.git aether-src
+      - name: Build Android Aether Natives
+        working-directory: aether-src
+        run: |
+          set -e
+          TOOLCHAIN="$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          SYSROOT="$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+          mkdir -p out/arm64-v8a out/armeabi-v7a out/x86_64
+
+          # 1. arm64-v8a
+          echo "Building for arm64-v8a..."
+          env \
+            ANDROID_NDK_HOME="$ANDROID_NDK_ROOT" \
+            ANDROID_NDK_ROOT="$ANDROID_NDK_ROOT" \
+            CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="$TOOLCHAIN/aarch64-linux-android24-clang" \
+            CARGO_TARGET_AARCH64_LINUX_ANDROID_RUSTFLAGS="-C link-arg=-Wl,-z,max-page-size=16384 -C link-arg=-Wl,-z,common-page-size=16384" \
+            CC_aarch64_linux_android="$TOOLCHAIN/clang" \
+            CXX_aarch64_linux_android="$TOOLCHAIN/clang++" \
+            CFLAGS_aarch64_linux_android="--target=aarch64-linux-android24" \
+            CXXFLAGS_aarch64_linux_android="--target=aarch64-linux-android24" \
+            AR_aarch64_linux_android="$TOOLCHAIN/llvm-ar" \
+            BINDGEN_EXTRA_CLANG_ARGS_aarch64_linux_android="--target=aarch64-linux-android --sysroot=$SYSROOT" \
+            cargo build --release --locked --features tor --manifest-path aether/Cargo.toml --target aarch64-linux-android --bin aether
+          cp aether/target/aarch64-linux-android/release/aether out/arm64-v8a/libaether.so
+
+          # 2. armeabi-v7a
+          echo "Building for armeabi-v7a..."
+          env \
+            ANDROID_NDK_HOME="$ANDROID_NDK_ROOT" \
+            ANDROID_NDK_ROOT="$ANDROID_NDK_ROOT" \
+            CARGO_TARGET_ARMV7_LINUX_ANDROIDEABI_LINKER="$TOOLCHAIN/armv7a-linux-androideabi24-clang" \
+            CARGO_TARGET_ARMV7_LINUX_ANDROIDEABI_RUSTFLAGS="-C link-arg=-Wl,-z,max-page-size=16384 -C link-arg=-Wl,-z,common-page-size=16384" \
+            CC_armv7_linux_androideabi="$TOOLCHAIN/clang" \
+            CXX_armv7_linux_androideabi="$TOOLCHAIN/clang++" \
+            CFLAGS_armv7_linux_androideabi="--target=armv7a-linux-androideabi24" \
+            CXXFLAGS_armv7_linux_androideabi="--target=armv7a-linux-androideabi24" \
+            AR_armv7_linux_androideabi="$TOOLCHAIN/llvm-ar" \
+            BINDGEN_EXTRA_CLANG_ARGS_armv7_linux_androideabi="--target=armv7-linux-androideabi --sysroot=$SYSROOT" \
+            cargo build --release --locked --features tor --manifest-path aether/Cargo.toml --target armv7-linux-androideabi --bin aether
+          cp aether/target/armv7-linux-androideabi/release/aether out/armeabi-v7a/libaether.so
+
+          ls -la out/*
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aether-android-natives
+          path: aether-src/out
+          retention-days: 30

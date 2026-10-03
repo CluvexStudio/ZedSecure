@@ -72,6 +72,7 @@ object VpnManager {
     const val KIND_CROSS_CHAIN = "cross_chain"
 
     const val KIND_SINGBOX = "sing_box"
+    const val KIND_AETHER = "aether"
 
     fun onStarting(remark: String) {
         activeSocksPort = null

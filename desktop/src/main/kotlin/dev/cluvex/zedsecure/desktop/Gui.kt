@@ -57,6 +57,9 @@ import dev.cluvex.zedsecure.platform.AppInfo
 import dev.cluvex.zedsecure.ui.MainScaffold
 import dev.cluvex.zedsecure.ui.platform.LocalPlatform
 import dev.cluvex.zedsecure.ui.theme.LocalMotionBudget
+import androidx.compose.runtime.produceState
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import dev.cluvex.zedsecure.ui.theme.MotionBudget
 import dev.cluvex.zedsecure.ui.theme.ZedSecureTheme
 import androidx.compose.ui.platform.LocalWindowInfo
@@ -71,6 +74,7 @@ private val WIN_MIN_H = 480.dp
 private val SCREEN_MARGIN = 16.dp
 
 private fun fittedWindowHeight(): Dp {
+    if (Os.current == Os.LINUX && LinuxDesktop.isWayland()) return WIN_H
     val usable = runCatching { GraphicsEnvironment.getLocalGraphicsEnvironment().maximumWindowBounds.height }
         .getOrNull()?.takeIf { it > 0 } ?: return WIN_H
     return minOf(WIN_H, maxOf(WIN_MIN_H, usable.dp - SCREEN_MARGIN))
@@ -82,6 +86,9 @@ fun main(args: Array<String>) {
     if (args.firstOrNull() == "--version") {
         println("ZedSecure $BUILD_VERSION")
         return
+    }
+    if (Os.current == Os.LINUX && LinuxDesktop.isWayland()) {
+        System.setProperty("_JAVA_AWT_WM_NONREPARENTING", "1")
     }
     AppInfo.versionName = BUILD_VERSION
     Runtime.getRuntime().addShutdownHook(Thread { runCatching { DesktopVpn.shutdown() } })
@@ -133,18 +140,19 @@ fun main(args: Array<String>) {
             ImageLoader.Builder(ctx).components { add(SvgDecoder.Factory()) }.build()
         }
 
-        val nativeTrayHost = remember {
-            Os.current == Os.LINUX && LinuxDesktop.trayHostAvailable() && LinuxDesktop.nativeTrayLoads()
+        val isLinux = remember { Os.current == Os.LINUX }
+        val isWayland = remember { isLinux && LinuxDesktop.isWayland() }
+        val nativeTrayHost by produceState(initialValue = false) {
+            value = withContext(Dispatchers.IO) {
+                isLinux && LinuxDesktop.trayHostAvailable() && LinuxDesktop.nativeTrayLoads()
+            }
         }
         var nativeTrayFailed by remember { mutableStateOf(false) }
         val nativeTray = nativeTrayHost && !nativeTrayFailed
-        val trayAvailable = remember(nativeTray) {
-            nativeTray || java.awt.SystemTray.isSupported() && runCatching {
-                val st = java.awt.SystemTray.getSystemTray()
-                val img = java.awt.image.BufferedImage(16, 16, java.awt.image.BufferedImage.TYPE_INT_ARGB)
-                val probe = java.awt.TrayIcon(img)
-                st.add(probe); st.remove(probe); true
-            }.getOrDefault(false)
+        val trayAvailable = remember(nativeTray, isWayland) {
+            if (nativeTray) true
+            else if (isWayland) false
+            else LinuxDesktop.isAwtTraySupportedSafe()
         }
         var windowVisible by remember { mutableStateOf(true) }
         var raiseWindow by remember { mutableStateOf(0) }
@@ -325,7 +333,7 @@ fun main(args: Array<String>) {
             visible = windowVisible,
             title = "ZedSecure",
             icon = painterResource(Res.drawable.ic_zed_mark),
-            resizable = false,
+            resizable = true,
             state = windowState,
         ) {
             LaunchedEffect(raiseWindow) {

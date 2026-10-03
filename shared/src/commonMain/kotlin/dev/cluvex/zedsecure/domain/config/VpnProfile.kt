@@ -72,6 +72,10 @@ sealed interface ProfileSource {
     @Serializable
     @SerialName("sing_box_config")
     data class SingBoxConfig(val json: String) : ProfileSource
+
+    @Serializable
+    @SerialName("aether")
+    data class Aether(val settings: AetherProfile) : ProfileSource
 }
 
 @Serializable
@@ -140,7 +144,10 @@ data class VpnProfile(
 
     val isManagedTunnel: Boolean
         get() = isPsiphon || isDnsTunnel || isMasterDns || isTor || isSsh || isSniSpoof ||
-            isOpenConnect || isIkev2 || isCrossChain || isSingBoxConfig
+            isOpenConnect || isIkev2 || isCrossChain || isSingBoxConfig || isAether
+
+    val isAether: Boolean get() = source is ProfileSource.Aether
+    fun aetherSettings(): AetherProfile? = (source as? ProfileSource.Aether)?.settings
 
     val isDnsBasedTunnel: Boolean get() = isDnsTunnel || isMasterDns
 
@@ -201,6 +208,7 @@ data class VpnProfile(
         is ProfileSource.MasterDns -> ZedLink.build(name, src)
         is ProfileSource.OpenConnect -> ZedLink.build(name, src)
         is ProfileSource.Ikev2 -> ZedLink.build(name, src)
+        is ProfileSource.Aether -> AetherLink.build(name, src.settings)
 
         is ProfileSource.ProxyChain -> null
         is ProfileSource.CrossChain -> null
@@ -244,6 +252,7 @@ data class VpnProfile(
         is ProfileSource.Ikev2 -> throw IllegalStateException("IKEv2 profiles do not build Xray config")
         is ProfileSource.Tor -> throw IllegalStateException("Tor profiles do not build Xray config")
         is ProfileSource.Ssh -> throw IllegalStateException("SSH profiles do not build Xray config")
+        is ProfileSource.Aether -> throw IllegalStateException("Aether profiles run on the Aether engine")
 
         is ProfileSource.ProxyChain ->
             throw IllegalStateException("Proxy-chain profiles are built via ConfigRepository.buildChainConfig")
@@ -363,6 +372,23 @@ data class VpnProfile(
             transportLabel = "IKEv2",
             source = ProfileSource.Ikev2(settings),
             addedAt = addedAt,
+        )
+
+        fun fromAether(
+            settings: AetherProfile,
+            id: String,
+            addedAt: Long,
+            name: String,
+        ): VpnProfile = VpnProfile(
+            id = id,
+            name = name.ifBlank { "Aether ${settings.protocol.uppercase()}" },
+            protocol = "AETHER",
+            address = if (settings.isTwoHops) settings.wiwOuter.ifBlank { "auto" } else settings.server.ifBlank { "auto" },
+            port = 0,
+            transportLabel = "Aether · ${settings.protocol.uppercase()}",
+            source = ProfileSource.Aether(settings),
+            addedAt = addedAt,
+            countryCode = settings.exitLoc.takeIf { it.isNotBlank() && !it.startsWith("!") }?.split(',')?.firstOrNull()?.uppercase(),
         )
 
         fun fromAutoSelect(subscriptionId: String?, groupName: String, members: Int): VpnProfile = VpnProfile(

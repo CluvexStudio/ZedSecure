@@ -46,6 +46,7 @@ class ZedVpnService : VpnService() {
     private var notifChip: dev.cluvex.zedsecure.domain.model.NotifChip =
         dev.cluvex.zedsecure.domain.model.NotifChip.Speed
     private var psiphon: PsiphonController? = null
+    private var aether: AetherController? = null
     private var dnsTunnel: DnsTunnelController? = null
     private var masterDns: MasterDnsController? = null
     private var tor: dev.cluvex.zedsecure.core.tor.TorController? = null
@@ -271,6 +272,7 @@ class ZedVpnService : VpnService() {
 
         when (kind) {
             VpnManager.KIND_PSIPHON -> startPsiphon(configJson, descriptor, tunMtu)
+            VpnManager.KIND_AETHER -> startAether(configJson, descriptor, tunMtu)
             VpnManager.KIND_DNS_TUNNEL -> startDnsTunnel(configJson, descriptor, tunMtu, settings)
             VpnManager.KIND_MASTERDNS -> startMasterDns(configJson, descriptor, tunMtu, settings)
             VpnManager.KIND_TOR -> startTor(settings, descriptor, tunMtu)
@@ -279,6 +281,43 @@ class ZedVpnService : VpnService() {
             VpnManager.KIND_CROSS_CHAIN -> startCrossChain(configJson, descriptor, tunMtu, settings)
             else -> startXray(configJson, socksPort, descriptor, tunMtu)
         }
+    }
+
+    private fun startAether(
+        configJson: String,
+        descriptor: ParcelFileDescriptor,
+        tunMtu: Int,
+    ) {
+        val aetherProfile = try {
+            kotlinx.serialization.json.Json.decodeFromString(
+                dev.cluvex.zedsecure.domain.config.AetherProfile.serializer(), configJson,
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "bad Aether config", e)
+            VpnManager.onError(getString(R.string.config_invalid))
+            stopEverything(); return
+        }
+
+        val controller = AetherController(
+            context = this,
+            service = this,
+            profile = aetherProfile,
+            socksPort = LocalPorts.AETHER_SOCKS,
+            onStopped = { problem ->
+                if (!userStop && problem != null) {
+                    VpnManager.onError(problem)
+                    stopEverything()
+                }
+            },
+        )
+        aether = controller
+        if (!controller.start()) {
+            VpnManager.onError("Aether failed to connect")
+            stopEverything(); return
+        }
+        if (!bridge(descriptor, LocalPorts.AETHER_SOCKS, tunMtu)) return
+        VpnManager.activeSocksPort = LocalPorts.AETHER_SOCKS
+        finishConnected()
     }
 
     private fun startSniSpoof(configJson: String, socksPort: Int, descriptor: ParcelFileDescriptor, tunMtu: Int) {
@@ -866,6 +905,7 @@ class ZedVpnService : VpnService() {
 
     private fun protocolLabel(): String = when (kind) {
         VpnManager.KIND_PSIPHON -> "Psiphon"
+        VpnManager.KIND_AETHER -> "Aether"
         VpnManager.KIND_DNS_TUNNEL -> "DNS"
         VpnManager.KIND_MASTERDNS -> "MasterDNS"
         VpnManager.KIND_TOR -> "Tor"
@@ -1173,6 +1213,7 @@ class ZedVpnService : VpnService() {
         statsJob?.cancel()
         stopAutoSelectSession()
         psiphon?.stop(); psiphon = null
+        aether?.stop(); aether = null
         dnsTunnel?.stop(); dnsTunnel = null
         masterDns?.stop(); masterDns = null
         tor?.stop(); tor = null

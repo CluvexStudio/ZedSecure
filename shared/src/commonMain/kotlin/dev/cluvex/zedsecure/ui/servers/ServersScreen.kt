@@ -320,6 +320,7 @@ fun ServersScreen(
     var showSniSpoof by remember { mutableStateOf(false) }
     var showProxyChain by remember { mutableStateOf(false) }
     var showCrossChain by remember { mutableStateOf(false) }
+    var showAether by remember { mutableStateOf(false) }
 
     val servers = profiles.filterNot { it.isLocked }
 
@@ -1108,9 +1109,24 @@ fun ServersScreen(
                 showAddSheet = false
                 showCrossChain = true
             },
+            onAether = {
+                showAddSheet = false
+                showAether = true
+            },
             onSubscription = {
                 showAddSheet = false
                 showSubs = true
+            },
+        )
+    }
+
+    if (showAether) {
+        AetherSheet(
+            onDismiss = { showAether = false },
+            onSave = { name, settings ->
+                showAether = false
+                repository.addAether(settings, name)
+                onServerActivated()
             },
         )
     }
@@ -1438,6 +1454,18 @@ fun ServersScreen(
                     onDismiss = { editTarget = null },
                     onSave = { name, innerId, outerId ->
                         repository.addCrossChain(innerId, outerId, name, id = target.id)
+                        toastRes(Res.string.saved)
+                        editTarget = null
+                    },
+                )
+            }
+            target.isAether -> {
+                AetherSheet(
+                    initial = target.aetherSettings(),
+                    initialName = target.name,
+                    onDismiss = { editTarget = null },
+                    onSave = { name, settings ->
+                        repository.addAether(settings, name, id = target.id)
                         toastRes(Res.string.saved)
                         editTarget = null
                     },
@@ -1954,6 +1982,7 @@ private fun AddServerSheet(
     onSniSpoof: () -> Unit,
     onProxyChain: () -> Unit,
     onCrossChain: () -> Unit,
+    onAether: () -> Unit,
     onSubscription: () -> Unit,
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
@@ -1983,6 +2012,7 @@ private fun AddServerSheet(
 
             OptionGroup(Res.string.add_group_tunnels)
             Option(Res.drawable.ic_bolt, Res.string.psiphon_add_title, onPsiphon)
+            Option(Res.drawable.ic_bolt, Res.string.manual_protocol, onAether) // Aether MASQUE/WARP
             Option(Res.drawable.ic_lock, Res.string.tor_add_title, onTor)
             Option(Res.drawable.ic_speed, Res.string.ssh_add_title, onSsh)
             Option(Res.drawable.ic_bolt, Res.string.snispoof_add_title, onSniSpoof)

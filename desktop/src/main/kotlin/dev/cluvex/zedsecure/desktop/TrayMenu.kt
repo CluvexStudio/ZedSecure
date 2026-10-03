@@ -65,13 +65,12 @@ private fun List<TrayEntry>.signature(): String = joinToString("|") { entry ->
     }
 }
 
-private fun trayPng(key: String, icon: Painter): String {
+private suspend fun asyncTrayPng(key: String, image: java.awt.Image): String = withContext(Dispatchers.IO) {
     val file = File(System.getProperty("java.io.tmpdir"), "zedsecure-tray-$key.png")
-    val image = icon.toAwtImage(Density(1f), LayoutDirection.Ltr, Size(LINUX_TRAY_PX.toFloat(), LINUX_TRAY_PX.toFloat()))
     val argb = BufferedImage(LINUX_TRAY_PX, LINUX_TRAY_PX, BufferedImage.TYPE_INT_ARGB)
     argb.createGraphics().apply { drawImage(image, 0, 0, null); dispose() }
     ImageIO.write(argb, "png", file)
-    return file.absolutePath
+    file.absolutePath
 }
 
 @Composable
@@ -83,12 +82,15 @@ fun LinuxNativeTray(
     onFailure: () -> Unit,
     entries: List<TrayEntry>,
 ) {
-    val iconPath = remember(iconKey) { trayPng(iconKey, icon) }
+    val awtImage = remember(iconKey) {
+        icon.toAwtImage(Density(1f), LayoutDirection.Ltr, Size(LINUX_TRAY_PX.toFloat(), LINUX_TRAY_PX.toFloat()))
+    }
     DisposableEffect(Unit) {
         onDispose { runCatching { LinuxTrayInitializer.dispose(LINUX_TRAY_ID) } }
     }
-    LaunchedEffect(iconPath, tooltip, entries.signature()) {
+    LaunchedEffect(iconKey, tooltip, entries.signature()) {
         withContext(Dispatchers.IO) {
+            val iconPath = asyncTrayPng(iconKey, awtImage)
             runCatching {
                 LinuxTrayInitializer.initialize(
                     LINUX_TRAY_ID,
@@ -106,6 +108,11 @@ fun LinuxNativeTray(
 }
 
 object LinuxDesktop {
+    fun isWayland(): Boolean {
+        val env = System.getenv()
+        return env["XDG_SESSION_TYPE"].equals("wayland", ignoreCase = true) || !env["WAYLAND_DISPLAY"].isNullOrBlank()
+    }
+
     fun nativeTrayLoads(): Boolean = runCatching {
         Class.forName(NATIVE_TRAY_BRIDGE, true, LinuxTrayInitializer::class.java.classLoader)
     }.onFailure { System.err.println("tray: native tray unavailable: ${it.message ?: it}") }.isSuccess
@@ -118,15 +125,25 @@ object LinuxDesktop {
             "--dest", "org.freedesktop.DBus",
             "--object-path", "/org/freedesktop/DBus",
             "--method", "org.freedesktop.DBus.NameHasOwner", "org.kde.StatusNotifierWatcher",
-            timeoutSec = 5,
+            timeoutSec = 1,
         )
         if (gdbus.first == 0) return "true" in gdbus.second
         val dbusSend = exec(
             "dbus-send", "--session", "--print-reply", "--dest=org.freedesktop.DBus", "/org/freedesktop/DBus",
             "org.freedesktop.DBus.NameHasOwner", "string:org.kde.StatusNotifierWatcher",
-            timeoutSec = 5,
+            timeoutSec = 1,
         )
         return dbusSend.first == 0 && "boolean true" in dbusSend.second
+    }
+
+    fun isAwtTraySupportedSafe(): Boolean {
+        if (isWayland()) return false
+        return java.awt.SystemTray.isSupported() && runCatching {
+            val st = java.awt.SystemTray.getSystemTray()
+            val img = java.awt.image.BufferedImage(16, 16, java.awt.image.BufferedImage.TYPE_INT_ARGB)
+            val probe = java.awt.TrayIcon(img)
+            st.add(probe); st.remove(probe); true
+        }.getOrDefault(false)
     }
 
     fun notify(title: String, body: String) {

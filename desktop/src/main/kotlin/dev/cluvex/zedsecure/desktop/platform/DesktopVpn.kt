@@ -5,6 +5,7 @@ import dev.cluvex.zedsecure.core.SocksTunBridge
 import dev.cluvex.zedsecure.core.SshController
 import dev.cluvex.zedsecure.core.VpnManager
 import dev.cluvex.zedsecure.data.config.ConfigRepository
+import dev.cluvex.zedsecure.desktop.core.DesktopAether
 import dev.cluvex.zedsecure.desktop.core.DesktopDnsTunnel
 import dev.cluvex.zedsecure.desktop.core.DesktopIkev2
 import dev.cluvex.zedsecure.desktop.core.DesktopPsiphon
@@ -16,6 +17,7 @@ import dev.cluvex.zedsecure.desktop.core.SystemProxy
 import dev.cluvex.zedsecure.desktop.core.Os
 import dev.cluvex.zedsecure.desktop.core.TunMode
 import dev.cluvex.zedsecure.desktop.core.XrayCore
+import dev.cluvex.zedsecure.domain.config.AetherProfile
 import dev.cluvex.zedsecure.domain.config.DnsTunnelProfile
 import dev.cluvex.zedsecure.domain.config.Ikev2Profile
 import dev.cluvex.zedsecure.domain.config.LocalPorts
@@ -47,6 +49,7 @@ object DesktopVpn {
     @Volatile private var tor: DesktopTor? = null
     @Volatile private var psiphon: DesktopPsiphon? = null
     @Volatile private var ikev2: DesktopIkev2? = null
+    @Volatile private var aether: DesktopAether? = null
     private var meter: DesktopMeter? = null
     private var usedSystemProxy = false
 
@@ -76,11 +79,34 @@ object DesktopVpn {
         when {
             profile.ikev2Settings() != null -> startIkev2(profile.name, profile.ikev2Settings()!!)
             profile.psiphonSettings() != null -> startPsiphon(profile.name, profile.psiphonSettings()!!)
+            profile.aetherSettings() != null -> startAether(profile.name, profile.aetherSettings()!!)
             profile.isTor -> startTor(profile.name)
             profile.dnsTunnelSettings() != null -> startDns(profile.name, profile.dnsTunnelSettings()!!)
             profile.sshSettings() != null -> startSsh(profile.name, profile.sshSettings()!!)
             profile.isSingBoxConfig -> startSingBoxConfig(profile.name, profile)
             else -> startXray(profile.name, profile, config)
+        }
+    }
+
+    private fun startAether(name: String, aetherProfile: AetherProfile) {
+        VpnManager.onStarting(name)
+        thread(name = "desktop-aether") {
+            val socksPort = localPort(LocalPorts.AETHER_SOCKS)
+            val a = DesktopAether(aetherProfile, work, socksPort)
+            aether = a
+            val res = a.start()
+            if (res.isFailure) {
+                VpnManager.onError(res.exceptionOrNull()?.message ?: "Aether failed to start")
+                return@thread
+            }
+            VpnManager.activeSocksPort = socksPort
+            if (!route(socksPort, emptyList(), udpOverTcp = false, tunCarries = "aether")) {
+                a.stop()
+                aether = null
+                VpnManager.onError("Could not route traffic (system proxy failed)")
+                return@thread
+            }
+            VpnManager.onConnected(name)
         }
     }
 
@@ -430,6 +456,7 @@ object DesktopVpn {
         tor?.let { tor = null; it.stop() }
         ikev2?.let { ikev2 = null; it.disconnect() }
         psiphon?.let { psiphon = null; it.stop() }
+        aether?.let { aether = null; it.stop() }
         shim?.stop(); shim = null
         ssh?.stop(); ssh = null
         dnsTunnel?.stop(); dnsTunnel = null

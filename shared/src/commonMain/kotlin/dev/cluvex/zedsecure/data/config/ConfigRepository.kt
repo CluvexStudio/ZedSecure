@@ -98,6 +98,16 @@ class ConfigRepository(private val store: KeyValueStore) {
             throw IllegalArgumentException("no usable ssh:// config found")
         }
 
+        val aetherLines = trimmed.lines().map { it.trim() }.filter { AetherLink.isAetherLink(it) }
+        if (aetherLines.isNotEmpty()) {
+            var added = 0
+            aetherLines.forEach { line ->
+                AetherLink.parse(line)?.let { (nm, prof) -> addAether(prof, nm); added++ }
+            }
+            if (added > 0) return@runCatching added
+            throw IllegalArgumentException("no usable aether:// config found")
+        }
+
         if (ZedLink.isZedLink(trimmed)) return@runCatching importZedLink(trimmed)
 
         if (SniSpoofLink.isSniSpoofLink(trimmed)) {
@@ -490,6 +500,28 @@ class ConfigRepository(private val store: KeyValueStore) {
     ): VpnProfile {
         val existing = id?.let { profile(it) }
         val profile = VpnProfile.fromIkev2(
+            settings = settings,
+            id = existing?.id ?: newId(),
+            addedAt = existing?.addedAt ?: currentTimeMillis(),
+            name = name,
+        ).let { carryOver(existing, it) }
+        _profiles.value = if (existing != null) {
+            _profiles.value.map { if (it.id == profile.id) profile else it }
+        } else {
+            listOf(profile) + _profiles.value
+        }
+        persistProfiles()
+        if (_activeId.value == null) setActive(profile.id)
+        return profile
+    }
+
+    fun addAether(
+        settings: dev.cluvex.zedsecure.domain.config.AetherProfile,
+        name: String,
+        id: String? = null,
+    ): VpnProfile {
+        val existing = id?.let { profile(it) }
+        val profile = VpnProfile.fromAether(
             settings = settings,
             id = existing?.id ?: newId(),
             addedAt = existing?.addedAt ?: currentTimeMillis(),
