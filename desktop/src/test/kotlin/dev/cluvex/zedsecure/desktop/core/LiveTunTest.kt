@@ -4,10 +4,13 @@ import dev.cluvex.zedsecure.desktop.platform.DesktopXray
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import java.io.File
-import java.net.HttpURLConnection
+import java.net.InetSocketAddress
+import java.net.StandardProtocolFamily
+import java.nio.ByteBuffer
+import java.nio.channels.Channels
+import java.nio.channels.SocketChannel
 import java.net.InetAddress
 import java.net.ServerSocket
-import java.net.URI
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -39,7 +42,7 @@ class LiveTunTest {
             assertTrue(core.start(DesktopXray.bindOutbounds(config, iface)), "xray did not start")
             assertTrue(tun.start(), "zeptun did not bring the adapter up")
 
-            val trace = fetch("http://1.1.1.1/cdn-cgi/trace")
+            val trace = fetch("1.1.1.1", "/cdn-cgi/trace")
             assertTrue("h=1.1.1.1" in trace, trace)
             awaitInLog(access, "1.1.1.1:80", "the request did not pass through the core")
 
@@ -95,19 +98,20 @@ class LiveTunTest {
 
     private fun File.readTextOrEmpty(): String = runCatching { readText() }.getOrDefault("")
 
-    private fun fetch(url: String): String {
+    private fun fetch(host: String, path: String): String {
         var last: Exception? = null
         repeat(4) {
-            val connection = URI(url).toURL().openConnection() as HttpURLConnection
-            connection.connectTimeout = 15_000
-            connection.readTimeout = 15_000
             try {
-                return connection.inputStream.bufferedReader().readText()
+                SocketChannel.open(StandardProtocolFamily.INET).use { channel ->
+                    channel.socket().soTimeout = 15_000
+                    channel.connect(InetSocketAddress(InetAddress.getByName(host), 80))
+                    val request = "GET $path HTTP/1.1\r\nHost: $host\r\nUser-Agent: zedsecure-test\r\nConnection: close\r\n\r\n"
+                    channel.write(ByteBuffer.wrap(request.toByteArray()))
+                    return Channels.newInputStream(channel).readBytes().decodeToString()
+                }
             } catch (e: Exception) {
                 last = e
                 Thread.sleep(2_000)
-            } finally {
-                connection.disconnect()
             }
         }
         throw last!!

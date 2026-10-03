@@ -26,6 +26,7 @@ class ZeptunTunTest {
         assertTrue("address = [\"172.19.0.1/30\", \"fdfe:dcba:9876::1/126\"]" in toml, toml)
         assertFalse("strict" in toml, "strict route would also block the core's own DNS to the domestic resolver")
         assertTrue("guid = \"${ZeptunTun.ADAPTER_GUID}\"" in toml, "one adapter identity, so Windows does not see a new network on every connect")
+        assertTrue("[handler.direct]\nbind_interface = \"loopback\"" in toml, "zeptun must not pin its sockets to the network card, or it cannot reach the core on 127.0.0.1")
     }
 
     @Test
@@ -33,6 +34,7 @@ class ZeptunTunTest {
         val toml = tun(Os.MACOS, udpOverTcp = true).toml()
         assertFalse("name =" in toml, toml)
         assertFalse("guid" in toml, toml)
+        assertTrue("bind_interface = \"lo0\"" in toml, toml)
         assertTrue("udp_mode = \"tcp\"" in toml, toml)
         assertFalse("exclude" in toml, toml)
     }
