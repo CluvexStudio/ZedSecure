@@ -1,12 +1,6 @@
 package dev.cluvex.zedsecure.desktop.core
 
 import java.io.File
-import java.nio.CharBuffer
-import java.nio.file.Files
-import java.nio.file.attribute.PosixFilePermissions
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicBoolean
 
 class TunMode(
     private val hevBinary: File,
@@ -20,12 +14,10 @@ class TunMode(
 
     private val askPassword: ((retry: Boolean) -> CharArray?)? = null,
 ) : DesktopTun {
-    private var process: Process? = null
+    private var helper: LinuxRootHelper? = null
     private var privateDir: File? = null
 
     val tunName = "tun0"
-
-    private enum class Outcome { Ready, Dismissed, Failed }
 
     internal fun writeConfig(dir: File): File {
         val cfg = File(dir, "hev-desktop.yaml")
@@ -49,49 +41,17 @@ class TunMode(
     override fun start(): Boolean = Os.current == Os.LINUX && startLinux()
 
     private fun startLinux(): Boolean {
-        val dir = createPrivateDir() ?: return false
+        val dir = LinuxRootHelper.privateDir(workDir, "zedsecure-tun-", "tun") ?: return false
         privateDir = dir
         val hev = File(dir, hevBinary.name)
         runCatching { hevBinary.copyTo(hev, overwrite = true); hev.setExecutable(true, true) }
             .onFailure { println("[tun] could not stage hev: ${it.message}"); return false }
         val script = writeLinuxScript(dir, hev, writeConfig(dir))
-        val detach = if (onPath("setsid")) listOf("setsid", "-w") else emptyList()
-
-        if (onPath("pkexec")) {
-            when (elevate(detach + listOf("pkexec", "/bin/sh", script.absolutePath), null, PKEXEC_WAIT_SEC)) {
-                Outcome.Ready -> return true
-                Outcome.Dismissed -> return false
-                Outcome.Failed -> println("[tun] pkexec could not authorise; trying sudo")
-            }
-        }
-        if (!onPath("sudo")) return false
-        if (elevate(detach + listOf("sudo", "-n", "/bin/sh", script.absolutePath), null, SUDO_WAIT_SEC) == Outcome.Ready) {
-            return true
-        }
-        val ask = askPassword ?: return false
-        var retry = false
-        repeat(PASSWORD_TRIES) {
-            val password = ask(retry) ?: return false
-            try {
-                if (!sudoAccepts(detach, password)) {
-                    retry = true
-                    return@repeat
-                }
-                val run = detach + listOf("sudo", "-S", "-k", "-p", "", "/bin/sh", script.absolutePath)
-                return elevate(run, password, SUDO_WAIT_SEC) == Outcome.Ready
-            } finally {
-                password.fill('\u0000')
-            }
-        }
-        return false
+        val root = LinuxRootHelper(dir, askPassword, "tun")
+        if (!root.start(script)) return false
+        helper = root
+        return true
     }
-
-    private fun createPrivateDir(): File? = runCatching {
-        val base = System.getenv("XDG_RUNTIME_DIR")?.let(::File)?.takeIf { it.isDirectory && it.canWrite() }
-            ?: workDir.also { it.mkdirs() }
-        val perms = PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwx------"))
-        Files.createTempDirectory(base.toPath(), "zedsecure-tun-", perms).toFile()
-    }.onFailure { println("[tun] could not create a private directory: ${it.message}") }.getOrNull()
 
     internal fun writeLinuxScript(dir: File, hev: File, cfg: File): File {
         val bypassAdd = bypassIps.joinToString("\n") { ip ->
@@ -134,95 +94,20 @@ class TunMode(
         }
     }
 
-    private fun elevate(cmd: List<String>, password: CharArray?, waitSec: Long): Outcome {
-        val p = try {
-            ProcessBuilder(cmd).redirectErrorStream(true).directory(privateDir ?: workDir).start()
-        } catch (e: Exception) {
-            println("[tun] ${cmd.first()} failed to start: ${e.message}")
-            return Outcome.Failed
-        }
-        if (password != null) {
-            runCatching {
-                p.outputStream.write(encode(password))
-                p.outputStream.write('\n'.code)
-                p.outputStream.flush()
-            }
-        }
-        val ready = AtomicBoolean(false)
-        val settled = CountDownLatch(1)
-        Thread {
-            runCatching {
-                p.inputStream.bufferedReader().forEachLine { line ->
-                    if (line.trim() == READY_MARKER) {
-                        ready.set(true)
-                        settled.countDown()
-                    } else if (line.isNotBlank()) {
-                        println("[tun] $line")
-                    }
-                }
-            }
-            settled.countDown()
-        }.apply { isDaemon = true; name = "tun-helper-output" }.start()
-
-        settled.await(waitSec, TimeUnit.SECONDS)
-        if (ready.get()) {
-            process = p
-            return Outcome.Ready
-        }
-        if (p.isAlive && !p.waitFor(2, TimeUnit.SECONDS)) {
-            p.destroy()
-            return Outcome.Failed
-        }
-        return if (!p.isAlive && p.exitValue() == PKEXEC_DISMISSED) Outcome.Dismissed else Outcome.Failed
-    }
-
-    private fun sudoAccepts(detach: List<String>, password: CharArray): Boolean = runCatching {
-        val p = ProcessBuilder(detach + listOf("sudo", "-S", "-k", "-v", "-p", "")).redirectErrorStream(true).start()
-        p.outputStream.use {
-            it.write(encode(password))
-            it.write('\n'.code)
-        }
-        p.inputStream.bufferedReader().use { it.readText() }
-        if (!p.waitFor(SUDO_WAIT_SEC, TimeUnit.SECONDS)) {
-            p.destroyForcibly()
-            false
-        } else {
-            p.exitValue() == 0
-        }
-    }.getOrDefault(false)
-
-    private fun encode(password: CharArray): ByteArray {
-        val buffer = Charsets.UTF_8.encode(CharBuffer.wrap(password))
-        return ByteArray(buffer.remaining()).also { buffer.get(it) }
-    }
-
-    private fun onPath(command: String): Boolean =
-        (System.getenv("PATH").orEmpty().split(File.pathSeparator) + SAFE_PATH.split(':'))
-            .any { it.isNotBlank() && File(it, command).canExecute() }
-
     companion object {
         fun supported(os: Os = Os.current): Boolean = os == Os.LINUX || os == Os.WINDOWS || os == Os.MACOS
 
         fun usesZeptun(os: Os = Os.current): Boolean = os == Os.WINDOWS || os == Os.MACOS
 
-        private const val READY_MARKER = "ZEDSECURE_TUN_READY"
-        private const val PKEXEC_DISMISSED = 126
-        private const val PKEXEC_WAIT_SEC = 180L
-        private const val SUDO_WAIT_SEC = 30L
-        private const val PASSWORD_TRIES = 3
-        private const val SAFE_PATH =
-            "/run/wrappers/bin:/run/current-system/sw/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+        private const val READY_MARKER = LinuxRootHelper.READY_MARKER
+        private const val SAFE_PATH = LinuxRootHelper.SAFE_PATH
     }
 
     override fun stop() {
-        val p = process
-        if (p != null) {
-            runCatching { p.outputStream.close() }
-            if (!p.waitFor(5, TimeUnit.SECONDS)) println("[tun] the root helper is still shutting down")
-        }
+        helper?.stop()
+        helper = null
         privateDir?.let { dir -> runCatching { dir.deleteRecursively() } }
         privateDir = null
-        process = null
     }
 
     object Factory {
