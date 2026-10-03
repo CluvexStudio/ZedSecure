@@ -22,7 +22,10 @@ class ZeptunTun(
         appendLine("log_level = \"warn\"")
         appendLine()
         appendLine("[tun]")
-        if (os == Os.WINDOWS) appendLine("name = \"$ADAPTER\"")
+        if (os == Os.WINDOWS) {
+            appendLine("name = \"$ADAPTER\"")
+            appendLine("guid = \"$ADAPTER_GUID\"")
+        }
         appendLine("address = [\"$TUN_V4/30\", \"$TUN_V6/126\"]")
         appendLine()
         appendLine("[handler]")
@@ -111,14 +114,23 @@ class ZeptunTun(
             writeText(macHelper())
             setExecutable(true, true)
         }
-        val shell = listOf("/bin/sh", script.absolutePath, engine.absolutePath, config.absolutePath, dir.absolutePath)
-            .joinToString(" ") { shQuote(it) } + " " + ProcessHandle.current().pid()
-        val apple = "do shell script \"" + shell.replace("\\", "\\\\").replace("\"", "\\\"") +
-            "\" with administrator privileges"
+        val args = listOf(
+            "/bin/sh", script.absolutePath, engine.absolutePath, config.absolutePath, dir.absolutePath,
+            ProcessHandle.current().pid().toString(),
+        )
+        val command = if (passwordlessSudo()) {
+            println("[tun] using sudo, which needs no password here")
+            listOf("sudo", "-n") + args
+        } else {
+            val shell = args.joinToString(" ") { shQuote(it) }
+            val apple = "do shell script \"" + shell.replace("\\", "\\\\").replace("\"", "\\\"") +
+                "\" with administrator privileges"
+            listOf("osascript", "-e", apple)
+        }
         val process = runCatching {
-            ProcessBuilder("osascript", "-e", apple).redirectErrorStream(true).start()
+            ProcessBuilder(command).redirectErrorStream(true).start()
         }.getOrElse {
-            println("[tun] osascript did not start: ${it.message}")
+            println("[tun] the helper did not start: ${it.message}")
             discard()
             return false
         }
@@ -128,6 +140,9 @@ class ZeptunTun(
         }.apply { isDaemon = true; name = "tun-helper-output" }.start()
         return awaitReady(dir, process)
     }
+
+    private fun passwordlessSudo(): Boolean =
+        runCatching { exec("sudo", "-n", "true", timeoutSec = 5).first == 0 }.getOrDefault(false)
 
     private fun awaitReady(dir: File, process: Process?): Boolean {
         val ready = File(dir, "ready")
@@ -177,6 +192,19 @@ class ZeptunTun(
         |${'$'}failed = Join-Path ${'$'}State 'failed'
         |${'$'}log = Join-Path ${'$'}State 'zeptun.log'
         |${'$'}out = Join-Path ${'$'}State 'zeptun.out'
+        |Add-Type -Namespace ZedSecure -Name Console -MemberDefinition @'
+        |[DllImport("kernel32.dll")] public static extern bool GenerateConsoleCtrlEvent(uint ctrlEvent, uint processGroupId);
+        |[DllImport("kernel32.dll")] public static extern bool SetConsoleCtrlHandler(System.IntPtr handler, bool add);
+        |'@
+        |function Stop-Zeptun([System.Diagnostics.Process]${'$'}proc) {
+        |    if (${'$'}proc.HasExited) { return }
+        |    [ZedSecure.Console]::SetConsoleCtrlHandler([IntPtr]::Zero, ${'$'}true) | Out-Null
+        |    [ZedSecure.Console]::GenerateConsoleCtrlEvent(0, 0) | Out-Null
+        |    if (-not ${'$'}proc.WaitForExit(10000)) {
+        |        Stop-Process -Id ${'$'}proc.Id -Force -ErrorAction SilentlyContinue
+        |        ${'$'}proc.WaitForExit(5000) | Out-Null
+        |    }
+        |}
         |try {
         |    ${'$'}p = Start-Process -FilePath ${'$'}Zeptun -ArgumentList @('run', '-c', ('"' + ${'$'}Config + '"')) -WorkingDirectory ${'$'}State -NoNewWindow -PassThru -RedirectStandardError ${'$'}log -RedirectStandardOutput ${'$'}out
         |} catch {
@@ -190,19 +218,18 @@ class ZeptunTun(
         |    Start-Sleep -Milliseconds 200
         |}
         |if (-not ${'$'}up) {
-        |    if (-not ${'$'}p.HasExited) { Stop-Process -Id ${'$'}p.Id -Force -ErrorAction SilentlyContinue }
+        |    Stop-Zeptun ${'$'}p
         |    ${'$'}why = (Get-Content -LiteralPath ${'$'}log -Tail 5 -ErrorAction SilentlyContinue) -join ' '
         |    Set-Content -LiteralPath ${'$'}failed -Value ('zeptun did not bring the tunnel up. ' + ${'$'}why)
         |    exit 1
         |}
+        |${'$'}tunIf = (Get-NetIPAddress -IPAddress '$TUN_V4' -ErrorAction SilentlyContinue | Select-Object -First 1).InterfaceIndex
+        |if (${'$'}tunIf) { Set-NetIPInterface -InterfaceIndex ${'$'}tunIf -InterfaceMetric 1 -ErrorAction SilentlyContinue }
         |Set-Content -LiteralPath ${'$'}ready -Value ${'$'}p.Id
         |while (-not ${'$'}p.HasExited -and -not (Test-Path -LiteralPath ${'$'}stop) -and (Get-Process -Id ${'$'}AppPid -ErrorAction SilentlyContinue)) {
         |    Start-Sleep -Milliseconds 300
         |}
-        |if (-not ${'$'}p.HasExited) {
-        |    Stop-Process -Id ${'$'}p.Id -Force -ErrorAction SilentlyContinue
-        |    ${'$'}p.WaitForExit(5000) | Out-Null
-        |}
+        |Stop-Zeptun ${'$'}p
         |Remove-Item -LiteralPath ${'$'}ready -ErrorAction SilentlyContinue
         |""".trimMargin()
 
@@ -214,12 +241,47 @@ class ZeptunTun(
         |CONFIG="${'$'}2"
         |STATE="${'$'}3"
         |APP_PID="${'$'}4"
+        |TAB="${'$'}(printf '\t')"
+        |PERSIST="$MAC_DNS_RESTORE"
+        |BACKUP="${'$'}STATE/dns-backup"
         |rm -f "${'$'}STATE/ready" "${'$'}STATE/stop" "${'$'}STATE/failed"
+        |restore_dns() {
+        |  [ -f "${'$'}1" ] || return 0
+        |  while IFS="${'$'}TAB" read -r svc servers; do
+        |    [ -n "${'$'}svc" ] || continue
+        |    if [ "${'$'}servers" = "Empty" ]; then
+        |      networksetup -setdnsservers "${'$'}svc" Empty >/dev/null 2>&1
+        |    else
+        |      networksetup -setdnsservers "${'$'}svc" ${'$'}servers >/dev/null 2>&1
+        |    fi
+        |  done < "${'$'}1"
+        |  rm -f "${'$'}1"
+        |  dscacheutil -flushcache >/dev/null 2>&1
+        |  killall -HUP mDNSResponder >/dev/null 2>&1
+        |}
+        |point_dns_at_tunnel() {
+        |  : > "${'$'}BACKUP"
+        |  networksetup -listallnetworkservices 2>/dev/null | tail -n +2 | grep -v '^\*' | while IFS= read -r svc; do
+        |    [ -n "${'$'}svc" ] || continue
+        |    cur=${'$'}(networksetup -getdnsservers "${'$'}svc" 2>/dev/null | grep -E '^[0-9A-Fa-f:.]+${'$'}' | tr '\n' ' ' | sed 's/ *${'$'}//')
+        |    [ -n "${'$'}cur" ] || cur=Empty
+        |    printf '%s\t%s\n' "${'$'}svc" "${'$'}cur" >> "${'$'}BACKUP"
+        |  done
+        |  mkdir -p "${'$'}(dirname "${'$'}PERSIST")" && cp "${'$'}BACKUP" "${'$'}PERSIST"
+        |  while IFS="${'$'}TAB" read -r svc servers; do
+        |    networksetup -setdnsservers "${'$'}svc" $MAC_TUN_DNS >/dev/null 2>&1
+        |  done < "${'$'}BACKUP"
+        |  dscacheutil -flushcache >/dev/null 2>&1
+        |  killall -HUP mDNSResponder >/dev/null 2>&1
+        |}
+        |restore_dns "${'$'}PERSIST"
         |"${'$'}ZEPTUN" run -c "${'$'}CONFIG" >"${'$'}STATE/zeptun.log" 2>&1 &
         |ZP=${'$'}!
         |cleanup() {
         |  kill "${'$'}ZP" 2>/dev/null
         |  wait "${'$'}ZP" 2>/dev/null
+        |  restore_dns "${'$'}BACKUP"
+        |  rm -f "${'$'}PERSIST"
         |  rm -f "${'$'}STATE/ready"
         |}
         |trap cleanup EXIT
@@ -236,6 +298,7 @@ class ZeptunTun(
         |  echo "zeptun did not bring the tunnel up. ${'$'}(tail -n 5 "${'$'}STATE/zeptun.log" 2>/dev/null | tr '\n' ' ')" >"${'$'}STATE/failed"
         |  exit 1
         |fi
+        |point_dns_at_tunnel
         |echo "${'$'}ZP" >"${'$'}STATE/ready"
         |while kill -0 "${'$'}ZP" 2>/dev/null && [ ! -e "${'$'}STATE/stop" ] && kill -0 "${'$'}APP_PID" 2>/dev/null; do
         |  sleep 0.3
@@ -248,6 +311,9 @@ class ZeptunTun(
         const val TUN_V4 = "172.19.0.1"
         const val TUN_V6 = "fdfe:dcba:9876::1"
         const val DEFAULT_DNS = "1.1.1.1"
+        const val ADAPTER_GUID = "7E2B5D41-0C9A-4F3E-8B6D-2A91C4E7F053"
+        const val MAC_TUN_DNS = "172.19.0.2"
+        const val MAC_DNS_RESTORE = "/Library/Application Support/ZedSecure/dns-restore"
         private const val UAC_WAIT_SEC = 180L
         private const val READY_WAIT_SEC = 45L
         private const val STOP_WAIT_MS = 8_000L

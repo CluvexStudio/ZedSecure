@@ -252,7 +252,9 @@ jobs:
           ( cd "$dest/tor" && find . -type f ! -name files.txt | sed 's#^\./##' | sort > files.txt && cat files.txt )
           file "$dest"/*
 
-      - name: Check the engines the desktop launches are all here
+      - name: Check the engines the desktop launches are all here, and that TUN carries traffic
+        env:
+          ZEDSECURE_LIVE_TUN: "1"
         run: ./gradlew --no-daemon :desktop:test
 
       - name: Build the disk image

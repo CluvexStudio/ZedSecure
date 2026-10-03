@@ -5,7 +5,8 @@ object PhysicalInterface {
         when (os) {
             Os.WINDOWS -> exec(
                 "powershell.exe", "-NoProfile", "-NonInteractive", "-Command",
-                "Find-NetRoute -RemoteIPAddress 1.1.1.1 -ErrorAction SilentlyContinue | " +
+                "[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding \$false; " +
+                    "Find-NetRoute -RemoteIPAddress 1.1.1.1 -ErrorAction SilentlyContinue | " +
                     "Where-Object { \$_.InterfaceAlias -and \$_.InterfaceAlias -ne '${ZeptunTun.ADAPTER}' } | " +
                     "Select-Object -First 1 -ExpandProperty InterfaceAlias",
                 timeoutSec = 20,
@@ -17,7 +18,7 @@ object PhysicalInterface {
     }.getOrNull()
 
     internal fun firstLine(output: String): String? =
-        output.lineSequence().map { it.trim() }.firstOrNull { it.isNotEmpty() }
+        output.lineSequence().map { it.trim().trimStart('\uFEFF') }.firstOrNull { it.isNotEmpty() }
 
     internal fun macInterface(output: String): String? =
         output.lineSequence().map { it.trim() }

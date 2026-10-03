@@ -71,20 +71,32 @@ object SystemProxy {
     }
 
     private fun macos(host: String, port: Int, on: Boolean): Boolean {
-        val service = primaryMacService() ?: "Wi-Fi"
+        val services = macServices().ifEmpty { listOf("Wi-Fi") }
         val kinds = listOf("webproxy", "securewebproxy", "socksfirewallproxy")
-        return if (on) {
-            kinds.all { exec("networksetup", "-set$it", service, host, port.toString()).first == 0 } &&
-                kinds.all { exec("networksetup", "-set${it}state", service, "on").first == 0 }
-        } else {
-            kinds.map { exec("networksetup", "-set${it}state", service, "off").first == 0 }.all { it }
+        val results = services.map { service ->
+            if (on) {
+                val set = kinds.all { networksetup("-set$it", service, host, port.toString()) } &&
+                    kinds.all { networksetup("-set${it}state", service, "on") }
+                networksetup("-setproxybypassdomains", service, *MAC_BYPASS.toTypedArray())
+                set
+            } else {
+                kinds.map { networksetup("-set${it}state", service, "off") }.all { it }
+            }
         }
+        return results.any { it }
     }
 
-    private fun primaryMacService(): String? {
-        val (code, out) = exec("networksetup", "-listallnetworkservices")
-        if (code != 0) return null
+    private val MAC_BYPASS = listOf("localhost", "127.0.0.1", "::1", "*.local", "169.254/16", "10/8", "172.16/12", "192.168/16")
+
+    private fun networksetup(vararg args: String): Boolean =
+        exec(NETWORKSETUP, *args).first == 0
+
+    private const val NETWORKSETUP = "/usr/sbin/networksetup"
+
+    internal fun macServices(listing: String? = null): List<String> {
+        val out = listing ?: exec(NETWORKSETUP, "-listallnetworkservices").let { (code, text) -> if (code == 0) text else return emptyList() }
         return out.lineSequence().drop(1).map { it.trim() }
-            .firstOrNull { it.isNotEmpty() && !it.startsWith("*") }
+            .filter { it.isNotEmpty() && !it.startsWith("*") }
+            .toList()
     }
 }
