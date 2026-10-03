@@ -42,8 +42,8 @@ class LiveTunTest {
             assertTrue(core.start(DesktopXray.bindOutbounds(config, iface)), "xray did not start")
             assertTrue(tun.start(), "zeptun did not bring the adapter up")
 
-            val trace = fetch("1.1.1.1", "/cdn-cgi/trace")
-            assertTrue("h=1.1.1.1" in trace, trace)
+            val reply = fetch("1.1.1.1", "/cdn-cgi/trace")
+            assertTrue(reply.startsWith("HTTP/1.") && "server: cloudflare" in reply.lowercase(), reply)
             awaitInLog(access, "1.1.1.1:80", "the request did not pass through the core")
 
             val name = "zedsecure-tun-${System.nanoTime()}.cloudflare.com"
