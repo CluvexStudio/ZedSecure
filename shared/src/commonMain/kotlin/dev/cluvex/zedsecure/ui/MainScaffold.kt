@@ -124,6 +124,8 @@ fun MainScaffold(
         onImported = { current = TopDestination.Servers },
     )
 
+    dev.cluvex.zedsecure.ui.servers.PsiphonDownloadHost()
+
     NudgeHost(settings = settings, onUpdateSettings = onUpdateSettings)
 
     BackHandler(enabled = current != TopDestination.Home) { current = TopDestination.Home }
@@ -224,7 +226,15 @@ fun MainScaffold(
                     personalization = settings.toPersonalization(),
                     connectStyle = settings.connectButtonStyle,
                     contentPadding = innerPadding,
-                    onToggleConnection = onToggleConnection,
+                    onToggleConnection = {
+                        if (activeProfile?.usesPsiphon() == true) {
+                            dev.cluvex.zedsecure.core.psiphon.PsiphonDownloadBus.ensure { ready ->
+                                if (ready) onToggleConnection()
+                            }
+                        } else {
+                            onToggleConnection()
+                        }
+                    },
 
                     onBrowseConfigs = {
                         current = if (activeProfile?.isLocked == true) TopDestination.Vault

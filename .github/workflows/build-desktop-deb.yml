@@ -85,7 +85,7 @@ jobs:
 
       - name: Build ZedSecure Deb & Distributable
         run: |
-          ./gradlew --no-daemon :desktop:packageDeb :desktop:createDistributable
+          ./gradlew --no-daemon :desktop:createRuntimeImage :desktop:packageDeb :desktop:createDistributable
 
       - name: Collect and Enhance Output
         run: |

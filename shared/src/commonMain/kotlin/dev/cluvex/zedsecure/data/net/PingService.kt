@@ -3,6 +3,7 @@ package dev.cluvex.zedsecure.data.net
 import dev.cluvex.zedsecure.core.CoreProbe
 import dev.cluvex.zedsecure.core.LogBus
 import dev.cluvex.zedsecure.core.VpnManager
+import dev.cluvex.zedsecure.domain.config.AetherProfile
 import dev.cluvex.zedsecure.domain.config.CustomConfig
 import dev.cluvex.zedsecure.domain.config.VpnProfile
 import dev.cluvex.zedsecure.platform.httpTimedTransfer
@@ -37,8 +38,102 @@ object PingService {
 
     private val geoScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    private val CLOUDFLARE_EDGES = listOf(
+        "162.159.192.1" to 443,
+        "engage.cloudflareclient.com" to 443,
+        "162.159.193.1" to 443,
+        "188.114.96.1" to 443,
+        "1.1.1.1" to 443,
+    )
+
     suspend fun tcpPing(host: String, port: Int, timeoutMs: Int = TCP_TIMEOUT_MS): Long =
         withContext(Dispatchers.IO) { tcpConnectMillis(host, port, timeoutMs) }
+
+    fun parseHostPort(raw: String): Pair<String?, Int?> {
+        val s = raw.trim()
+        if (s.isEmpty() || s.equals("auto", ignoreCase = true) || s == "-") return null to null
+        return when {
+            s.startsWith("[") && "]" in s -> {
+                val host = s.substringAfter('[').substringBefore(']').trim()
+                val port = s.substringAfter("]:", "").toIntOrNull()
+                (if (host.isNotEmpty()) host else null) to port
+            }
+            ':' in s && s.indexOf(':') == s.lastIndexOf(':') -> {
+                val host = s.substringBefore(':').trim()
+                val port = s.substringAfter(':').trim().toIntOrNull()
+                (if (host.isNotEmpty()) host else null) to port
+            }
+            else -> s to null
+        }
+    }
+
+    fun aetherTarget(profile: VpnProfile): Pair<String?, Int?> {
+        val aether = profile.aetherSettings() ?: return null to null
+        val raw = if (aether.isTwoHops) {
+            aether.wiwOuter.ifBlank { aether.server }
+        } else {
+            aether.server
+        }.trim()
+
+        val target = if (raw.isBlank() || raw.equals("auto", ignoreCase = true)) {
+            profile.address.takeIf { it.isNotBlank() && !it.equals("auto", ignoreCase = true) && it != "-" }
+        } else {
+            raw
+        } ?: return null to null
+
+        return parseHostPort(target)
+    }
+
+    suspend fun aetherDelay(
+        profile: VpnProfile,
+        timeoutMs: Int = TCP_TIMEOUT_MS,
+    ): Long = withContext(Dispatchers.IO) {
+        val (host, customPort) = aetherTarget(profile)
+        val settings = profile.aetherSettings()
+
+        if (host != null) {
+            val targetPort = customPort ?: if (settings?.transport == AetherProfile.TRANSPORT_H2) 443 else 2408
+            val ms = tcpConnectMillis(host, targetPort, timeoutMs)
+            if (ms > 0) return@withContext ms
+
+            if (targetPort == 2408) {
+                val ms443 = tcpConnectMillis(host, 443, timeoutMs)
+                if (ms443 > 0) return@withContext ms443
+            }
+
+            val probeUrl = if (host.contains('.')) "https://$host/cdn-cgi/trace" else "https://$host"
+            val httpMs = httpProbe(probeUrl, timeoutMs)
+            if (httpMs > 0) return@withContext httpMs
+
+            for (edge in CLOUDFLARE_EDGES) {
+                val edgeMs = tcpConnectMillis(edge.first, edge.second, timeoutMs)
+                if (edgeMs > 0) return@withContext edgeMs
+            }
+            return@withContext -1L
+        }
+
+        for (edge in CLOUDFLARE_EDGES) {
+            val ms = tcpConnectMillis(edge.first, edge.second, timeoutMs)
+            if (ms > 0) return@withContext ms
+        }
+        val httpMs = httpProbe("https://engage.cloudflareclient.com/cdn-cgi/trace", timeoutMs)
+        if (httpMs > 0) return@withContext httpMs
+        val httpMs2 = httpProbe("https://1.1.1.1/cdn-cgi/trace", timeoutMs)
+        if (httpMs2 > 0) return@withContext httpMs2
+        -1L
+    }
+
+    private suspend fun httpProbe(url: String, timeoutMs: Int = 3000): Long = runCatching {
+        val timing = httpTimedTransfer(
+            url = url,
+            socksPort = null,
+            upload = false,
+            uploadBytes = 0,
+            connectTimeoutMs = timeoutMs,
+            readTimeoutMs = timeoutMs,
+        )
+        (timing.ttfbNanos / 1_000_000).coerceAtLeast(1)
+    }.getOrDefault(-1L)
 
     suspend fun realDelay(
         profile: VpnProfile,
@@ -130,7 +225,8 @@ object PingService {
                 val heavy = useRealDelay || profile.isProxyChain
                 val pool = if (heavy && profile.isCustom) customPermits else permits
                 val ms = pool.withPermit {
-                    if (heavy) measureProfile(profile, url, chainConfig)
+                    if (profile.isAether) aetherDelay(profile)
+                    else if (heavy) measureProfile(profile, url, chainConfig)
                     else tcpPing(profile.address, profile.port)
                 }
 
@@ -141,7 +237,12 @@ object PingService {
 
                 if (latency > 0 && profile.countryCode == null) {
                     geoScope.launch {
-                        val country = geoPermits.withPermit { GeoLookup.countryOf(profile.address) }
+                        val geoTarget = if (profile.isAether) {
+                            aetherTarget(profile).first ?: "162.159.192.1"
+                        } else {
+                            profile.address
+                        }
+                        val country = geoPermits.withPermit { GeoLookup.countryOf(geoTarget) }
                         if (country != null) onResult(profile.id, latency, country)
                     }
                 }
@@ -155,7 +256,7 @@ object PingService {
         chainConfig: (VpnProfile) -> String? = { null },
     ): Long {
         if (profile.isAether) {
-            return measureAether(profile, url)
+            return aetherDelay(profile)
         }
         val config = if (profile.isProxyChain) {
             chainConfig(profile) ?: return -1L
@@ -169,23 +270,8 @@ object PingService {
         return probeWithTimeout(profile, config, url)
     }
 
-    private suspend fun measureAether(profile: VpnProfile, url: String): Long = withContext(Dispatchers.IO) {
-        val aether = profile.aetherSettings() ?: return@withContext -1L
-        val target = when {
-            aether.server.isNotBlank() -> aether.server
-            aether.wiwOuter.isNotBlank() -> aether.wiwOuter
-            aether.mimOuter.isNotBlank() -> aether.mimOuter
-            else -> "162.159.192.1:2408"
-        }
-        val host = target.substringBefore(':').removePrefix("[").removeSuffix("]")
-        val port = target.substringAfter(':', "2408").toIntOrNull() ?: 2408
-        val ping = tcpPing(host, port)
-        if (ping > 0) return@withContext ping.toLong()
-        val fallback = tcpPing("162.159.192.1", 2408)
-        if (fallback > 0) fallback.toLong() else -1L
-    }
-
     fun shouldPrecheck(profile: VpnProfile): Boolean {
+        if (profile.isAether) return false
         if (profile.address.isBlank() || profile.address == "-") return false
         if (profile.port !in 1..65535) return false
         if (profile.isCustom) {

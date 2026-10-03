@@ -18,10 +18,14 @@ tar -xf data.tar.* -C data/
 
 # 1. Ensure lib/runtime/bin/java exists
 mkdir -p data/opt/zedsecure/lib/runtime/bin
-if [ ! -f data/opt/zedsecure/lib/runtime/bin/java ] && [ -n "$JAVA_HOME" ] && [ -f "$JAVA_HOME/bin/java" ]; then
-  cp "$JAVA_HOME/bin/java" data/opt/zedsecure/lib/runtime/bin/java
-  chmod +x data/opt/zedsecure/lib/runtime/bin/java
+if [ ! -f data/opt/zedsecure/lib/runtime/bin/java ]; then
+  if [ -n "$JAVA_HOME" ] && [ -f "$JAVA_HOME/bin/java" ]; then
+    cp "$JAVA_HOME/bin/java" data/opt/zedsecure/lib/runtime/bin/java
+  elif command -v java >/dev/null 2>&1; then
+    cp "$(command -v java)" data/opt/zedsecure/lib/runtime/bin/java
+  fi
 fi
+chmod +x data/opt/zedsecure/lib/runtime/bin/java 2>/dev/null || true
 
 # 2. Add launcher wrapper
 cat << 'EOF' > data/opt/zedsecure/bin/zedsecure

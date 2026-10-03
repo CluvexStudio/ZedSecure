@@ -77,6 +77,23 @@ compose.desktop {
             packageVersion = zedVersion
             description = "ZedSecure VPN client"
             vendor = "Cluvex Studio"
+            modules(
+                "java.base",
+                "java.desktop",
+                "java.logging",
+                "java.net.http",
+                "java.naming",
+                "java.sql",
+                "java.xml",
+                "java.management",
+                "java.instrument",
+                "java.security.jgss",
+                "java.security.sasl",
+                "jdk.unsupported",
+                "jdk.crypto.ec",
+                "jdk.crypto.cryptoki",
+                "jdk.management",
+            )
             linux {
                 iconFile.set(project.file("icons/zedsecure.png"))
                 packageName = "zedsecure"

@@ -31,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import dev.cluvex.zedsecure.core.psiphon.PsiphonDownloadBus
 import dev.cluvex.zedsecure.domain.config.AetherProfile
 import dev.cluvex.zedsecure.shared.resources.Res
 import dev.cluvex.zedsecure.shared.resources.*
@@ -195,7 +196,15 @@ fun AetherSheet(
                     AetherProfile.CARRIER_ONLY to "Psiphon Only",
                 ),
                 selected = psiphonMode,
-                onSelect = { psiphonMode = it },
+                onSelect = { selected ->
+                    if (selected != AetherProfile.CARRIER_OFF) {
+                        PsiphonDownloadBus.ensure { ready ->
+                            if (ready) psiphonMode = selected
+                        }
+                    } else {
+                        psiphonMode = selected
+                    }
+                },
             )
 
             if (isPsiphonActive) {
@@ -491,41 +500,50 @@ fun AetherSheet(
 
             Button(
                 onClick = {
-                    val profile = AetherProfile(
-                        protocol = protocol,
-                        transport = transport,
-                        scanMode = scanMode,
-                        obfuscation = obfuscation,
-                        ipVersion = ipVersion,
-                        server = server.trim(),
-                        wiwOuter = wiwOuter.trim(),
-                        wiwInner = wiwInner.trim(),
-                        ech = ech,
-                        echDns = echDns.trim(),
-                        echDomain = echDomain.trim(),
-                        fragment = fragment,
-                        fragmentSize = fragmentSize.trim().ifBlank { "16-32" },
-                        fragmentDelay = fragmentDelay.trim().ifBlank { "2-10" },
-                        dns = dns.trim().ifBlank { "1.1.1.1,1.0.0.1" },
-                        exitLoc = exitLoc.trim().uppercase(),
-                        torMode = torMode,
-                        torBridges = torBridges,
-                        torRelays = torRelays,
-                        torBridgeLines = torBridgeLines.trim(),
-                        psiphonMode = psiphonMode,
-                        psiphonTactics = psiphonTactics,
-                        psiphonRegion = psiphonRegion.trim(),
-                        psiphonCdnIps = psiphonCdnIps.trim(),
-                        psiphonCdnSni = psiphonCdnSni.trim(),
-                        teamName = teamName.trim(),
-                        accessClientId = accessClientId.trim(),
-                        accessClientSecret = accessClientSecret.trim(),
-                        accessToken = accessToken.trim(),
-                        gateway = gateway,
-                        customCommand = customCommand.trim(),
-                    )
-                    onSave(name.trim().ifBlank { "Aether ${protocol.uppercase()}" }, profile)
-                    onDismiss()
+                    val proceed = {
+                        val profile = AetherProfile(
+                            protocol = protocol,
+                            transport = transport,
+                            scanMode = scanMode,
+                            obfuscation = obfuscation,
+                            ipVersion = ipVersion,
+                            server = server.trim(),
+                            wiwOuter = wiwOuter.trim(),
+                            wiwInner = wiwInner.trim(),
+                            ech = ech,
+                            echDns = echDns.trim(),
+                            echDomain = echDomain.trim(),
+                            fragment = fragment,
+                            fragmentSize = fragmentSize.trim().ifBlank { "16-32" },
+                            fragmentDelay = fragmentDelay.trim().ifBlank { "2-10" },
+                            dns = dns.trim().ifBlank { "1.1.1.1,1.0.0.1" },
+                            exitLoc = exitLoc.trim().uppercase(),
+                            torMode = torMode,
+                            torBridges = torBridges,
+                            torRelays = torRelays,
+                            torBridgeLines = torBridgeLines.trim(),
+                            psiphonMode = psiphonMode,
+                            psiphonTactics = psiphonTactics,
+                            psiphonRegion = psiphonRegion.trim(),
+                            psiphonCdnIps = psiphonCdnIps.trim(),
+                            psiphonCdnSni = psiphonCdnSni.trim(),
+                            teamName = teamName.trim(),
+                            accessClientId = accessClientId.trim(),
+                            accessClientSecret = accessClientSecret.trim(),
+                            accessToken = accessToken.trim(),
+                            gateway = gateway,
+                            customCommand = customCommand.trim(),
+                        )
+                        onSave(name.trim().ifBlank { "Aether ${protocol.uppercase()}" }, profile)
+                        onDismiss()
+                    }
+                    if (psiphonMode != AetherProfile.CARRIER_OFF) {
+                        PsiphonDownloadBus.ensure { ready ->
+                            if (ready) proceed()
+                        }
+                    } else {
+                        proceed()
+                    }
                 },
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier

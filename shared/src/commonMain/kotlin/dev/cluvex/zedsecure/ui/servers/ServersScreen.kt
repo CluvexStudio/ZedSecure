@@ -810,8 +810,17 @@ fun ServersScreen(
                                 selected = if (profile.id in selected) selected - profile.id
                                 else selected + profile.id
                             } else {
-                                repository.setActive(profile.id)
-                                onServerActivated()
+                                val select = {
+                                    repository.setActive(profile.id)
+                                    onServerActivated()
+                                }
+                                if (profile.usesPsiphon()) {
+                                    dev.cluvex.zedsecure.core.psiphon.PsiphonDownloadBus.ensure { ready ->
+                                        if (ready) select()
+                                    }
+                                } else {
+                                    select()
+                                }
                             }
                         },
 
@@ -828,11 +837,30 @@ fun ServersScreen(
                         onEdit = { editTarget = profile },
                         onMoveGroup = { moveTarget = profile },
                         onPingTcp = {
-                            scope.launch(kotlinx.coroutines.Dispatchers.Default) {
-                                repository.clearPings(listOf(profile.id), persist = false)
-                                val ms = PingService.tcpPing(profile.address, profile.port)
-                                val cc = if (ms > 0) GeoLookup.countryOf(profile.address) else null
-                                repository.setPing(profile.id, if (ms > 0) ms.toInt() else PingService.FAILED_PING, cc)
+                            val runPing = {
+                                scope.launch(kotlinx.coroutines.Dispatchers.Default) {
+                                    repository.clearPings(listOf(profile.id), persist = false)
+                                    val ms = if (profile.isAether) {
+                                        PingService.aetherDelay(profile)
+                                    } else {
+                                        PingService.tcpPing(profile.address, profile.port)
+                                    }
+                                    val cc = if (ms > 0) {
+                                        if (profile.isAether) {
+                                            profile.countryCode ?: PingService.aetherTarget(profile).first?.let { GeoLookup.countryOf(it) }
+                                        } else {
+                                            GeoLookup.countryOf(profile.address)
+                                        }
+                                    } else null
+                                    repository.setPing(profile.id, if (ms > 0) ms.toInt() else PingService.FAILED_PING, cc)
+                                }
+                            }
+                            if (profile.usesPsiphon()) {
+                                dev.cluvex.zedsecure.core.psiphon.PsiphonDownloadBus.ensure { ready ->
+                                    if (ready) runPing()
+                                }
+                            } else {
+                                runPing()
                             }
                         },
                         onPingReal = {
@@ -842,7 +870,13 @@ fun ServersScreen(
                                     profile,
                                     url = delayTestUrl.ifBlank { dev.cluvex.zedsecure.data.net.NetworkInfoRepository.DELAY_TEST_URL },
                                 )
-                                val cc = if (ms > 0) GeoLookup.countryOf(profile.address) else null
+                                val cc = if (ms > 0) {
+                                    if (profile.isAether) {
+                                        profile.countryCode ?: PingService.aetherTarget(profile).first?.let { GeoLookup.countryOf(it) }
+                                    } else {
+                                        GeoLookup.countryOf(profile.address)
+                                    }
+                                } else null
                                 repository.setPing(profile.id, if (ms > 0) ms.toInt() else PingService.FAILED_PING, cc)
                             }
                         },
@@ -1069,7 +1103,9 @@ fun ServersScreen(
             },
             onPsiphon = {
                 showAddSheet = false
-                showPsiphon = true
+                dev.cluvex.zedsecure.core.psiphon.PsiphonDownloadBus.ensure { ready ->
+                    if (ready) showPsiphon = true
+                }
             },
             onDnsTunnel = {
                 showAddSheet = false

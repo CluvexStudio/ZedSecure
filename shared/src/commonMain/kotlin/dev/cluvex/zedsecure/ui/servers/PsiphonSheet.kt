@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.cluvex.zedsecure.shared.resources.Res
 import dev.cluvex.zedsecure.shared.resources.*
+import dev.cluvex.zedsecure.core.psiphon.PsiphonDownloadBus
 import dev.cluvex.zedsecure.domain.config.PsiphonConfigBuilder
 import dev.cluvex.zedsecure.domain.config.PsiphonProfile
 import dev.cluvex.zedsecure.ui.components.PickerField
@@ -100,15 +101,19 @@ fun PsiphonSheet(
 
             Button(
                 onClick = {
-                    onSave(
-                        name.trim(),
-                        PsiphonProfile(
-                            country = country.trim(),
-                            mode = mode,
-                            cdnIps = cdnIps.trim(),
-                            cdnSni = cdnSni.trim(),
-                        ),
-                    )
+                    PsiphonDownloadBus.ensure { ready ->
+                        if (ready) {
+                            onSave(
+                                name.trim(),
+                                PsiphonProfile(
+                                    country = country.trim(),
+                                    mode = mode,
+                                    cdnIps = cdnIps.trim(),
+                                    cdnSni = cdnSni.trim(),
+                                ),
+                            )
+                        }
+                    }
                 },
                 shape = RoundedCornerShape(18.dp),
                 modifier = Modifier.fillMaxWidth().height(54.dp),

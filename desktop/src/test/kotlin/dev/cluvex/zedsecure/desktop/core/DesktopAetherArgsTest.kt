@@ -226,4 +226,56 @@ class DesktopAetherArgsTest {
         assertTrue(parsed.gateway)
         assertEquals("--custom-flag 123", parsed.customCommand)
     }
+
+    @Test
+    fun `aetherTarget extracts custom server or falls back to null for auto-scan`() {
+        val customProfile = VpnProfile.fromAether(
+            settings = AetherProfile(server = "162.159.192.1:2408"),
+            id = "p1",
+            addedAt = 0L,
+            name = "Aether Custom",
+        )
+        val (h1, p1) = dev.cluvex.zedsecure.data.net.PingService.aetherTarget(customProfile)
+        assertEquals("162.159.192.1", h1)
+        assertEquals(2408, p1)
+
+        val autoProfile = VpnProfile.fromAether(
+            settings = AetherProfile(server = ""),
+            id = "p2",
+            addedAt = 0L,
+            name = "Aether Auto",
+        )
+        val (h2, p2) = dev.cluvex.zedsecure.data.net.PingService.aetherTarget(autoProfile)
+        assertEquals(null, h2)
+        assertEquals(null, p2)
+
+        val twoHopProfile = VpnProfile.fromAether(
+            settings = AetherProfile(
+                protocol = AetherProfile.PROTOCOL_GOOL,
+                wiwOuter = "162.159.193.1:2408",
+                wiwInner = "188.114.96.1:2408",
+            ),
+            id = "p3",
+            addedAt = 0L,
+            name = "Aether TwoHop",
+        )
+        val (h3, p3) = dev.cluvex.zedsecure.data.net.PingService.aetherTarget(twoHopProfile)
+        assertEquals("162.159.193.1", h3)
+        assertEquals(2408, p3)
+    }
+
+    @Test
+    fun `aetherDelay measures real latency for auto-scan and custom endpoints`() = kotlinx.coroutines.runBlocking {
+        val autoProfile = VpnProfile.fromAether(
+            settings = AetherProfile(server = ""),
+            id = "auto-test",
+            addedAt = 0L,
+            name = "Auto Aether",
+        )
+        val delay = dev.cluvex.zedsecure.data.net.PingService.aetherDelay(autoProfile)
+        assertTrue(delay > 0, "Aether auto-scan delay should be positive, got $delay")
+
+        val realProfileDelay = dev.cluvex.zedsecure.data.net.PingService.realDelay(autoProfile)
+        assertTrue(realProfileDelay > 0, "PingService.realDelay should support Aether, got $realProfileDelay")
+    }
 }
