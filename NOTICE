@@ -154,8 +154,8 @@ Source: https://gitlab.com/openconnect/openconnect
 License: LGPL-2.1
 `app/src/main/jniLibs/<abi>/libopenconnect.so` is a build of our patched fork.
 Ask us for that source and we will provide it, as LGPL-2.1 section 6 requires.
-The Windows desktop build ships `openconnect.exe` built from the same fork with MinGW, the GnuTLS,
-libxml2, zlib and lz4 DLLs it loads (each under its own licence, LGPL or more permissive), the
+The Windows desktop build ships `openconnect.exe` built unmodified from the official 9.21 release with
+MinGW, the GnuTLS, nettle, gmp, libxml2 and zlib DLLs it loads (each under its own licence, LGPL or more permissive), the
 Wintun driver DLL (Wintun Prebuilt Binaries License) and `vpnc-script-win.js` from
 https://gitlab.com/openconnect/vpnc-scripts (GPL-2.0-or-later), all unmodified and run as a
 separate process.

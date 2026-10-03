@@ -16,6 +16,8 @@ env:
   HEV_RELEASE: "2.18.0"
   TOR_BUNDLE: "14.5.1"
   ZEPTUN_RELEASE: "v1.1.1"
+  OPENCONNECT_RELEASE: "9.21"
+  OPENCONNECT_SHA256: "5b32369467db6e5f317aa1ed12cfcbb81ed00bdbc765450b6bfcbdc300944a58"
 
 jobs:
   xray:
@@ -179,19 +181,17 @@ jobs:
     runs-on: ubuntu-latest
     container: fedora:42
     steps:
-      - name: Install the MinGW toolchain and libraries
-        run: |
-          dnf -y -q install git curl unzip findutils make autoconf automake libtool gettext-devel pkgconf-pkg-config \
-            mingw64-filesystem mingw64-gcc mingw64-binutils mingw64-gnutls mingw64-libxml2 mingw64-zlib mingw64-lz4 \
-            mingw64-gettext mingw64-p11-kit
-      - uses: actions/checkout@v4
-      - run: git config --global --add safe.directory "$GITHUB_WORKSPACE" && ./tools/fetch-cores.sh reference/openconnect
       - name: Cross-compile OpenConnect for Windows with MinGW
-        working-directory: reference/openconnect
         run: |
           set -e
-          ./autogen.sh
-          mingw64-configure --without-gnutls-version-check --with-vpnc-script=vpnc-script-win.js
+          dnf -y -q install curl unzip findutils make pkgconf-pkg-config \
+            mingw64-filesystem mingw64-gcc mingw64-binutils mingw64-gnutls mingw64-libxml2 mingw64-zlib \
+            mingw64-gettext mingw64-p11-kit
+          curl -fsSL --retry 3 "https://www.infradead.org/openconnect/download/openconnect-${OPENCONNECT_RELEASE}.tar.gz" -o oc.tar.gz
+          echo "${OPENCONNECT_SHA256}  oc.tar.gz" | sha256sum -c
+          tar -xzf oc.tar.gz
+          cd "openconnect-${OPENCONNECT_RELEASE}"
+          mingw64-configure --without-gnutls-version-check --disable-nls --with-vpnc-script=vpnc-script-win.js
           make -j"$(nproc)" openconnect.exe
           out="$GITHUB_WORKSPACE/openconnect-windows"
           mkdir -p "$out"

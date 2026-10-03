@@ -68,6 +68,15 @@ class EnginesLaunchTest {
     }
 
     @Test
+    fun `openconnect starts on Windows, which proves its DLLs load`() {
+        if (Os.current != Os.WINDOWS) return
+        val root = bundled(BundledTree.extract(File(work, "openconnect"), "openconnect"), "openconnect") ?: return
+        val run = launch(File(root, "openconnect.exe"), "--version")
+        assertTrue("OpenConnect version" in run.output, "unexpected output (exit ${run.exit}): ${run.output.take(300)}")
+        assertTrue(File(root, "vpnc-script-win.js").isFile && File(root, "wintun.dll").isFile)
+    }
+
+    @Test
     fun `zeddns starts and lists its flags`() {
         val zeddns = bundled(BundledBinary.extract(work, "zeddns", "zeddns.exe"), "zeddns") ?: return
         val run = launch(zeddns, "-h")
