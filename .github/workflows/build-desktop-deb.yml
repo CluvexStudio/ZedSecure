@@ -107,7 +107,7 @@ jobs:
               chmod +x data/opt/zedsecure/lib/runtime/bin/java
             fi
 
-            cat << 'EOF' > data/opt/zedsecure/bin/zedsecure
+            cat << "LAUNCHER" > data/opt/zedsecure/bin/zedsecure
 #!/bin/sh
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 APPDIR="$SCRIPT_DIR/../lib/app"
@@ -134,7 +134,7 @@ exec "$JAVA_EXEC" \
   -Dskiko.library.path="$APPDIR" \
   -cp "$APPDIR/*" \
   dev.cluvex.zedsecure.desktop.GuiKt "$@"
-EOF
+LAUNCHER
             chmod +x data/opt/zedsecure/bin/zedsecure
             mkdir -p data/usr/bin
             ln -sf /opt/zedsecure/bin/zedsecure data/usr/bin/zedsecure
