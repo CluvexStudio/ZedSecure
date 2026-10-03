@@ -22,14 +22,36 @@ internal object BundledBinary {
     }
 
     private fun copy(workDir: File, sub: String, name: String): File? {
-        val res = "/bin/$sub/$name"
         val out = File(workDir, name)
+        if (out.isFile && out.length() > 0) {
+            out.setExecutable(true)
+            return out
+        }
+
+        val persistentCandidates = listOf(
+            File(System.getProperty("user.home"), ".config/zedsecure/bin/$name"),
+            File(System.getProperty("user.home"), ".zedsecure/bin/$name"),
+            File(System.getenv("APPDATA") ?: "", "ZedSecure/bin/$name"),
+            File(System.getProperty("user.home"), "Library/Application Support/ZedSecure/bin/$name"),
+        )
+        for (candidate in persistentCandidates) {
+            if (candidate.isFile && candidate.length() > 0) {
+                runCatching { candidate.copyTo(out, overwrite = true) }
+                if (out.isFile && out.length() > 0) {
+                    out.setExecutable(true)
+                    return out
+                }
+            }
+        }
+
+        val res = "/bin/$sub/$name"
         val stream = BundledBinary::class.java.getResourceAsStream(res) ?: run {
             System.err.println("bundled $name not found: $res")
             return null
         }
         return runCatching {
             stream.use { input -> out.outputStream().use { input.copyTo(it) } }
+            out.setExecutable(true)
             out
         }.getOrElse {
             runCatching { stream.close() }

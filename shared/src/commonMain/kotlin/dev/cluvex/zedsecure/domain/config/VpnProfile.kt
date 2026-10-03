@@ -599,4 +599,11 @@ data class VpnProfile(
             )
         }
     }
+
+    fun usesPsiphon(): Boolean = when (val s = source) {
+        is ProfileSource.Psiphon -> true
+        is ProfileSource.Aether -> s.settings.psiphonMode != AetherProfile.CARRIER_OFF
+        is ProfileSource.SingBox -> s.carrier?.equals("psiphon", ignoreCase = true) == true
+        else -> protocol.equals("PSIPHON", ignoreCase = true)
+    }
 }

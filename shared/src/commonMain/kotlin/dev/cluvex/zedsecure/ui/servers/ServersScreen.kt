@@ -1890,7 +1890,7 @@ private fun ServerCard(
                         )
                     }
 
-                    if ((!profile.isManagedTunnel || profile.isSingBoxConfig) && !profile.isDnsBasedTunnel) {
+                    if ((!profile.isManagedTunnel || profile.isSingBoxConfig || profile.isAether) && !profile.isDnsBasedTunnel) {
                         DropdownMenuItem(
                             text = { Text(stringResource(Res.string.ping_tcp)) },
                             leadingIcon = { Icon(painterResource(Res.drawable.ic_speed), null) },

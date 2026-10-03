@@ -50,6 +50,12 @@ object AetherLink {
             torBridges = queryMap["tor_bridges"] ?: "auto",
             torRelays = queryMap["tor_relays"] ?: "auto",
             torBridgeLines = queryMap["bridges"]?.replace(';', '\n') ?: "",
+            teamName = queryMap["team"] ?: "",
+            accessClientId = queryMap["access_id"] ?: "",
+            accessClientSecret = queryMap["access_secret"] ?: "",
+            accessToken = queryMap["access_token"] ?: "",
+            gateway = queryMap["gateway"] == "1" || queryMap["gateway"] == "true",
+            customCommand = queryMap["cmd"] ?: "",
         )
         return name to profile
     }
@@ -98,6 +104,18 @@ object AetherLink {
             if (profile.torBridgeLines.isNotBlank()) {
                 query["bridges"] = profile.torBridgeLines.lines().map { it.trim() }.filter { it.isNotEmpty() }.joinToString(";")
             }
+        }
+
+        if (profile.teamName.isNotBlank()) {
+            query["team"] = profile.teamName
+            if (profile.accessClientId.isNotBlank()) query["access_id"] = profile.accessClientId
+            if (profile.accessClientSecret.isNotBlank()) query["access_secret"] = profile.accessClientSecret
+            if (profile.accessToken.isNotBlank()) query["access_token"] = profile.accessToken
+            if (profile.gateway) query["gateway"] = "1"
+        }
+
+        if (profile.customCommand.isNotBlank()) {
+            query["cmd"] = profile.customCommand
         }
 
         val authority = if (!profile.isTwoHops && profile.server.isNotBlank()) profile.server else ""

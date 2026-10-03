@@ -120,7 +120,7 @@ object PingService {
         val customPermits = Semaphore(minOf(realPermits, CUSTOM_PROBE_CONCURRENCY))
         val geoPermits = Semaphore(GEO_CONCURRENCY)
 
-        val targets = profiles.filterNot { (it.isManagedTunnel && !it.isSingBoxConfig) || it.isDnsBasedTunnel }
+        val targets = profiles.filterNot { (it.isManagedTunnel && !it.isSingBoxConfig && !it.isAether) || it.isDnsBasedTunnel }
         val total = targets.size
         var done = 0
         val doneLock = Semaphore(1)
@@ -154,6 +154,9 @@ object PingService {
         url: String,
         chainConfig: (VpnProfile) -> String? = { null },
     ): Long {
+        if (profile.isAether) {
+            return measureAether(profile, url)
+        }
         val config = if (profile.isProxyChain) {
             chainConfig(profile) ?: return -1L
         } else {
@@ -164,6 +167,22 @@ object PingService {
             runCatching { profile.toXrayConfigJson(forSpeedtest = true) }.getOrElse { return -1L }
         }
         return probeWithTimeout(profile, config, url)
+    }
+
+    private suspend fun measureAether(profile: VpnProfile, url: String): Long = withContext(Dispatchers.IO) {
+        val aether = profile.aetherSettings() ?: return@withContext -1L
+        val target = when {
+            aether.server.isNotBlank() -> aether.server
+            aether.wiwOuter.isNotBlank() -> aether.wiwOuter
+            aether.mimOuter.isNotBlank() -> aether.mimOuter
+            else -> "162.159.192.1:2408"
+        }
+        val host = target.substringBefore(':').removePrefix("[").removeSuffix("]")
+        val port = target.substringAfter(':', "2408").toIntOrNull() ?: 2408
+        val ping = tcpPing(host, port)
+        if (ping > 0) return@withContext ping.toLong()
+        val fallback = tcpPing("162.159.192.1", 2408)
+        if (fallback > 0) fallback.toLong() else -1L
     }
 
     fun shouldPrecheck(profile: VpnProfile): Boolean {

@@ -126,4 +126,104 @@ class DesktopAetherArgsTest {
         assertTrue("--psiphon-bin" in args && args[args.indexOf("--psiphon-bin") + 1] == "/tmp/psiphon")
         assertTrue("--psiphon-region" in args && args[args.indexOf("--psiphon-region") + 1] == "DE")
     }
+
+    @Test
+    fun `Psiphon Only mode generates psiphon-only flag`() {
+        val profile = AetherProfile(
+            psiphonMode = AetherProfile.CARRIER_ONLY,
+            psiphonTactics = "cdn",
+            psiphonRegion = "US",
+            psiphonCdnIps = "104.16.0.1",
+        )
+        val args = AetherCoreBuilder.buildArgs(profile, socksPort = 11819)
+
+        assertTrue("--psiphon-only" in args)
+        assertTrue("--psiphon-mode" in args && args[args.indexOf("--psiphon-mode") + 1] == "cdn")
+        assertTrue("--psiphon-region" in args && args[args.indexOf("--psiphon-region") + 1] == "US")
+        assertTrue("--psiphon-cdn-ips" in args && args[args.indexOf("--psiphon-cdn-ips") + 1] == "104.16.0.1")
+    }
+
+    @Test
+    fun `Zero Trust access flags generated correctly`() {
+        val profile = AetherProfile(
+            teamName = "myteam.cloudflareaccess.com",
+            accessClientId = "test-id",
+            accessClientSecret = "test-secret",
+            accessToken = "test-token",
+            gateway = true,
+        )
+        val args = AetherCoreBuilder.buildArgs(profile, socksPort = 11819)
+
+        assertTrue("--team" in args && args[args.indexOf("--team") + 1] == "myteam.cloudflareaccess.com")
+        assertTrue("--access-id" in args && args[args.indexOf("--access-id") + 1] == "test-id")
+        assertTrue("--access-secret" in args && args[args.indexOf("--access-secret") + 1] == "test-secret")
+        assertTrue("--access-token" in args && args[args.indexOf("--access-token") + 1] == "test-token")
+        assertTrue("--gateway" in args)
+    }
+
+    @Test
+    fun `custom command overrides auto-generated flags`() {
+        val profile = AetherProfile(
+            customCommand = "aether --bind 127.0.0.1:1080 --protocol wg --peer 1.2.3.4:2408",
+        )
+        val args = AetherCoreBuilder.buildArgs(profile, socksPort = 11819)
+
+        assertEquals(listOf("--bind", "127.0.0.1:1080", "--protocol", "wg", "--peer", "1.2.3.4:2408"), args)
+    }
+
+    @Test
+    fun `AetherLink roundtrip with Zero Trust, Psiphon Only and customCommand`() {
+        val original = AetherProfile(
+            protocol = AetherProfile.PROTOCOL_MIM,
+            transport = AetherProfile.TRANSPORT_H2,
+            scanMode = AetherProfile.SCAN_VERIFIED,
+            obfuscation = AetherProfile.NOISE_GFW,
+            wiwOuter = "162.159.192.1:2408",
+            wiwInner = "188.114.96.1:2408",
+            ech = true,
+            echDns = "https://1.1.1.1/dns-query",
+            echDomain = "cloudflare-ech.com",
+            fragment = true,
+            fragmentSize = "20-40",
+            fragmentDelay = "3-12",
+            dns = "8.8.8.8,1.1.1.1",
+            exitLoc = "DE,SE",
+            psiphonMode = AetherProfile.CARRIER_ONLY,
+            psiphonTactics = "cdn",
+            psiphonRegion = "DE",
+            teamName = "org.cloudflareaccess.com",
+            accessClientId = "cid",
+            accessClientSecret = "csec",
+            accessToken = "tok",
+            gateway = true,
+            customCommand = "--custom-flag 123",
+        )
+        val link = AetherLink.build("FullConfig", original)
+        val (name, parsed) = AetherLink.parse(link)!!
+
+        assertEquals("FullConfig", name)
+        assertEquals(AetherProfile.PROTOCOL_MIM, parsed.protocol)
+        assertEquals(AetherProfile.TRANSPORT_H2, parsed.transport)
+        assertEquals(AetherProfile.SCAN_VERIFIED, parsed.scanMode)
+        assertEquals(AetherProfile.NOISE_GFW, parsed.obfuscation)
+        assertEquals("162.159.192.1:2408", parsed.wiwOuter)
+        assertEquals("188.114.96.1:2408", parsed.wiwInner)
+        assertTrue(parsed.ech)
+        assertEquals("https://1.1.1.1/dns-query", parsed.echDns)
+        assertEquals("cloudflare-ech.com", parsed.echDomain)
+        assertTrue(parsed.fragment)
+        assertEquals("20-40", parsed.fragmentSize)
+        assertEquals("3-12", parsed.fragmentDelay)
+        assertEquals("8.8.8.8,1.1.1.1", parsed.dns)
+        assertEquals("DE,SE", parsed.exitLoc)
+        assertEquals(AetherProfile.CARRIER_ONLY, parsed.psiphonMode)
+        assertEquals("cdn", parsed.psiphonTactics)
+        assertEquals("DE", parsed.psiphonRegion)
+        assertEquals("org.cloudflareaccess.com", parsed.teamName)
+        assertEquals("cid", parsed.accessClientId)
+        assertEquals("csec", parsed.accessClientSecret)
+        assertEquals("tok", parsed.accessToken)
+        assertTrue(parsed.gateway)
+        assertEquals("--custom-flag 123", parsed.customCommand)
+    }
 }
