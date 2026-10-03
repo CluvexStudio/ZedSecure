@@ -1,0 +1,77 @@
+name: build-desktop-deb
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/build-desktop-deb.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Fetch base engines from official release
+        run: |
+          set -e
+          dest=desktop/src/main/resources/bin/linux
+          mkdir -p "$dest" /tmp/deb-extract
+          curl -sSL "https://github.com/CluvexStudio/ZedSecure/releases/download/desktop-v3.1.2/ZedSecure-3.1.2-amd64.deb" -o /tmp/deb-extract/base.deb
+          cd /tmp/deb-extract
+          ar x base.deb
+          tar --use-compress-program=unzstd -xf data.tar.zst || tar -xzf data.tar.gz || tar -xf data.tar.*
+
+          # Copy all engines from base app jar/resources
+          jar_file=$(find opt/zedsecure/lib/app -name "desktop-*.jar" | head -1)
+          if [ -n "$jar_file" ]; then
+            unzip -q "$jar_file" "bin/linux/*" -d /tmp/deb-extract/unpacked/ || true
+            if [ -d "/tmp/deb-extract/unpacked/bin/linux" ]; then
+              cp -r /tmp/deb-extract/unpacked/bin/linux/* "$GITHUB_WORKSPACE/$dest/"
+            fi
+          fi
+
+          # Also check if binaries are directly in lib/ or bin/
+          find opt/zedsecure -type f -name "xray" -exec cp {} "$GITHUB_WORKSPACE/$dest/xray" \; || true
+          find opt/zedsecure -type f -name "hev-socks5-tunnel" -exec cp {} "$GITHUB_WORKSPACE/$dest/hev-socks5-tunnel" \; || true
+          find opt/zedsecure -type f -name "zeddns" -exec cp {} "$GITHUB_WORKSPACE/$dest/zeddns" \; || true
+          find opt/zedsecure -type f -name "psiphon" -exec cp {} "$GITHUB_WORKSPACE/$dest/psiphon" \; || true
+
+          chmod +x "$GITHUB_WORKSPACE/$dest"/* || true
+          ls -la "$GITHUB_WORKSPACE/$dest"
+
+      - name: Build and stage Aether binary
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-gnu
+
+      - name: Compile Aether binary
+        run: |
+          git clone --recurse-submodules https://github.com/CluvexStudio/Aether.git /tmp/aether-src
+          cd /tmp/aether-src/aether
+          cargo build --release --locked --features tor --bin aether
+          mkdir -p "$GITHUB_WORKSPACE/desktop/src/main/resources/bin/linux"
+          cp target/release/aether "$GITHUB_WORKSPACE/desktop/src/main/resources/bin/linux/aether"
+          chmod +x "$GITHUB_WORKSPACE/desktop/src/main/resources/bin/linux/aether"
+          ls -la "$GITHUB_WORKSPACE/desktop/src/main/resources/bin/linux"
+
+      - name: Build ZedSecure Deb & Distributable
+        run: |
+          ./gradlew --no-daemon :desktop:packageDeb :desktop:createDistributable
+
+      - name: Collect Output
+        run: |
+          mkdir -p out
+          cp desktop/build/compose/binaries/main/deb/*.deb out/ || true
+          ls -la out/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: zedsecure-linux-deb
+          path: out/*.deb
+          retention-days: 30
