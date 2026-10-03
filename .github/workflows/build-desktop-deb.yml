@@ -11,10 +11,25 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            libssl-dev \
+            pkg-config \
+            libclang-dev \
+            clang \
+            cmake \
+            zstd \
+            binutils
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "21"
+
       - uses: gradle/actions/setup-gradle@v4
 
       - name: Fetch base engines from official release
@@ -45,16 +60,24 @@ jobs:
           chmod +x "$GITHUB_WORKSPACE/$dest"/* || true
           ls -la "$GITHUB_WORKSPACE/$dest"
 
-      - name: Build and stage Aether binary
+      - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: x86_64-unknown-linux-gnu
 
-      - name: Compile Aether binary
+      - name: Clone Aether source & submodules
         run: |
-          git clone --recurse-submodules https://github.com/CluvexStudio/Aether.git /tmp/aether-src
-          cd /tmp/aether-src/aether
-          cargo build --release --locked --features tor --bin aether
+          git clone --recurse-submodules https://github.com/CluvexStudio/Aether.git aether-src
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "aether-src/aether"
+
+      - name: Compile Aether binary
+        working-directory: aether-src/aether
+        run: |
+          cargo build --release --locked --features tor --bin aether -j $(nproc)
           mkdir -p "$GITHUB_WORKSPACE/desktop/src/main/resources/bin/linux"
           cp target/release/aether "$GITHUB_WORKSPACE/desktop/src/main/resources/bin/linux/aether"
           chmod +x "$GITHUB_WORKSPACE/desktop/src/main/resources/bin/linux/aether"

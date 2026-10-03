@@ -11,20 +11,40 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            libssl-dev \
+            pkg-config \
+            libclang-dev \
+            clang \
+            cmake
+
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: x86_64-unknown-linux-gnu
+
       - name: Clone Aether source & submodules
         run: |
           git clone --recurse-submodules https://github.com/CluvexStudio/Aether.git aether-src
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "aether-src/aether"
+
       - name: Build Aether Linux x86_64
         working-directory: aether-src/aether
         run: |
-          cargo build --release --locked --features tor --bin aether
+          cargo build --release --locked --features tor --bin aether -j $(nproc)
           mkdir -p ../out/linux
           cp target/release/aether ../out/linux/aether
           chmod +x ../out/linux/aether
+
       - uses: actions/upload-artifact@v4
         with:
           name: aether-linux-x86_64
@@ -35,18 +55,38 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            libssl-dev \
+            pkg-config \
+            libclang-dev \
+            clang \
+            cmake
+
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android
+
       - name: Set up NDK
         uses: nttld/setup-ndk@v1
         with:
           ndk-version: r27c
           add-to-path: true
+
       - name: Clone Aether source & submodules
         run: |
           git clone --recurse-submodules https://github.com/CluvexStudio/Aether.git aether-src
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "aether-src/aether"
+
       - name: Build Android Aether Natives
         working-directory: aether-src
         run: |
@@ -68,7 +108,7 @@ jobs:
             CXXFLAGS_aarch64_linux_android="--target=aarch64-linux-android24" \
             AR_aarch64_linux_android="$TOOLCHAIN/llvm-ar" \
             BINDGEN_EXTRA_CLANG_ARGS_aarch64_linux_android="--target=aarch64-linux-android --sysroot=$SYSROOT" \
-            cargo build --release --locked --features tor --manifest-path aether/Cargo.toml --target aarch64-linux-android --bin aether
+            cargo build --release --locked --features tor --manifest-path aether/Cargo.toml --target aarch64-linux-android --bin aether -j $(nproc)
           cp aether/target/aarch64-linux-android/release/aether out/arm64-v8a/libaether.so
 
           # 2. armeabi-v7a
@@ -84,8 +124,24 @@ jobs:
             CXXFLAGS_armv7_linux_androideabi="--target=armv7a-linux-androideabi24" \
             AR_armv7_linux_androideabi="$TOOLCHAIN/llvm-ar" \
             BINDGEN_EXTRA_CLANG_ARGS_armv7_linux_androideabi="--target=armv7-linux-androideabi --sysroot=$SYSROOT" \
-            cargo build --release --locked --features tor --manifest-path aether/Cargo.toml --target armv7-linux-androideabi --bin aether
+            cargo build --release --locked --features tor --manifest-path aether/Cargo.toml --target armv7-linux-androideabi --bin aether -j $(nproc)
           cp aether/target/armv7-linux-androideabi/release/aether out/armeabi-v7a/libaether.so
+
+          # 3. x86_64
+          echo "Building for x86_64..."
+          env \
+            ANDROID_NDK_HOME="$ANDROID_NDK_ROOT" \
+            ANDROID_NDK_ROOT="$ANDROID_NDK_ROOT" \
+            CARGO_TARGET_X86_64_LINUX_ANDROID_LINKER="$TOOLCHAIN/x86_64-linux-android24-clang" \
+            CARGO_TARGET_X86_64_LINUX_ANDROID_RUSTFLAGS="-C link-arg=-Wl,-z,max-page-size=16384 -C link-arg=-Wl,-z,common-page-size=16384" \
+            CC_x86_64_linux_android="$TOOLCHAIN/clang" \
+            CXX_x86_64_linux_android="$TOOLCHAIN/clang++" \
+            CFLAGS_x86_64_linux_android="--target=x86_64-linux-android24" \
+            CXXFLAGS_x86_64_linux_android="--target=x86_64-linux-android24" \
+            AR_x86_64_linux_android="$TOOLCHAIN/llvm-ar" \
+            BINDGEN_EXTRA_CLANG_ARGS_x86_64_linux_android="--target=x86_64-linux-android --sysroot=$SYSROOT" \
+            cargo build --release --locked --features tor --manifest-path aether/Cargo.toml --target x86_64-linux-android --bin aether -j $(nproc)
+          cp aether/target/x86_64-linux-android/release/aether out/x86_64/libaether.so
 
           ls -la out/*
       - uses: actions/upload-artifact@v4
