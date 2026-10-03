@@ -175,6 +175,51 @@ jobs:
       - uses: actions/upload-artifact@v4
         with: { name: zeptun-macos, path: "macos/*", retention-days: 30 }
 
+  openconnect-windows:
+    runs-on: ubuntu-latest
+    container: fedora:42
+    steps:
+      - name: Install the MinGW toolchain and libraries
+        run: |
+          dnf -y -q install git curl unzip findutils make autoconf automake libtool gettext-devel pkgconf-pkg-config \
+            mingw64-filesystem mingw64-gcc mingw64-binutils mingw64-gnutls mingw64-libxml2 mingw64-zlib mingw64-lz4 \
+            mingw64-gettext mingw64-p11-kit
+      - uses: actions/checkout@v4
+      - run: git config --global --add safe.directory "$GITHUB_WORKSPACE" && ./tools/fetch-cores.sh reference/openconnect
+      - name: Cross-compile OpenConnect for Windows with MinGW
+        working-directory: reference/openconnect
+        run: |
+          set -e
+          ./autogen.sh
+          mingw64-configure --without-gnutls-version-check --with-vpnc-script=vpnc-script-win.js
+          make -j"$(nproc)" openconnect.exe
+          out="$GITHUB_WORKSPACE/openconnect-windows"
+          mkdir -p "$out"
+          cp .libs/openconnect.exe "$out/" 2>/dev/null || cp openconnect.exe "$out/"
+          cp .libs/libopenconnect-*.dll "$out/" 2>/dev/null || true
+          sysroot=/usr/x86_64-w64-mingw32/sys-root/mingw/bin
+          queue="$out/openconnect.exe $(ls "$out"/*.dll 2>/dev/null || true)"
+          while [ -n "$queue" ]; do
+            next=""
+            for f in $queue; do
+              for dll in $(x86_64-w64-mingw32-objdump -p "$f" | awk '/DLL Name:/ {print $3}'); do
+                src="$sysroot/$dll"
+                if [ -f "$src" ] && [ ! -f "$out/$dll" ]; then cp "$src" "$out/"; next="$next $out/$dll"; fi
+              done
+            done
+            queue="$next"
+          done
+          curl -fsSL --retry 3 https://www.wintun.net/builds/wintun-0.14.1.zip -o /tmp/wintun.zip
+          echo "07c256185d6ee3652e09fa55c0b673e2624b565e02c4b9091c79ca7d2f24ef51  /tmp/wintun.zip" | sha256sum -c
+          unzip -o -j -d "$out" /tmp/wintun.zip wintun/bin/amd64/wintun.dll
+          curl -fsSL --retry 3 https://gitlab.com/openconnect/vpnc-scripts/raw/master/vpnc-script-win.js -o "$out/vpnc-script-win.js"
+          grep -q "WScript" "$out/vpnc-script-win.js" || { echo "::error::vpnc-script-win.js did not download"; exit 1; }
+          cp COPYING.LGPL "$out/openconnect-LICENSE.txt"
+          ( cd "$out" && ls -1 | grep -v '^files.txt$' | sort > files.txt && cat files.txt )
+          ls -l "$out"
+      - uses: actions/upload-artifact@v4
+        with: { name: openconnect-windows, path: "openconnect-windows/", retention-days: 30 }
+
   hev:
     runs-on: ubuntu-latest
     steps:

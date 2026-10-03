@@ -166,6 +166,10 @@ jobs:
             [ -n "$src" ] || { echo "::error::'$from' was not in artifact '$art'"; exit 1; }
             cp "$src" "$dest/$to"
           done
+          rm -rf "/tmp/nat/openconnect-windows" "$dest/openconnect"
+          gh run download "$NATIVES_RUN" --repo "$GITHUB_REPOSITORY" --name "openconnect-windows" --dir "/tmp/nat/openconnect-windows" \
+            || { echo "::error::artifact 'openconnect-windows' is missing; run the desktop-natives workflow first"; exit 1; }
+          cp -r "/tmp/nat/openconnect-windows" "$dest/openconnect"
           rm -rf "/tmp/nat/tor-windows" "$dest/tor"
           gh run download "$NATIVES_RUN" --repo "$GITHUB_REPOSITORY" --name "tor-windows" --dir "/tmp/nat/tor-windows" \
             || { echo "::error::artifact 'tor-windows' is missing; run the desktop-natives workflow first"; exit 1; }

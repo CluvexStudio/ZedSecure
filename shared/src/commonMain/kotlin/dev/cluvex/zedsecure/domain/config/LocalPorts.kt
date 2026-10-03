@@ -30,9 +30,11 @@ object LocalPorts {
 
     const val LAN_SOCKS = 10880
 
+    const val CHAIN_CARRIER = 10890
+
     fun isInternal(port: Int): Boolean =
         port == XRAY_SOCKS || port == XRAY_HTTP || port == SNI_SPOOF || port == DESKTOP_METRICS ||
-            port == SHIM || port == PSIPHON_SOCKS || port == PSIPHON_HTTP || port == TOR_SOCKS ||
+            port == SHIM || port == PSIPHON_SOCKS || port == PSIPHON_HTTP || port == TOR_SOCKS || port == CHAIN_CARRIER ||
             port in SSH..SSH_MAX || port in DNS_TUNNEL..DNS_TUNNEL_MAX ||
             port in MASTER_DNS..MASTER_DNS_MAX || port in SSH_OVER_DNS..SSH_OVER_DNS_MAX
 

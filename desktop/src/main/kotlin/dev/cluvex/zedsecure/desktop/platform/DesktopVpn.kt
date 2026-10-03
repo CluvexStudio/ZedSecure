@@ -35,6 +35,9 @@ object DesktopVpn {
     private const val SHIM_PORT = LocalPorts.SHIM
     private const val SSH_PORT = LocalPorts.SSH
     private const val DNS_PORT = LocalPorts.DNS_TUNNEL
+    private const val CARRIER_PORT = LocalPorts.CHAIN_CARRIER
+    private const val CARRIER_CONFIG = "xray-carrier.json"
+    private const val CHAIN = "The chain"
 
     private val work = File(System.getProperty("java.io.tmpdir"), "zedsecure").apply { mkdirs() }
     private var xray: XrayCore? = null
@@ -47,6 +50,12 @@ object DesktopVpn {
     @Volatile private var tor: DesktopTor? = null
     @Volatile private var psiphon: DesktopPsiphon? = null
     @Volatile private var ikev2: DesktopIkev2? = null
+    @Volatile private var carrier: XrayCore? = null
+    @Volatile private var openConnect: dev.cluvex.zedsecure.desktop.core.DesktopOpenConnect? = null
+    @Volatile private var outerPsiphon: DesktopPsiphon? = null
+    @Volatile private var outerTor: DesktopTor? = null
+    @Volatile private var outerSsh: SshController? = null
+    @Volatile private var outerDns: DesktopDnsTunnel? = null
     private var meter: DesktopMeter? = null
     private var usedSystemProxy = false
 
@@ -75,11 +84,13 @@ object DesktopVpn {
 
         when {
             profile.ikev2Settings() != null -> startIkev2(profile.name, profile.ikev2Settings()!!)
+            profile.openConnectSettings() != null -> startOpenConnect(profile.name, profile.openConnectSettings()!!)
             profile.psiphonSettings() != null -> startPsiphon(profile.name, profile.psiphonSettings()!!)
             profile.isTor -> startTor(profile.name)
             profile.dnsTunnelSettings() != null -> startDns(profile.name, profile.dnsTunnelSettings()!!)
             profile.sshSettings() != null -> startSsh(profile.name, profile.sshSettings()!!)
             profile.isSingBoxConfig -> startSingBoxConfig(profile.name, profile)
+            profile.isCrossChain -> startCrossChain(profile.name, profile, config)
             else -> startXray(profile.name, profile, config)
         }
     }
@@ -207,6 +218,36 @@ object DesktopVpn {
         }
     }
 
+    private fun startOpenConnect(name: String, profile: dev.cluvex.zedsecure.domain.config.OpenConnectProfile) {
+        VpnManager.onStarting(name)
+        thread(name = "desktop-openconnect") {
+            val engine = dev.cluvex.zedsecure.desktop.core.DesktopOpenConnect(profile, work, AdminPassword::ask)
+            openConnect = engine
+            val connected = engine.connect()
+            if (openConnect !== engine) {
+                if (connected.isSuccess) engine.disconnect()
+                return@thread
+            }
+            connected.exceptionOrNull()?.let { e ->
+                openConnect = null
+                VpnManager.onError(e.message ?: "OpenConnect failed to connect")
+                return@thread
+            }
+            LogBus.append("I/OpenConnect the system VPN carries all traffic")
+            VpnManager.onConnected(name)
+            meter = DesktopMeter(totals = { null }).also { it.start() }
+            while (openConnect === engine) {
+                Thread.sleep(5_000)
+                if (openConnect === engine && !engine.isUp) {
+                    openConnect = null
+                    engine.disconnect()
+                    VpnManager.onError("OpenConnect disconnected")
+                    break
+                }
+            }
+        }
+    }
+
     private fun connectThrough(upstreamPort: Int, engine: String): Boolean {
         val socksPort = localPort(LocalProxy.SOCKS_PORT, setOf(upstreamPort))
         val metricsPort = localPort(METRICS_PORT, setOf(socksPort, upstreamPort))
@@ -226,6 +267,117 @@ object DesktopVpn {
         VpnManager.activeSocksPort = socksPort
         DesktopStats(metricsPort).also { stats = it; it.start() }
         return true
+    }
+
+    private fun startCrossChain(
+        name: String,
+        profile: dev.cluvex.zedsecure.domain.config.VpnProfile,
+        config: ConfigRepository,
+    ) {
+        val (inner, outer) = runCatching { config.crossChainMembers(profile) }.getOrElse {
+            VpnManager.onError(it.message ?: "This chain cannot be built"); return
+        }
+        VpnManager.onStarting(name)
+        thread(name = "desktop-chain") {
+            LogBus.append("I/Desktop chain: ${inner.name} runs through ${outer.name}")
+            val carrierPort = runCatching { startCarrier(outer) }.getOrElse { e ->
+                LogBus.append("E/Desktop chain: ${outer.name} did not start: ${e.message}")
+                -1
+            }
+            if (carrierPort <= 0) {
+                teardown()
+                VpnManager.onError("${outer.name} did not start, so the chain has nothing to run through")
+                return@thread
+            }
+            LogBus.append("I/Desktop chain: ${outer.name} carries on 127.0.0.1:$carrierPort")
+            val error = runCatching { startInner(inner, carrierPort) }.getOrElse { it.message ?: "failed" }
+            if (error != null) {
+                teardown()
+                VpnManager.onError("${inner.name} could not run through ${outer.name}: $error")
+                return@thread
+            }
+            VpnManager.onConnected(name)
+        }
+    }
+
+    private fun startCarrier(outer: dev.cluvex.zedsecure.domain.config.VpnProfile): Int {
+        outer.psiphonSettings()?.let { psiphonProfile ->
+            val socks = localPort(LocalPorts.PSIPHON_SOCKS)
+            val http = localPort(LocalPorts.PSIPHON_HTTP, setOf(socks))
+            val engine = DesktopPsiphon(psiphonProfile, work, socks, http)
+            outerPsiphon = engine
+            return if (engine.start().isSuccess) socks else -1
+        }
+        if (outer.isTor) {
+            val engine = DesktopTor(settingsProvider(), work)
+            outerTor = engine
+            return if (engine.start(onProgress = { LogBus.append("I/Tor bootstrapped $it%") }).isSuccess) engine.socksPort else -1
+        }
+        outer.sshSettings()?.let { sshProfile ->
+            val controller = SshController(profile = sshProfile, cipher = "auto", compression = false, listenPort = SSH_PORT)
+            outerSsh = controller
+            return controller.start()
+        }
+        outer.dnsTunnelSettings()?.let { dnsProfile ->
+            val engine = DesktopDnsTunnel(dnsProfile, work, listenPort = DNS_PORT)
+            outerDns = engine
+            return engine.start()
+        }
+        val settings = settingsProvider()
+        val options = settings.toBuildOptions(geoAssetsAvailable = geoAssetsAvailable())
+            .copy(carrier = true, appendHttpProxy = false, lan = null)
+        val port = localPort(CARRIER_PORT)
+        val json = DesktopXray.withSocksPort(outer.toXrayConfigJson(options), LocalProxy.SOCKS_PORT, port)
+        val core = XrayCore(work)
+        carrier = core
+        return if (core.start(json, CARRIER_CONFIG)) port else -1
+    }
+
+    private fun startInner(inner: dev.cluvex.zedsecure.domain.config.VpnProfile, carrierPort: Int): String? {
+        inner.psiphonSettings()?.let { psiphonProfile ->
+            val socks = localPort(LocalPorts.PSIPHON_SOCKS, setOf(carrierPort))
+            val http = localPort(LocalPorts.PSIPHON_HTTP, setOf(socks, carrierPort))
+            val engine = DesktopPsiphon(psiphonProfile, work, socks, http, upstreamSocksPort = carrierPort)
+            psiphon = engine
+            engine.start().exceptionOrNull()?.let { return it.message ?: "Psiphon failed to start" }
+            return if (connectThrough(engine.socksPort, CHAIN)) null else "the core did not start"
+        }
+        if (inner.isTor) {
+            val engine = DesktopTor(settingsProvider(), work, upstreamSocksPort = carrierPort)
+            tor = engine
+            engine.start(onProgress = { LogBus.append("I/Tor bootstrapped $it%") })
+                .exceptionOrNull()?.let { return it.message ?: "Tor failed to start" }
+            return if (connectThrough(engine.socksPort, CHAIN)) null else "the core did not start"
+        }
+        inner.sshSettings()?.let { sshProfile ->
+            val controller = SshController(
+                profile = sshProfile, cipher = "auto", compression = false,
+                listenPort = localPort(SSH_PORT + 5, setOf(carrierPort)),
+                proxySocksHost = "127.0.0.1", proxySocksPort = carrierPort,
+            )
+            ssh = controller
+            val port = controller.start()
+            if (port < 0) return "SSH failed to connect"
+            return if (connectThrough(port, CHAIN)) null else "the core did not start"
+        }
+        val settings = settingsProvider()
+        val options = settings.toBuildOptions(
+            geoAssetsAvailable = geoAssetsAvailable(),
+            ruleOutbounds = ruleOutboundsProvider(
+                dev.cluvex.zedsecure.domain.config.RoutingMigration.effectiveRulesets(settings),
+            ),
+        )
+        val chained = dev.cluvex.zedsecure.domain.config.XrayJsonBuilder.withCarrierProxy(inner.toXrayConfigJson(options), carrierPort)
+        val socksPort = localPort(LocalProxy.SOCKS_PORT, setOf(carrierPort))
+        val metricsPort = localPort(METRICS_PORT, setOf(socksPort, carrierPort))
+        val json = DesktopXray.augmentWithMetrics(DesktopXray.withSocksPort(chained, LocalProxy.SOCKS_PORT, socksPort), metricsPort)
+        val core = XrayCore(work)
+        if (!core.start(json)) return "the core did not start"
+        xray = core
+        if (!route(socksPort, emptyList(), udpOverTcp = false, tunCarries = CHAIN)) return "could not route traffic"
+        VpnManager.activeSocksPort = socksPort
+        DesktopStats(metricsPort).also { stats = it; it.start() }
+        return null
     }
 
     private fun dnsResolverHosts(p: DnsTunnelProfile): List<String> =
@@ -429,12 +581,18 @@ object DesktopVpn {
         tun?.stop(); tun = null
         tor?.let { tor = null; it.stop() }
         ikev2?.let { ikev2 = null; it.disconnect() }
+        openConnect?.let { openConnect = null; it.disconnect() }
         psiphon?.let { psiphon = null; it.stop() }
         shim?.stop(); shim = null
         ssh?.stop(); ssh = null
         dnsTunnel?.stop(); dnsTunnel = null
         if (usedSystemProxy) { runCatching { SystemProxy.clear() }; usedSystemProxy = false }
         xray?.stop(); xray = null
+        carrier?.let { carrier = null; it.stop() }
+        outerPsiphon?.let { outerPsiphon = null; it.stop() }
+        outerTor?.let { outerTor = null; it.stop() }
+        outerSsh?.let { outerSsh = null; it.stop() }
+        outerDns?.let { outerDns = null; it.stop() }
         dev.cluvex.zedsecure.core.AutoSelect.end()
     }
 }

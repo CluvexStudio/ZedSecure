@@ -11,8 +11,8 @@ class XrayCore(private val workDir: File) {
 
     val isRunning: Boolean get() = process?.isAlive == true
 
-    fun start(configJson: String): Boolean {
-        val cfg = File(workDir, "xray-config.json").apply { writeText(configJson) }
+    fun start(configJson: String, configName: String = "xray-config.json"): Boolean {
+        val cfg = File(workDir, configName).apply { writeText(configJson) }
         return launch { bin -> arrayOf(bin.absolutePath, "run", "-c", cfg.absolutePath) }
     }
 

@@ -16,6 +16,7 @@ class DesktopPsiphon(
     private val workDir: File,
     val socksPort: Int,
     private val httpPort: Int,
+    private val upstreamSocksPort: Int? = null,
 ) {
     @Volatile private var process: Process? = null
 
@@ -24,7 +25,8 @@ class DesktopPsiphon(
             ?: return Result.failure(IllegalStateException("Psiphon is not bundled for ${Os.current}"))
         val dataDir = File(workDir, "psiphon-data").apply { mkdirs() }
         val config = File(workDir, "psiphon.config").apply {
-            writeText(PsiphonConfigBuilder.build(profile, dataDir.absolutePath, socksPort, httpPort))
+            val built = PsiphonConfigBuilder.build(profile, dataDir.absolutePath, socksPort, httpPort)
+            writeText(upstreamSocksPort?.let { PsiphonConfigBuilder.withUpstreamProxy(built, it) } ?: built)
         }
         val started = try {
             ProcessBuilder(bin.absolutePath, "-config", config.absolutePath)
