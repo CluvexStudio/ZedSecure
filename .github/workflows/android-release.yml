@@ -166,7 +166,7 @@ jobs:
           "$BT/apksigner" sign --ks release.keystore \
             --ks-key-alias "$(grep '^keyAlias=' keystore.properties | cut -d= -f2-)" \
             --ks-pass env:STORE_PW --key-pass env:KEY_PW \
-            --v1-signing-enabled false --v2-signing-enabled true --v3-signing-enabled false \
+            --v1-signing-enabled false --v2-signing-enabled true --v3-signing-enabled false --v4-signing-enabled false \
             --out "dist/ZedSecure-$V-universal.apk" /tmp/universal-aligned.apk
           rm -f /tmp/universal.apk /tmp/universal-aligned.apk
           for apk in dist/ZedSecure-*.apk; do
