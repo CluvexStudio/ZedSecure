@@ -41,7 +41,10 @@ class TunModeTest {
     fun `the Linux helper brings tun up, says so, and cleans up once the app lets go`() {
         assumeTrue(Os.current == Os.LINUX)
         assumeTrue(javaClass.getResource("/bin/linux/hev-socks5-tunnel") != null)
-        assumeTrue(exec("unshare", "-rn", "true", timeoutSec = 10).first == 0, "user namespaces are not allowed here")
+        assumeTrue(
+            exec("unshare", "-rn", "sh", "-c", "ip tuntap add mode tun dev zedcheck0", timeoutSec = 10).first == 0,
+            "a user namespace here cannot create a TUN device",
+        )
 
         val dir = Files.createTempDirectory("tunmode").toFile()
         val hev = BundledBinary.extract(dir, "hev-socks5-tunnel", "hev-socks5-tunnel.exe")!!

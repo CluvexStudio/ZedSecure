@@ -49,7 +49,11 @@ configurations.configureEach {
 
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
-    testLogging { showStandardStreams = false }
+    testLogging {
+        events("failed")
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        showStandardStreams = System.getenv("ZEDSECURE_LIVE_TUN") == "1"
+    }
 }
 
 dependencies {

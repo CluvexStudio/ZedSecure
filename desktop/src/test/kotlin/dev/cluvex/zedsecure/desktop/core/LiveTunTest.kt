@@ -29,7 +29,7 @@ class LiveTunTest {
         val socksPort = ServerSocket(0).use { it.localPort }
         val access = File(work, "access.log")
         val config = """
-            {"log":{"loglevel":"warning","access":${JsonPrimitive(access.absolutePath)}},
+            {"log":{"loglevel":"info","access":${JsonPrimitive(access.absolutePath)}},
              "inbounds":[{"tag":"socks","listen":"127.0.0.1","port":$socksPort,"protocol":"socks","settings":{"udp":true}}],
              "outbounds":[{"tag":"direct","protocol":"freedom"}]}
         """.trimIndent()
@@ -46,6 +46,9 @@ class LiveTunTest {
             val name = "zedsecure-tun-${System.nanoTime()}.cloudflare.com"
             runCatching { InetAddress.getByName(name) }
             awaitInLog(access, ":53", "the system resolver did not ask through the tunnel")
+        } catch (e: Throwable) {
+            dumpNetwork(access)
+            throw e
         } finally {
             tun.stop()
             core.stop()
@@ -59,6 +62,19 @@ class LiveTunTest {
         val deadline = System.currentTimeMillis() + 8_000
         while (needle !in log.readTextOrEmpty() && System.currentTimeMillis() < deadline) Thread.sleep(200)
         assertTrue(needle in log.readTextOrEmpty(), "$message: ${log.readTextOrEmpty()}")
+    }
+
+    private fun dumpNetwork(access: File) {
+        println("---- xray access log ----\n${access.readTextOrEmpty()}")
+        val commands = when (os) {
+            Os.WINDOWS -> listOf(
+                listOf("powershell.exe", "-NoProfile", "-Command", "Get-NetIPAddress | Format-Table -AutoSize | Out-String -Width 200"),
+                listOf("powershell.exe", "-NoProfile", "-Command", "Get-NetRoute -AddressFamily IPv4 | Format-Table -AutoSize | Out-String -Width 200"),
+                listOf("powershell.exe", "-NoProfile", "-Command", "Get-DnsClientServerAddress | Format-Table -AutoSize | Out-String -Width 200"),
+            )
+            else -> listOf(listOf("ifconfig"), listOf("netstat", "-rn", "-f", "inet"), listOf("scutil", "--dns"))
+        }
+        commands.forEach { cmd -> println("---- ${cmd.joinToString(" ")} ----\n${exec(*cmd.toTypedArray(), timeoutSec = 30).second}") }
     }
 
     private fun adapterGone(): Boolean = when (os) {

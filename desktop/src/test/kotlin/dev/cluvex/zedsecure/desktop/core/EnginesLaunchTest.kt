@@ -48,13 +48,23 @@ class EnginesLaunchTest {
     }
 
     @Test
-    fun `hev starts, which on Windows proves its DLLs load`() {
+    fun `hev starts on Linux, where it carries TUN mode`() {
+        if (Os.current != Os.LINUX) return
         val hev = bundled(HevBinary.extract(work), "hev-socks5-tunnel") ?: return
         val run = launch(hev)
         assertTrue(
             "Version:" in run.output,
             "hev printed nothing it would print when it starts (exit ${run.exit}): ${run.output.take(200)}",
         )
+    }
+
+    @Test
+    fun `zeptun starts on Windows and macOS, where it carries TUN mode`() {
+        if (Os.current != Os.WINDOWS && Os.current != Os.MACOS) return
+        val zeptun = bundled(ZeptunBinary.extract(work), "zeptun") ?: return
+        val run = launch(zeptun, "version")
+        assertEquals(0, run.exit, run.output)
+        assertTrue(run.output.startsWith("zeptun "), "unexpected output: ${run.output.take(200)}")
     }
 
     @Test
@@ -69,10 +79,10 @@ class EnginesLaunchTest {
         bundled(XrayBinary.extract(work), "xray") ?: return
         val expected = when (Os.current) {
             Os.LINUX -> mapOf("libcronet.so" to "7f454c46")
-            Os.WINDOWS -> mapOf("libcronet.dll" to "4d5a") + HevBinary.WINDOWS_COMPANIONS.associateWith { "4d5a" }
+            Os.WINDOWS -> mapOf("libcronet.dll" to "4d5a") + ZeptunBinary.WINDOWS_COMPANIONS.associateWith { "4d5a" }
             else -> emptyMap()
         }
-        if (Os.current == Os.WINDOWS) bundled(HevBinary.extract(work), "hev-socks5-tunnel") ?: return
+        if (Os.current == Os.WINDOWS) bundled(ZeptunBinary.extract(work), "zeptun") ?: return
         expected.forEach { (name, magic) ->
             val file = File(work, name)
             assertTrue(file.isFile, "$name was not extracted next to the engine")

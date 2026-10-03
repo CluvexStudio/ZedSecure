@@ -181,6 +181,9 @@ class ZeptunTun(
     private fun discard() {
         val dir = state ?: return
         state = null
+        runCatching { File(dir, "zeptun.log").readLines().takeLast(LOG_TAIL) }.getOrNull()
+            ?.filter { it.isNotBlank() }
+            ?.forEach { println("[zeptun] $it") }
         runCatching { dir.deleteRecursively() }
     }
 
@@ -318,6 +321,7 @@ class ZeptunTun(
         private const val READY_WAIT_SEC = 45L
         private const val STOP_WAIT_MS = 8_000L
         private const val POLL_MS = 200L
+        private const val LOG_TAIL = 40
 
         private val IPV4 = Regex("""^\d{1,3}(\.\d{1,3}){3}$""")
         private val IPV4_PORT = Regex("""^\d{1,3}(\.\d{1,3}){3}:\d{1,5}$""")
