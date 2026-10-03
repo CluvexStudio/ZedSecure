@@ -43,10 +43,15 @@ jobs:
           ndk-version: r27c
           add-to-path: true
 
-      - name: Fetch base libraries from official release APKs
+      - name: Fetch base libraries and zedcore.aar
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -e
-          mkdir -p /tmp/base-apk app/src/main/jniLibs/arm64-v8a app/src/main/jniLibs/armeabi-v7a app/src/main/jniLibs/x86_64
+          mkdir -p app/libs /tmp/base-apk app/src/main/jniLibs/arm64-v8a app/src/main/jniLibs/armeabi-v7a app/src/main/jniLibs/x86_64
+          gh run download 37123001663 --repo CluvexStudio/ZedSecure -n zedcore --dir app/libs
+          ls -lh app/libs/zedcore.aar
+
           cd /tmp/base-apk
           for abi in arm64-v8a armeabi-v7a x86_64; do
             curl -sSL "https://github.com/CluvexStudio/ZedSecure/releases/download/v3.1.3/ZedSecure-3.1.3-${abi}.apk" -o "${abi}.apk"
