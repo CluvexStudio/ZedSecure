@@ -12,11 +12,19 @@ data class RulesetItem(
     val port: String = "",
     val network: String = "",
     val protocol: List<String> = emptyList(),
+    val networkType: List<String> = emptyList(),
     val enabled: Boolean = true,
 
     val locked: Boolean = false,
 ) {
     companion object {
+        const val NETWORK_WIFI = "wifi"
+        const val NETWORK_CELLULAR = "cellular"
+        const val NETWORK_ETHERNET = "ethernet"
+        const val NETWORK_OTHER = "other"
+
+        val NETWORK_TYPES = listOf(NETWORK_WIFI, NETWORK_CELLULAR, NETWORK_ETHERNET, NETWORK_OTHER)
+
         const val OUTBOUND_PROXY = "proxy"
         const val OUTBOUND_DIRECT = "direct"
         const val OUTBOUND_BLOCK = "block"
@@ -41,7 +49,10 @@ data class RulesetItem(
 
     val isEmpty: Boolean
         get() = domain.isEmpty() && ip.isEmpty() && port.isBlank() &&
-            network.isBlank() && protocol.isEmpty()
+            network.isBlank() && protocol.isEmpty() && networkType.isEmpty()
+
+    fun appliesOn(currentNetworkType: String?): Boolean =
+        networkType.isEmpty() || (currentNetworkType != null && currentNetworkType in networkType)
 }
 
 class RulesetPreset(val label: String, private val make: () -> List<RulesetItem>) {

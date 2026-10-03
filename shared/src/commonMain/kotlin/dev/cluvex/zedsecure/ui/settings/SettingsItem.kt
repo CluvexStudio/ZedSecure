@@ -2,6 +2,8 @@
 
 package dev.cluvex.zedsecure.ui.settings
 
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.background
@@ -164,6 +166,10 @@ fun SettingsEditRow(
     if (showDialog) {
         var text by remember { mutableStateOf(value) }
         var reveal by remember { mutableStateOf(false) }
+        val save = {
+            showDialog = false
+            onValueChanged(text.trim())
+        }
         AlertDialog(
             onDismissRequest = { showDialog = false },
             title = { Text(title, style = MaterialTheme.typography.titleMedium) },
@@ -174,7 +180,9 @@ fun SettingsEditRow(
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(
                         keyboardType = if (numeric) KeyboardType.Number else KeyboardType.Text,
+                        imeAction = ImeAction.Done,
                     ),
+                    keyboardActions = KeyboardActions(onDone = { save() }),
                     visualTransformation = if (isPassword && !reveal) {
                         PasswordVisualTransformation()
                     } else {
@@ -198,10 +206,7 @@ fun SettingsEditRow(
                 )
             },
             confirmButton = {
-                TextButton(onClick = {
-                    showDialog = false
-                    onValueChanged(text.trim())
-                }) { Text(stringResource(Res.string.action_save)) }
+                TextButton(onClick = save) { Text(stringResource(Res.string.action_save)) }
             },
             dismissButton = {
                 TextButton(onClick = { showDialog = false }) {

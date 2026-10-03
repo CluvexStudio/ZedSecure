@@ -65,6 +65,7 @@
     <string name="subs_name">名称</string>
     <string name="subs_url">URL</string>
     <string name="subs_update">更新</string>
+    <string name="subs_reorder">拖动以调整顺序</string>
     <string name="subs_update_all">全部更新</string>
     <string name="subs_updated">已更新：%1$d 个服务器</string>
     <string name="subs_failed">订阅更新失败</string>
@@ -347,6 +348,12 @@
     <string name="rule_port">端口</string>
     <string name="rule_network">网络</string>
     <string name="rule_network_any">任意</string>
+    <string name="rule_network_type">网络类型</string>
+    <string name="rule_network_type_hint">仅当手机连接到所选网络之一时，此规则才生效。都不选则在所有网络上生效。</string>
+    <string name="network_type_wifi">Wi-Fi</string>
+    <string name="network_type_cellular">移动数据</string>
+    <string name="network_type_ethernet">以太网</string>
+    <string name="network_type_other">其他</string>
     <string name="rule_protocol">协议</string>
     <string name="routing_ruleset_menu">规则集选项</string>
     <string name="routing_preset_iran">替换为：伊朗白名单</string>
@@ -1084,6 +1091,9 @@
     <string name="action_share_qr">以二维码分享</string>
     <string name="action_close">关闭</string>
     <string name="copied">已复制</string>
+    <string name="home_local_proxy">代理 · %1$s</string>
+    <string name="mode_local_proxy_title">本地代理地址</string>
+    <string name="mode_local_proxy_body">SOCKS5 和 HTTP 位于 %1$s。点按即可复制。</string>
     <string name="qr_too_large">该配置过大，无法生成二维码。请改用分享或复制。</string>
     <string name="servers_add_scan_qr">扫描二维码</string>
     <string name="servers_add_scan_image">从图片扫描二维码</string>
@@ -1137,6 +1147,9 @@
     <string name="title_pref_lan_port">局域网共享端口</string>
     <string name="title_pref_lan_username">局域网共享用户名</string>
     <string name="title_pref_lan_password">局域网共享密码</string>
+    <string name="title_pref_lan_auth">需要用户名和密码</string>
+    <string name="summary_pref_lan_auth">关闭后，同一网络中的任何人都可以使用共享代理。</string>
+    <string name="lan_share_no_auth">无需用户名和密码</string>
     <string name="toast_lan_port_invalid">请使用 1024 到 65534 之间、ZedSecure 自身未占用的端口</string>
     <string name="toast_lan_credential_required">局域网共享需要同时设置用户名和密码</string>
     <string name="dns_prevent_fallback_always">始终开启。基于 DNS 的隧道所用的每个解析器都经由隧道转发，查询永远不会回退到你的普通网络。</string>

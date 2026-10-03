@@ -260,6 +260,7 @@ class StartPlanner(context: Context) {
             carrier = carrier,
             ruleOutbounds = ruleOutbounds,
             resolvedServerHosts = hosts,
+            networkType = NetworkKind.current(appContext),
         )
     }
 

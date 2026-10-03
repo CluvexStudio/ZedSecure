@@ -65,6 +65,7 @@
     <string name="subs_name">Название</string>
     <string name="subs_url">URL</string>
     <string name="subs_update">Обновить</string>
+    <string name="subs_reorder">Перетащите, чтобы изменить порядок</string>
     <string name="subs_update_all">Обновить все</string>
     <string name="subs_updated">Обновлено: %1$d серверов</string>
     <string name="subs_failed">Не удалось обновить подписку</string>
@@ -347,6 +348,12 @@
     <string name="rule_port">Порт</string>
     <string name="rule_network">Сеть</string>
     <string name="rule_network_any">Любая</string>
+    <string name="rule_network_type">Тип сети</string>
+    <string name="rule_network_type_hint">Правило действует, только пока телефон подключён к одной из выбранных сетей. Если ничего не выбрано, оно действует в любой сети.</string>
+    <string name="network_type_wifi">Wi-Fi</string>
+    <string name="network_type_cellular">Мобильная сеть</string>
+    <string name="network_type_ethernet">Ethernet</string>
+    <string name="network_type_other">Другая</string>
     <string name="rule_protocol">Протокол</string>
     <string name="routing_ruleset_menu">Действия с набором правил</string>
     <string name="routing_preset_iran">Заменить на: белый список Ирана</string>
@@ -1084,6 +1091,9 @@
     <string name="action_share_qr">Поделиться QR-кодом</string>
     <string name="action_close">Закрыть</string>
     <string name="copied">Скопировано</string>
+    <string name="home_local_proxy">Прокси · %1$s</string>
+    <string name="mode_local_proxy_title">Адрес локального прокси</string>
+    <string name="mode_local_proxy_body">SOCKS5 и HTTP на %1$s. Нажмите, чтобы скопировать.</string>
     <string name="qr_too_large">Эта конфигурация слишком велика для QR-кода. Используйте «Поделиться» или «Копировать».</string>
     <string name="servers_add_scan_qr">Сканировать QR-код</string>
     <string name="servers_add_scan_image">Сканировать QR из изображения</string>
@@ -1137,6 +1147,9 @@
     <string name="title_pref_lan_port">Порт для локальной сети</string>
     <string name="title_pref_lan_username">Логин для локальной сети</string>
     <string name="title_pref_lan_password">Пароль для локальной сети</string>
+    <string name="title_pref_lan_auth">Требовать имя пользователя и пароль</string>
+    <string name="summary_pref_lan_auth">Если выключить, общим прокси сможет пользоваться любой в этой сети.</string>
+    <string name="lan_share_no_auth">Без имени пользователя и пароля</string>
     <string name="toast_lan_port_invalid">Укажите порт от 1024 до 65534, который не занят самим ZedSecure</string>
     <string name="toast_lan_credential_required">Для доступа из локальной сети нужны и логин, и пароль</string>
     <string name="dns_prevent_fallback_always">Всегда включено. Каждый резолвер DNS-туннеля идёт через туннель, поэтому запрос никогда не уйдёт в обычную сеть.</string>

@@ -295,6 +295,7 @@ data class AppSettings(
 
     val socksUsername: String = "",
     val socksPassword: String = "",
+    val lanShareAuth: Boolean = true,
 
     val socksEnableUdp: Boolean = false,
     val remoteDns: String = "https://cloudflare-dns.com/dns-query",

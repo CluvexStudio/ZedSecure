@@ -64,6 +64,7 @@
     <string name="subs_name">Name</string>
     <string name="subs_url">URL</string>
     <string name="subs_update">Update</string>
+    <string name="subs_reorder">Drag to reorder</string>
     <string name="subs_update_all">Update all</string>
     <string name="subs_updated">Updated: %1$d servers</string>
     <string name="subs_failed">Subscription update failed</string>
@@ -346,6 +347,12 @@
     <string name="rule_port">Port</string>
     <string name="rule_network">Network</string>
     <string name="rule_network_any">Any</string>
+    <string name="rule_network_type">Network type</string>
+    <string name="rule_network_type_hint">The rule only applies while the phone is on one of the selected networks. Select none to apply it on every network.</string>
+    <string name="network_type_wifi">Wi-Fi</string>
+    <string name="network_type_cellular">Mobile data</string>
+    <string name="network_type_ethernet">Ethernet</string>
+    <string name="network_type_other">Other</string>
     <string name="rule_protocol">Protocol</string>
     <string name="routing_ruleset_menu">Ruleset options</string>
     <string name="routing_preset_iran">Replace with: Iran whitelist</string>
@@ -1083,6 +1090,9 @@
     <string name="action_share_qr">Share as QR</string>
     <string name="action_close">Close</string>
     <string name="copied">Copied</string>
+    <string name="home_local_proxy">Proxy · %1$s</string>
+    <string name="mode_local_proxy_title">Local proxy address</string>
+    <string name="mode_local_proxy_body">SOCKS5 and HTTP on %1$s. Tap to copy.</string>
     <string name="qr_too_large">This config is too large for a QR code. Use Share or Copy instead.</string>
     <string name="servers_add_scan_qr">Scan QR code</string>
     <string name="servers_add_scan_image">Scan QR from an image</string>
@@ -1136,6 +1146,9 @@
     <string name="title_pref_lan_port">LAN sharing port</string>
     <string name="title_pref_lan_username">LAN sharing username</string>
     <string name="title_pref_lan_password">LAN sharing password</string>
+    <string name="title_pref_lan_auth">Require a username and password</string>
+    <string name="summary_pref_lan_auth">When this is off, anyone on the same network can use the shared proxy.</string>
+    <string name="lan_share_no_auth">No username or password</string>
     <string name="toast_lan_port_invalid">Use a port from 1024 to 65534 that ZedSecure does not use itself</string>
     <string name="toast_lan_credential_required">LAN sharing needs both a username and a password</string>
     <string name="dns_prevent_fallback_always">Always on. Every resolver a DNS-based tunnel uses is routed into the tunnel, so a query can never fall back to your normal network.</string>

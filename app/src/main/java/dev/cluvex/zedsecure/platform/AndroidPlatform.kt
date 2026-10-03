@@ -268,6 +268,8 @@ class AndroidPlatform(
         }
     }
 
+    override val supportsNetworkTypeRules: Boolean get() = true
+
     override val distribution: Distribution by lazy {
         if (signingCertSha256() == PlayStore.SIGNING_CERT_SHA256) Distribution.PlayStore else Distribution.GitHub
     }

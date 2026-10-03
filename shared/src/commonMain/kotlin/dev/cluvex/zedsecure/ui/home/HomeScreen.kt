@@ -160,6 +160,7 @@ fun HomeScreen(
     onSecretUnlocked: () -> Unit,
     modifier: Modifier = Modifier,
     lockedNote: String? = null,
+    localProxyAddress: String? = null,
     activeLocked: Boolean = false,
     reduceMotion: Boolean = false,
 
@@ -342,6 +343,28 @@ fun HomeScreen(
                                 else -> MaterialTheme.colorScheme.onSurface
                             },
                         )
+                    }
+
+                    if (localProxyAddress != null && live) {
+                        val platform = dev.cluvex.zedsecure.ui.platform.LocalPlatform.current
+                        val copied = stringResource(Res.string.copied)
+                        Spacer(Modifier.height(12.dp))
+                        Surface(
+                            onClick = {
+                                platform.copyToClipboard(localProxyAddress)
+                                platform.toast(copied)
+                            },
+                            shape = MaterialTheme.shapes.extraLarge,
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        ) {
+                            Text(
+                                text = stringResource(Res.string.home_local_proxy, localProxyAddress),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                            )
+                        }
                     }
 
                     if (lockedNote != null) {

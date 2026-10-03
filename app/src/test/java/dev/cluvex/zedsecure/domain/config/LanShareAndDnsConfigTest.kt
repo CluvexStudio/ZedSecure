@@ -76,6 +76,21 @@ class LanShareAndDnsConfigTest {
     }
 
     @Test
+    fun `sharing without a password is an open LAN inbound only when the user turned the password off`() {
+        val open = lan.copy(username = "", password = "", auth = false)
+        val json = build(XrayJsonBuilder.BuildOptions(lan = open, appendHttpProxy = true))
+        val socksLan = inbounds(json).first { it.str("tag") == "socks-lan" }
+        assertEquals("0.0.0.0", socksLan.str("listen"))
+        assertEquals("noauth", socksLan["settings"]!!.jsonObject.str("auth"))
+        assertNull(socksLan["settings"]!!.jsonObject["accounts"])
+        val httpLan = inbounds(json).first { it.str("tag") == "http-lan" }
+        assertNull(httpLan["settings"]!!.jsonObject["accounts"])
+
+        val settings = AppSettings(proxySharing = true, socksUsername = "", socksPassword = "", lanShareAuth = false)
+        assertEquals(false, settings.toBuildOptions().lan?.auth)
+    }
+
+    @Test
     fun `incomplete credentials share nothing rather than an open proxy`() {
         listOf(lan.copy(password = ""), lan.copy(username = "  "), lan.copy(port = 10808)).forEach { bad ->
             val json = build(XrayJsonBuilder.BuildOptions(lan = bad, appendHttpProxy = true))

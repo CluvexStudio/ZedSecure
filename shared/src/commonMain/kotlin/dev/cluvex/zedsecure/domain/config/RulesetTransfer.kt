@@ -35,6 +35,7 @@ private data class ExportedRule(
     val port: String = "",
     val network: String = "",
     val protocol: List<String> = emptyList(),
+    val networkType: List<String> = emptyList(),
     val enabled: Boolean = true,
     val locked: Boolean = false,
 ) {
@@ -47,6 +48,7 @@ private data class ExportedRule(
         port = port,
         network = network,
         protocol = protocol,
+        networkType = networkType.filter { it in RulesetItem.NETWORK_TYPES },
         enabled = enabled,
         locked = locked,
     )
@@ -60,6 +62,7 @@ private data class ExportedRule(
             port = item.port,
             network = item.network,
             protocol = item.protocol,
+            networkType = item.networkType,
             enabled = item.enabled,
             locked = item.locked,
         )

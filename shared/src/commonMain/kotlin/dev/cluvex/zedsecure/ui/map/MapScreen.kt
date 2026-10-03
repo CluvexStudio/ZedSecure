@@ -159,6 +159,7 @@ fun MapScreen(
                 .padding(contentPadding)
                 .padding(horizontal = 20.dp),
         ) {
+            dev.cluvex.zedsecure.ui.components.PageBackButton()
             Text(
                 stringResource(Res.string.map_title),
                 style = MaterialTheme.typography.headlineMedium,

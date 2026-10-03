@@ -80,6 +80,10 @@ class ZedVpnService : VpnService() {
 
     private var autoSelectSession = false
     private var networkWatch: android.net.ConnectivityManager.NetworkCallback? = null
+    private var networkTypeWatch: android.net.ConnectivityManager.NetworkCallback? = null
+    private var networkTypeJob: Job? = null
+    @Volatile private var builtNetworkType: String? = null
+    @Volatile private var swappingCore = false
 
     private var hevIpv4: String = VpnInterfaceAddress.Option2.ipv4Client
     private var hevIpv6: String? = null
@@ -897,6 +901,66 @@ class ZedVpnService : VpnService() {
         notify(connectedNotification(0, 0, 0, 0))
         ZedWidgetProvider.refresh(this, force = true)
         startStatsLoop()
+        watchNetworkType()
+    }
+
+    private fun watchNetworkType() {
+        if (networkTypeWatch != null || kind != VpnManager.KIND_XRAY || autoSelectSession) return
+        val settings = SettingsRepository(this).settings.value
+        val dependent = dev.cluvex.zedsecure.domain.config.RoutingMigration.effectiveRulesets(settings)
+            .any { it.enabled && it.networkType.isNotEmpty() }
+        if (!dependent) return
+        val cm = getSystemService(android.net.ConnectivityManager::class.java) ?: return
+        builtNetworkType = NetworkKind.current(this)
+        val callback = object : android.net.ConnectivityManager.NetworkCallback() {
+            override fun onCapabilitiesChanged(network: android.net.Network, caps: android.net.NetworkCapabilities) {
+                val type = NetworkKind.of(caps) ?: return
+                if (type == builtNetworkType) return
+                networkTypeJob?.cancel()
+                networkTypeJob = scope.launch {
+                    delay(NETWORK_SETTLE_MS)
+                    rebuildForNetworkType(type)
+                }
+            }
+        }
+        runCatching { cm.registerDefaultNetworkCallback(callback) }
+            .onSuccess { networkTypeWatch = callback }
+            .onFailure { Log.w(TAG, "network type watch unavailable", it) }
+    }
+
+    private fun stopNetworkTypeWatch() {
+        networkTypeJob?.cancel()
+        networkTypeJob = null
+        networkTypeWatch?.let { cb ->
+            runCatching { getSystemService(android.net.ConnectivityManager::class.java)?.unregisterNetworkCallback(cb) }
+        }
+        networkTypeWatch = null
+    }
+
+    private fun rebuildForNetworkType(type: String) {
+        if (!connected || kind != VpnManager.KIND_XRAY || autoSelectSession) return
+        val plan = StartPlanner(this).planActive(allowProxyOnly = proxyOnly)
+        val sameSession = plan is StartPlanner.Plan.Start && plan.kind == VpnManager.KIND_XRAY &&
+            plan.proxyOnly == proxyOnly && plan.remark == remark &&
+            plan.socksPort == (VpnManager.activeSocksPort ?: plan.socksPort)
+        if (!sameSession) {
+            builtNetworkType = type
+            LogBus.append("W/Routing: the network is now $type; reconnect to use the rules for it")
+            return
+        }
+        swappingCore = true
+        val started = try {
+            XrayController.start((plan as StartPlanner.Plan.Start).configJson)
+        } finally {
+            swappingCore = false
+        }
+        if (started) {
+            builtNetworkType = type
+            LogBus.append("I/Routing: the network is now $type; the rules for it are in use")
+        } else {
+            VpnManager.onError(coreStartError())
+            stopEverything()
+        }
     }
 
     private fun connectedNotification(
@@ -965,7 +1029,7 @@ class ZedVpnService : VpnService() {
 
                     VpnManager.KIND_CROSS_CHAIN ->
                         engineAlive(crossInnerKind, outer = false) && engineAlive(crossOuterKind, outer = true)
-                    else -> XrayController.isRunning
+                    else -> swappingCore || XrayController.isRunning
                 }
                 if (!running) { onTunnelFailed(null); break }
                 elapsed = ((android.os.SystemClock.elapsedRealtime() - startedAt) / 1000).toInt()
@@ -1171,6 +1235,7 @@ class ZedVpnService : VpnService() {
 
     private fun stopEngines() {
         statsJob?.cancel()
+        stopNetworkTypeWatch()
         stopAutoSelectSession()
         psiphon?.stop(); psiphon = null
         dnsTunnel?.stop(); dnsTunnel = null

@@ -103,6 +103,7 @@ class SettingsRepository(context: Context) {
             socksPort = prefs.getInt("socks_port", d.socksPort),
             socksUsername = prefs.str("socks_username", d.socksUsername),
             socksPassword = prefs.str("socks_password", d.socksPassword),
+            lanShareAuth = prefs.getBoolean("lan_share_auth", d.lanShareAuth),
             socksEnableUdp = prefs.getBoolean("socks_udp", d.socksEnableUdp),
             remoteDns = prefs.str("remote_dns", d.remoteDns),
             directDns = prefs.str("direct_dns", d.directDns),
@@ -311,6 +312,7 @@ class SettingsRepository(context: Context) {
             putInt("socks_port", s.socksPort)
             putString("socks_username", s.socksUsername)
             putString("socks_password", s.socksPassword)
+            putBoolean("lan_share_auth", s.lanShareAuth)
             putBoolean("socks_udp", s.socksEnableUdp)
             putString("remote_dns", s.remoteDns)
             putString("direct_dns", s.directDns)

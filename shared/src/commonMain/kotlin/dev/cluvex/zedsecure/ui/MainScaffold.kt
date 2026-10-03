@@ -214,6 +214,9 @@ fun MainScaffold(
                         }
                     },
                     lockedNote = lockedNote,
+                    localProxyAddress = if (settings.runMode == dev.cluvex.zedsecure.domain.model.RunMode.ProxyOnly) {
+                        "127.0.0.1:${dev.cluvex.zedsecure.core.VpnManager.activeSocksPort ?: dev.cluvex.zedsecure.domain.config.LocalProxy.SOCKS_PORT}"
+                    } else null,
                     activeLocked = activeProfile?.isLocked == true,
                     reduceMotion = settings.reduceMotion,
 

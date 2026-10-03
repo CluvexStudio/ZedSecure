@@ -1202,6 +1202,16 @@ class ConfigRepository(private val store: KeyValueStore) {
         if (alsoRemoveServers) removeAll { it.subscriptionId == id }
     }
 
+    fun moveSubscription(fromId: String, toId: String) {
+        val list = _subscriptions.value.toMutableList()
+        val from = list.indexOfFirst { it.id == fromId }
+        val to = list.indexOfFirst { it.id == toId }
+        if (from < 0 || to < 0 || from == to) return
+        list.add(to, list.removeAt(from))
+        _subscriptions.value = list
+        persistSubscriptions()
+    }
+
     fun setSubscriptionEnabled(id: String, enabled: Boolean) {
         _subscriptions.value = _subscriptions.value.map {
             if (it.id == id) it.copy(enabled = enabled) else it

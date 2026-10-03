@@ -1403,10 +1403,29 @@ private fun CorePage(
                     }
                 },
             )
+            SettingsSwitchRow(
+                title = stringResource(Res.string.title_pref_lan_auth),
+                summary = stringResource(Res.string.summary_pref_lan_auth),
+                checked = s.lanShareAuth,
+                enabled = sharing,
+                onCheckedChange = { v ->
+                    onUpdate {
+                        if (v && (it.socksUsername.isBlank() || it.socksPassword.isBlank())) {
+                            it.copy(
+                                lanShareAuth = true,
+                                socksUsername = it.socksUsername.ifBlank { LAN_DEFAULT_USER },
+                                socksPassword = it.socksPassword.ifBlank { secureRandomToken(LAN_PASSWORD_LENGTH) },
+                            )
+                        } else {
+                            it.copy(lanShareAuth = v)
+                        }
+                    }
+                },
+            )
             SettingsEditRow(
                 title = stringResource(Res.string.title_pref_lan_username),
                 value = s.socksUsername,
-                enabled = sharing,
+                enabled = sharing && s.lanShareAuth,
                 onValueChanged = { v ->
                     if (v.isBlank()) platform.toast(credentialRequired)
                     else onUpdate { it.copy(socksUsername = v.trim()) }
@@ -1415,7 +1434,7 @@ private fun CorePage(
             SettingsEditRow(
                 title = stringResource(Res.string.title_pref_lan_password),
                 value = s.socksPassword,
-                enabled = sharing,
+                enabled = sharing && s.lanShareAuth,
                 isPassword = true,
                 onValueChanged = { v ->
                     if (v.isBlank()) platform.toast(credentialRequired)
@@ -1463,7 +1482,8 @@ private fun LanShareAddressRow(s: AppSettings) {
     var addresses by remember { mutableStateOf(platform.lanIpv4Addresses()) }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { addresses = platform.lanIpv4Addresses() }
     val port = s.effectiveLanSocksPort
-    val userLine = stringResource(Res.string.lan_share_user, s.socksUsername)
+    val userLine = if (s.lanShareAuth) stringResource(Res.string.lan_share_user, s.socksUsername)
+    else stringResource(Res.string.lan_share_no_auth)
     val none = stringResource(Res.string.lan_share_no_address)
     SettingsInfoRow(
         title = stringResource(Res.string.lan_share_connect_title),
@@ -1906,6 +1926,18 @@ private fun ModePage(
                 selected = if (desktop && !tun && s.runMode == RunMode.Vpn) RunMode.SystemProxy else s.runMode,
                 onSelected = { v -> onUpdate { it.copy(runMode = v) } },
             )
+            if (s.runMode == RunMode.ProxyOnly) {
+                val platform = LocalPlatform.current
+                val copied = stringResource(Res.string.copied)
+                val address = "127.0.0.1:${dev.cluvex.zedsecure.core.VpnManager.activeSocksPort ?: dev.cluvex.zedsecure.domain.config.LocalProxy.SOCKS_PORT}"
+                SettingsActionRow(
+                    title = stringResource(Res.string.mode_local_proxy_title),
+                    summary = stringResource(Res.string.mode_local_proxy_body, address),
+                ) {
+                    platform.copyToClipboard(address)
+                    platform.toast(copied)
+                }
+            }
             if (desktop) {
                 SettingsInfoRow(
                     title = stringResource(Res.string.mode_system_proxy),

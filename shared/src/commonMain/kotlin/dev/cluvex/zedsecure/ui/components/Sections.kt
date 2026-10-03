@@ -43,20 +43,8 @@ fun PageHeader(
 
     singleLine: Boolean = false,
 ) {
-    val back = LocalPageBack.current
     Column(modifier.fillMaxWidth().padding(horizontal = 22.dp)) {
-        if (back != null) {
-            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                IconButton(onClick = back, modifier = Modifier.offset(x = (-12).dp)) {
-                    Icon(
-                        painterResource(Res.drawable.ic_arrow_back),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Spacer(Modifier.width(0.dp))
-            }
-        }
+        PageBackButton()
         androidx.compose.foundation.layout.BoxWithConstraints {
           val room = maxWidth
           Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
@@ -92,6 +80,18 @@ fun PageHeader(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+    }
+}
+
+@Composable
+fun PageBackButton(modifier: Modifier = Modifier) {
+    val back = LocalPageBack.current ?: return
+    IconButton(onClick = back, modifier = modifier.offset(x = (-12).dp)) {
+        Icon(
+            painterResource(Res.drawable.ic_arrow_back),
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

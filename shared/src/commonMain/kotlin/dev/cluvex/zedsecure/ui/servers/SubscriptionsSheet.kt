@@ -2,6 +2,11 @@
 
 package dev.cluvex.zedsecure.ui.servers
 
+import androidx.compose.runtime.key
+import sh.calvin.reorderable.ReorderableColumn
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -98,32 +103,36 @@ fun SubscriptionsSheet(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
+            val add = add@{
+                if (url.isBlank()) return@add
+                val sub = repository.addSubscription(name, url, userAgent)
+                name = ""; url = ""; userAgent = ""
+                busyId = sub.id
+                scope.launch {
+                    repository.updateSubscription(sub.id)
+                        .onSuccess {
+                            platform.toast(getString(Res.string.servers_imported, it))
+
+                            onDismiss()
+                        }
+                        .onFailure {
+                            platform.toast(getString(Res.string.subs_failed))
+                        }
+                    busyId = null
+                }
+            }
             OutlinedTextField(
                 value = url,
                 onValueChange = { url = it },
                 label = { Text(stringResource(Res.string.subs_url)) },
                 singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { add() }),
                 modifier = Modifier.fillMaxWidth(),
             )
             UserAgentPicker(userAgent) { userAgent = it }
             Button(
-                onClick = {
-                    val sub = repository.addSubscription(name, url, userAgent)
-                    name = ""; url = ""; userAgent = ""
-                    busyId = sub.id
-                    scope.launch {
-                        repository.updateSubscription(sub.id)
-                            .onSuccess {
-                                platform.toast(getString(Res.string.servers_imported, it))
-
-                                onDismiss()
-                            }
-                            .onFailure {
-                                platform.toast(getString(Res.string.subs_failed))
-                            }
-                        busyId = null
-                    }
-                },
+                onClick = { add() },
                 enabled = url.isNotBlank(),
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier.fillMaxWidth().height(50.dp),
@@ -157,82 +166,102 @@ fun SubscriptionsSheet(
 
             if (subs.isNotEmpty()) {
                 SectionTitle(stringResource(Res.string.subs_existing))
-                subs.forEach { sub ->
-                    Surface(
-                        shape = RoundedCornerShape(18.dp),
-                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                      Column {
-                        Row(
-                            Modifier.fillMaxWidth().padding(start = 14.dp, end = 4.dp, top = 10.dp, bottom = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Column(Modifier.weight(1f)) {
-                                Text(
-                                    sub.name,
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.SemiBold,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                                Text(
-                                    when {
-                                        sub.serverCount > 0 -> stringResource(Res.string.servers_count, sub.serverCount)
-
-                                        sub.url.isBlank() -> stringResource(Res.string.groups_add)
-                                        else -> sub.url
-                                    },
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
-                            Switch(
-                                checked = sub.enabled,
-                                onCheckedChange = { repository.setSubscriptionEnabled(sub.id, it) },
-                            )
-                            if (busyId == sub.id) {
-                                Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) {
-                                    CircularProgressIndicator(Modifier.size(20.dp))
-                                }
-                            } else {
-                                IconButton(onClick = {
-                                    busyId = sub.id
-                                    scope.launch {
-                                        repository.updateSubscription(sub.id)
-                                        busyId = null
-                                    }
-                                }) {
+                ReorderableColumn(
+                    list = subs,
+                    onSettle = { from, to ->
+                        val moved = subs.getOrNull(from)
+                        val target = subs.getOrNull(to)
+                        if (moved != null && target != null) repository.moveSubscription(moved.id, target.id)
+                    },
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) { _, sub, dragging ->
+                    key(sub.id) {
+                        ReorderableItem {
+                            Surface(
+                                shape = RoundedCornerShape(18.dp),
+                                color = if (dragging) MaterialTheme.colorScheme.surfaceContainerHighest
+                                else MaterialTheme.colorScheme.surfaceContainerHigh,
+                                shadowElevation = if (dragging) 6.dp else 0.dp,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                              Column {
+                                Row(
+                                    Modifier.fillMaxWidth().padding(start = 14.dp, end = 4.dp, top = 10.dp, bottom = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
                                     Icon(
-                                        painterResource(Res.drawable.ic_schedule),
-                                        contentDescription = stringResource(Res.string.subs_update),
+                                        painterResource(Res.drawable.ic_drag_handle),
+                                        contentDescription = stringResource(Res.string.subs_reorder),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(end = 8.dp).size(20.dp).draggableHandle(),
                                     )
-                                }
-                            }
+                                    Column(Modifier.weight(1f)) {
+                                        Text(
+                                            sub.name,
+                                            style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = FontWeight.SemiBold,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                        )
+                                        Text(
+                                            when {
+                                                sub.serverCount > 0 -> stringResource(Res.string.servers_count, sub.serverCount)
 
-                            IconButton(onClick = { qrTarget = sub.name to sub.url }) {
-                                Icon(
-                                    painterResource(Res.drawable.ic_qr_code_2),
-                                    contentDescription = stringResource(Res.string.action_share_qr),
-                                )
+                                                sub.url.isBlank() -> stringResource(Res.string.groups_add)
+                                                else -> sub.url
+                                            },
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                        )
+                                    }
+                                    Switch(
+                                        checked = sub.enabled,
+                                        onCheckedChange = { repository.setSubscriptionEnabled(sub.id, it) },
+                                    )
+                                    if (busyId == sub.id) {
+                                        Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) {
+                                            CircularProgressIndicator(Modifier.size(20.dp))
+                                        }
+                                    } else {
+                                        IconButton(onClick = {
+                                            busyId = sub.id
+                                            scope.launch {
+                                                repository.updateSubscription(sub.id)
+                                                busyId = null
+                                            }
+                                        }) {
+                                            Icon(
+                                                painterResource(Res.drawable.ic_schedule),
+                                                contentDescription = stringResource(Res.string.subs_update),
+                                            )
+                                        }
+                                    }
+
+                                    IconButton(onClick = { qrTarget = sub.name to sub.url }) {
+                                        Icon(
+                                            painterResource(Res.drawable.ic_qr_code_2),
+                                            contentDescription = stringResource(Res.string.action_share_qr),
+                                        )
+                                    }
+                                    IconButton(onClick = { renameTarget = sub }) {
+                                        Icon(
+                                            painterResource(Res.drawable.ic_edit),
+                                            contentDescription = stringResource(Res.string.subs_rename),
+                                        )
+                                    }
+                                    IconButton(onClick = { deleteTarget = sub }) {
+                                        Icon(
+                                            painterResource(Res.drawable.ic_delete),
+                                            contentDescription = stringResource(Res.string.action_delete),
+                                        )
+                                    }
+                                }
+                                SubscriptionUsage(sub, onOpen = { platform.openUri(it) })
+                              }
                             }
-                            IconButton(onClick = { renameTarget = sub }) {
-                                Icon(
-                                    painterResource(Res.drawable.ic_edit),
-                                    contentDescription = stringResource(Res.string.subs_rename),
-                                )
-                            }
-                            IconButton(onClick = { deleteTarget = sub }) {
-                                Icon(
-                                    painterResource(Res.drawable.ic_delete),
-                                    contentDescription = stringResource(Res.string.action_delete),
-                                )
-                            }
-                        }
-                        SubscriptionUsage(sub, onOpen = { platform.openUri(it) })
-                      }
+                                        }
                     }
                 }
             }

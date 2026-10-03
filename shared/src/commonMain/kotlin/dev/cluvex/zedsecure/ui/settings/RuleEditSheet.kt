@@ -4,6 +4,7 @@ package dev.cluvex.zedsecure.ui.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,6 +16,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -34,6 +36,7 @@ import dev.cluvex.zedsecure.domain.model.RulesetItem
 import dev.cluvex.zedsecure.shared.resources.Res
 import dev.cluvex.zedsecure.shared.resources.*
 import dev.cluvex.zedsecure.ui.components.PickerField
+import dev.cluvex.zedsecure.ui.platform.LocalPlatform
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -52,11 +55,13 @@ fun RuleEditSheet(
     var port by rememberSaveable(initial.id) { mutableStateOf(initial.port) }
     var network by rememberSaveable(initial.id) { mutableStateOf(initial.network) }
     var protocol by rememberSaveable(initial.id) { mutableStateOf(initial.protocol.joinToString(", ")) }
+    var networkTypes by rememberSaveable(initial.id) { mutableStateOf(initial.networkType.joinToString(",")) }
     var locked by rememberSaveable(initial.id) { mutableStateOf(initial.locked) }
 
     val domainList = domain.toList()
     val ipList = ip.toList()
     val protocolList = protocol.toList()
+    val networkTypeList = networkTypes.split(',').filter { it in RulesetItem.NETWORK_TYPES }
     val domainError = domainList.firstNotNullOfOrNull { RuleValidation.checkDomainEntry(it) }
     val ipError = ipList.firstNotNullOfOrNull { RuleValidation.checkIpEntry(it) }
     val portValid = RuleValidation.isValidPort(port)
@@ -141,6 +146,9 @@ fun RuleEditSheet(
                 selected = network,
                 onSelect = { network = it },
             )
+            if (LocalPlatform.current.supportsNetworkTypeRules) {
+                NetworkTypeField(selected = networkTypeList, onChange = { networkTypes = it.joinToString(",") })
+            }
             RuleField(
                 label = stringResource(Res.string.rule_protocol),
                 value = protocol,
@@ -196,6 +204,7 @@ fun RuleEditSheet(
                                 port = port.trim(),
                                 network = network,
                                 protocol = protocolList,
+                                networkType = networkTypeList,
                                 locked = locked,
                             ),
                         )
@@ -208,6 +217,45 @@ fun RuleEditSheet(
             Spacer(Modifier.height(4.dp))
         }
     }
+}
+
+@Composable
+private fun NetworkTypeField(selected: List<String>, onChange: (List<String>) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(
+            stringResource(Res.string.rule_network_type),
+            style = androidx.compose.material3.MaterialTheme.typography.labelLarge,
+            color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            RulesetItem.NETWORK_TYPES.forEach { type ->
+                val on = type in selected
+                FilterChip(
+                    selected = on,
+                    onClick = {
+                        onChange(RulesetItem.NETWORK_TYPES.filter { if (it == type) !on else it in selected })
+                    },
+                    label = { Text(networkTypeLabel(type), maxLines = 1) },
+                )
+            }
+        }
+        Text(
+            stringResource(Res.string.rule_network_type_hint),
+            style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
+            color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+internal fun networkTypeLabel(type: String): String = when (type) {
+    RulesetItem.NETWORK_WIFI -> stringResource(Res.string.network_type_wifi)
+    RulesetItem.NETWORK_CELLULAR -> stringResource(Res.string.network_type_cellular)
+    RulesetItem.NETWORK_ETHERNET -> stringResource(Res.string.network_type_ethernet)
+    else -> stringResource(Res.string.network_type_other)
 }
 
 @Composable

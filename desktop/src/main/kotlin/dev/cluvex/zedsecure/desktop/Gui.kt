@@ -3,6 +3,7 @@ package dev.cluvex.zedsecure.desktop
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -10,6 +11,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import dev.cluvex.zedsecure.ui.platform.DesktopBack
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Notification
@@ -134,7 +140,11 @@ fun main(args: Array<String>) {
         }
 
         val nativeTrayHost = remember {
-            Os.current == Os.LINUX && LinuxDesktop.trayHostAvailable() && LinuxDesktop.nativeTrayLoads()
+            when (Os.current) {
+                Os.LINUX -> LinuxDesktop.trayHostAvailable() && LinuxDesktop.nativeTrayLoads()
+                Os.WINDOWS -> WindowsDesktop.nativeTrayLoads()
+                else -> false
+            }
         }
         var nativeTrayFailed by remember { mutableStateOf(false) }
         val nativeTray = nativeTrayHost && !nativeTrayFailed
@@ -206,7 +216,11 @@ fun main(args: Array<String>) {
                     else -> null
                 }
                 notice?.let {
-                    if (nativeTray) LinuxDesktop.notify(it.title, it.message) else trayState.sendNotification(it)
+                    when {
+                        !nativeTray -> trayState.sendNotification(it)
+                        Os.current == Os.WINDOWS -> WindowsDesktop.notify(it.title, it.message)
+                        else -> LinuxDesktop.notify(it.title, it.message)
+                    }
                 }
             }
             val statusLine = when {
@@ -300,7 +314,7 @@ fun main(args: Array<String>) {
                 },
             )
             if (nativeTray) {
-                LinuxNativeTray(
+                NativeTray(
                     iconKey = trayIconKey,
                     icon = trayIcon,
                     tooltip = tip,
@@ -327,7 +341,21 @@ fun main(args: Array<String>) {
             icon = painterResource(Res.drawable.ic_zed_mark),
             resizable = false,
             state = windowState,
+            onKeyEvent = { event ->
+                event.type == KeyEventType.KeyUp && event.key == Key.Escape && DesktopBack.dispatch()
+            },
         ) {
+            DisposableEffect(Unit) {
+                val listener = java.awt.event.AWTEventListener { event ->
+                    if (event is java.awt.event.MouseEvent && event.id == java.awt.event.MouseEvent.MOUSE_PRESSED &&
+                        event.button == MOUSE_BACK_BUTTON
+                    ) {
+                        DesktopBack.dispatch()
+                    }
+                }
+                java.awt.Toolkit.getDefaultToolkit().addAWTEventListener(listener, java.awt.AWTEvent.MOUSE_EVENT_MASK)
+                onDispose { java.awt.Toolkit.getDefaultToolkit().removeAWTEventListener(listener) }
+            }
             LaunchedEffect(raiseWindow) {
                 if (raiseWindow > 0) {
                     window.isMinimized = false
@@ -398,3 +426,5 @@ private fun humanBps(bps: Long): String {
     while (v >= 1024 && i < units.size - 1) { v /= 1024; i++ }
     return (if (v >= 100 || i == 0) "%.0f".format(v) else "%.1f".format(v)) + " " + units[i]
 }
+
+private const val MOUSE_BACK_BUTTON = 4

@@ -84,17 +84,19 @@ object XrayJsonBuilder {
     private fun effectiveRules(
         rulesets: List<dev.cluvex.zedsecure.domain.model.RulesetItem>,
         geo: Boolean,
-    ): List<EffectiveRule> = rulesets.filter { it.enabled }.mapNotNull { r ->
+        networkType: String?,
+    ): List<EffectiveRule> = rulesets.filter { it.enabled && it.appliesOn(networkType) }.mapNotNull { r ->
         val domains = RuleValidation.usableDomains(r.domain, geo)
         val ips = RuleValidation.usableIps(r.ip, geo)
 
         if (r.domain.isNotEmpty() && domains.isEmpty()) return@mapNotNull null
         if (r.ip.isNotEmpty() && ips.isEmpty()) return@mapNotNull null
-        if (domains.isEmpty() && ips.isEmpty() && r.port.isBlank() &&
+        val onlyNetworkType = domains.isEmpty() && ips.isEmpty() && r.port.isBlank() &&
             r.network.isBlank() && r.protocol.isEmpty()
-        ) return@mapNotNull null
+        if (onlyNetworkType && r.networkType.isEmpty()) return@mapNotNull null
         if (!RuleValidation.isValidPort(r.port)) return@mapNotNull null
-        EffectiveRule(domains, ips, r.port, r.network, r.protocol, r.outboundTag)
+        val network = if (onlyNetworkType) "tcp,udp" else r.network
+        EffectiveRule(domains, ips, r.port, network, r.protocol, r.outboundTag)
     }
 
     private fun emittedTagFor(ruleTag: String): String =
@@ -428,7 +430,7 @@ object XrayJsonBuilder {
             }
             val geo = options.geoAssetsAvailable
 
-            val rules = if (forSpeedtest) emptyList() else effectiveRules(options.rulesets, geo)
+            val rules = if (forSpeedtest) emptyList() else effectiveRules(options.rulesets, geo, options.networkType)
 
             val dnsSplit = if (forSpeedtest) DnsSplit() else dnsSplit(rules, options)
             if (!forSpeedtest) put("dns", dns(options, dnsSplit))
@@ -528,6 +530,8 @@ object XrayJsonBuilder {
 
         val rulesets: List<dev.cluvex.zedsecure.domain.model.RulesetItem> = emptyList(),
 
+        val networkType: String? = null,
+
         val ruleOutbounds: Map<String, ServerConfig> = emptyMap(),
         val remoteDns: String = "https://1.1.1.1/dns-query",
 
@@ -569,10 +573,11 @@ object XrayJsonBuilder {
         val username: String,
         val password: String,
         val udp: Boolean,
+        val auth: Boolean = true,
     )
 
     private fun usableLanShare(options: BuildOptions): LanShare? = options.lan?.takeIf {
-        it.username.isNotBlank() && it.password.isNotBlank() &&
+        (!it.auth || it.username.isNotBlank() && it.password.isNotBlank()) &&
             it.port in 1..65534 && !LocalPorts.isInternal(it.port) && !LocalPorts.isInternal(it.port + 1)
     }
 
@@ -1079,12 +1084,16 @@ object XrayJsonBuilder {
         put("protocol", "socks")
         put("listen", "0.0.0.0")
         putJsonObject("settings") {
-            put("auth", "password")
-            putJsonArray("accounts") {
-                addJsonObject {
-                    put("user", lan.username)
-                    put("pass", lan.password)
+            if (lan.auth) {
+                put("auth", "password")
+                putJsonArray("accounts") {
+                    addJsonObject {
+                        put("user", lan.username)
+                        put("pass", lan.password)
+                    }
                 }
+            } else {
+                put("auth", "noauth")
             }
             put("udp", lan.udp)
             put("userLevel", 8)
@@ -1098,10 +1107,12 @@ object XrayJsonBuilder {
         put("protocol", "http")
         put("listen", "0.0.0.0")
         putJsonObject("settings") {
-            putJsonArray("accounts") {
-                addJsonObject {
-                    put("user", lan.username)
-                    put("pass", lan.password)
+            if (lan.auth) {
+                putJsonArray("accounts") {
+                    addJsonObject {
+                        put("user", lan.username)
+                        put("pass", lan.password)
+                    }
                 }
             }
             put("userLevel", 8)

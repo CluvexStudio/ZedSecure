@@ -366,7 +366,8 @@ private fun RulesetItem.sameMatcher(other: RulesetItem): Boolean =
         ip == other.ip &&
         port == other.port &&
         network == other.network &&
-        protocol == other.protocol
+        protocol == other.protocol &&
+        networkType == other.networkType
 
 @Composable
 private fun RoutingPresetType.label(): String = when (this) {
@@ -415,6 +416,7 @@ private fun RuleRow(
         if (rule.port.isNotBlank()) add("port:${rule.port}")
         if (rule.network.isNotBlank()) add(rule.network)
         rule.protocol.forEach { add(it) }
+        rule.networkType.forEach { add(networkTypeLabel(it)) }
     }.joinToString(", ").ifBlank { stringResource(Res.string.routing_rule_no_match) }
 
     Surface(

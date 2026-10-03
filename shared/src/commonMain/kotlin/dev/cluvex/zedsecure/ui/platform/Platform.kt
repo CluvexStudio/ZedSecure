@@ -61,6 +61,8 @@ interface Platform {
 
     val choosesTunEngine: Boolean get() = true
 
+    val supportsNetworkTypeRules: Boolean get() = false
+
     val automaticRendering: AutomaticRendering? get() = null
 
     fun lanIpv4Addresses(): List<String> = emptyList()

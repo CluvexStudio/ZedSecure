@@ -12,6 +12,8 @@ fun AppSettings.toBuildOptions(
     carrier: Boolean = false,
 
     resolvedServerHosts: Map<String, List<String>> = emptyMap(),
+
+    networkType: String? = null,
 ): XrayJsonBuilder.BuildOptions = XrayJsonBuilder.BuildOptions(
     singBox = singBoxTuning(),
     logLevel = logLevel.value,
@@ -28,6 +30,7 @@ fun AppSettings.toBuildOptions(
     customBlockRules = customBlockRules.toRuleList(),
 
     rulesets = RoutingMigration.effectiveRulesets(this),
+    networkType = networkType,
     ruleOutbounds = ruleOutbounds,
     remoteDns = remoteDns,
     directDns = directDns,
@@ -59,6 +62,7 @@ private fun AppSettings.lanShare(): XrayJsonBuilder.LanShare? =
         username = socksUsername.trim(),
         password = socksPassword,
         udp = socksEnableUdp,
+        auth = lanShareAuth,
     )
 
 private fun String.toRuleList(): List<String> =

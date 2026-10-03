@@ -75,6 +75,7 @@
     <string name="subs_name">نام</string>
     <string name="subs_url">نشانی</string>
     <string name="subs_update">به‌روزرسانی</string>
+    <string name="subs_reorder">برای جابه‌جایی بکشید</string>
     <string name="subs_update_all">به‌روزرسانی همه</string>
     <string name="subs_updated">به‌روزرسانی شد: %1$d سرور</string>
     <string name="subs_failed">به‌روزرسانی سابسکریپشن ناموفق بود</string>
@@ -310,6 +311,12 @@
     <string name="rule_port">پورت</string>
     <string name="rule_network">شبکه</string>
     <string name="rule_network_any">هر کدام</string>
+    <string name="rule_network_type">نوع شبکه</string>
+    <string name="rule_network_type_hint">این قانون فقط وقتی اعمال می‌شود که گوشی به یکی از شبکه‌های انتخاب‌شده وصل است. اگر هیچ‌کدام را انتخاب نکنید، روی همهٔ شبکه‌ها اعمال می‌شود.</string>
+    <string name="network_type_wifi">وای‌فای</string>
+    <string name="network_type_cellular">دادهٔ همراه</string>
+    <string name="network_type_ethernet">اترنت</string>
+    <string name="network_type_other">سایر</string>
     <string name="rule_protocol">پروتکل</string>
     <string name="routing_ruleset_menu">گزینه‌های مجموعه قوانین</string>
     <string name="routing_preset_iran">جایگزینی با: لیست سفید ایران</string>
@@ -1076,6 +1083,9 @@
     <string name="action_share_qr">اشتراک با QR</string>
     <string name="action_close">بستن</string>
     <string name="copied">کپی شد</string>
+    <string name="home_local_proxy">پروکسی · %1$s</string>
+    <string name="mode_local_proxy_title">آدرس پروکسی محلی</string>
+    <string name="mode_local_proxy_body">SOCKS5 و HTTP روی %1$s. برای کپی بزنید.</string>
     <string name="qr_too_large">این کانفیگ برای کد QR بزرگ است. از اشتراک‌گذاری یا کپی استفاده کنید.</string>
     <string name="servers_add_scan_qr">اسکن کد QR</string>
     <string name="servers_add_scan_image">اسکن QR از روی تصویر</string>
@@ -1129,6 +1139,9 @@
     <string name="title_pref_lan_port">پورت اشتراک در شبکهٔ محلی</string>
     <string name="title_pref_lan_username">نام کاربری اشتراک در شبکهٔ محلی</string>
     <string name="title_pref_lan_password">رمز اشتراک در شبکهٔ محلی</string>
+    <string name="title_pref_lan_auth">نیاز به نام کاربری و رمز</string>
+    <string name="summary_pref_lan_auth">اگر خاموش باشد، هر کسی در همین شبکه می‌تواند از پروکسی اشتراکی استفاده کند.</string>
+    <string name="lan_share_no_auth">بدون نام کاربری و رمز</string>
     <string name="toast_lan_port_invalid">پورتی بین ۱۰۲۴ و ۶۵۵۳۴ انتخاب کنید که خود ZedSecure از آن استفاده نمی‌کند</string>
     <string name="toast_lan_credential_required">اشتراک در شبکهٔ محلی هم نام کاربری لازم دارد و هم رمز</string>
     <string name="dns_prevent_fallback_always">همیشه فعال است. همهٔ resolverهای تونل‌های مبتنی بر DNS از داخل تونل عبور می‌کنند، پس هیچ پرس‌وجویی به شبکهٔ عادی شما برنمی‌گردد.</string>

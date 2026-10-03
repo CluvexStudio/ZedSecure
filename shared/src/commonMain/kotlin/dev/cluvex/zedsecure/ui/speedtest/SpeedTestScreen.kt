@@ -146,7 +146,9 @@ fun SpeedTestScreen(
         }
 
         if (landscape) {
-            Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Column(Modifier.fillMaxSize()) {
+            dev.cluvex.zedsecure.ui.components.PageBackButton()
+            Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Column(
                     Modifier.weight(0.44f).fillMaxHeight(),
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -175,6 +177,7 @@ fun SpeedTestScreen(
                     DetailPane(st)
                     Spacer(Modifier.height(12.dp))
                 }
+            }
             }
         } else {
             Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {

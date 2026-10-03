@@ -2,6 +2,9 @@
 
 package dev.cluvex.zedsecure.ui.vault
 
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -103,6 +106,8 @@ internal fun VaultUnlockDialog(
                         onValueChange = { password = it },
                         label = { Text(stringResource(Res.string.vault_password)) },
                         singleLine = true,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = { if (password.isNotBlank()) onUnlock(password) }),
                         visualTransformation = if (visible) VisualTransformation.None
                         else PasswordVisualTransformation(),
                         trailingIcon = {
