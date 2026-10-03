@@ -538,6 +538,7 @@
     <string name="logs_empty">هنوز لاگی نیست.</string>
     <string name="logs_copied">لاگ‌ها کپی شد</string>
     <string name="psiphon_add_title">افزودن سایفون</string>
+    <string name="aether_add_title">افزودن اتر (Aether)</string>
     <string name="psiphon_country">کشور خروج</string>
     <string name="psiphon_country_auto">خودکار (سریع‌ترین)</string>
     <string name="psiphon_country_pick">انتخاب کشور خروج</string>

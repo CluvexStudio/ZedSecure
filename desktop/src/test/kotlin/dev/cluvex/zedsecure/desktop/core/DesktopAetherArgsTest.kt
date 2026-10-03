@@ -110,4 +110,20 @@ class DesktopAetherArgsTest {
         assertTrue("104.16.1.1" in bypass)
         assertTrue("172.64.1.1" in bypass)
     }
+
+    @Test
+    fun `Psiphon Chain mode configures psiphon-bind and passes binary path`() {
+        val profile = AetherProfile(
+            protocol = AetherProfile.PROTOCOL_MASQUE,
+            psiphonMode = AetherProfile.CARRIER_CHAIN,
+            psiphonRegion = "DE",
+        )
+        val args = AetherCoreBuilder.buildArgs(profile, socksPort = 11819, psiphonBin = "/tmp/psiphon")
+
+        assertTrue("--psiphon" in args)
+        assertTrue("--psiphon-bind" in args && args[args.indexOf("--psiphon-bind") + 1] == "127.0.0.1:11819")
+        assertTrue("--bind" in args && args[args.indexOf("--bind") + 1] == "127.0.0.1:11821")
+        assertTrue("--psiphon-bin" in args && args[args.indexOf("--psiphon-bin") + 1] == "/tmp/psiphon")
+        assertTrue("--psiphon-region" in args && args[args.indexOf("--psiphon-region") + 1] == "DE")
+    }
 }

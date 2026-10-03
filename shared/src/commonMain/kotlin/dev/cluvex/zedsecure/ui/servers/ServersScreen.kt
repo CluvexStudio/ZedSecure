@@ -2012,7 +2012,7 @@ private fun AddServerSheet(
 
             OptionGroup(Res.string.add_group_tunnels)
             Option(Res.drawable.ic_bolt, Res.string.psiphon_add_title, onPsiphon)
-            Option(Res.drawable.ic_bolt, Res.string.manual_protocol, onAether) // Aether MASQUE/WARP
+            Option(Res.drawable.ic_bolt, Res.string.aether_add_title, onAether)
             Option(Res.drawable.ic_lock, Res.string.tor_add_title, onTor)
             Option(Res.drawable.ic_speed, Res.string.ssh_add_title, onSsh)
             Option(Res.drawable.ic_bolt, Res.string.snispoof_add_title, onSniSpoof)

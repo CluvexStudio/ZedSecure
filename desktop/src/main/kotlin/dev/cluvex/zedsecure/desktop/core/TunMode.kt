@@ -60,7 +60,10 @@ class TunMode(
         if (onPath("pkexec")) {
             when (elevate(detach + listOf("pkexec", "/bin/sh", script.absolutePath), null, PKEXEC_WAIT_SEC)) {
                 Outcome.Ready -> return true
-                Outcome.Dismissed -> return false
+                Outcome.Dismissed -> {
+                    if (askPassword == null) return false
+                    println("[tun] pkexec dismissed or no polkit agent; falling back to sudo password prompt")
+                }
                 Outcome.Failed -> println("[tun] pkexec could not authorise; trying sudo")
             }
         }
@@ -77,8 +80,8 @@ class TunMode(
                     retry = true
                     return@repeat
                 }
-                val run = detach + listOf("sudo", "-S", "-k", "-p", "", "/bin/sh", script.absolutePath)
-                return elevate(run, password, SUDO_WAIT_SEC) == Outcome.Ready
+                val run = detach + listOf("sudo", "-n", "/bin/sh", script.absolutePath)
+                return elevate(run, null, SUDO_WAIT_SEC) == Outcome.Ready
             } finally {
                 password.fill('\u0000')
             }

@@ -546,6 +546,7 @@
     <string name="logs_empty">还没有日志。</string>
     <string name="logs_copied">日志已复制</string>
     <string name="psiphon_add_title">添加 Psiphon</string>
+    <string name="aether_add_title">添加 Aether WARP / MASQUE</string>
     <string name="psiphon_country">出口国家/地区</string>
     <string name="psiphon_country_auto">自动 (最快)</string>
     <string name="psiphon_country_pick">选择出口国家/地区</string>

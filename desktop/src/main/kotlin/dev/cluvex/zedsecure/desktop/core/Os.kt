@@ -17,10 +17,25 @@ enum class Os { LINUX, WINDOWS, MACOS, OTHER;
 internal fun exec(vararg cmd: String, timeoutSec: Long = 30): Pair<Int, String> {
     return try {
         val p = ProcessBuilder(*cmd).redirectErrorStream(true).start()
-        val out = p.inputStream.bufferedReader().readText()
+        val out = StringBuilder()
+        val reader = Thread {
+            runCatching {
+                p.inputStream.bufferedReader().use { r ->
+                    var line: String?
+                    while (r.readLine().also { line = it } != null) {
+                        out.append(line).append('\n')
+                    }
+                }
+            }
+        }.apply { isDaemon = true; start() }
         val done = p.waitFor(timeoutSec, java.util.concurrent.TimeUnit.SECONDS)
-        if (!done) { p.destroyForcibly(); return -1 to out }
-        p.exitValue() to out
+        if (!done) {
+            p.destroyForcibly()
+            reader.interrupt()
+            return -1 to out.toString().trimEnd()
+        }
+        reader.join(500)
+        p.exitValue() to out.toString().trimEnd()
     } catch (e: Exception) {
         -1 to (e.message ?: "exec failed")
     }

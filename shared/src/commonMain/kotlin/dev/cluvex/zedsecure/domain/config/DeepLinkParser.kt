@@ -87,7 +87,7 @@ object DeepLinkParser {
     private fun configText(text: String): DeepLinkRequest? {
         val t = text.trim()
         val readable = ConfigParser.isSupportedLink(t) && !t.startsWith("http", ignoreCase = true) ||
-            SniSpoofLink.isSniSpoofLink(t) || ZedLink.isZedLink(t)
+            SniSpoofLink.isSniSpoofLink(t) || ZedLink.isZedLink(t) || AetherLink.isAetherLink(t)
         return if (readable) DeepLinkRequest.ConfigText(t) else null
     }
 
@@ -176,6 +176,14 @@ data class DeepLinkPreview(
                     name = singBox?.name?.takeIf { it.isNotBlank() },
                     detail = server?.let { "${it.label} · ${it.address}:${it.port}" }
                         ?: text.substringBefore("://").uppercase(),
+                )
+            }
+            if (AetherLink.isAetherLink(text)) {
+                val parsed = runCatching { AetherLink.parse(text) }.getOrNull()
+                return DeepLinkPreview(
+                    name = parsed?.first?.takeIf { it.isNotBlank() },
+                    detail = parsed?.let { (_, profile) -> "Aether · ${profile.protocol.uppercase()}" }
+                        ?: "AETHER",
                 )
             }
             val parsed = runCatching { ConfigParser.parse(text) }.getOrNull()

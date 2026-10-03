@@ -22,12 +22,20 @@ class DesktopAether(
         val bin = BundledBinary.extract(workDir, "aether", "aether.exe")
             ?: return Result.failure(IllegalStateException("Aether binary not bundled for ${Os.current}"))
 
+        val psiphonBin = if (profile.psiphonMode != AetherProfile.CARRIER_OFF) {
+            BundledBinary.extract(workDir, "psiphon", "psiphon.exe")
+        } else null
+
         val args = listOf(bin.absolutePath) + AetherCoreBuilder.buildArgs(
             profile = profile,
             socksPort = socksPort,
             workDir = workDir.absolutePath,
+            psiphonBin = psiphonBin?.absolutePath,
         )
         val pb = ProcessBuilder(args).directory(workDir).redirectErrorStream(true)
+        if (psiphonBin != null) {
+            pb.environment()["AETHER_PSIPHON_BIN"] = psiphonBin.absolutePath
+        }
 
         val started = try {
             pb.start()

@@ -546,6 +546,7 @@
     <string name="logs_empty">Записей пока нет.</string>
     <string name="logs_copied">Журнал скопирован</string>
     <string name="psiphon_add_title">Добавить Psiphon</string>
+    <string name="aether_add_title">Добавить Aether WARP / MASQUE</string>
     <string name="psiphon_country">Страна выхода</string>
     <string name="psiphon_country_auto">Авто (самая быстрая)</string>
     <string name="psiphon_country_pick">Выбрать страну выхода</string>

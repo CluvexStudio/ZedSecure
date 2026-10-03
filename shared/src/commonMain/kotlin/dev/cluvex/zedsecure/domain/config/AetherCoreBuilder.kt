@@ -7,6 +7,7 @@ object AetherCoreBuilder {
         httpProxyPort: Int? = null,
         workDir: String? = null,
         fwMark: Int? = null,
+        psiphonBin: String? = null,
     ): List<String> = buildList {
         if (profile.customCommand.isNotBlank()) {
             val words = profile.customCommand.trim().split(Regex("\\s+"))
@@ -15,7 +16,10 @@ object AetherCoreBuilder {
             return@buildList
         }
 
-        add("--bind"); add("127.0.0.1:$socksPort")
+        val warpPort = if (profile.psiphonMode == AetherProfile.CARRIER_CHAIN) socksPort + 2 else socksPort
+        val psiphonPort = if (profile.psiphonMode == AetherProfile.CARRIER_CHAIN) socksPort else socksPort + 2
+
+        add("--bind"); add("127.0.0.1:$warpPort")
         httpProxyPort?.let { add("--http-proxy"); add("127.0.0.1:$it") }
         fwMark?.let { add("--mark"); add(it.toString()) }
 
@@ -74,11 +78,15 @@ object AetherCoreBuilder {
         }
 
         when (profile.psiphonMode) {
-            AetherProfile.CARRIER_CHAIN -> add("--psiphon")
+            AetherProfile.CARRIER_CHAIN -> {
+                add("--psiphon")
+                add("--psiphon-bind"); add("127.0.0.1:$psiphonPort")
+            }
             AetherProfile.CARRIER_REVERSE -> add("--psiphon-reverse")
             AetherProfile.CARRIER_ONLY -> add("--psiphon-only")
         }
         if (profile.psiphonMode != AetherProfile.CARRIER_OFF) {
+            psiphonBin?.let { add("--psiphon-bin"); add(it) }
             if (profile.psiphonTactics != "auto") { add("--psiphon-mode"); add(profile.psiphonTactics) }
             if (profile.psiphonRegion.isNotBlank()) { add("--psiphon-region"); add(profile.psiphonRegion) }
             if (profile.psiphonCdnIps.isNotBlank()) { add("--psiphon-cdn-ips"); add(profile.psiphonCdnIps) }
