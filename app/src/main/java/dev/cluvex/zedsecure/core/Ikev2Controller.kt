@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Ikev2VpnProfile
+import android.net.InetAddresses
 import android.net.VpnProfileState
 import android.net.ipsec.ike.IkeFqdnIdentification
 import android.net.ipsec.ike.IkeIpv4AddrIdentification
@@ -23,7 +24,6 @@ import dev.cluvex.zedsecure.domain.config.Ikev2Profile
 import java.io.ByteArrayInputStream
 import java.net.Inet4Address
 import java.net.Inet6Address
-import java.net.InetAddress
 import java.security.PrivateKey
 import java.security.cert.CertificateFactory
 import java.security.cert.X509Certificate
@@ -63,6 +63,12 @@ object Ikev2Controller {
         val vpnManager = context.getSystemService(android.net.VpnManager::class.java)
             ?: throw Ikev2Exception(R.string.ikev2_vpn_manager_unavailable)
         val materials = materials(context, profile)
+        val secretMissing = when (materials.auth) {
+            Ikev2Auth.EAP_MSCHAPV2 -> profile.password.isNotBlank() && profile.plainPassword().isEmpty()
+            Ikev2Auth.PSK -> profile.psk.isNotBlank() && profile.plainPsk().isEmpty()
+            else -> false
+        }
+        if (secretMissing) throw Ikev2Exception(R.string.ikev2_secret_unreadable)
 
         buildAdvanced(profile, materials)?.let { advanced ->
             try {
@@ -306,6 +312,7 @@ object Ikev2Controller {
             .setRemoteIdentification(ikeIdentification(profile.effectiveRemoteId))
 
             .addIkeOption(IkeSessionParams.IKE_OPTION_MOBIKE)
+        if (profile.remoteId.isBlank()) ike.addIkeOption(IkeSessionParams.IKE_OPTION_ACCEPT_ANY_REMOTE_ID)
         when (auth) {
             Ikev2Auth.PSK -> ike.setAuthPsk(profile.plainPsk().toByteArray())
             Ikev2Auth.CERTIFICATE, Ikev2Auth.EAP_TLS -> {
@@ -407,15 +414,35 @@ object Ikev2Controller {
     }
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    private fun ikeIdentification(value: String): android.net.ipsec.ike.IkeIdentification = when {
-        value.startsWith("@@") -> IkeRfc822AddrIdentification(value.removePrefix("@@"))
-        value.startsWith("@") -> IkeFqdnIdentification(value.removePrefix("@"))
-        else -> when (val addr = runCatching { InetAddress.getByName(value) }.getOrNull()) {
-            is Inet4Address -> IkeIpv4AddrIdentification(addr)
-            is Inet6Address -> IkeIpv6AddrIdentification(addr)
-            else -> IkeFqdnIdentification(value)
+    private fun ikeIdentification(value: String): android.net.ipsec.ike.IkeIdentification =
+        when (val id = identityKind(value)) {
+            is IdentityKind.Email -> IkeRfc822AddrIdentification(id.value)
+            is IdentityKind.Fqdn -> IkeFqdnIdentification(id.value)
+            is IdentityKind.Address -> {
+                val addr = id.value.takeIf(InetAddresses::isNumericAddress)?.let(InetAddresses::parseNumericAddress)
+                when (addr) {
+                    is Inet4Address -> IkeIpv4AddrIdentification(addr)
+                    is Inet6Address -> IkeIpv6AddrIdentification(addr)
+                    else -> IkeFqdnIdentification(id.value)
+                }
+            }
         }
+
+    internal sealed class IdentityKind(val value: String) {
+        class Email(value: String) : IdentityKind(value)
+        class Fqdn(value: String) : IdentityKind(value)
+        class Address(value: String) : IdentityKind(value)
     }
+
+    internal fun identityKind(value: String): IdentityKind = when {
+        value.startsWith("@@") -> IdentityKind.Email(value.removePrefix("@@"))
+        value.startsWith("@") -> IdentityKind.Fqdn(value.removePrefix("@"))
+        '@' in value -> IdentityKind.Email(value)
+        IP_LITERAL.matches(value) -> IdentityKind.Address(value)
+        else -> IdentityKind.Fqdn(value)
+    }
+
+    private val IP_LITERAL = Regex("""^(\d{1,3}(\.\d{1,3}){3}|[0-9A-Fa-f]*:[0-9A-Fa-f:.]*)$""")
 
     private fun parseCa(pem: String): X509Certificate? {
         if (pem.isBlank()) return null

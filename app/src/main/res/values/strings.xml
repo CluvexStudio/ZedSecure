@@ -643,6 +643,12 @@
     <string name="ikev2_blocked_by_always_on">Another app owns the always-on VPN, or VPN lockdown is enabled. Clear it in Settings › Network › VPN.</string>
     <string name="ikev2_failed_generic">IKEv2 failed to start</string>
     <string name="ikev2_ike_error">The gateway rejected the connection. Check the credentials, identity and certificate.</string>
+    <string name="ikev2_err_auth">The server refused the login. Check the username and password. If the server uses its own certificate, add its CA certificate to the profile.</string>
+    <string name="ikev2_err_proposal">This phone and the server share no encryption settings. Android offers AES with SHA-2 and DH group 14 or higher, so a server that only allows SHA-1 or modp1024 cannot be reached with it.</string>
+    <string name="ikev2_err_address">The server accepted the login but gave this phone no address. Its virtual IP pool may be full or not set up.</string>
+    <string name="ikev2_err_ts">The server refused the routes this phone asked for.</string>
+    <string name="ikev2_ike_error_code">The gateway rejected the connection (IKE error %1$d). Check the credentials, identity and certificate.</string>
+    <string name="ikev2_secret_unreadable">The saved password for this profile could not be read. Edit the profile and enter it again.</string>
     <string name="ikev2_network_error">Network error while connecting</string>
     <string name="ikev2_err_unknown_host">The gateway address could not be resolved</string>
     <string name="ikev2_err_timeout">The gateway did not respond</string>

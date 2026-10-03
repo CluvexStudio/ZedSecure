@@ -119,6 +119,12 @@
     <string name="ikev2_blocked_by_always_on">另一个应用占用了始终开启的 VPN，或已启用 VPN 锁定。</string>
     <string name="ikev2_failed_generic">IKEv2 启动失败</string>
     <string name="ikev2_ike_error">网关拒绝了连接。请检查凭据、身份和证书。</string>
+    <string name="ikev2_err_auth">服务器拒绝了登录。请检查用户名和密码。如果服务器使用自己的证书，请把它的 CA 证书添加到配置中。</string>
+    <string name="ikev2_err_proposal">手机与服务器没有共同的加密设置。Android 只提供 AES + SHA-2 和 DH 14 组及以上，只允许 SHA-1 或 modp1024 的服务器无法连接。</string>
+    <string name="ikev2_err_address">服务器接受了登录，但没有给手机分配地址。它的虚拟 IP 池可能已满或未配置。</string>
+    <string name="ikev2_err_ts">服务器拒绝了手机请求的路由。</string>
+    <string name="ikev2_ike_error_code">网关拒绝了连接（IKE 错误 %1$d）。请检查凭据、身份和证书。</string>
+    <string name="ikev2_secret_unreadable">无法读取此配置保存的密码。请编辑配置并重新输入。</string>
     <string name="ikev2_network_error">连接时发生网络错误</string>
     <string name="ikev2_err_unknown_host">无法解析网关地址</string>
     <string name="ikev2_err_timeout">网关无响应</string>

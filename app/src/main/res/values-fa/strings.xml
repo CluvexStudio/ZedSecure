@@ -631,6 +631,12 @@
     <string name="ikev2_blocked_by_always_on">اپ دیگری مالک VPN همیشه‌روشن است یا قفل VPN فعال است. در تنظیمات › شبکه › VPN پاکش کنید.</string>
     <string name="ikev2_failed_generic">راه‌اندازی IKEv2 ناموفق بود</string>
     <string name="ikev2_ike_error">دروازه اتصال را رد کرد. اطلاعات ورود، شناسه و گواهی را بررسی کنید.</string>
+    <string name="ikev2_err_auth">سرور ورود را رد کرد. نام کاربری و رمز را بررسی کنید. اگر سرور گواهی مخصوص خودش را دارد، گواهی CA آن را به پروفایل اضافه کنید.</string>
+    <string name="ikev2_err_proposal">این گوشی و سرور هیچ تنظیم رمزنگاری مشترکی ندارند. اندروید فقط AES با SHA-2 و گروه DH ۱۴ به بالا را پیشنهاد می‌دهد؛ سروری که فقط SHA-1 یا modp1024 را قبول می‌کند با آن وصل نمی‌شود.</string>
+    <string name="ikev2_err_address">سرور ورود را پذیرفت ولی به این گوشی آدرسی نداد. ممکن است مخزن IP مجازی آن پر باشد یا تنظیم نشده باشد.</string>
+    <string name="ikev2_err_ts">سرور مسیرهایی را که این گوشی درخواست کرد نپذیرفت.</string>
+    <string name="ikev2_ike_error_code">دروازه اتصال را رد کرد (خطای IKE شمارهٔ %1$d). اطلاعات ورود، شناسه و گواهی را بررسی کنید.</string>
+    <string name="ikev2_secret_unreadable">رمز ذخیره‌شدهٔ این پروفایل خوانده نشد. پروفایل را ویرایش کنید و رمز را دوباره وارد کنید.</string>
     <string name="ikev2_network_error">خطای شبکه هنگام اتصال</string>
     <string name="ikev2_err_unknown_host">آدرس دروازه resolve نشد</string>
     <string name="ikev2_err_timeout">دروازه پاسخ نداد</string>

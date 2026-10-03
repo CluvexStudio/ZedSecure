@@ -119,6 +119,12 @@
     <string name="ikev2_blocked_by_always_on">Постоянным VPN владеет другое приложение либо включена блокировка VPN.</string>
     <string name="ikev2_failed_generic">Не удалось запустить IKEv2</string>
     <string name="ikev2_ike_error">Шлюз отклонил подключение. Проверьте данные, идентификатор и сертификат.</string>
+    <string name="ikev2_err_auth">Сервер отклонил вход. Проверьте имя пользователя и пароль. Если у сервера собственный сертификат, добавьте в профиль его CA-сертификат.</string>
+    <string name="ikev2_err_proposal">У телефона и сервера нет общих настроек шифрования. Android предлагает AES с SHA-2 и группы DH от 14, поэтому к серверу, который разрешает только SHA-1 или modp1024, подключиться нельзя.</string>
+    <string name="ikev2_err_address">Сервер принял вход, но не выдал телефону адрес. Его пул виртуальных IP может быть заполнен или не настроен.</string>
+    <string name="ikev2_err_ts">Сервер отклонил маршруты, которые запросил телефон.</string>
+    <string name="ikev2_ike_error_code">Шлюз отклонил подключение (ошибка IKE %1$d). Проверьте данные, идентификатор и сертификат.</string>
+    <string name="ikev2_secret_unreadable">Не удалось прочитать сохранённый пароль профиля. Измените профиль и введите пароль снова.</string>
     <string name="ikev2_network_error">Сетевая ошибка при подключении</string>
     <string name="ikev2_err_unknown_host">Не удалось разрешить адрес шлюза</string>
     <string name="ikev2_err_timeout">Шлюз не ответил</string>
