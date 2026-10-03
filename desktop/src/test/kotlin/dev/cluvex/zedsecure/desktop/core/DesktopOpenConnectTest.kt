@@ -37,12 +37,13 @@ class DesktopOpenConnectTest {
 
     @Test
     fun `profile options become OpenConnect flags with the server last`() {
-        val args = engine(Os.LINUX).arguments(work, File("/etc/vpnc/vpnc-script"))
+        val script = File("/etc/vpnc/vpnc-script")
+        val args = engine(Os.LINUX).arguments(work, script)
         assertEquals("--protocol=anyconnect", args.first())
         assertTrue("--user=alice" in args && "--authgroup=Staff" in args, args.toString())
         assertTrue("--servercert=pin-sha256:AbCd123=" in args && "--no-dtls" in args, args.toString())
         assertTrue("--os=linux-64" in args, "a phone OS is not reported from a desktop")
-        assertTrue("--script=/etc/vpnc/vpnc-script" in args, args.toString())
+        assertTrue("--script=${script.absolutePath}" in args, args.toString())
         assertEquals("vpn.example.com", args.last())
     }
 
