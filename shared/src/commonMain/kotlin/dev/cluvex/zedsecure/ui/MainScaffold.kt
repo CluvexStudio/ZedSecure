@@ -124,7 +124,7 @@ fun MainScaffold(
         onImported = { current = TopDestination.Servers },
     )
 
-    dev.cluvex.zedsecure.ui.servers.PsiphonDownloadHost()
+    dev.cluvex.zedsecure.ui.servers.PlatformPsiphonHost()
 
     NudgeHost(settings = settings, onUpdateSettings = onUpdateSettings)
 

@@ -9,6 +9,10 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 object PsiphonBinaryManager {
+    init {
+        PsiphonDownloadBus.isAvailableCheck = { isAvailable() }
+    }
+
     const val ESTIMATED_SIZE_BYTES = 20 * 1024 * 1024L // ~20MB
     const val ESTIMATED_SIZE_LABEL = "~20 MB"
 

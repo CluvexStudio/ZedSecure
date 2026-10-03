@@ -22,7 +22,21 @@ internal object BundledBinary {
     }
 
     private fun copy(workDir: File, sub: String, name: String): File? {
+        val res = "/bin/$sub/$name"
         val out = File(workDir, name)
+        val stream = BundledBinary::class.java.getResourceAsStream(res)
+        if (stream != null) {
+            return runCatching {
+                stream.use { input -> out.outputStream().use { input.copyTo(it) } }
+                out.setExecutable(true)
+                out
+            }.getOrElse {
+                runCatching { stream.close() }
+                out.takeIf { it.isFile && it.length() > 0 }?.also { it.setExecutable(true) }
+            }
+        }
+
+        // Fallback for on-demand downloaded binaries not bundled in the jar
         if (out.isFile && out.length() > 0) {
             out.setExecutable(true)
             return out
@@ -44,18 +58,7 @@ internal object BundledBinary {
             }
         }
 
-        val res = "/bin/$sub/$name"
-        val stream = BundledBinary::class.java.getResourceAsStream(res) ?: run {
-            System.err.println("bundled $name not found: $res")
-            return null
-        }
-        return runCatching {
-            stream.use { input -> out.outputStream().use { input.copyTo(it) } }
-            out.setExecutable(true)
-            out
-        }.getOrElse {
-            runCatching { stream.close() }
-            out.takeIf { it.isFile && it.length() > 0 }
-        }
+        System.err.println("bundled $name not found: $res")
+        return null
     }
 }

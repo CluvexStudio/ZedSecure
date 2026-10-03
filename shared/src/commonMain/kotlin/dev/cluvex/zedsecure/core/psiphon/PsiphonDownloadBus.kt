@@ -9,11 +9,13 @@ object PsiphonDownloadBus {
         val onResult: (Boolean) -> Unit,
     )
 
+    var isAvailableCheck: () -> Boolean = { true }
+
     private val _pending = MutableStateFlow<Request?>(null)
     val pending: StateFlow<Request?> = _pending.asStateFlow()
 
     fun ensure(onResult: (Boolean) -> Unit) {
-        if (PsiphonBinaryManager.isAvailable()) {
+        if (isAvailableCheck()) {
             onResult(true)
             return
         }

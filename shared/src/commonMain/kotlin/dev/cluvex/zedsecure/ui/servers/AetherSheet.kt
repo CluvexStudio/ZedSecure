@@ -550,7 +550,7 @@ fun AetherSheet(
                     .fillMaxWidth()
                     .height(52.dp),
             ) {
-                Text(stringResource(Res.string.save))
+                Text(stringResource(Res.string.action_save))
             }
         }
     }

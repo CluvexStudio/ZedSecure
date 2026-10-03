@@ -3,6 +3,7 @@ package dev.cluvex.zedsecure.desktop.core
 import dev.cluvex.zedsecure.domain.config.AetherCoreBuilder
 import dev.cluvex.zedsecure.domain.config.AetherLink
 import dev.cluvex.zedsecure.domain.config.AetherProfile
+import dev.cluvex.zedsecure.domain.config.VpnProfile
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

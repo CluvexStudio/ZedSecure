@@ -1,7 +1,6 @@
 package dev.cluvex.zedsecure.domain.config
 
 import dev.cluvex.zedsecure.domain.config.DeepLinkParser.decode
-import java.net.URI
 
 object AetherLink {
     const val SCHEME = "aether://"
@@ -11,17 +10,22 @@ object AetherLink {
     fun parse(uriString: String): Pair<String, AetherProfile>? {
         val trimmed = uriString.trim()
         if (!isAetherLink(trimmed)) return null
-        val uri = runCatching { URI(trimmed) }.getOrNull() ?: return null
+        val afterScheme = trimmed.substring(SCHEME.length)
+        val fragment = afterScheme.substringAfter('#', "").takeIf { it.isNotEmpty() }
+        val name = fragment?.let(::decode)?.ifBlank { "Aether" } ?: "Aether"
 
-        val name = uri.fragment?.let(::decode)?.ifBlank { "Aether" } ?: "Aether"
-        val queryMap = uri.rawQuery.orEmpty().split('&').mapNotNull {
-            val idx = it.indexOf('=')
-            if (idx > 0) it.substring(0, idx) to decode(it.substring(idx + 1)) else null
-        }.toMap()
+        val beforeFragment = afterScheme.substringBefore('#')
+        val hostPart = beforeFragment.substringBefore('?')
+        val queryPart = if ('?' in beforeFragment) beforeFragment.substringAfter('?') else ""
 
-        val host = uri.host.orEmpty()
-        val port = if (uri.port > 0) uri.port else null
-        val peer = if (host.isNotBlank()) if (port != null) "$host:$port" else host else ""
+        val queryMap = if (queryPart.isNotBlank()) {
+            queryPart.split('&').mapNotNull {
+                val idx = it.indexOf('=')
+                if (idx > 0) it.substring(0, idx) to decode(it.substring(idx + 1)) else null
+            }.toMap()
+        } else emptyMap()
+
+        val peer = hostPart.trim()
 
         val protocol = queryMap["protocol"] ?: AetherProfile.PROTOCOL_MASQUE
         val profile = AetherProfile(

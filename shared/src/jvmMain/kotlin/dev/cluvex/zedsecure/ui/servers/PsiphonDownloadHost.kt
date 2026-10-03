@@ -5,6 +5,7 @@ package dev.cluvex.zedsecure.ui.servers
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -59,7 +60,7 @@ import org.jetbrains.compose.resources.stringResource
 fun PsiphonDownloadHost() {
     val pending by PsiphonDownloadBus.pending.collectAsStateWithLifecycle()
 
-    pending?.let { _ ->
+    pending?.let {
         PsiphonDownloadSheet(
             onDismiss = { PsiphonDownloadBus.dismiss() },
             onSuccess = { PsiphonDownloadBus.complete(true) },
@@ -96,7 +97,7 @@ fun PsiphonDownloadSheet(
             val result = PsiphonBinaryManager.download { downloaded, total ->
                 bytesDownloaded = downloaded
                 totalBytes = total
-                if (total > 0) {
+                if (total > 0L) {
                     progressFraction = (downloaded.toFloat() / total.toFloat()).coerceIn(0f, 1f)
                 }
             }
@@ -217,31 +218,17 @@ fun PsiphonDownloadSheet(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-
-                    Spacer(Modifier.height(4.dp))
-                    TextButton(
-                        onClick = {
-                            currentJob?.cancel()
-                            isDownloading = false
-                            onDismiss()
-                        },
-                        modifier = Modifier.align(Alignment.End),
-                    ) {
-                        Text(stringResource(Res.string.action_cancel))
-                    }
                 }
-            } else {
-                // Failed state
+            } else if (downloadFailed) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     Text(
                         text = stringResource(Res.string.psiphon_download_failed),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.error,
                     )
-
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -258,10 +245,7 @@ fun PsiphonDownloadSheet(
                             shape = RoundedCornerShape(14.dp),
                             modifier = Modifier.weight(1.5f).height(48.dp),
                         ) {
-                            Text(
-                                stringResource(Res.string.psiphon_download_retry),
-                                fontWeight = FontWeight.SemiBold,
-                            )
+                            Text(stringResource(Res.string.psiphon_download_retry))
                         }
                     }
                 }
