@@ -3,8 +3,8 @@ name: build-desktop-deb
 on:
   workflow_dispatch:
   push:
-    paths:
-      - ".github/workflows/build-desktop-deb.yml"
+    branches:
+      - main
 
 jobs:
   build:
