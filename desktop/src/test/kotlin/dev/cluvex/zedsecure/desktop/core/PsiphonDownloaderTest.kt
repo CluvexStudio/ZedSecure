@@ -27,15 +27,26 @@ class PsiphonDownloaderTest {
 
     @Test
     fun `PsiphonDownloadBus ensure invokes callback if available`() {
-        // If available, ensure calls onResult(true) synchronously
-        if (PsiphonBinaryManager.isAvailable()) {
-            var called = false
-            PsiphonDownloadBus.ensure { ready ->
-                called = true
-                assertTrue(ready)
-            }
-            assertTrue(called)
+        PsiphonDownloadBus.isAvailableCheck = { true }
+        var called = false
+        PsiphonDownloadBus.ensure { ready ->
+            called = true
+            assertTrue(ready)
         }
+        assertTrue(called)
+    }
+
+    @Test
+    fun `PsiphonDownloadBus ensure queues request when unavailable`() {
+        PsiphonDownloadBus.isAvailableCheck = { false }
+        var called = false
+        PsiphonDownloadBus.ensure { ready ->
+            called = true
+        }
+        assertFalse(called)
+        assertNotNull(PsiphonDownloadBus.pending.value)
+        PsiphonDownloadBus.complete(true)
+        assertTrue(called)
     }
 
     @Test

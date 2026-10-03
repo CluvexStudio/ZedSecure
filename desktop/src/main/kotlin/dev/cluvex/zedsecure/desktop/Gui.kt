@@ -117,6 +117,10 @@ fun main(args: Array<String>) {
 
     dev.cluvex.zedsecure.core.CoreProbe.measureDelay = { url -> DesktopProbe.measureDelay(url) }
 
+    dev.cluvex.zedsecure.core.psiphon.PsiphonDownloadBus.isAvailableCheck = {
+        dev.cluvex.zedsecure.core.psiphon.PsiphonBinaryManager.isAvailable()
+    }
+
     dev.cluvex.zedsecure.core.AutoSelect.readStatus = {
         dev.cluvex.zedsecure.desktop.platform.DesktopStats.latestAutoSelect
     }

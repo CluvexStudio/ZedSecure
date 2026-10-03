@@ -9,7 +9,7 @@ object PsiphonDownloadBus {
         val onResult: (Boolean) -> Unit,
     )
 
-    var isAvailableCheck: () -> Boolean = { true }
+    var isAvailableCheck: () -> Boolean = { false }
 
     private val _pending = MutableStateFlow<Request?>(null)
     val pending: StateFlow<Request?> = _pending.asStateFlow()

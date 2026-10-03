@@ -46,6 +46,11 @@ else
   exec "$SCRIPT_DIR/ZedSecure" "$@"
 fi
 
+CP_LIST=$(grep '^app.classpath=' "$APPDIR/ZedSecure.cfg" 2>/dev/null | sed "s|^app.classpath=\$APPDIR/|$APPDIR/|" | paste -sd: -)
+if [ -z "$CP_LIST" ]; then
+  CP_LIST="$APPDIR/*"
+fi
+
 exec "$JAVA_EXEC" \
   -Dskiko.linux.autodetection=true \
   -Dskiko.vsync.enabled=false \
@@ -53,13 +58,28 @@ exec "$JAVA_EXEC" \
   -Dcompose.application.resources.dir="$APPDIR/resources" \
   -Dcompose.application.configure.swing.globals=true \
   -Dskiko.library.path="$APPDIR" \
-  -cp "$APPDIR/*" \
+  -cp "$CP_LIST" \
   dev.cluvex.zedsecure.desktop.GuiKt "$@"
 EOF
 chmod +x data/opt/zedsecure/bin/zedsecure
 
 mkdir -p data/usr/bin
 ln -sf /opt/zedsecure/bin/zedsecure data/usr/bin/zedsecure
+
+# Ensure clean upgrade in postinst
+if [ ! -f control/postinst ]; then
+  cat << 'EOF' > control/postinst
+#!/bin/sh
+set -e
+if [ "$1" = "configure" ]; then
+  ln -sf /opt/zedsecure/bin/zedsecure /usr/bin/zedsecure 2>/dev/null || true
+  chmod +x /opt/zedsecure/bin/zedsecure 2>/dev/null || true
+  chmod +x /opt/zedsecure/lib/runtime/bin/java 2>/dev/null || true
+fi
+exit 0
+EOF
+fi
+chmod 755 control/postinst
 
 # 3. Repack deb
 tar --use-compress-program=zstd -cf data.tar.zst -C data .

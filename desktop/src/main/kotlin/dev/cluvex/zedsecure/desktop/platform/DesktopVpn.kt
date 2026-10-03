@@ -92,6 +92,7 @@ object DesktopVpn {
         VpnManager.onStarting(name)
         thread(name = "desktop-aether") {
             val socksPort = localPort(LocalPorts.AETHER_SOCKS)
+            val work = File(System.getProperty("user.home"), ".config/zedsecure/aether").apply { mkdirs() }
             val a = DesktopAether(aetherProfile, work, socksPort)
             aether = a
             val res = a.start()

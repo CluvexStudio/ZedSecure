@@ -7,6 +7,7 @@ import dev.cluvex.zedsecure.domain.config.AetherProfile
 import java.io.File
 import java.net.InetSocketAddress
 import java.net.Socket
+import java.util.concurrent.ConcurrentLinkedDeque
 import java.util.concurrent.atomic.AtomicBoolean
 
 class DesktopAether(
@@ -33,6 +34,10 @@ class DesktopAether(
             psiphonBin = psiphonBin?.absolutePath,
         )
         val pb = ProcessBuilder(args).directory(workDir).redirectErrorStream(true)
+        pb.environment()["AETHER_CONFIG"] = File(workDir, "aether.toml").absolutePath
+        pb.environment()["AETHER_MASQUE_CONFIG"] = File(workDir, "aether-masque.toml").absolutePath
+        pb.environment()["AETHER_WG_CONFIG"] = File(workDir, "aether-wg.toml").absolutePath
+        pb.environment()["TMPDIR"] = workDir.absolutePath
         if (psiphonBin != null) {
             pb.environment()["AETHER_PSIPHON_BIN"] = psiphonBin.absolutePath
         }
@@ -44,29 +49,44 @@ class DesktopAether(
         }
         process = started
 
+        val recentLines = ConcurrentLinkedDeque<String>()
         Thread {
             runCatching {
                 started.inputStream.bufferedReader().forEachLine { line ->
                     LogBus.append("I/aether: $line")
+                    recentLines.add(line)
+                    while (recentLines.size > 3) recentLines.pollFirst()
                 }
             }
             if (active.compareAndSet(true, false)) {
                 process = null
-                VpnManager.onError("Aether exited unexpectedly")
+                val lastError = recentLines.joinToString(" \n ").ifBlank { "exited unexpectedly" }
+                VpnManager.onError("Aether: $lastError")
             }
         }.apply { isDaemon = true; name = "aether-output" }.start()
 
-        val deadline = System.currentTimeMillis() + 30_000L
+        val timeoutMs = if (profile.server.isNotBlank()) {
+            25_000L
+        } else if (profile.scanMode in setOf(AetherProfile.SCAN_BALANCED, AetherProfile.SCAN_THOROUGH, AetherProfile.SCAN_IRONCLAD)) {
+            90_000L
+        } else {
+            25_000L
+        }
+
+        val deadline = System.currentTimeMillis() + timeoutMs
         while (System.currentTimeMillis() < deadline) {
-            if (!started.isAlive) return Result.failure(IllegalStateException("Aether exited unexpectedly"))
-            if (isPortOpen("127.0.0.1", socksPort)) {
+            if (!started.isAlive) {
+                val lastError = recentLines.joinToString(" \n ").ifBlank { "exited unexpectedly" }
+                return Result.failure(IllegalStateException("Aether: $lastError"))
+            }
+            if (isSocks5Ready("127.0.0.1", socksPort)) {
                 active.set(true)
                 return Result.success(Unit)
             }
             Thread.sleep(100)
         }
         stop()
-        return Result.failure(IllegalStateException("Aether did not open SOCKS port $socksPort in 30s"))
+        return Result.failure(IllegalStateException("Aether did not open SOCKS port $socksPort in ${(timeoutMs / 1000)}s"))
     }
 
     fun stop() {
@@ -76,8 +96,18 @@ class DesktopAether(
         XrayCore.stopProcess(p)
     }
 
-    private fun isPortOpen(host: String, port: Int): Boolean = try {
-        Socket().use { it.connect(InetSocketAddress(host, port), 200); true }
+    private fun isSocks5Ready(host: String, port: Int): Boolean = try {
+        Socket().use { s ->
+            s.connect(InetSocketAddress(host, port), 500)
+            s.soTimeout = 1000
+            val out = s.getOutputStream()
+            val input = s.getInputStream()
+            out.write(byteArrayOf(0x05, 0x01, 0x00))
+            out.flush()
+            val b1 = input.read()
+            val b2 = input.read()
+            b1 == 0x05 && b2 == 0x00
+        }
     } catch (_: Exception) {
         false
     }
