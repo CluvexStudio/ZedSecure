@@ -56,6 +56,7 @@ object DesktopVpn {
     @Volatile private var outerTor: DesktopTor? = null
     @Volatile private var outerSsh: SshController? = null
     @Volatile private var outerDns: DesktopDnsTunnel? = null
+    @Volatile private var carrierBypass: List<String>? = null
     private var meter: DesktopMeter? = null
     private var usedSystemProxy = false
 
@@ -251,7 +252,7 @@ object DesktopVpn {
         }
     }
 
-    private fun connectThrough(upstreamPort: Int, engine: String): Boolean {
+    private fun connectThrough(upstreamPort: Int, engine: String, bypass: List<String>? = null): Boolean {
         val socksPort = localPort(LocalProxy.SOCKS_PORT, setOf(upstreamPort))
         val metricsPort = localPort(METRICS_PORT, setOf(socksPort, upstreamPort))
         val json = DesktopXray.augmentWithMetrics(DesktopXray.frontConfig(socksPort, upstreamPort), metricsPort)
@@ -261,7 +262,7 @@ object DesktopVpn {
             return false
         }
         xray = core
-        if (!route(socksPort, emptyList(), udpOverTcp = true, tunCarries = engine)) {
+        if (!route(socksPort, bypass.orEmpty(), udpOverTcp = true, tunCarries = engine.takeIf { bypass == null })) {
             core.stop()
             xray = null
             VpnManager.onError("Could not route traffic (system proxy failed)")
@@ -304,6 +305,7 @@ object DesktopVpn {
     }
 
     private fun startCarrier(outer: dev.cluvex.zedsecure.domain.config.VpnProfile): Int {
+        carrierBypass = null
         outer.psiphonSettings()?.let { psiphonProfile ->
             val socks = localPort(LocalPorts.PSIPHON_SOCKS)
             val http = localPort(LocalPorts.PSIPHON_HTTP, setOf(socks))
@@ -319,18 +321,21 @@ object DesktopVpn {
         outer.sshSettings()?.let { sshProfile ->
             val controller = SshController(profile = sshProfile, cipher = "auto", compression = false, listenPort = SSH_PORT)
             outerSsh = controller
+            carrierBypass = resolveHosts(listOf(sshProfile.host))
             return controller.start()
         }
         outer.dnsTunnelSettings()?.let { dnsProfile ->
             val engine = DesktopDnsTunnel(dnsProfile, work, listenPort = DNS_PORT)
             outerDns = engine
+            carrierBypass = resolveHosts(dnsResolverHosts(dnsProfile))
             return engine.start()
         }
         val settings = settingsProvider()
         val options = settings.toBuildOptions(geoAssetsAvailable = geoAssetsAvailable())
             .copy(carrier = true, appendHttpProxy = false, lan = null)
         val port = localPort(CARRIER_PORT)
-        val json = DesktopXray.withSocksPort(outer.toXrayConfigJson(options), LocalProxy.SOCKS_PORT, port)
+        val json = keepCoreOutside(DesktopXray.withSocksPort(outer.toXrayConfigJson(options), LocalProxy.SOCKS_PORT, port))
+        carrierBypass = resolveHosts(DesktopXray.extractServerHosts(json))
         val core = XrayCore(work)
         carrier = core
         return if (core.start(json, CARRIER_CONFIG)) port else -1
@@ -343,14 +348,14 @@ object DesktopVpn {
             val engine = DesktopPsiphon(psiphonProfile, work, socks, http, upstreamSocksPort = carrierPort)
             psiphon = engine
             engine.start().exceptionOrNull()?.let { return it.message ?: "Psiphon failed to start" }
-            return if (connectThrough(engine.socksPort, CHAIN)) null else "the core did not start"
+            return if (connectThrough(engine.socksPort, CHAIN, carrierBypass)) null else "the core did not start"
         }
         if (inner.isTor) {
             val engine = DesktopTor(settingsProvider(), work, upstreamSocksPort = carrierPort)
             tor = engine
             engine.start(onProgress = { LogBus.append("I/Tor bootstrapped $it%") })
                 .exceptionOrNull()?.let { return it.message ?: "Tor failed to start" }
-            return if (connectThrough(engine.socksPort, CHAIN)) null else "the core did not start"
+            return if (connectThrough(engine.socksPort, CHAIN, carrierBypass)) null else "the core did not start"
         }
         inner.sshSettings()?.let { sshProfile ->
             val controller = SshController(
@@ -361,7 +366,7 @@ object DesktopVpn {
             ssh = controller
             val port = controller.start()
             if (port < 0) return "SSH failed to connect"
-            return if (connectThrough(port, CHAIN)) null else "the core did not start"
+            return if (connectThrough(port, CHAIN, carrierBypass)) null else "the core did not start"
         }
         val settings = settingsProvider()
         val options = settings.toBuildOptions(
@@ -369,15 +374,20 @@ object DesktopVpn {
             ruleOutbounds = ruleOutboundsProvider(
                 dev.cluvex.zedsecure.domain.config.RoutingMigration.effectiveRulesets(settings),
             ),
+            ruleGroups = ruleGroupsProvider(
+                dev.cluvex.zedsecure.domain.config.RoutingMigration.effectiveRulesets(settings),
+            ),
         )
         val chained = dev.cluvex.zedsecure.domain.config.XrayJsonBuilder.withCarrierProxy(inner.toXrayConfigJson(options), carrierPort)
         val socksPort = localPort(LocalProxy.SOCKS_PORT, setOf(carrierPort))
         val metricsPort = localPort(METRICS_PORT, setOf(socksPort, carrierPort))
+        val bypass = carrierBypass
         val json = DesktopXray.augmentWithMetrics(DesktopXray.withSocksPort(chained, LocalProxy.SOCKS_PORT, socksPort), metricsPort)
+            .let { if (bypass != null) keepCoreOutside(it) else it }
         val core = XrayCore(work)
         if (!core.start(json)) return "the core did not start"
         xray = core
-        if (!route(socksPort, emptyList(), udpOverTcp = false, tunCarries = CHAIN)) return "could not route traffic"
+        if (!route(socksPort, bypass.orEmpty(), udpOverTcp = false, tunCarries = CHAIN.takeIf { bypass == null })) return "could not route traffic"
         VpnManager.activeSocksPort = socksPort
         DesktopStats(metricsPort).also { stats = it; it.start() }
         return null
@@ -436,18 +446,7 @@ object DesktopVpn {
         )
         VpnManager.onStarting(name)
         thread(name = "desktop-xray") {
-            val json = if (runMode == RunMode.Vpn && TunMode.supported() && TunMode.usesZeptun()) {
-                val iface = PhysicalInterface.detect()
-                if (iface != null) {
-                    LogBus.append("I/Desktop the core's own connections leave through $iface, outside the tunnel")
-                    DesktopXray.bindOutbounds(ported, iface, pinServerAddresses(DesktopXray.extractServerHosts(ported)))
-                } else {
-                    LogBus.append("W/Desktop could not find the network adapter; only the servers are kept outside the tunnel")
-                    ported
-                }
-            } else {
-                ported
-            }
+            val json = keepCoreOutside(ported)
             val core = XrayCore(work)
             if (!core.start(json)) { VpnManager.onError("Core failed to start"); return@thread }
             xray = core
@@ -532,6 +531,7 @@ object DesktopVpn {
         }
         if (runMode == RunMode.Vpn && tunCarries != null) {
             LogBus.append("W/Desktop $tunCarries reaches too many servers to route around a tunnel; using the system proxy")
+            if (tunCarries == CHAIN) LogBus.append("I/Desktop VPN mode needs a chain whose first hop is Xray, SSH or a DNS tunnel")
         }
         val useTun = runMode == RunMode.Vpn && tunCarries == null
         if (useTun && !TunMode.supported()) {
@@ -558,6 +558,17 @@ object DesktopVpn {
             totalUp += up
             totalDown to totalUp
         }).also { it.start() }
+    }
+
+    private fun keepCoreOutside(json: String): String {
+        if (runMode != RunMode.Vpn || !TunMode.supported()) return json
+        val iface = PhysicalInterface.detect()
+        if (iface == null || !PhysicalInterface.canBind()) {
+            LogBus.append("W/Desktop could not find the network adapter; only the servers are kept outside the tunnel")
+            return json
+        }
+        LogBus.append("I/Desktop the core's own connections leave through $iface, outside the tunnel")
+        return DesktopXray.bindOutbounds(json, iface, pinServerAddresses(DesktopXray.extractServerHosts(json)))
     }
 
     private fun pinServerAddresses(hosts: List<String>): Map<String, List<String>> =
