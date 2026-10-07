@@ -37,7 +37,7 @@ class LiveTunTest {
              "outbounds":[{"tag":"direct","protocol":"freedom"}]}
         """.trimIndent()
         val core = XrayCore(work)
-        val tun = ZeptunTun(zeptun, socksPort, work, includeOnly = listOf("1.1.1.1/32"))
+        val tun = ZeptunTun(zeptun, socksPort, work, includeOnly = listOf("1.1.1.1/32"), allowApps = listOf(File(work, "xray.exe")))
         try {
             assertTrue(core.start(DesktopXray.bindOutbounds(config, iface)), "xray did not start")
             assertTrue(tun.start(), "zeptun did not bring the adapter up")
