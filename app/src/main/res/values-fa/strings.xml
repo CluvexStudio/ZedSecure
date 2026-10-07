@@ -561,7 +561,7 @@
     <string name="ssh_cipher_auto">خودکار (سریع‌ترین)</string>
     <string name="ssh_cipher_legacy">AES-128-CTR (قدیمی)</string>
     <string name="kill_switch">کیل‌سوییچ</string>
-    <string name="kill_switch_sum">اگر VPN قطع شد به‌جای نشت، همهٔ ترافیک را مسدود کن.</string>
+    <string name="kill_switch_sum">اگر VPN قطع شد به‌جای نشت، همهٔ ترافیک را مسدود کن و خودکار دوباره وصل شو.</string>
     <string name="tor_bridges_title">پل‌ها</string>
     <string name="tor_bridges_browse_sum">مرور، پینگ و انتخاب پل‌ها</string>
     <string name="tor_bridges_hint">انتخاب کن کدام پل‌ها استفاده شوند، یا همه را انتخاب‌شده بگذار. پینگ زمان اتصال TCP را نشان می‌دهد (فقط پل‌های با IP واقعی مثل obfs4/vanilla قابل‌پینگ‌اند).</string>
@@ -603,7 +603,7 @@
     <string name="notif_chip_on">روشن</string>
     <string name="notif_chip_off">خاموش</string>
     <string name="notif_title_disconnected">تونل متوقف شد</string>
-    <string name="notif_kill_switch_body">تونل قطع شد. کلید محافظ جلوی ترافیک را گرفته تا وقتی قطع کنید.</string>
+    <string name="notif_kill_switch_body">تونل قطع شد. کلید محافظ جلوی ترافیک را گرفته و ZedSecure به محض برگشتن شبکه دوباره وصل می‌شود.</string>
     <string name="widget_description">اتصال یا قطع، همراه با وضعیت زنده و مصرف این جلسه.</string>
     <string name="widget_no_server">سروری انتخاب نشده</string>
     <string name="chain_member_missing">اعضای گم‌شدهٔ زنجیره: %1$s</string>

@@ -74,6 +74,12 @@ class ZedVpnService : VpnService() {
 
     private var killSwitchActive = false
 
+    @Volatile private var reconnecting = false
+    private var holdWatch: android.net.ConnectivityManager.NetworkCallback? = null
+    private val holdNetworks = java.util.Collections.synchronizedSet(HashSet<android.net.Network>())
+    private var retryJob: Job? = null
+    private var retryDelayMs = RETRY_FIRST_MS
+
     private var connected = false
 
     private var proxyOnly = false
@@ -268,7 +274,9 @@ class ZedVpnService : VpnService() {
             stopEverything()
             return
         }
+        val held = tun
         tun = descriptor
+        if (reconnecting && held != null && held !== descriptor) runCatching { held.close() }
         advance(VpnNotifications.Stage.Interface)
 
         VpnManager.setActiveKind(kind)
@@ -895,6 +903,10 @@ class ZedVpnService : VpnService() {
 
     private fun finishConnected() {
         connected = true
+        if (reconnecting) LogBus.append("I/Kill switch: reconnected; traffic flows through the VPN again")
+        reconnecting = false
+        stopHoldWatch()
+        retryDelayMs = RETRY_FIRST_MS
         stage = VpnNotifications.Stage.Connected
         connectWhen = System.currentTimeMillis()
         VpnManager.onConnected(remark)
@@ -1269,6 +1281,12 @@ class ZedVpnService : VpnService() {
     private val tearingDown = java.util.concurrent.atomic.AtomicBoolean(false)
 
     private fun stopEverything() {
+        if (reconnecting && !userStop && killSwitchEnabled && ensureKillSwitchTun()) {
+            holdTraffic(null)
+            return
+        }
+        stopHoldWatch()
+        reconnecting = false
         val tunToClose = tun
         tun = null
         connected = false
@@ -1322,30 +1340,117 @@ class ZedVpnService : VpnService() {
     }
 
     private fun onTunnelFailed(reason: String?) {
-        if (userStop || killSwitchActive) return
-        if (killSwitchEnabled && connected && ensureKillSwitchTun()) {
-            killSwitchActive = true
-            stopEngines()
-            VpnManager.onError(reason ?: getString(R.string.kill_switch))
-            runCatching {
-                notify(
-                    notifications.build(
-                        server = remark,
-                        phase = VpnNotifications.Phase.Failed(
-                            reason = getString(R.string.notif_kill_switch_body),
-                        ),
-                        protocolLabel = protocolLabel(),
-                    ),
-                )
-            }
-            ZedWidgetProvider.refresh(this, force = true)
+        if (userStop || killSwitchActive || swappingCore) return
+        if (killSwitchEnabled && (connected || reconnecting) && ensureKillSwitchTun()) {
+            holdTraffic(reason)
         } else {
             if (reason != null) VpnManager.onError(reason)
             stopEverything()
         }
     }
 
+    private fun holdTraffic(reason: String?) {
+        killSwitchActive = true
+        reconnecting = false
+        connected = false
+        stopEngines()
+        ensureKillSwitchTun()
+        VpnManager.onError(reason ?: getString(R.string.kill_switch))
+        runCatching {
+            notify(
+                notifications.build(
+                    server = remark,
+                    phase = VpnNotifications.Phase.Failed(
+                        reason = getString(R.string.notif_kill_switch_body),
+                    ),
+                    protocolLabel = protocolLabel(),
+                ),
+            )
+        }
+        ZedWidgetProvider.refresh(this, force = true)
+        watchForNetwork()
+        scheduleRetry(retryDelayMs)
+        retryDelayMs = (retryDelayMs * 2).coerceAtMost(RETRY_MAX_MS)
+    }
+
+    private fun watchForNetwork() {
+        if (holdWatch != null) return
+        val cm = getSystemService(android.net.ConnectivityManager::class.java) ?: return
+        val request = android.net.NetworkRequest.Builder()
+            .addCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .addCapability(android.net.NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
+            .build()
+        val callback = object : android.net.ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: android.net.Network) {
+                val fresh = holdNetworks.add(network)
+                if (fresh) networkCameBack()
+            }
+
+            override fun onCapabilitiesChanged(network: android.net.Network, caps: android.net.NetworkCapabilities) {
+                if (caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_VALIDATED) && holdNetworks.add(network)) {
+                    networkCameBack()
+                }
+            }
+
+            override fun onLost(network: android.net.Network) {
+                holdNetworks.remove(network)
+            }
+        }
+        holdNetworks.clear()
+        runCatching { cm.registerNetworkCallback(request, callback) }
+            .onSuccess { holdWatch = callback }
+            .onFailure { Log.w(TAG, "kill-switch network watch unavailable", it) }
+    }
+
+    private fun networkCameBack() {
+        if (!killSwitchActive || userStop || reconnecting) return
+        retryDelayMs = RETRY_FIRST_MS
+        scheduleRetry(NETWORK_SETTLE_MS)
+    }
+
+    private fun stopHoldWatch() {
+        retryJob?.cancel()
+        retryJob = null
+        holdWatch?.let { cb ->
+            runCatching { getSystemService(android.net.ConnectivityManager::class.java)?.unregisterNetworkCallback(cb) }
+        }
+        holdWatch = null
+        holdNetworks.clear()
+    }
+
+    private fun scheduleRetry(delayMs: Long) {
+        retryJob?.cancel()
+        retryJob = scope.launch {
+            delay(delayMs)
+            retryFromHold()
+        }
+    }
+
+    private fun retryFromHold() {
+        if (userStop || !killSwitchActive || reconnecting) return
+        if (holdWatch != null && holdNetworks.isEmpty()) {
+            LogBus.append("I/Kill switch: no network yet; reconnecting once one is back")
+            return
+        }
+        LogBus.append("I/Kill switch: reconnecting")
+        reconnecting = true
+        stage = VpnNotifications.Stage.Preparing
+        runCatching { notify(connectingNotification()) }
+        when (val plan = StartPlanner(this).planActive(allowProxyOnly = false)) {
+            is StartPlanner.Plan.Start -> {
+                VpnManager.onStarting(plan.remark)
+                remark = plan.remark
+                kind = plan.kind
+                proxyOnly = plan.proxyOnly
+                startTunnel(plan.configJson, plan.socksPort, plan.kind)
+            }
+            is StartPlanner.Plan.Ikev2 -> holdTraffic(getString(R.string.engine_ikev2_needs_app))
+            is StartPlanner.Plan.Failure -> holdTraffic(plan.message)
+        }
+    }
+
     override fun onRevoke() {
+        userStop = true
         stopEverything()
     }
 
@@ -1646,6 +1751,8 @@ class ZedVpnService : VpnService() {
         private const val ZEPTUN_PROOF_MS = 6_000L
 
         private const val NETWORK_SETTLE_MS = 1_500L
+        private const val RETRY_FIRST_MS = 3_000L
+        private const val RETRY_MAX_MS = 60_000L
 
         private const val SHIM_PORT = LocalPorts.SHIM
 

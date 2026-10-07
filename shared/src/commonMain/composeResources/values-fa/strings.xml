@@ -691,7 +691,7 @@
     <string name="ssh_cipher_auto">خودکار (سریع‌ترین)</string>
     <string name="ssh_cipher_legacy">AES-128-CTR (قدیمی)</string>
     <string name="kill_switch">کیل‌سوییچ</string>
-    <string name="kill_switch_sum">اگر VPN قطع شد به‌جای نشت، همهٔ ترافیک را مسدود کن.</string>
+    <string name="kill_switch_sum">اگر VPN قطع شد به‌جای نشت، همهٔ ترافیک را مسدود کن و خودکار دوباره وصل شو.</string>
     <string name="tor_bridges_title">پل‌ها</string>
     <string name="tor_bridges_browse_sum">مرور، پینگ و انتخاب پل‌ها</string>
     <string name="tor_bridges_hint">انتخاب کن کدام پل‌ها استفاده شوند، یا همه را انتخاب‌شده بگذار. پینگ دسترس‌پذیریِ اولین گامِ هر پل را نشان می‌دهد — رلهٔ مستقیم، یا endpointِ فرانتینگ/broker برای Snowflake و meek.</string>

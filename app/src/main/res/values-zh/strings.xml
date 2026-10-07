@@ -59,7 +59,7 @@
     <string name="title_tor_settings">Tor</string>
     <string name="title_ssh_settings">SSH 隧道</string>
     <string name="kill_switch">断网保护</string>
-    <string name="kill_switch_sum">VPN 断开时阻断所有流量，防止泄露。</string>
+    <string name="kill_switch_sum">VPN 断开时阻断所有流量，防止泄露，并自动重新连接。</string>
 
     <string name="psiphon_add_title">添加 Psiphon</string>
     <string name="dns_tunnel_add_title">添加 DNS 隧道</string>
@@ -91,7 +91,7 @@
     <string name="notif_chip_on">已开启</string>
     <string name="notif_chip_off">已关闭</string>
     <string name="notif_title_disconnected">隧道已停止</string>
-    <string name="notif_kill_switch_body">隧道已断开。断开连接前，终止开关将拦截所有流量。</string>
+    <string name="notif_kill_switch_body">隧道已断开。终止开关正在拦截流量，网络恢复后 ZedSecure 会自动重新连接。</string>
     <string name="widget_description">连接或断开，并显示实时状态与本次流量。</string>
     <string name="widget_no_server">未选择服务器</string>
     <string name="chain_member_missing">代理链缺少：%1$s</string>

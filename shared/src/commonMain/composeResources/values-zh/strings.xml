@@ -699,7 +699,7 @@
     <string name="ssh_cipher_auto">自动 (最快)</string>
     <string name="ssh_cipher_legacy">AES-128-CTR (旧版)</string>
     <string name="kill_switch">网络锁</string>
-    <string name="kill_switch_sum">VPN 断开时阻断所有流量，而非发生泄露。</string>
+    <string name="kill_switch_sum">VPN 断开时阻断所有流量，防止泄露，并自动重新连接。</string>
     <string name="tor_bridges_title">网桥</string>
     <string name="tor_bridges_browse_sum">浏览、测延迟并选择网桥</string>
     <string name="tor_bridges_hint">选择要使用的网桥，或保持全部选中。延迟显示每个网桥第一跳的可达性 — 直连中继，或 Snowflake、meek 的前置/代理端点。</string>

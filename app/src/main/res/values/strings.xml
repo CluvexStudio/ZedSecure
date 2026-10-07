@@ -569,7 +569,7 @@
     <string name="ssh_cipher_auto">Auto (fastest)</string>
     <string name="ssh_cipher_legacy">AES-128-CTR (legacy)</string>
     <string name="kill_switch">Kill switch</string>
-    <string name="kill_switch_sum">Block all traffic if the VPN drops instead of leaking.</string>
+    <string name="kill_switch_sum">Block all traffic if the VPN drops instead of leaking, then reconnect by itself.</string>
     <string name="tor_bridges_title">Bridges</string>
     <string name="tor_bridges_browse_sum">Browse, ping and select bridges</string>
     <string name="tor_bridges_hint">Pick which bridges to use, or leave all selected. Ping shows the TCP connect time (only real-IP bridges like obfs4/vanilla are pingable).</string>
@@ -611,7 +611,7 @@
     <string name="notif_chip_on">On</string>
     <string name="notif_chip_off">Off</string>
     <string name="notif_title_disconnected">Tunnel stopped</string>
-    <string name="notif_kill_switch_body">The tunnel dropped. The kill switch is holding traffic until you disconnect.</string>
+    <string name="notif_kill_switch_body">The tunnel dropped. The kill switch is holding traffic and ZedSecure reconnects as soon as the network is back.</string>
     <string name="widget_description">Connect or disconnect, with live status and session traffic.</string>
     <string name="widget_no_server">No server selected</string>
 

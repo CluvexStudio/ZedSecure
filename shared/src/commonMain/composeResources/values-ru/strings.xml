@@ -699,7 +699,7 @@
     <string name="ssh_cipher_auto">Авто (самый быстрый)</string>
     <string name="ssh_cipher_legacy">AES-128-CTR (устаревший)</string>
     <string name="kill_switch">Аварийное отключение</string>
-    <string name="kill_switch_sum">Блокировать весь трафик при разрыве VPN, чтобы не было утечки.</string>
+    <string name="kill_switch_sum">Блокировать весь трафик при разрыве VPN, чтобы не было утечки, и переподключаться автоматически.</string>
     <string name="tor_bridges_title">Мосты</string>
     <string name="tor_bridges_browse_sum">Просмотр, пинг и выбор мостов</string>
     <string name="tor_bridges_hint">Выберите, какие мосты использовать, или оставьте все выбранными. Пинг показывает доступность первого узла моста — прямого реле или фронтинг/брокер-эндпоинта для Snowflake и meek.</string>

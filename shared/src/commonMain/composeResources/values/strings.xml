@@ -698,7 +698,7 @@
     <string name="ssh_cipher_auto">Auto (fastest)</string>
     <string name="ssh_cipher_legacy">AES-128-CTR (legacy)</string>
     <string name="kill_switch">Kill switch</string>
-    <string name="kill_switch_sum">Block all traffic if the VPN drops instead of leaking.</string>
+    <string name="kill_switch_sum">Block all traffic if the VPN drops instead of leaking, then reconnect by itself.</string>
     <string name="tor_bridges_title">Bridges</string>
     <string name="tor_bridges_browse_sum">Browse, ping and select bridges</string>
     <string name="tor_bridges_hint">Pick which bridges to use, or leave all selected. Ping shows the reachability of each bridge's first hop — a direct relay, or the fronting/broker endpoint for Snowflake and meek.</string>

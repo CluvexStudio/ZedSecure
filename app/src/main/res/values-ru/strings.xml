@@ -59,7 +59,7 @@
     <string name="title_tor_settings">Tor</string>
     <string name="title_ssh_settings">SSH-туннель</string>
     <string name="kill_switch">Аварийное отключение</string>
-    <string name="kill_switch_sum">Блокировать весь трафик при разрыве VPN, чтобы не было утечки.</string>
+    <string name="kill_switch_sum">Блокировать весь трафик при разрыве VPN, чтобы не было утечки, и переподключаться автоматически.</string>
 
     <string name="psiphon_add_title">Добавить Psiphon</string>
     <string name="dns_tunnel_add_title">Добавить DNS-туннель</string>
@@ -91,7 +91,7 @@
     <string name="notif_chip_on">Вкл</string>
     <string name="notif_chip_off">Выкл</string>
     <string name="notif_title_disconnected">Туннель остановлен</string>
-    <string name="notif_kill_switch_body">Туннель разорван. Аварийный выключатель блокирует трафик до отключения.</string>
+    <string name="notif_kill_switch_body">Туннель разорван. Аварийный выключатель блокирует трафик, а ZedSecure переподключится, как только сеть вернётся.</string>
     <string name="widget_description">Подключение и отключение, статус и трафик сессии.</string>
     <string name="widget_no_server">Сервер не выбран</string>
     <string name="chain_member_missing">В цепочке отсутствуют: %1$s</string>
