@@ -46,6 +46,8 @@ fun RuleEditSheet(
     onSave: (RulesetItem) -> Unit,
     serverTargets: List<Pair<String, String>> = emptyList(),
 
+    groupTargets: List<Pair<String, String>> = emptyList(),
+
     sniffingEnabled: Boolean = true,
 ) {
     var remarks by rememberSaveable(initial.id) { mutableStateOf(initial.remarks) }
@@ -101,6 +103,7 @@ fun RuleEditSheet(
                 add(RulesetItem.OUTBOUND_PROXY to stringResource(Res.string.rule_outbound_proxy))
                 add(RulesetItem.OUTBOUND_DIRECT to stringResource(Res.string.rule_outbound_direct))
                 add(RulesetItem.OUTBOUND_BLOCK to stringResource(Res.string.rule_outbound_block))
+                addAll(groupTargets)
                 serverTargets.forEach { (id, name) -> add(RulesetItem.profileTag(id) to name) }
             }
             PickerField(

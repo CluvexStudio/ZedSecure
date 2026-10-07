@@ -39,6 +39,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.cluvex.zedsecure.data.config.ConfigRepository
 import dev.cluvex.zedsecure.shared.resources.Res
+import dev.cluvex.zedsecure.shared.resources.auto_group_all
 import dev.cluvex.zedsecure.shared.resources.auto_title_for
 import dev.cluvex.zedsecure.shared.resources.tour_done
 import dev.cluvex.zedsecure.shared.resources.tour_next
@@ -277,6 +278,12 @@ fun MainScaffold(
                     serverTargets = profiles
                         .filter { it.source is dev.cluvex.zedsecure.domain.config.ProfileSource.Link }
                         .map { it.id to it.name },
+                    groupTargets = listOf(
+                        dev.cluvex.zedsecure.domain.config.AutoSelectIds.ALL to
+                            stringResource(Res.string.auto_title_for, stringResource(Res.string.auto_group_all)),
+                    ) + subscriptions.map { sub ->
+                        dev.cluvex.zedsecure.domain.config.AutoSelectIds.of(sub.id) to stringResource(Res.string.auto_title_for, sub.name)
+                    },
                     dnsTunnelActive = activeProfile?.isDnsBasedTunnel == true,
 
                     onReplayTour = {

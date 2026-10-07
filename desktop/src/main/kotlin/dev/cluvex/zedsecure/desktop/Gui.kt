@@ -114,6 +114,7 @@ fun main(args: Array<String>) {
     DesktopVpn.settingsProvider = { desktopSettings.settings.value }
 
     DesktopVpn.ruleOutboundsProvider = { configRepository.resolveRuleOutbounds(it) }
+    DesktopVpn.ruleGroupsProvider = { configRepository.resolveRuleGroups(it) }
     DesktopVpn.chainConfigProvider = { profile, options ->
         runCatching { configRepository.buildChainConfig(profile, options) }.getOrNull()
     }

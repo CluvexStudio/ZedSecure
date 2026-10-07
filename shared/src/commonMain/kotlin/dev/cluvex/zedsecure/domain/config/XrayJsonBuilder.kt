@@ -231,11 +231,28 @@ object XrayJsonBuilder {
         tuning: AutoSelectTuning,
         options: BuildOptions = BuildOptions(),
     ): AutoSelectBuild {
+        val group = autoSelectGroup(AutoSelectTags.GROUP, AutoSelectTags::member, members, tuning, options)
+        if (group.tags.isEmpty()) throw AutoSelectNoMembersException(group.skipped.size)
+        val json = assemble(LocalProxy.SOCKS_PORT, options, forSpeedtest = false) {
+            group.outbounds.forEach { add(it) }
+        }
+        return AutoSelectBuild(json = json, memberProfiles = group.tags, skipped = group.skipped)
+    }
+
+    private class GroupBuild(val outbounds: List<JsonObject>, val tags: Map<String, String>, val skipped: List<String>)
+
+    private fun autoSelectGroup(
+        groupTag: String,
+        memberTag: (Int) -> String,
+        members: List<AutoMember>,
+        tuning: AutoSelectTuning,
+        options: BuildOptions,
+    ): GroupBuild {
         val memberOutbounds = mutableListOf<JsonObject>()
         val tags = LinkedHashMap<String, String>()
         val skipped = mutableListOf<String>()
         for (m in members) {
-            val tag = AutoSelectTags.member(tags.size)
+            val tag = memberTag(tags.size)
             val lifted = runCatching {
                 when (m) {
                     is AutoMember.Server ->
@@ -255,11 +272,11 @@ object XrayJsonBuilder {
                 tags[tag] = m.profileId
             }
         }
-        if (tags.isEmpty()) throw AutoSelectNoMembersException(skipped.size)
+        if (tags.isEmpty()) return GroupBuild(emptyList(), tags, skipped)
         val initialTag = tuning.initialProfileId
             ?.let { id -> tags.entries.firstOrNull { it.value == id }?.key }
         val group = buildJsonObject {
-            put("tag", AutoSelectTags.GROUP)
+            put("tag", groupTag)
             put("protocol", "autoselect")
             putJsonObject("settings") {
                 putJsonArray("outbounds") { tags.keys.forEach { add(it) } }
@@ -275,11 +292,7 @@ object XrayJsonBuilder {
                 if (initialTag != null) put("initial", initialTag)
             }
         }
-        val json = assemble(LocalProxy.SOCKS_PORT, options, forSpeedtest = false) {
-            add(group)
-            memberOutbounds.forEach { add(it) }
-        }
-        return AutoSelectBuild(json = json, memberProfiles = tags, skipped = skipped)
+        return GroupBuild(listOf(group) + memberOutbounds, tags, skipped)
     }
 
     private const val AUTO_PROBE_URL = "https://www.gstatic.com/generate_204"
@@ -380,9 +393,23 @@ object XrayJsonBuilder {
                 }
                 .toMap()
         }
+        val groupOutbounds: Map<String, List<JsonObject>> = if (forSpeedtest) emptyMap() else {
+            options.ruleGroups.mapNotNull { (ruleTag, group) ->
+                val tag = emittedTagFor(ruleTag)
+                val built = autoSelectGroup(
+                    groupTag = tag,
+                    memberTag = { i -> "$tag@$i" },
+                    members = group.members,
+                    tuning = options.ruleGroupTuning.copy(initialProfileId = group.initialProfileId),
+                    options = options,
+                )
+                built.outbounds.takeIf { it.isNotEmpty() }?.let { tag to it }
+            }.toMap()
+        }
         fun resolveOutboundTag(ruleTag: String): String = when {
             ruleTag in BUILTIN_OUTBOUND_TAGS -> ruleTag
             emittedTagFor(ruleTag) in namedOutbounds -> emittedTagFor(ruleTag)
+            emittedTagFor(ruleTag) in groupOutbounds -> emittedTagFor(ruleTag)
             else -> "proxy"
         }
         val config = buildJsonObject {
@@ -417,6 +444,7 @@ object XrayJsonBuilder {
                 proxyOutbounds()
 
                 namedOutbounds.forEach { (tag, server) -> add(proxyOutbound(server, options, tag = tag)) }
+                groupOutbounds.values.forEach { group -> group.forEach { add(it) } }
                 add(directOutbound())
                 add(blockOutbound())
 
@@ -533,6 +561,10 @@ object XrayJsonBuilder {
         val networkType: String? = null,
 
         val ruleOutbounds: Map<String, ServerConfig> = emptyMap(),
+
+        val ruleGroups: Map<String, RuleGroup> = emptyMap(),
+
+        val ruleGroupTuning: AutoSelectTuning = AutoSelectTuning(),
         val remoteDns: String = "https://1.1.1.1/dns-query",
 
         val serverDns: List<String> = emptyList(),

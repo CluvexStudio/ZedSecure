@@ -78,6 +78,8 @@ fun SettingsScreen(
 
     serverTargets: List<Pair<String, String>> = emptyList(),
 
+    groupTargets: List<Pair<String, String>> = emptyList(),
+
     dnsTunnelActive: Boolean = false,
 
     onDeepLinkBack: (() -> Unit)? = null,
@@ -165,7 +167,7 @@ fun SettingsScreen(
             SettingsPage.Observatory -> ObservatoryPage(settings, contentPadding, modifier, onUpdate)
             SettingsPage.Advanced -> AdvancedPage(settings, contentPadding, modifier, onUpdate)
             SettingsPage.Mode -> ModePage(settings, contentPadding, modifier, onUpdate)
-            SettingsPage.Routing -> RoutingScreen(settings, contentPadding, onUpdate, modifier, serverTargets)
+            SettingsPage.Routing -> RoutingScreen(settings, contentPadding, onUpdate, modifier, serverTargets, groupTargets)
             SettingsPage.PerApp -> PerAppProxyScreen(settings, contentPadding, onUpdate, modifier)
             SettingsPage.Assets -> AssetsScreen(settings, contentPadding, modifier, onUpdate)
             SettingsPage.DnsProtocols -> DnsProtocolsPage(settings, contentPadding, modifier, onUpdate)

@@ -58,6 +58,12 @@ data class AutoSelectTuning(
     val initialProfileId: String? = null,
 )
 
+data class RuleGroup(
+    val members: List<AutoMember>,
+
+    val initialProfileId: String? = null,
+)
+
 data class AutoSelectBuild(
     val json: String,
 

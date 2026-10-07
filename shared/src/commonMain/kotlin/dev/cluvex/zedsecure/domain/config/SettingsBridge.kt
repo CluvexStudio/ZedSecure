@@ -9,6 +9,8 @@ fun AppSettings.toBuildOptions(
 
     ruleOutbounds: Map<String, ServerConfig> = emptyMap(),
 
+    ruleGroups: Map<String, RuleGroup> = emptyMap(),
+
     carrier: Boolean = false,
 
     resolvedServerHosts: Map<String, List<String>> = emptyMap(),
@@ -32,6 +34,8 @@ fun AppSettings.toBuildOptions(
     rulesets = RoutingMigration.effectiveRulesets(this),
     networkType = networkType,
     ruleOutbounds = ruleOutbounds,
+    ruleGroups = ruleGroups,
+    ruleGroupTuning = autoSelectTuning(),
     remoteDns = remoteDns,
     directDns = directDns,
     muxEnabled = muxEnabled,

@@ -71,6 +71,8 @@ fun RoutingScreen(
     modifier: Modifier = Modifier,
 
     serverTargets: List<Pair<String, String>> = emptyList(),
+
+    groupTargets: List<Pair<String, String>> = emptyList(),
 ) {
     val platform = LocalPlatform.current
     val importOkMsg = stringResource(Res.string.routing_import_ok)
@@ -109,6 +111,7 @@ fun RoutingScreen(
         RuleEditSheet(
             initial = rule,
             serverTargets = serverTargets,
+            groupTargets = groupTargets,
             sniffingEnabled = settings.sniffingEnabled,
             onDismiss = { editing = null },
             onSave = { saved ->
@@ -330,7 +333,7 @@ fun RoutingScreen(
                             isLast = index == order.lastIndex,
                             targetLabel = RulesetItem.profileIdOf(rule.outboundTag)?.let { id ->
                                 serverTargets.firstOrNull { it.first == id }?.second
-                            },
+                            } ?: groupTargets.firstOrNull { it.first == rule.outboundTag }?.second,
                             dragHandle = Modifier.draggableHandle(
                                 onDragStopped = { mutate { order } },
                             ),
@@ -404,7 +407,8 @@ private fun RuleRow(
     val tagLabel = when {
         targetLabel != null -> targetLabel
 
-        RulesetItem.profileIdOf(rule.outboundTag) != null ->
+        RulesetItem.profileIdOf(rule.outboundTag) != null ||
+            dev.cluvex.zedsecure.domain.config.AutoSelectIds.isAuto(rule.outboundTag) ->
             stringResource(Res.string.rule_outbound_missing)
         rule.outboundTag == RulesetItem.OUTBOUND_DIRECT -> stringResource(Res.string.rule_outbound_direct)
         rule.outboundTag == RulesetItem.OUTBOUND_BLOCK -> stringResource(Res.string.rule_outbound_block)

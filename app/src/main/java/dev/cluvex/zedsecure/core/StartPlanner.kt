@@ -251,7 +251,9 @@ class StartPlanner(context: Context) {
         carrier: Boolean = false,
         resolveFor: VpnProfile? = null,
     ): XrayJsonBuilder.BuildOptions {
-        val ruleOutbounds = configRepository.resolveRuleOutbounds(RoutingMigration.effectiveRulesets(this))
+        val rulesets = RoutingMigration.effectiveRulesets(this)
+        val ruleOutbounds = configRepository.resolveRuleOutbounds(rulesets)
+        val ruleGroups = if (carrier) emptyMap() else configRepository.resolveRuleGroups(rulesets)
         val hosts = if (resolveFor != null && outboundDomainResolve != OutboundDomainResolve.DoNotResolve) {
             resolveServerHosts(physicalServersOf(resolveFor) + ruleOutbounds.values, preferIpv6)
         } else emptyMap()
@@ -259,6 +261,7 @@ class StartPlanner(context: Context) {
             geoAssetsAvailable = geoReady,
             carrier = carrier,
             ruleOutbounds = ruleOutbounds,
+            ruleGroups = ruleGroups,
             resolvedServerHosts = hosts,
             networkType = NetworkKind.current(appContext),
         )

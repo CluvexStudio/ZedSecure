@@ -157,4 +157,59 @@ class AutoSelectBuildTest {
         assertFalse(AutoSelectTags.isMember("proxy@1/frag"))
         assertFalse(AutoSelectTags.isMember("proxy-h0"))
     }
+
+    @Test
+    fun `a routing rule can send its traffic to the fastest server of a subscription`() {
+        val ruleTag = AutoSelectIds.of("america")
+        val options = XrayJsonBuilder.BuildOptions(
+            rulesets = listOf(
+                dev.cluvex.zedsecure.domain.model.RulesetItem(
+                    id = "gemini",
+                    remarks = "Gemini",
+                    outboundTag = ruleTag,
+                    domain = listOf("domain:gemini.google.com"),
+                ),
+            ),
+            ruleGroups = mapOf(
+                ruleTag to RuleGroup(
+                    members = listOf(AutoMember.Server("us1", server("us1.example")), AutoMember.Server("us2", server("us2.example"))),
+                    initialProfileId = "us2",
+                ),
+            ),
+        )
+        val json = XrayJsonBuilder.build(server("main.example"), options = options)
+        val root = Json.parseToJsonElement(json).jsonObject
+        val obs = outbounds(json)
+        val group = obs.first { it["protocol"]?.jsonPrimitive?.content == "autoselect" }
+        val groupTag = tag(group)!!
+        assertEquals("out-auto_sub_america", groupTag)
+        val settings = group["settings"]!!.jsonObject
+        assertEquals(listOf("$groupTag@0", "$groupTag@1"), settings["outbounds"]!!.jsonArray.map { it.jsonPrimitive.content })
+        assertEquals("$groupTag@1", settings["initial"]!!.jsonPrimitive.content)
+        assertTrue(obs.any { tag(it) == "$groupTag@0" } && obs.any { tag(it) == "$groupTag@1" })
+        assertEquals("proxy", tag(obs.first()))
+        assertFalse("rule members are not members of the main group", obs.any { AutoSelectTags.isMember(tag(it)!!) })
+        val rule = root["routing"]!!.jsonObject["rules"]!!.jsonArray.map { it.jsonObject }
+            .first { (it["domain"] as? JsonArray)?.any { d -> d.jsonPrimitive.content == "domain:gemini.google.com" } == true }
+        assertEquals(groupTag, rule["outboundTag"]!!.jsonPrimitive.content)
+    }
+
+    @Test
+    fun `a rule whose group is gone falls back to the main connection`() {
+        val options = XrayJsonBuilder.BuildOptions(
+            rulesets = listOf(
+                dev.cluvex.zedsecure.domain.model.RulesetItem(
+                    id = "r",
+                    remarks = "r",
+                    outboundTag = AutoSelectIds.of("deleted"),
+                    domain = listOf("domain:example.org"),
+                ),
+            ),
+        )
+        val json = XrayJsonBuilder.build(server("main.example"), options = options)
+        val rule = Json.parseToJsonElement(json).jsonObject["routing"]!!.jsonObject["rules"]!!.jsonArray.map { it.jsonObject }
+            .first { (it["domain"] as? JsonArray)?.any { d -> d.jsonPrimitive.content == "domain:example.org" } == true }
+        assertEquals("proxy", rule["outboundTag"]!!.jsonPrimitive.content)
+        assertFalse(outbounds(json).any { it["protocol"]?.jsonPrimitive?.content == "autoselect" })
+    }
 }

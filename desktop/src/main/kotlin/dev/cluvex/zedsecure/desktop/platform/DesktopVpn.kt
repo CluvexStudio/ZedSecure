@@ -71,6 +71,9 @@ object DesktopVpn {
     var ruleOutboundsProvider: (List<dev.cluvex.zedsecure.domain.model.RulesetItem>) -> Map<String, dev.cluvex.zedsecure.domain.config.ServerConfig> =
         { emptyMap() }
 
+    var ruleGroupsProvider: (List<dev.cluvex.zedsecure.domain.model.RulesetItem>) -> Map<String, dev.cluvex.zedsecure.domain.config.RuleGroup> =
+        { emptyMap() }
+
     private fun geoAssetsAvailable(): Boolean =
         File(work, "geoip.dat").let { it.isFile && it.length() > 0 } &&
             File(work, "geosite.dat").let { it.isFile && it.length() > 0 }
@@ -399,6 +402,9 @@ object DesktopVpn {
         val options = settings.toBuildOptions(
             geoAssetsAvailable = geoAssetsAvailable(),
             ruleOutbounds = ruleOutboundsProvider(
+                dev.cluvex.zedsecure.domain.config.RoutingMigration.effectiveRulesets(settings),
+            ),
+            ruleGroups = ruleGroupsProvider(
                 dev.cluvex.zedsecure.domain.config.RoutingMigration.effectiveRulesets(settings),
             ),
         )

@@ -17,6 +17,7 @@ import dev.cluvex.zedsecure.domain.config.AutoMember
 import dev.cluvex.zedsecure.domain.config.AutoSelectBuild
 import dev.cluvex.zedsecure.domain.config.AutoSelectIds
 import dev.cluvex.zedsecure.domain.config.AutoSelectTuning
+import dev.cluvex.zedsecure.domain.config.RuleGroup
 import dev.cluvex.zedsecure.domain.config.SniSpoofLink
 import dev.cluvex.zedsecure.domain.config.ZedLink
 import dev.cluvex.zedsecure.domain.config.ConfigParser
@@ -779,6 +780,41 @@ class ConfigRepository(private val store: KeyValueStore) {
             (p.source is ProfileSource.Link || p.source is ProfileSource.RawJson || p.source is ProfileSource.SingBox)
     }
 
+    private fun autoMembersOf(members: List<VpnProfile>): List<AutoMember> = members.mapNotNull { p ->
+        when (val src = p.source) {
+            is ProfileSource.Link -> if (SingBoxLinks.handles(src.link)) {
+                runCatching { SingBoxLinks.parse(src.link) }.getOrNull()
+                    ?.let { AutoMember.SingBox(p.id, it.fragment, it.name) }
+            } else {
+                runCatching { ConfigParser.parse(src.link) }.getOrNull()
+                    ?.let { AutoMember.Server(p.id, it) }
+            }
+            is ProfileSource.RawJson -> AutoMember.Custom(p.id, src.json)
+            is ProfileSource.SingBox -> AutoMember.SingBox(p.id, src.json, src.carrier)
+            else -> null
+        }
+    }
+
+    private fun fastestOf(members: List<VpnProfile>): String? =
+        members.filter { (it.lastPingMs ?: -1) > 0 }.minByOrNull { it.lastPingMs!! }?.id
+
+    fun resolveRuleGroups(
+        rulesets: List<dev.cluvex.zedsecure.domain.model.RulesetItem>,
+    ): Map<String, RuleGroup> = rulesets
+        .asSequence()
+        .filter { it.enabled && AutoSelectIds.isAuto(it.outboundTag) }
+        .map { it.outboundTag }
+        .distinct()
+        .mapNotNull { tag ->
+            val subscriptionId = AutoSelectIds.subscriptionOf(tag)
+            if (!subscriptionId.isNullOrEmpty() && _subscriptions.value.none { it.id == subscriptionId }) return@mapNotNull null
+            val members = autoSelectMembers(subscriptionId)
+            val built = autoMembersOf(members)
+            if (built.isEmpty()) return@mapNotNull null
+            tag to RuleGroup(built, fastestOf(members))
+        }
+        .toMap()
+
     fun buildAutoSelectConfig(
         profile: VpnProfile,
         options: XrayJsonBuilder.BuildOptions,
@@ -786,22 +822,9 @@ class ConfigRepository(private val store: KeyValueStore) {
     ): AutoSelectBuild {
         val group = profile.autoSelectSettings() ?: throw IllegalStateException("not an auto-select profile")
         val members = autoSelectMembers(group.subscriptionId)
-        val built = members.mapNotNull { p ->
-            when (val src = p.source) {
-                is ProfileSource.Link -> if (SingBoxLinks.handles(src.link)) {
-                    runCatching { SingBoxLinks.parse(src.link) }.getOrNull()
-                        ?.let { AutoMember.SingBox(p.id, it.fragment, it.name) }
-                } else {
-                    runCatching { ConfigParser.parse(src.link) }.getOrNull()
-                        ?.let { AutoMember.Server(p.id, it) }
-                }
-                is ProfileSource.RawJson -> AutoMember.Custom(p.id, src.json)
-                is ProfileSource.SingBox -> AutoMember.SingBox(p.id, src.json, src.carrier)
-                else -> null
-            }
-        }
+        val built = autoMembersOf(members)
         val remembered = lastAutoSelectPick(profile.id)?.takeIf { id -> members.any { it.id == id } }
-        val fastest = members.filter { (it.lastPingMs ?: -1) > 0 }.minByOrNull { it.lastPingMs!! }?.id
+        val fastest = fastestOf(members)
         return XrayJsonBuilder.buildAutoSelect(
             members = built,
             tuning = tuning.copy(initialProfileId = tuning.initialProfileId ?: remembered ?: fastest),
