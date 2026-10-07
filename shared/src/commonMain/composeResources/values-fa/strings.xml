@@ -943,6 +943,8 @@
     <string name="speedtest_data_note">هر اجرا تا %1$d مگابایت مصرف می‌کند</string>
 
     <string name="add_group_import">افزودن</string>
+    <string name="add_free_badge">رایگان</string>
+    <string name="add_free_hint">سایفون و Tor رایگان هستند و سرور شخصی لازم ندارند. بقیهٔ روش‌ها به سرور یا اشتراک خودتان وصل می‌شوند.</string>
     <string name="add_group_tunnels">تونل‌ها</string>
     <string name="add_group_dns">تونل‌های DNS</string>
     <string name="add_group_vpn">پروتکل‌های VPN</string>

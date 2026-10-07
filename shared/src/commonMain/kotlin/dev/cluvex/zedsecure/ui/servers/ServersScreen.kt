@@ -2064,6 +2064,21 @@ private fun AddServerSheet(
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(horizontal = 22.dp, vertical = 8.dp),
             )
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.tertiaryContainer,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+            ) {
+                Row(Modifier.padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                    FreeBadge()
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        stringResource(Res.string.add_free_hint),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    )
+                }
+            }
 
             OptionGroup(Res.string.add_group_import)
             Option(Res.drawable.ic_content_paste, Res.string.servers_add_clipboard, onPasteLink)
@@ -2077,8 +2092,8 @@ private fun AddServerSheet(
             Option(Res.drawable.ic_description, Res.string.servers_add_custom, onCustom)
 
             OptionGroup(Res.string.add_group_tunnels)
-            Option(Res.drawable.ic_bolt, Res.string.psiphon_add_title, onPsiphon)
-            Option(Res.drawable.ic_lock, Res.string.tor_add_title, onTor)
+            Option(Res.drawable.ic_bolt, Res.string.psiphon_add_title, onPsiphon, free = true)
+            Option(Res.drawable.ic_lock, Res.string.tor_add_title, onTor, free = true)
             Option(Res.drawable.ic_speed, Res.string.ssh_add_title, onSsh)
             Option(Res.drawable.ic_bolt, Res.string.snispoof_add_title, onSniSpoof)
 
@@ -2111,7 +2126,7 @@ private fun OptionGroup(labelRes: StringResource) {
 }
 
 @Composable
-private fun Option(iconRes: DrawableResource, labelRes: StringResource, onClick: () -> Unit) {
+private fun Option(iconRes: DrawableResource, labelRes: StringResource, onClick: () -> Unit, free: Boolean = false) {
     Surface(onClick = onClick, color = Color.Transparent, modifier = Modifier.fillMaxWidth()) {
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 15.dp),
@@ -2119,8 +2134,25 @@ private fun Option(iconRes: DrawableResource, labelRes: StringResource, onClick:
         ) {
             Icon(painterResource(iconRes), null, tint = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.width(18.dp))
-            Text(stringResource(labelRes), style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(labelRes), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f, fill = false))
+            if (free) {
+                Spacer(Modifier.width(10.dp))
+                FreeBadge()
+            }
         }
+    }
+}
+
+@Composable
+private fun FreeBadge() {
+    Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.tertiary) {
+        Text(
+            stringResource(Res.string.add_free_badge),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onTertiary,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+        )
     }
 }
 

@@ -951,6 +951,8 @@
     <string name="speedtest_data_note">До %1$d МБ за один запуск</string>
 
     <string name="add_group_import">Импорт</string>
+    <string name="add_free_badge">Бесплатно</string>
+    <string name="add_free_hint">Psiphon и Tor бесплатны и не требуют своего сервера. Остальные способы подключаются к вашему серверу или подписке.</string>
     <string name="add_group_tunnels">Туннели</string>
     <string name="add_group_dns">DNS-туннели</string>
     <string name="add_group_vpn">Протоколы VPN</string>

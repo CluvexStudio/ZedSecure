@@ -950,6 +950,8 @@
     <string name="speedtest_data_note">Uses up to %1$d MB per run</string>
 
     <string name="add_group_import">Import</string>
+    <string name="add_free_badge">Free</string>
+    <string name="add_free_hint">Psiphon and Tor are free and need no server of your own. Everything else connects to your own server or subscription.</string>
     <string name="add_group_tunnels">Tunnels</string>
     <string name="add_group_dns">DNS tunnels</string>
     <string name="add_group_vpn">VPN protocols</string>

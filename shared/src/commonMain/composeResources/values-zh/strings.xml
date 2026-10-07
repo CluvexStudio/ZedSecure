@@ -951,6 +951,8 @@
     <string name="speedtest_data_note">每次测试最多消耗 %1$d MB</string>
 
     <string name="add_group_import">导入</string>
+    <string name="add_free_badge">免费</string>
+    <string name="add_free_hint">Psiphon 和 Tor 免费，无需自己的服务器。其他方式都连接到你自己的服务器或订阅。</string>
     <string name="add_group_tunnels">隧道</string>
     <string name="add_group_dns">DNS 隧道</string>
     <string name="add_group_vpn">VPN 协议</string>
