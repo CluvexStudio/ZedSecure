@@ -105,12 +105,15 @@ def rows(tag, names):
     return out
 
 
-def nix_row(names):
+def package_rows(names):
     if not any(n.endswith("-linux-x86_64.tar.gz") for n in names):
         return []
     return [
+        "  <tr>\n    <td><b>Arch Linux</b></td>\n"
+        "    <td><code>yay -S zedsecure-bin</code> from the "
+        "<a href=\"https://aur.archlinux.org/packages/zedsecure-bin\">AUR</a></td>\n  </tr>",
         "  <tr>\n    <td><b>NixOS</b></td>\n"
-        "    <td><code>nix run github:CluvexStudio/ZedSecure</code></td>\n  </tr>"
+        "    <td><code>nix run github:CluvexStudio/ZedSecure</code></td>\n  </tr>",
     ]
 
 
@@ -145,7 +148,7 @@ def body(tag, notes, companion):
         "  </thead>",
         "  <tbody>",
         *rows(tag, names),
-        *nix_row(names),
+        *package_rows(names),
         "  </tbody>",
         "</table>",
     ]
