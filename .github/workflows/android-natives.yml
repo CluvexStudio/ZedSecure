@@ -12,7 +12,7 @@ env:
   SNOWFLAKE_VERSION: "v2.14.1"
   SNISPOOF_VERSION: "v0.7.2"
   HEV_RELEASE: "2.18.0"
-  ZEPTUN_RELEASE: "v1.1.1"
+  ZEPTUN_RELEASE: "v1.1.2"
 
 jobs:
   tor:

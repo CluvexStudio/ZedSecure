@@ -535,6 +535,7 @@ object DesktopVpn {
             LogBus.append("I/Desktop TUN bypass: ${bypassIps.joinToString().ifEmpty { "(none)" }}")
             val engine = TunMode.Factory.create(
                 work, socksPort, bypassIps, udpOverTcp, settingsProvider().vpnDns, AdminPassword::ask,
+                allowApps = listOf("xray.exe", "zeddns.exe").map { File(work, it) }.filter { it.isFile },
             )
             if (engine != null && engine.start()) { tun = engine; return true }
             LogBus.append("W/Desktop TUN unavailable — falling back to system proxy")
