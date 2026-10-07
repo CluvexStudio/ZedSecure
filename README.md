@@ -59,8 +59,9 @@ Android has all of them. Linux, Windows and macOS carry Xray, sing-box, the DNS 
 APK for your device from [Releases](https://github.com/CluvexStudio/ZedSecure/releases/latest)
 (`arm64-v8a` for almost every phone, `armeabi-v7a` for older ones).
 
-**Linux:** `.deb`, `.rpm`, `.AppImage` or `.tar.gz` from Releases. On NixOS,
-`nix run github:CluvexStudio/ZedSecure`.
+**Linux:** `.deb`, `.rpm`, `.AppImage` or `.tar.gz` from Releases. On Arch Linux, the community
+package [`zedsecure-bin`](https://aur.archlinux.org/packages/zedsecure-bin) is in the AUR:
+`yay -S zedsecure-bin`. On NixOS, `nix run github:CluvexStudio/ZedSecure`.
 
 **Windows:** the `.msi` installer, or the portable `.zip`.
 
