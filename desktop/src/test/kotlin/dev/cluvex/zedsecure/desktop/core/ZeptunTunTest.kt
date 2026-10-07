@@ -5,6 +5,7 @@ import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -24,9 +25,24 @@ class ZeptunTunTest {
         assertTrue("exclude = [\"203.0.113.7/32\", \"2001:db8::7/128\"]" in toml, toml)
         assertTrue("hijack = true" in toml && "upstream = \"1.1.1.1:53\"" in toml, toml)
         assertTrue("address = [\"172.19.0.1/30\", \"fdfe:dcba:9876::1/126\"]" in toml, toml)
-        assertFalse("strict" in toml, "strict route would also block the core's own DNS to the domestic resolver")
+        assertFalse("strict" in toml, "a zeptun without allow_app would block the core's own DNS to the domestic resolver")
         assertTrue("guid = \"${ZeptunTun.ADAPTER_GUID}\"" in toml, "one adapter identity, so Windows does not see a new network on every connect")
         assertTrue("[handler.direct]\nbind_interface = \"loopback\"" in toml, "zeptun must not pin its sockets to the network card, or it cannot reach the core on 127.0.0.1")
+    }
+
+    @Test
+    fun `on Windows the strict firewall stops DNS leaks and still lets the core resolve directly`() {
+        val xray = File("C:\\Users\\O\"Brien\\AppData\\Local\\Temp\\zedsecure\\xray.exe")
+        val toml = ZeptunTun(File(work, "zeptun"), 10808, work, allowApps = listOf(xray, xray), os = Os.WINDOWS)
+            .toml(strictFirewall = true)
+        assertTrue("strict = true" in toml, toml)
+        val expected = "allow_app = [\"" + xray.absolutePath.replace("\\", "\\\\").replace("\"", "\\\"") + "\"]"
+        assertTrue(expected in toml, toml)
+        assertTrue(toml.indexOf("strict = true") > toml.indexOf("[route]") && toml.indexOf("strict = true") < toml.indexOf("[dns]"), toml)
+        assertEquals(listOf(1, 1, 2), ZeptunBinary.parseVersion("zeptun 1.1.2 zig 0.16.0 x86_64-windows"))
+        assertNull(ZeptunBinary.parseVersion("zeptun: unknown command"))
+        assertTrue(ZeptunBinary.compareVersions(listOf(1, 1, 1), listOf(1, 1, 2)) < 0)
+        assertTrue(ZeptunBinary.compareVersions(listOf(1, 2, 0), listOf(1, 1, 2)) > 0)
     }
 
     @Test
@@ -71,17 +87,55 @@ class ZeptunTunTest {
     }
 
     @Test
-    fun `the Windows helper takes its paths as parameters and reports through files`() {
-        val ps = tun(Os.WINDOWS).windowsHelper()
-        assertTrue(ps.startsWith("param([string]\$Zeptun, [string]\$Config, [string]\$State, [int]\$AppPid)"), ps)
-        assertTrue("Get-NetIPAddress -IPAddress '172.19.0.1'" in ps, ps)
-        assertTrue("Test-Path -LiteralPath \$stop" in ps && "Get-Process -Id \$AppPid" in ps, ps)
-        assertTrue("[ZedSecure.Console]::GenerateConsoleCtrlEvent(0, 0)" in ps, "zeptun gets Ctrl+C so it removes its own routes")
-        val graceful = ps.indexOf("GenerateConsoleCtrlEvent(0, 0)")
-        val forced = ps.indexOf("Stop-Process -Id \$proc.Id -Force")
-        assertTrue(graceful in 0 until forced, "the forced stop is only the fallback")
-        assertFalse("Stop-Process -Id \$p.Id -Force" in ps, ps)
-        assertTrue("Set-NetIPInterface -InterfaceIndex \$tunIf -InterfaceMetric 1" in ps, ps)
+    fun `the packaged app runs itself as the administrator helper`() {
+        val exe = File.createTempFile("ZedSecure", ".exe")
+        val before = System.getProperty("jpackage.app-path")
+        try {
+            System.setProperty("jpackage.app-path", exe.absolutePath)
+            val token = File(exe.parentFile, "helper token.txt")
+            val (file, parameters) = assertNotNull(WindowsElevation.launchCommand(50123, token))
+            assertEquals(exe.absolutePath, file)
+            assertEquals("${WindowsHelper.FLAG} 50123 \"${token.absolutePath}\"", parameters, "a path with a space stays one argument")
+            assertFalse("powershell" in parameters.lowercase())
+        } finally {
+            if (before == null) System.clearProperty("jpackage.app-path") else System.setProperty("jpackage.app-path", before)
+            exe.delete()
+        }
+    }
+
+    @Test
+    fun `the administrator helper proves who it is, answers, and leaves when the app hangs up`() {
+        val javaBin = File(System.getProperty("java.home"), if (Os.current == Os.WINDOWS) "bin/java.exe" else "bin/java")
+        val classpath = listOf(WindowsHelper::class.java, Unit::class.java, com.sun.jna.Native::class.java)
+            .map { File(it.protectionDomain.codeSource.location.toURI()).absolutePath }
+            .distinct()
+            .joinToString(File.pathSeparator)
+        val token = File.createTempFile("helper-", ".token").apply { writeText("abc123") }
+        java.net.ServerSocket(0, 1, java.net.InetAddress.getLoopbackAddress()).use { server ->
+            server.soTimeout = 20_000
+            val helper = ProcessBuilder(
+                javaBin.absolutePath, "-cp", classpath, "dev.cluvex.zedsecure.desktop.core.WindowsHelperKt",
+                server.localPort.toString(), token.absolutePath,
+            ).redirectErrorStream(true).start()
+            try {
+                server.accept().use { socket ->
+                    val reader = socket.getInputStream().bufferedReader()
+                    val writer = java.io.PrintWriter(socket.getOutputStream(), true)
+                    assertEquals("${WindowsHelper.HELLO} abc123", reader.readLine())
+                    writer.println("PING")
+                    assertEquals("OK", reader.readLine())
+                    writer.println("REBOOT now")
+                    assertEquals("ERR unknown command", reader.readLine())
+                    writer.println("TUN_UP ${token.parentFile.absolutePath}")
+                    assertTrue(reader.readLine().startsWith("ERR zeptun is missing"))
+                }
+                assertTrue(helper.waitFor(15, java.util.concurrent.TimeUnit.SECONDS), "the helper must exit once the app closes the connection")
+                assertEquals(0, helper.exitValue(), helper.inputStream.bufferedReader().readText())
+            } finally {
+                helper.destroyForcibly()
+                token.delete()
+            }
+        }
     }
 
     @Test
@@ -97,7 +151,7 @@ class ZeptunTunTest {
     }
 
     @Test
-    fun `the default route interface is read from route and Find-NetRoute output`() {
+    fun `the default route interface is read from route output`() {
         val mac = """
                route to: default
             destination: default
@@ -108,7 +162,13 @@ class ZeptunTunTest {
         """.trimIndent()
         assertEquals("en0", PhysicalInterface.macInterface(mac))
         assertNull(PhysicalInterface.macInterface("interface: utun4"))
-        assertEquals("Wi-Fi", PhysicalInterface.firstLine("\r\nWi-Fi\r\n"))
-        assertEquals("以太网", PhysicalInterface.firstLine("\uFEFF以太网\r\n"))
+        assertEquals("wlp3s0", PhysicalInterface.linuxInterface("1.1.1.1 via 192.168.1.1 dev wlp3s0 src 192.168.1.5 uid 1000 \\    cache "))
+        assertEquals("ppp0", PhysicalInterface.linuxInterface("1.1.1.1 dev ppp0 src 10.64.64.64 uid 1000"))
+        assertNull(PhysicalInterface.linuxInterface("1.1.1.1 dev ${LinuxBroker.TUN_NAME} src 198.18.0.1 uid 1000"))
+        assertTrue(PhysicalInterface.canBind(Os.LINUX, "6.8.0-45-generic"))
+        assertTrue(PhysicalInterface.canBind(Os.LINUX, "5.7.0"))
+        assertFalse(PhysicalInterface.canBind(Os.LINUX, "5.4.0-200-generic"), "older kernels refuse SO_BINDTODEVICE without root")
+        assertFalse(PhysicalInterface.canBind(Os.LINUX, "4.19.0-27-amd64"))
+        assertTrue(PhysicalInterface.canBind(Os.WINDOWS, "10.0"))
     }
 }

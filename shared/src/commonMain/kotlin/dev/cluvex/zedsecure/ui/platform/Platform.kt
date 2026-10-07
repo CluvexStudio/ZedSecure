@@ -69,6 +69,8 @@ interface Platform {
 
     val supportsPerAppProxy: Boolean get() = false
 
+    val adminAccess: AdminAccess? get() = null
+
     val supportsDynamicColor: Boolean get() = false
 
     val geoAssets: GeoAssets? get() = null
@@ -94,6 +96,12 @@ interface Platform {
 }
 
 enum class AutomaticRendering { Gpu, SoftwareWindows, SoftwareNvidiaWayland }
+
+interface AdminAccess {
+    val remembered: Boolean
+
+    fun setRemembered(on: Boolean): Result<Unit>
+}
 
 data class FilePick(val name: String, val bytes: ByteArray)
 

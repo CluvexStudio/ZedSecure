@@ -1382,9 +1382,13 @@
     <string name="tour_settings_title">Settings</string>
     <string name="tour_settings_body">Everything else lives in this tab. Let us go through it.</string>
     <string name="admin_password_title">Administrator password</string>
-    <string name="admin_password_body">TUN mode needs root to create the tunnel, and no system password prompt (polkit) is available. Enter the password you use with sudo. It goes only to sudo and is not saved.</string>
+    <string name="admin_password_body">ZedSecure needs administrator rights for TUN mode and OpenConnect. Enter the password you use with sudo. You are asked once each time ZedSecure runs; the password goes only to sudo and is never saved.</string>
     <string name="admin_password_label">Password</string>
     <string name="admin_password_wrong">Wrong password. Try again.</string>
+    <string name="admin_password_remember">Don't ask again on this computer</string>
+    <string name="settings_admin_remember_title">Remember administrator access</string>
+    <string name="settings_admin_remember_body">ZedSecure asks for your password once each time it runs. Turn this on to stop asking on this computer. Only ZedSecure's tunnel helper gets the rights, and you are asked once more after an update.</string>
+    <string name="settings_admin_remember_failed">Could not change administrator access</string>
     <string name="title_pref_rendering">Rendering</string>
     <string name="rendering_auto">Automatic</string>
     <string name="rendering_gpu">Graphics card</string>

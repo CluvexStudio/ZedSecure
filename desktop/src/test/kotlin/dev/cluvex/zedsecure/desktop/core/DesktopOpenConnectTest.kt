@@ -73,7 +73,7 @@ class DesktopOpenConnectTest {
             assertEquals(0, check.waitFor(), "${script.name}: $out")
         }
         assertTrue("'--user=it'\\''s me'" in linux.readText(), linux.readText())
-        assertTrue(LinuxRootHelper.READY_MARKER in linux.readText())
+        assertTrue("\$DIR/ready" in linux.readText() && "umask 022" in linux.readText(), linux.readText())
         assertTrue(Regex(DesktopOpenConnect.CONNECTED).containsMatchIn("Connected as 192.168.10.5, using SSL, with DTLS in progress"))
         assertTrue(Regex(DesktopOpenConnect.CONNECTED).containsMatchIn("ESP session established with server"))
         assertFalse(Regex(DesktopOpenConnect.CONNECTED).containsMatchIn("Failed to obtain WebVPN cookie"))

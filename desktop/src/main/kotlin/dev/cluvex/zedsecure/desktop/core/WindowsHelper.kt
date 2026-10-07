@@ -1,0 +1,209 @@
+package dev.cluvex.zedsecure.desktop.core
+
+import java.io.BufferedReader
+import java.io.File
+import java.io.InputStreamReader
+import java.io.OutputStreamWriter
+import java.io.PrintWriter
+import java.net.InetAddress
+import java.net.NetworkInterface
+import java.net.Socket
+import java.security.KeyStore
+import java.security.MessageDigest
+import java.security.cert.CertificateFactory
+import java.security.cert.X509Certificate
+import java.util.concurrent.TimeUnit
+import kotlin.system.exitProcess
+
+fun main(args: Array<String>) = WindowsHelper.serve(args.toList())
+
+object WindowsHelper {
+    const val FLAG = "--zedsecure-helper"
+    const val HELLO = "HELLO"
+
+    fun serve(args: List<String>) {
+        val port = args.getOrNull(0)?.toIntOrNull() ?: exitProcess(2)
+        val token = args.getOrNull(1)?.let { runCatching { File(it).readText().trim() }.getOrNull() } ?: exitProcess(2)
+        val socket = runCatching { Socket(InetAddress.getLoopbackAddress(), port) }.getOrElse { exitProcess(3) }
+        socket.tcpNoDelay = true
+        val out = PrintWriter(OutputStreamWriter(socket.getOutputStream(), Charsets.UTF_8), true)
+        val input = BufferedReader(InputStreamReader(socket.getInputStream(), Charsets.UTF_8))
+        val jobs = Jobs(out)
+        out.println("$HELLO $token")
+        try {
+            while (true) {
+                val line = runCatching { input.readLine() }.getOrNull() ?: break
+                val reply = runCatching { jobs.handle(line.trim()) }.getOrElse { "ERR " + (it.message ?: "failed") }
+                synchronized(out) { out.println(reply.replace('\n', ' ').replace('\r', ' ')) }
+            }
+        } finally {
+            jobs.stopAll()
+            runCatching { socket.close() }
+        }
+        exitProcess(0)
+    }
+
+    private class Jobs(private val out: PrintWriter) {
+        @Volatile private var tun: Process? = null
+        @Volatile private var tunDir: File? = null
+        @Volatile private var oc: Process? = null
+        @Volatile private var ocDir: File? = null
+
+        fun handle(line: String): String {
+            val command = line.substringBefore(' ')
+            val rest = line.substringAfter(' ', "").trim()
+            return when (command) {
+                "TUN_UP" -> tunUp(File(rest))
+                "TUN_DOWN" -> { stopTun(); "OK" }
+                "OC_UP" -> ocUp(File(rest))
+                "OC_DOWN" -> { stopOc(); "OK" }
+                "CA_TRUST" -> trustCa(File(rest))
+                "PING" -> "OK"
+                else -> "ERR unknown command"
+            }
+        }
+
+        fun stopAll() {
+            stopOc()
+            stopTun()
+        }
+
+        private fun tunUp(dir: File): String {
+            stopTun()
+            val exe = File(dir, "zeptun.exe")
+            val config = File(dir, "zeptun.toml")
+            if (!exe.isFile || !config.isFile) return "ERR zeptun is missing from ${dir.path}"
+            val log = File(dir, "zeptun.log")
+            val p = ProcessBuilder(exe.path, "run", "-c", config.path)
+                .directory(dir)
+                .redirectOutput(File(dir, "zeptun.out"))
+                .redirectError(log)
+                .start()
+            tun = p
+            tunDir = dir
+            val deadline = System.currentTimeMillis() + TUN_WAIT_MS
+            var adapter: NetworkInterface? = null
+            while (System.currentTimeMillis() < deadline) {
+                if (!p.isAlive) break
+                adapter = tunnelAdapter()
+                if (adapter != null) break
+                Thread.sleep(POLL_MS)
+            }
+            if (adapter == null) {
+                val why = tail(log)
+                stopTun()
+                return "ERR zeptun did not bring the tunnel up. $why".trim()
+            }
+            listOf("ipv4", "ipv6").forEach { family ->
+                runCommand("netsh", "interface", family, "set", "interface", adapter.index.toString(), "metric=1")
+            }
+            watch(p, "tun") { tun === p }
+            return "OK"
+        }
+
+        private fun ocUp(dir: File): String {
+            stopOc()
+            val lines = runCatching { File(dir, "oc.args").readLines() }.getOrNull()?.filter { it.isNotEmpty() }
+            if (lines.isNullOrEmpty() || !File(lines.first()).isFile) return "ERR OpenConnect is missing"
+            val secret = File(dir, "secret")
+            val log = File(dir, "openconnect.log")
+            val output = File(dir, "openconnect.out")
+            val builder = ProcessBuilder(lines)
+                .directory(File(lines.first()).parentFile)
+                .redirectOutput(output)
+                .redirectError(log)
+            if (secret.isFile) builder.redirectInput(secret)
+            val p = builder.start()
+            oc = p
+            ocDir = dir
+            val connected = Regex(DesktopOpenConnect.CONNECTED)
+            val deadline = System.currentTimeMillis() + OC_WAIT_MS
+            var up = false
+            while (System.currentTimeMillis() < deadline && p.isAlive) {
+                if (listOf(log, output).any { f -> runCatching { connected.containsMatchIn(f.readText()) }.getOrDefault(false) }) {
+                    up = true
+                    break
+                }
+                Thread.sleep(POLL_MS)
+            }
+            if (!up) {
+                val why = (tail(log) + " " + tail(output, 3)).trim()
+                stopOc()
+                return "ERR OpenConnect did not connect. $why".trim()
+            }
+            runCatching { secret.delete() }
+            File(dir, "ready").writeText(p.pid().toString())
+            watch(p, "oc") { oc === p }
+            return "OK"
+        }
+
+        private fun trustCa(file: File): String {
+            val cert = file.inputStream().use { CertificateFactory.getInstance("X.509").generateCertificate(it) } as X509Certificate
+            val store = KeyStore.getInstance("Windows-ROOT-LOCALMACHINE").apply { load(null, null) }
+            if (store.getCertificateAlias(cert) == null) {
+                val thumb = MessageDigest.getInstance("SHA-1").digest(cert.encoded).joinToString("") { "%02x".format(it) }
+                store.setCertificateEntry("ZedSecure IKEv2 CA $thumb", cert)
+            }
+            return "OK"
+        }
+
+        private fun stopTun() {
+            val p = tun ?: return
+            tun = null
+            stop(p)
+            tunDir = null
+        }
+
+        private fun stopOc() {
+            val p = oc ?: return
+            oc = null
+            stop(p)
+            ocDir?.let { dir ->
+                runCatching { File(dir, "ready").delete() }
+                runCatching { File(dir, "secret").delete() }
+            }
+            ocDir = null
+        }
+
+        private fun stop(p: Process) {
+            if (p.isAlive) runCatching { WinApi.sendCtrlC(p.pid(), p, STOP_WAIT_MS) }
+            if (p.isAlive && !p.waitFor(1, TimeUnit.SECONDS)) {
+                p.destroyForcibly()
+                p.waitFor(5, TimeUnit.SECONDS)
+            }
+        }
+
+        private fun watch(p: Process, name: String, current: () -> Boolean) {
+            Thread {
+                p.waitFor()
+                if (current()) {
+                    if (name == "oc") ocDir?.let { runCatching { File(it, "ready").delete() } }
+                    synchronized(out) { out.println("DOWN $name") }
+                }
+            }.apply { isDaemon = true; this.name = "helper-watch-$name" }.start()
+        }
+
+        private fun tunnelAdapter(): NetworkInterface? = runCatching {
+            NetworkInterface.getNetworkInterfaces().toList().firstOrNull { nic ->
+                nic.isUp && nic.inetAddresses.toList().any { it.hostAddress == ZeptunTun.TUN_V4 }
+            }
+        }.getOrNull()
+
+        private fun tail(file: File, lines: Int = 5): String = runCatching {
+            file.readLines().filter { it.isNotBlank() }.takeLast(lines).joinToString(" ")
+        }.getOrDefault("")
+
+        private fun runCommand(vararg cmd: String) {
+            runCatching {
+                val p = ProcessBuilder(*cmd).redirectErrorStream(true).start()
+                p.inputStream.readAllBytes()
+                if (!p.waitFor(15, TimeUnit.SECONDS)) p.destroyForcibly()
+            }
+        }
+    }
+
+    private const val TUN_WAIT_MS = 30_000L
+    private const val OC_WAIT_MS = 90_000L
+    private const val STOP_WAIT_MS = 10_000L
+    private const val POLL_MS = 200L
+}

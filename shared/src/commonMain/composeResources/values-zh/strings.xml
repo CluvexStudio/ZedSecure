@@ -1383,9 +1383,13 @@
     <string name="tour_settings_title">设置</string>
     <string name="tour_settings_body">其余的一切都在这个标签页里。我们逐一看看。</string>
     <string name="admin_password_title">管理员密码</string>
-    <string name="admin_password_body">TUN 模式需要 root 权限来创建隧道，但系统密码窗口（polkit）不可用。请输入你用于 sudo 的密码。它只会交给 sudo，不会被保存。</string>
+    <string name="admin_password_body">TUN 模式和 OpenConnect 需要管理员权限。请输入你用于 sudo 的密码。ZedSecure 每次运行只询问一次，密码只交给 sudo，不会被保存。</string>
     <string name="admin_password_label">密码</string>
     <string name="admin_password_wrong">密码错误，请重试。</string>
+    <string name="admin_password_remember">在这台电脑上不再询问</string>
+    <string name="settings_admin_remember_title">记住管理员权限</string>
+    <string name="settings_admin_remember_body">ZedSecure 每次运行会询问一次密码。开启后，在这台电脑上不再询问。只有 ZedSecure 的隧道助手获得权限，更新后会再询问一次。</string>
+    <string name="settings_admin_remember_failed">无法更改管理员权限</string>
     <string name="title_pref_rendering">渲染</string>
     <string name="rendering_auto">自动</string>
     <string name="rendering_gpu">显卡</string>

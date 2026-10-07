@@ -39,7 +39,7 @@ object DesktopVpn {
     private const val CARRIER_CONFIG = "xray-carrier.json"
     private const val CHAIN = "The chain"
 
-    private val work = File(System.getProperty("java.io.tmpdir"), "zedsecure").apply { mkdirs() }
+    val work = File(System.getProperty("java.io.tmpdir"), "zedsecure").apply { mkdirs() }
     private var xray: XrayCore? = null
     private var tun: DesktopTun? = null
     private var stats: DesktopStats? = null
@@ -571,7 +571,26 @@ object DesktopVpn {
         }
     }
 
-    fun shutdown() = teardown()
+    fun shutdown() {
+        teardown()
+        dev.cluvex.zedsecure.desktop.core.LinuxBroker.close()
+        dev.cluvex.zedsecure.desktop.core.WindowsElevation.close()
+    }
+
+    private fun tunnelLost() {
+        if (tun != null && VpnManager.status.value.state.isActive) {
+            LogBus.append("E/Desktop the tunnel engine stopped; disconnecting so traffic does not leave outside the VPN")
+            thread(name = "desktop-tun-lost") {
+                teardown()
+                VpnManager.onError("The tunnel stopped unexpectedly")
+            }
+        }
+    }
+
+    init {
+        dev.cluvex.zedsecure.desktop.core.LinuxBroker.onTunLost = { tunnelLost() }
+        dev.cluvex.zedsecure.desktop.core.WindowsElevation.onLost = { what -> if (what == "tun") tunnelLost() }
+    }
 
     @Synchronized
     private fun teardown() {

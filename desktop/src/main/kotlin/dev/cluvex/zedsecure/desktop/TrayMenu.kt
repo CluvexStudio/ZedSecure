@@ -181,31 +181,8 @@ object WindowsDesktop {
 
     private const val NATIVE_TRAY_BRIDGE = "com.kdroid.composetray.lib.windows.WindowsNativeBridge"
 
-    private const val TOAST_APP_ID = "{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\\WindowsPowerShell\\v1.0\\powershell.exe"
-
-    internal val toastScript = """
-        |[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null
-        |${'$'}xml = [Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent([Windows.UI.Notifications.ToastTemplateType]::ToastText02)
-        |${'$'}text = ${'$'}xml.GetElementsByTagName('text')
-        |${'$'}text.Item(0).AppendChild(${'$'}xml.CreateTextNode(${'$'}env:ZEDSECURE_TOAST_TITLE)) | Out-Null
-        |${'$'}text.Item(1).AppendChild(${'$'}xml.CreateTextNode(${'$'}env:ZEDSECURE_TOAST_BODY)) | Out-Null
-        |[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('$TOAST_APP_ID').Show([Windows.UI.Notifications.ToastNotification]::new(${'$'}xml))
-        |""".trimMargin()
-
     fun notify(title: String, body: String) {
-        thread(name = "desktop-notify", isDaemon = true) {
-            runCatching {
-                val encoded = java.util.Base64.getEncoder().encodeToString(toastScript.toByteArray(Charsets.UTF_16LE))
-                val process = ProcessBuilder(
-                    "powershell.exe", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-EncodedCommand", encoded,
-                ).redirectErrorStream(true).apply {
-                    environment()["ZEDSECURE_TOAST_TITLE"] = title
-                    environment()["ZEDSECURE_TOAST_BODY"] = body
-                }.start()
-                process.inputStream.bufferedReader().readText()
-                process.waitFor(15, java.util.concurrent.TimeUnit.SECONDS)
-            }
-        }
+        System.err.println("notice: $title: $body")
     }
 }
 

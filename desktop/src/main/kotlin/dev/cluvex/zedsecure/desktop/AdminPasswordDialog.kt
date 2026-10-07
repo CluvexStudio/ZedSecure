@@ -1,11 +1,14 @@
 package dev.cluvex.zedsecure.desktop
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -16,6 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -23,24 +27,27 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import dev.cluvex.zedsecure.desktop.core.AdminAnswer
 import dev.cluvex.zedsecure.shared.resources.Res
 import dev.cluvex.zedsecure.shared.resources.action_cancel
 import dev.cluvex.zedsecure.shared.resources.action_ok
 import dev.cluvex.zedsecure.shared.resources.admin_password_body
 import dev.cluvex.zedsecure.shared.resources.admin_password_label
+import dev.cluvex.zedsecure.shared.resources.admin_password_remember
 import dev.cluvex.zedsecure.shared.resources.admin_password_title
 import dev.cluvex.zedsecure.shared.resources.admin_password_wrong
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
-fun AdminPasswordDialog(retry: Boolean, onDone: (CharArray?) -> Unit) {
+fun AdminPasswordDialog(retry: Boolean, offerRemember: Boolean, onDone: (AdminAnswer?) -> Unit) {
     var text by remember { mutableStateOf("") }
+    var rememberAccess by remember { mutableStateOf(false) }
     val focus = remember { FocusRequester() }
     fun submit() {
         if (text.isEmpty()) return
         val password = text.toCharArray()
         text = ""
-        onDone(password)
+        onDone(AdminAnswer(password, offerRemember && rememberAccess))
     }
     AlertDialog(
         onDismissRequest = { onDone(null) },
@@ -64,6 +71,15 @@ fun AdminPasswordDialog(retry: Boolean, onDone: (CharArray?) -> Unit) {
                     keyboardActions = KeyboardActions(onDone = { submit() }),
                     modifier = Modifier.fillMaxWidth().focusRequester(focus),
                 )
+                if (offerRemember) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth().clickable { rememberAccess = !rememberAccess },
+                    ) {
+                        Checkbox(checked = rememberAccess, onCheckedChange = { rememberAccess = it })
+                        Text(stringResource(Res.string.admin_password_remember), style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
             }
         },
         confirmButton = {

@@ -10,8 +10,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import kotlinx.coroutines.launch
 import dev.cluvex.zedsecure.ui.motion.transitionDecoration
 import dev.cluvex.zedsecure.ui.onboarding.TourTargets
 import dev.cluvex.zedsecure.ui.onboarding.tourTargetInPage
@@ -1147,6 +1149,30 @@ private fun UiPage(
 }
 
 @Composable
+private fun AdminAccessRow(access: dev.cluvex.zedsecure.ui.platform.AdminAccess) {
+    val platform = LocalPlatform.current
+    val scope = rememberCoroutineScope()
+    var remembered by remember { mutableStateOf(access.remembered) }
+    var busy by remember { mutableStateOf(false) }
+    val failed = stringResource(Res.string.settings_admin_remember_failed)
+    SettingsSwitchRow(
+        title = stringResource(Res.string.settings_admin_remember_title),
+        summary = stringResource(Res.string.settings_admin_remember_body),
+        checked = remembered,
+        enabled = !busy,
+        onCheckedChange = { on ->
+            busy = true
+            scope.launch {
+                val result = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { access.setRemembered(on) }
+                remembered = access.remembered
+                busy = false
+                result.exceptionOrNull()?.let { platform.toast(failed + (it.message?.let { m -> ": $m" } ?: "")) }
+            }
+        },
+    )
+}
+
+@Composable
 private fun VpnPage(
     s: AppSettings,
     contentPadding: PaddingValues,
@@ -1165,6 +1191,7 @@ private fun VpnPage(
     ) {
         SettingsGroup {
             val batteryPlatform = LocalPlatform.current
+            batteryPlatform.adminAccess?.let { access -> AdminAccessRow(access) }
             if (batteryPlatform.supportsBatteryOptimization) {
                 var exempt by remember { mutableStateOf(batteryPlatform.isIgnoringBatteryOptimizations) }
                 LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {

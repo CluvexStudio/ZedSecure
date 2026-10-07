@@ -12,12 +12,14 @@ class ZeptunTun(
     private val udpOverTcp: Boolean = false,
     private val dnsServers: String = DEFAULT_DNS,
     private val includeOnly: List<String> = emptyList(),
+    private val allowApps: List<File> = emptyList(),
     private val os: Os = Os.current,
 ) : DesktopTun {
     @Volatile private var helper: Process? = null
     @Volatile private var state: File? = null
+    @Volatile private var windowsUp = false
 
-    internal fun toml(): String = buildString {
+    internal fun toml(strictFirewall: Boolean = os == Os.WINDOWS && ZeptunBinary.hasStrictFirewall(zeptun)): String = buildString {
         appendLine("preset = \"desktop\"")
         appendLine("log_level = \"warn\"")
         appendLine()
@@ -40,6 +42,11 @@ class ZeptunTun(
         appendLine()
         appendLine("[route]")
         appendLine("auto_route = true")
+        if (strictFirewall) {
+            appendLine("strict = true")
+            val apps = allowApps.map { it.absolutePath }.distinct()
+            if (apps.isNotEmpty()) appendLine("allow_app = ${tomlList(apps)}")
+        }
         if (includeOnly.isNotEmpty()) appendLine("include = ${tomlList(includeOnly)}")
         val excluded = bypassIps.mapNotNull(::hostPrefix).distinct()
         if (excluded.isNotEmpty()) appendLine("exclude = ${tomlList(excluded)}")
@@ -79,35 +86,19 @@ class ZeptunTun(
     }
 
     private fun startWindows(): Boolean {
-        val (dir, engine) = stage() ?: return false
-        val config = File(dir, "zeptun.toml").apply { writeText(toml()) }
-        val script = File(dir, "tun-helper.ps1").apply { writeText(windowsHelper()) }
-        val inner = listOf(
-            "-NoProfile", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden",
-            "-File", winQuote(script), "-Zeptun", winQuote(engine), "-Config", winQuote(config),
-            "-State", winQuote(dir), "-AppPid", ProcessHandle.current().pid().toString(),
-        )
-        val command = "Start-Process -FilePath 'powershell.exe' -Verb RunAs -WindowStyle Hidden -ArgumentList @(" +
-            inner.joinToString(",") { psLiteral(it) } + ")"
-        val launcher = runCatching {
-            ProcessBuilder("powershell.exe", "-NoProfile", "-NonInteractive", "-Command", command)
-                .redirectErrorStream(true)
-                .start()
-        }.getOrElse {
-            println("[tun] powershell did not start: ${it.message}")
+        val (dir, _) = stage() ?: return false
+        File(dir, "zeptun.toml").writeText(toml())
+        if (!WindowsElevation.ensure(workDir)) {
             discard()
             return false
         }
-        val output = launcher.inputStream.bufferedReader().readText()
-        val launched = launcher.waitFor(UAC_WAIT_SEC, TimeUnit.SECONDS) && launcher.exitValue() == 0
-        if (!launched) {
-            launcher.destroyForcibly()
-            val reason = output.lineSequence().map { it.trim() }.firstOrNull { it.isNotEmpty() }.orEmpty()
-            println("[tun] administrator rights were not granted: $reason")
+        WindowsElevation.tunUp(dir).onFailure {
+            println("[tun] ${it.message}")
             discard()
             return false
         }
-        return awaitReady(dir, null)
+        windowsUp = true
+        return true
     }
 
     private fun startMac(): Boolean {
@@ -172,6 +163,12 @@ class ZeptunTun(
 
     override fun stop() {
         val dir = state ?: return
+        if (os == Os.WINDOWS) {
+            if (windowsUp) WindowsElevation.tunDown()
+            windowsUp = false
+            discard()
+            return
+        }
         runCatching { File(dir, "stop").writeText("stop") }
         val ready = File(dir, "ready")
         val deadline = System.currentTimeMillis() + STOP_WAIT_MS
@@ -189,55 +186,6 @@ class ZeptunTun(
             ?.forEach { println("[zeptun] $it") }
         runCatching { dir.deleteRecursively() }
     }
-
-    internal fun windowsHelper(): String = """
-        |param([string]${'$'}Zeptun, [string]${'$'}Config, [string]${'$'}State, [int]${'$'}AppPid)
-        |${'$'}ErrorActionPreference = 'Continue'
-        |${'$'}ready = Join-Path ${'$'}State 'ready'
-        |${'$'}stop = Join-Path ${'$'}State 'stop'
-        |${'$'}failed = Join-Path ${'$'}State 'failed'
-        |${'$'}log = Join-Path ${'$'}State 'zeptun.log'
-        |${'$'}out = Join-Path ${'$'}State 'zeptun.out'
-        |Add-Type -Namespace ZedSecure -Name Console -MemberDefinition @'
-        |[DllImport("kernel32.dll")] public static extern bool GenerateConsoleCtrlEvent(uint ctrlEvent, uint processGroupId);
-        |[DllImport("kernel32.dll")] public static extern bool SetConsoleCtrlHandler(System.IntPtr handler, bool add);
-        |'@
-        |function Stop-Zeptun([System.Diagnostics.Process]${'$'}proc) {
-        |    if (${'$'}proc.HasExited) { return }
-        |    [ZedSecure.Console]::SetConsoleCtrlHandler([IntPtr]::Zero, ${'$'}true) | Out-Null
-        |    [ZedSecure.Console]::GenerateConsoleCtrlEvent(0, 0) | Out-Null
-        |    if (-not ${'$'}proc.WaitForExit(10000)) {
-        |        Stop-Process -Id ${'$'}proc.Id -Force -ErrorAction SilentlyContinue
-        |        ${'$'}proc.WaitForExit(5000) | Out-Null
-        |    }
-        |}
-        |try {
-        |    ${'$'}p = Start-Process -FilePath ${'$'}Zeptun -ArgumentList @('run', '-c', ('"' + ${'$'}Config + '"')) -WorkingDirectory ${'$'}State -NoNewWindow -PassThru -RedirectStandardError ${'$'}log -RedirectStandardOutput ${'$'}out
-        |} catch {
-        |    Set-Content -LiteralPath ${'$'}failed -Value ('zeptun did not start: ' + ${'$'}_.Exception.Message)
-        |    exit 1
-        |}
-        |${'$'}up = ${'$'}false
-        |for (${'$'}i = 0; ${'$'}i -lt 150; ${'$'}i++) {
-        |    if (${'$'}p.HasExited) { break }
-        |    if (Get-NetIPAddress -IPAddress '$TUN_V4' -ErrorAction SilentlyContinue) { ${'$'}up = ${'$'}true; break }
-        |    Start-Sleep -Milliseconds 200
-        |}
-        |if (-not ${'$'}up) {
-        |    Stop-Zeptun ${'$'}p
-        |    ${'$'}why = (Get-Content -LiteralPath ${'$'}log -Tail 5 -ErrorAction SilentlyContinue) -join ' '
-        |    Set-Content -LiteralPath ${'$'}failed -Value ('zeptun did not bring the tunnel up. ' + ${'$'}why)
-        |    exit 1
-        |}
-        |${'$'}tunIf = (Get-NetIPAddress -IPAddress '$TUN_V4' -ErrorAction SilentlyContinue | Select-Object -First 1).InterfaceIndex
-        |if (${'$'}tunIf) { Set-NetIPInterface -InterfaceIndex ${'$'}tunIf -InterfaceMetric 1 -ErrorAction SilentlyContinue }
-        |Set-Content -LiteralPath ${'$'}ready -Value ${'$'}p.Id
-        |while (-not ${'$'}p.HasExited -and -not (Test-Path -LiteralPath ${'$'}stop) -and (Get-Process -Id ${'$'}AppPid -ErrorAction SilentlyContinue)) {
-        |    Start-Sleep -Milliseconds 300
-        |}
-        |Stop-Zeptun ${'$'}p
-        |Remove-Item -LiteralPath ${'$'}ready -ErrorAction SilentlyContinue
-        |""".trimMargin()
 
     internal fun macHelper(): String = """
         |#!/bin/sh
@@ -320,7 +268,6 @@ class ZeptunTun(
         const val ADAPTER_GUID = "7E2B5D41-0C9A-4F3E-8B6D-2A91C4E7F053"
         const val MAC_TUN_DNS = "172.19.0.2"
         const val MAC_DNS_RESTORE = "/Library/Application Support/ZedSecure/dns-restore"
-        private const val UAC_WAIT_SEC = 180L
         private const val READY_WAIT_SEC = 45L
         private const val STOP_WAIT_MS = 8_000L
         private const val POLL_MS = 200L
@@ -342,6 +289,9 @@ class ZeptunTun(
             }
         }
 
+        fun dnsAddress(servers: String): String? =
+            dnsUpstream(servers).let { if (it.startsWith("[")) it.substringAfter('[').substringBefore(']') else it.substringBeforeLast(':') }
+
         internal fun dnsUpstream(servers: String): String =
             servers.split(',', ' ', ';', '\n').map { it.trim() }.firstNotNullOfOrNull(::upstreamOf) ?: "$DEFAULT_DNS:53"
 
@@ -355,11 +305,8 @@ class ZeptunTun(
             }
         }
 
-        private fun tomlList(values: List<String>): String = values.joinToString(", ", "[", "]") { "\"$it\"" }
-
-        private fun psLiteral(value: String): String = "'" + value.replace("'", "''") + "'"
-
-        private fun winQuote(file: File): String = "\"" + file.absolutePath + "\""
+        private fun tomlList(values: List<String>): String =
+            values.joinToString(", ", "[", "]") { "\"" + it.replace("\\", "\\\\").replace("\"", "\\\"") + "\"" }
 
         private fun shQuote(value: String): String = "'" + value.replace("'", "'\\''") + "'"
     }

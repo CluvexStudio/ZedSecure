@@ -1,5 +1,6 @@
 package dev.cluvex.zedsecure.desktop
 
+import dev.cluvex.zedsecure.desktop.core.AdminAnswer
 import dev.cluvex.zedsecure.desktop.core.Os
 import dev.cluvex.zedsecure.desktop.core.SystemProxy
 import dev.cluvex.zedsecure.desktop.core.TunMode
@@ -72,5 +73,5 @@ private fun usage() {
     )
 }
 
-private fun consolePassword(retry: Boolean): CharArray? =
-    System.console()?.readPassword(if (retry) "Wrong password, try again: " else "sudo password for TUN mode: ")
+private fun consolePassword(retry: Boolean): AdminAnswer? =
+    System.console()?.readPassword(if (retry) "Wrong password, try again: " else "sudo password for TUN mode: ")?.let { AdminAnswer(it) }

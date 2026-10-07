@@ -85,6 +85,10 @@ private fun fittedWindowHeight(): Dp {
 private const val TRAY_SERVERS = 30
 
 fun main(args: Array<String>) {
+    if (args.firstOrNull() == dev.cluvex.zedsecure.desktop.core.WindowsHelper.FLAG) {
+        dev.cluvex.zedsecure.desktop.core.WindowsHelper.serve(args.drop(1))
+        return
+    }
     if (args.firstOrNull() == "--version") {
         println("ZedSecure $BUILD_VERSION")
         return
@@ -402,7 +406,10 @@ fun main(args: Array<String>) {
                                 windowVisible = true
                                 raiseWindow++
                             }
-                            AdminPasswordDialog(request.retry) { AdminPassword.answer(request, it) }
+                            AdminPasswordDialog(
+                                request.retry,
+                                offerRemember = dev.cluvex.zedsecure.desktop.core.Os.current == dev.cluvex.zedsecure.desktop.core.Os.LINUX,
+                            ) { AdminPassword.answer(request, it) }
                         }
                     }
                 }

@@ -1,5 +1,6 @@
 package dev.cluvex.zedsecure.desktop.platform
 
+import dev.cluvex.zedsecure.desktop.core.AdminAnswer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -8,13 +9,13 @@ import java.util.concurrent.TimeUnit
 
 object AdminPassword {
     class Request(val retry: Boolean) {
-        internal val answer = CompletableFuture<CharArray?>()
+        internal val answer = CompletableFuture<AdminAnswer?>()
     }
 
     private val _request = MutableStateFlow<Request?>(null)
     val request: StateFlow<Request?> = _request.asStateFlow()
 
-    fun ask(retry: Boolean): CharArray? {
+    fun ask(retry: Boolean): AdminAnswer? {
         val r = Request(retry)
         _request.value = r
         return try {
@@ -26,8 +27,8 @@ object AdminPassword {
         }
     }
 
-    fun answer(r: Request, password: CharArray?) {
-        if (!r.answer.complete(password)) password?.fill('\u0000')
+    fun answer(r: Request, answer: AdminAnswer?) {
+        if (!r.answer.complete(answer)) answer?.password?.fill('\u0000')
         _request.compareAndSet(r, null)
     }
 

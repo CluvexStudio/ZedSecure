@@ -55,6 +55,7 @@ class LiveTunTest {
         } finally {
             tun.stop()
             core.stop()
+            WindowsElevation.close()
         }
         assertTrue(adapterGone(), "the tunnel adapter is still there")
         assertEquals(dnsBefore, systemDns(), "the system DNS was not put back")

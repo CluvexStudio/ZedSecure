@@ -8,17 +8,18 @@ import java.util.concurrent.TimeUnit
 class DesktopOpenConnect(
     private val profile: OpenConnectProfile,
     private val workDir: File,
-    private val askPassword: ((retry: Boolean) -> CharArray?)? = null,
+    private val askPassword: ((retry: Boolean) -> AdminAnswer?)? = null,
     private val os: Os = Os.current,
 ) {
-    @Volatile private var linuxHelper: LinuxRootHelper? = null
+    @Volatile private var linuxJob = false
+    @Volatile private var windowsJob = false
     @Volatile private var helper: Process? = null
     @Volatile private var state: File? = null
 
     fun connect(): Result<Unit> {
         val binary = locate() ?: return Result.failure(IllegalStateException(missingMessage()))
         val dir = when (os) {
-            Os.LINUX -> LinuxRootHelper.privateDir(workDir, "zedsecure-oc-", LABEL)
+            Os.LINUX -> LinuxBroker.privateDir(workDir, "zedsecure-oc-")
             else -> runCatching { Files.createTempDirectory(workDir.also { it.mkdirs() }.toPath(), "oc-").toFile() }.getOrNull()
         } ?: return Result.failure(IllegalStateException("Could not create a private directory for OpenConnect"))
         state = dir
@@ -41,15 +42,19 @@ class DesktopOpenConnect(
     }
 
     val isUp: Boolean
-        get() = when (os) {
-            Os.LINUX -> linuxHelper?.isAlive == true
-            else -> state?.let { File(it, READY).isFile } == true
-        }
+        get() = state?.let { File(it, READY).isFile } == true
 
     fun disconnect() {
-        linuxHelper?.let { linuxHelper = null; it.stop(STOP_WAIT_SEC) }
+        if (linuxJob) {
+            linuxJob = false
+            LinuxBroker.stopJob()
+        }
+        if (windowsJob) {
+            windowsJob = false
+            WindowsElevation.ocDown()
+        }
         val dir = state
-        if (dir != null && os != Os.LINUX) {
+        if (dir != null && os == Os.MACOS) {
             runCatching { File(dir, STOP).writeText("stop") }
             val deadline = System.currentTimeMillis() + STOP_WAIT_SEC * 1000
             while (File(dir, READY).isFile && System.currentTimeMillis() < deadline) Thread.sleep(POLL_MS)
@@ -123,7 +128,7 @@ class DesktopOpenConnect(
         Os.WINDOWS -> BundledTree.extract(File(workDir, "openconnect"), "openconnect")?.let { root ->
             File(root, "openconnect.exe").takeIf { it.isFile }?.let { Binary(it, File(root, "vpnc-script-win.js").takeIf { s -> s.isFile }) }
         }
-        Os.LINUX -> LinuxRootHelper.which("openconnect")?.let { Binary(it, LINUX_SCRIPTS.map(::File).firstOrNull { s -> s.canExecute() }) }
+        Os.LINUX -> LinuxBroker.which("openconnect")?.let { Binary(it, LINUX_SCRIPTS.map(::File).firstOrNull { s -> s.canExecute() }) }
         Os.MACOS -> MAC_BINARIES.map(::File).firstOrNull { it.canExecute() }
             ?.let { Binary(it, MAC_SCRIPTS.map(::File).firstOrNull { s -> s.isFile }) }
         else -> null
@@ -140,17 +145,22 @@ class DesktopOpenConnect(
             writeText(linuxScript(executable, args, dir))
             setExecutable(true, true)
         }
-        val root = LinuxRootHelper(dir, askPassword, LABEL, readyWaitSec = CONNECT_WAIT_SEC)
-        if (!root.start(script)) return false
-        linuxHelper = root
-        return true
+        if (!LinuxBroker.ensure(workDir, askPassword)) return false
+        LinuxBroker.startJob(script).onFailure {
+            println("[$LABEL] ${it.message}")
+            return false
+        }
+        linuxJob = true
+        return awaitReady(dir, null)
     }
 
     internal fun linuxScript(executable: File, args: List<String>, dir: File): String = """
         |#!/bin/sh
-        |PATH=${LinuxRootHelper.SAFE_PATH}
+        |PATH=${LinuxBroker.SAFE_PATH}
         |export PATH
+        |umask 022
         |DIR=${shQuote(dir.absolutePath)}
+        |rm -f "${'$'}DIR/$READY" "${'$'}DIR/$FAILED"
         |${shQuote(executable.absolutePath)} ${args.joinToString(" ") { shQuote(it) }} < "${'$'}DIR/$SECRET" > "${'$'}DIR/$LOG" 2>&1 &
         |OC=${'$'}!
         |rm -f "${'$'}DIR/$SECRET"
@@ -158,6 +168,7 @@ class DesktopOpenConnect(
         |cleanup() {
         |  [ -n "${'$'}DONE" ] && return
         |  DONE=1
+        |  rm -f "${'$'}DIR/$READY"
         |  kill -INT "${'$'}OC" 2>/dev/null
         |  i=0
         |  while kill -0 "${'$'}OC" 2>/dev/null && [ ${'$'}i -lt 50 ]; do sleep 0.2; i=${'$'}((i + 1)); done
@@ -167,15 +178,14 @@ class DesktopOpenConnect(
         |trap 'exit 0' INT TERM HUP
         |i=0
         |while [ ${'$'}i -lt ${CONNECT_WAIT_SEC * 5} ]; do
-        |  if ! kill -0 "${'$'}OC" 2>/dev/null; then tail -n 5 "${'$'}DIR/$LOG" 2>/dev/null; exit 1; fi
+        |  if ! kill -0 "${'$'}OC" 2>/dev/null; then tail -n 5 "${'$'}DIR/$LOG" > "${'$'}DIR/$FAILED" 2>/dev/null; exit 1; fi
         |  if grep -qE '$CONNECTED' "${'$'}DIR/$LOG" 2>/dev/null; then break; fi
         |  sleep 0.2
         |  i=${'$'}((i + 1))
         |done
-        |if ! grep -qE '$CONNECTED' "${'$'}DIR/$LOG" 2>/dev/null; then tail -n 5 "${'$'}DIR/$LOG" 2>/dev/null; exit 1; fi
-        |echo ${LinuxRootHelper.READY_MARKER}
-        |( while kill -0 "${'$'}OC" 2>/dev/null; do sleep 1; done; kill -TERM ${'$'}${'$'} 2>/dev/null ) &
-        |read _ || true
+        |if ! grep -qE '$CONNECTED' "${'$'}DIR/$LOG" 2>/dev/null; then tail -n 5 "${'$'}DIR/$LOG" > "${'$'}DIR/$FAILED" 2>/dev/null; exit 1; fi
+        |echo "${'$'}OC" > "${'$'}DIR/$READY"
+        |while kill -0 "${'$'}OC" 2>/dev/null; do sleep 1; done
         |exit 0
         |""".trimMargin()
 
@@ -237,87 +247,16 @@ class DesktopOpenConnect(
         |""".trimMargin()
 
     private fun startWindows(dir: File, executable: File, args: List<String>): Boolean {
-        val script = File(dir, "oc-helper.ps1").apply { writeText(windowsScript()) }
-        File(dir, "args.txt").writeText(args.joinToString(" ") { winArg(it) })
-        val inner = listOf(
-            "-NoProfile", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden",
-            "-File", "\"${script.absolutePath}\"", "-OpenConnect", "\"${executable.absolutePath}\"",
-            "-State", "\"${dir.absolutePath}\"", "-AppPid", ProcessHandle.current().pid().toString(),
-        )
-        val command = "Start-Process -FilePath 'powershell.exe' -Verb RunAs -WindowStyle Hidden -ArgumentList @(" +
-            inner.joinToString(",") { "'" + it.replace("'", "''") + "'" } + ")"
-        val launcher = runCatching {
-            ProcessBuilder("powershell.exe", "-NoProfile", "-NonInteractive", "-Command", command).redirectErrorStream(true).start()
-        }.getOrElse {
-            println("[$LABEL] powershell did not start: ${it.message}")
+        File(dir, "oc.args").writeText((listOf(executable.absolutePath) + args).joinToString("\n") + "\n")
+        if (!WindowsElevation.ensure(workDir)) return false
+        WindowsElevation.ocUp(dir).onFailure {
+            println("[$LABEL] ${it.message}")
+            File(dir, FAILED).writeText(it.message ?: "OpenConnect could not connect")
             return false
         }
-        val output = launcher.inputStream.bufferedReader().readText()
-        if (!launcher.waitFor(UAC_WAIT_SEC, TimeUnit.SECONDS) || launcher.exitValue() != 0) {
-            launcher.destroyForcibly()
-            println("[$LABEL] administrator rights were not granted: ${output.lineSequence().firstOrNull { it.isNotBlank() }.orEmpty()}")
-            return false
-        }
-        return awaitReady(dir, null)
+        windowsJob = true
+        return true
     }
-
-    internal fun windowsScript(): String = """
-        |param([string]${'$'}OpenConnect, [string]${'$'}State, [int]${'$'}AppPid)
-        |${'$'}ErrorActionPreference = 'Continue'
-        |${'$'}ready = Join-Path ${'$'}State '$READY'
-        |${'$'}stop = Join-Path ${'$'}State '$STOP'
-        |${'$'}failed = Join-Path ${'$'}State '$FAILED'
-        |${'$'}log = Join-Path ${'$'}State '$LOG'
-        |${'$'}out = Join-Path ${'$'}State 'openconnect.out'
-        |${'$'}secret = Join-Path ${'$'}State '$SECRET'
-        |${'$'}arguments = Get-Content -LiteralPath (Join-Path ${'$'}State 'args.txt') -Raw
-        |Add-Type -Namespace ZedSecure -Name OcConsole -MemberDefinition @'
-        |[DllImport("kernel32.dll")] public static extern bool GenerateConsoleCtrlEvent(uint ctrlEvent, uint processGroupId);
-        |[DllImport("kernel32.dll")] public static extern bool SetConsoleCtrlHandler(System.IntPtr handler, bool add);
-        |'@
-        |function Stop-OpenConnect([System.Diagnostics.Process]${'$'}proc) {
-        |    if (${'$'}proc.HasExited) { return }
-        |    [ZedSecure.OcConsole]::SetConsoleCtrlHandler([IntPtr]::Zero, ${'$'}true) | Out-Null
-        |    [ZedSecure.OcConsole]::GenerateConsoleCtrlEvent(0, 0) | Out-Null
-        |    if (-not ${'$'}proc.WaitForExit(10000)) {
-        |        Stop-Process -Id ${'$'}proc.Id -Force -ErrorAction SilentlyContinue
-        |        ${'$'}proc.WaitForExit(5000) | Out-Null
-        |    }
-        |}
-        |function Test-Connected {
-        |    foreach (${'$'}f in @(${'$'}log, ${'$'}out)) {
-        |        if ((Test-Path -LiteralPath ${'$'}f) -and (Select-String -LiteralPath ${'$'}f -Pattern '$CONNECTED' -Quiet)) { return ${'$'}true }
-        |    }
-        |    return ${'$'}false
-        |}
-        |try {
-        |    ${'$'}p = Start-Process -FilePath ${'$'}OpenConnect -ArgumentList ${'$'}arguments -WorkingDirectory (Split-Path ${'$'}OpenConnect) -NoNewWindow -PassThru -RedirectStandardInput ${'$'}secret -RedirectStandardError ${'$'}log -RedirectStandardOutput ${'$'}out
-        |} catch {
-        |    Set-Content -LiteralPath ${'$'}failed -Value ('OpenConnect did not start: ' + ${'$'}_.Exception.Message)
-        |    Remove-Item -LiteralPath ${'$'}secret -ErrorAction SilentlyContinue
-        |    exit 1
-        |}
-        |${'$'}up = ${'$'}false
-        |for (${'$'}i = 0; ${'$'}i -lt ${CONNECT_WAIT_SEC * 5}; ${'$'}i++) {
-        |    if (${'$'}p.HasExited) { break }
-        |    if (Test-Connected) { ${'$'}up = ${'$'}true; break }
-        |    Start-Sleep -Milliseconds 200
-        |}
-        |if (-not ${'$'}up) {
-        |    Stop-OpenConnect ${'$'}p
-        |    Remove-Item -LiteralPath ${'$'}secret -ErrorAction SilentlyContinue
-        |    ${'$'}why = ((Get-Content -LiteralPath ${'$'}log -Tail 5 -ErrorAction SilentlyContinue) + (Get-Content -LiteralPath ${'$'}out -Tail 3 -ErrorAction SilentlyContinue)) -join ' '
-        |    Set-Content -LiteralPath ${'$'}failed -Value ('OpenConnect did not connect. ' + ${'$'}why)
-        |    exit 1
-        |}
-        |Remove-Item -LiteralPath ${'$'}secret -ErrorAction SilentlyContinue
-        |Set-Content -LiteralPath ${'$'}ready -Value ${'$'}p.Id
-        |while (-not ${'$'}p.HasExited -and -not (Test-Path -LiteralPath ${'$'}stop) -and (Get-Process -Id ${'$'}AppPid -ErrorAction SilentlyContinue)) {
-        |    Start-Sleep -Milliseconds 300
-        |}
-        |Stop-OpenConnect ${'$'}p
-        |Remove-Item -LiteralPath ${'$'}ready -ErrorAction SilentlyContinue
-        |""".trimMargin()
 
     private fun awaitReady(dir: File, process: Process?): Boolean {
         val deadline = System.currentTimeMillis() + (CONNECT_WAIT_SEC + 15) * 1000
@@ -343,7 +282,6 @@ class DesktopOpenConnect(
         private const val STOP = "stop"
         private const val FAILED = "failed"
         private const val CONNECT_WAIT_SEC = 90L
-        private const val UAC_WAIT_SEC = 180L
         private const val STOP_WAIT_SEC = 12L
         private const val POLL_MS = 250L
         internal const val CONNECTED = "Connected as |Configured as |ESP session established|Established DTLS connection"

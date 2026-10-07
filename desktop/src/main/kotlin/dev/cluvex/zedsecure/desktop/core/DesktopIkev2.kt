@@ -51,18 +51,12 @@ class DesktopIkev2(
         val marker = File(dir, "ikev2-ca.trusted")
         val thumbprint = ca?.let { sha1Hex(it.readBytes()) }
         if (ca != null && runCatching { marker.readText().trim() }.getOrNull() != thumbprint) {
-            val trusted = exec(
-                "powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command",
-                "Start-Process powershell -Verb RunAs -Wait -WindowStyle Hidden -ArgumentList " +
-                    "'-NoProfile','-Command','Import-Certificate -FilePath \"${ca.absolutePath}\" -CertStoreLocation Cert:\\LocalMachine\\Root'",
-                timeoutSec = 180,
-            )
-            if (trusted.first != 0) return fail("Windows did not add the server's CA certificate: ${trusted.second.trim()}")
+            if (!WindowsElevation.ensure(dir)) return fail("Administrator rights are needed to trust the server's CA certificate")
+            WindowsElevation.trustCa(ca).onFailure { return fail("Windows did not add the server's CA certificate: ${it.message}") }
             thumbprint?.let { marker.writeText(it) }
         }
-        val script = File(dir, "ikev2.ps1").apply { writeText(windowsScript()) }
         val result = execWithEnv(
-            listOf("powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", script.absolutePath),
+            listOf("powershell.exe", "-NoProfile", "-NonInteractive", "-Command", "-"),
             mapOf(
                 "ZS_NAME" to NAME,
                 "ZS_SERVER" to profile.server.trim(),
@@ -70,8 +64,8 @@ class DesktopIkev2(
                 "ZS_PASS" to profile.plainPassword(),
             ),
             timeoutSec = 120,
+            input = windowsScript(),
         )
-        script.delete()
         if (result.first == 0) return Result.success(Unit)
         return fail(windowsError(result.first, result.second))
     }
@@ -80,18 +74,20 @@ class DesktopIkev2(
         val ike = proposal(profile.ikeProposal)
         val esp = proposal(profile.espProposal.ifBlank { profile.ikeProposal })
         return """
-            |${'$'}ErrorActionPreference = 'Stop'
-            |${'$'}name = ${'$'}env:ZS_NAME
-            |if (Get-VpnConnection -Name ${'$'}name -ErrorAction SilentlyContinue) {
-            |  rasdial ${'$'}name /disconnect | Out-Null
-            |  Remove-VpnConnection -Name ${'$'}name -Force
+            |& {
+            |  ${'$'}ErrorActionPreference = 'Stop'
+            |  ${'$'}name = ${'$'}env:ZS_NAME
+            |  if (Get-VpnConnection -Name ${'$'}name -ErrorAction SilentlyContinue) {
+            |    rasdial ${'$'}name /disconnect | Out-Null
+            |    Remove-VpnConnection -Name ${'$'}name -Force
+            |  }
+            |  Add-VpnConnection -Name ${'$'}name -ServerAddress ${'$'}env:ZS_SERVER -TunnelType Ikev2 -EncryptionLevel Required -AuthenticationMethod Eap -RememberCredential -Force
+            |  Set-VpnConnectionIPsecConfiguration -ConnectionName ${'$'}name -AuthenticationTransformConstants ${esp.windowsAuth} -CipherTransformConstants ${esp.windowsEspCipher} -EncryptionMethod ${ike.windowsCipher} -IntegrityCheckMethod ${ike.windowsIntegrity} -DHGroup ${ike.windowsDh} -PfsGroup None -Force
+            |  ${'$'}ErrorActionPreference = 'Continue'
+            |  rasdial ${'$'}name ${'$'}env:ZS_USER ${'$'}env:ZS_PASS
+            |  exit ${'$'}LASTEXITCODE
             |}
-            |Add-VpnConnection -Name ${'$'}name -ServerAddress ${'$'}env:ZS_SERVER -TunnelType Ikev2 -EncryptionLevel Required -AuthenticationMethod Eap -RememberCredential -Force
-            |Set-VpnConnectionIPsecConfiguration -ConnectionName ${'$'}name -AuthenticationTransformConstants ${esp.windowsAuth} -CipherTransformConstants ${esp.windowsEspCipher} -EncryptionMethod ${ike.windowsCipher} -IntegrityCheckMethod ${ike.windowsIntegrity} -DHGroup ${ike.windowsDh} -PfsGroup None -Force
-            |${'$'}ErrorActionPreference = 'Continue'
-            |rasdial ${'$'}name ${'$'}env:ZS_USER ${'$'}env:ZS_PASS
-            |exit ${'$'}LASTEXITCODE
-            """.trimMargin() + "\n"
+            """.trimMargin() + "\n\n"
     }
 
     private fun windowsError(code: Int, output: String): String = when (code) {
@@ -309,8 +305,9 @@ class DesktopIkev2(
     private fun onPath(tool: String): Boolean =
         System.getenv("PATH").orEmpty().split(File.pathSeparator).any { File(it, tool).canExecute() }
 
-    private fun execWithEnv(cmd: List<String>, env: Map<String, String>, timeoutSec: Long): Pair<Int, String> = try {
+    private fun execWithEnv(cmd: List<String>, env: Map<String, String>, timeoutSec: Long, input: String? = null): Pair<Int, String> = try {
         val p = ProcessBuilder(cmd).redirectErrorStream(true).also { it.environment().putAll(env) }.start()
+        p.outputStream.use { stdin -> input?.let { stdin.write(it.toByteArray(Charsets.UTF_8)) } }
         val out = p.inputStream.bufferedReader().readText()
         if (!p.waitFor(timeoutSec, java.util.concurrent.TimeUnit.SECONDS)) {
             p.destroyForcibly()

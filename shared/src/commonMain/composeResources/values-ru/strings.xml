@@ -1383,9 +1383,13 @@
     <string name="tour_settings_title">Настройки</string>
     <string name="tour_settings_body">Всё остальное — в этой вкладке. Пройдёмся по ней.</string>
     <string name="admin_password_title">Пароль администратора</string>
-    <string name="admin_password_body">Режиму TUN нужны права root для создания туннеля, а системное окно ввода пароля (polkit) недоступно. Введите пароль, который вы используете для sudo. Он передаётся только sudo и не сохраняется.</string>
+    <string name="admin_password_body">Режиму TUN и OpenConnect нужны права администратора. Введите пароль, который вы используете для sudo. Он запрашивается один раз за запуск ZedSecure, передаётся только sudo и не сохраняется.</string>
     <string name="admin_password_label">Пароль</string>
     <string name="admin_password_wrong">Неверный пароль. Попробуйте ещё раз.</string>
+    <string name="admin_password_remember">Больше не спрашивать на этом компьютере</string>
+    <string name="settings_admin_remember_title">Запомнить права администратора</string>
+    <string name="settings_admin_remember_body">ZedSecure спрашивает пароль один раз за запуск. Включите, чтобы больше не спрашивать на этом компьютере. Права получает только помощник туннеля ZedSecure, а после обновления пароль спросят ещё один раз.</string>
+    <string name="settings_admin_remember_failed">Не удалось изменить права администратора</string>
     <string name="title_pref_rendering">Отрисовка</string>
     <string name="rendering_auto">Автоматически</string>
     <string name="rendering_gpu">Видеокарта</string>

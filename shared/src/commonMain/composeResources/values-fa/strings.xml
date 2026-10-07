@@ -1375,9 +1375,13 @@
     <string name="tour_settings_title">تنظیمات</string>
     <string name="tour_settings_body">بقیه‌ی همه‌چیز در این تب است. برویم یکی‌یکی ببینیم.</string>
     <string name="admin_password_title">رمز عبور مدیر سیستم</string>
-    <string name="admin_password_body">حالت TUN برای ساختن تونل به دسترسی روت نیاز دارد و پنجرهٔ رمز سیستم (polkit) در دسترس نیست. رمز عبوری را که برای sudo استفاده می‌کنید وارد کنید. این رمز فقط به sudo داده می‌شود و ذخیره نمی‌شود.</string>
+    <string name="admin_password_body">حالت TUN و OpenConnect به دسترسی مدیر سیستم نیاز دارند. رمزی را که برای sudo استفاده می‌کنید وارد کنید. در هر اجرای ZedSecure فقط یک‌بار پرسیده می‌شود، فقط به sudo داده می‌شود و ذخیره نمی‌شود.</string>
     <string name="admin_password_label">رمز عبور</string>
     <string name="admin_password_wrong">رمز عبور اشتباه است. دوباره امتحان کنید.</string>
+    <string name="admin_password_remember">روی این کامپیوتر دیگر نپرس</string>
+    <string name="settings_admin_remember_title">به خاطر سپردن دسترسی مدیر</string>
+    <string name="settings_admin_remember_body">ZedSecure در هر اجرا یک‌بار رمز را می‌پرسد. با روشن کردن این گزینه روی این کامپیوتر دیگر نمی‌پرسد. این دسترسی فقط به ابزار تونل ZedSecure داده می‌شود و بعد از هر به‌روزرسانی یک‌بار دیگر پرسیده می‌شود.</string>
+    <string name="settings_admin_remember_failed">تغییر دسترسی مدیر انجام نشد</string>
     <string name="title_pref_rendering">رندر صفحه</string>
     <string name="rendering_auto">خودکار</string>
     <string name="rendering_gpu">کارت گرافیک</string>

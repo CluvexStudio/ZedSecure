@@ -57,6 +57,14 @@ License: Wintun Prebuilt Binaries License (WireGuard LLC)
 `wintun.dll` ships unmodified next to `zeptun.exe` in the Windows build, which uses it only through
 the API in `wintun.h`. The license text ships beside it as `wintun-LICENSE.txt`.
 
+Java Native Access (JNA)
+------------------------
+Source: https://github.com/java-native-access/jna
+License: Apache-2.0 (dual-licensed with LGPL-2.1; ZedSecure uses it under Apache-2.0)
+
+The desktop build uses it on Windows to ask for administrator rights and to stop its engines
+cleanly, without PowerShell.
+
 SNI-Spoofing-Go
 ---------------
 Source: https://github.com/aleskxyz/SNI-Spoofing-Go
