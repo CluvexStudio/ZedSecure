@@ -303,7 +303,14 @@
     <string name="mode_socks">Только SOCKS</string>
     <string name="mode_socks_body">Открывает только локальный прокси SOCKS и HTTP на 127.0.0.1 и больше ничего не меняет. Укажите его в нужных приложениях сами.</string>
     <string name="mode_tun">TUN (VPN)</string>
-    <string name="mode_tun_body">Пропускает все приложения через виртуальный сетевой адаптер, даже те, что игнорируют системный прокси. Запрашивает права администратора при каждом подключении. Tor и Psiphon по-прежнему используют системный прокси.</string>
+    <string name="mode_tun_body">Пропускает все приложения через виртуальный сетевой адаптер, даже те, что игнорируют системный прокси. Запрашивает права администратора один раз за запуск ZedSecure. Tor и Psiphon, а также цепочки, которые с них начинаются, по-прежнему используют системный прокси.</string>
+    <string name="tray_server">Сервер</string>
+    <string name="tray_all_servers">Все серверы (%1$d)…</string>
+    <string name="tray_mode">Режим</string>
+    <string name="tray_copy_proxy">Скопировать адрес прокси</string>
+    <string name="tray_show">Показать окно</string>
+    <string name="tray_hide">Скрыть окно</string>
+    <string name="tray_quit">Выйти из ZedSecure</string>
     <string name="group_all">Все</string>
     <string name="group_manual">Вручную</string>
 

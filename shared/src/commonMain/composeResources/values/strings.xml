@@ -302,7 +302,14 @@
     <string name="mode_socks">SOCKS only</string>
     <string name="mode_socks_body">Only opens a local SOCKS and HTTP proxy on 127.0.0.1 and changes nothing else. Point each app at it yourself.</string>
     <string name="mode_tun">TUN (VPN)</string>
-    <string name="mode_tun_body">Sends every app through a virtual network adapter, including apps that ignore the system proxy. Asks for administrator rights each time you connect. Tor and Psiphon keep using the system proxy.</string>
+    <string name="mode_tun_body">Sends every app through a virtual network adapter, including apps that ignore the system proxy. Asks for administrator rights once each time ZedSecure runs. Tor and Psiphon, and chains that start with them, keep using the system proxy.</string>
+    <string name="tray_server">Server</string>
+    <string name="tray_all_servers">All %1$d servers…</string>
+    <string name="tray_mode">Mode</string>
+    <string name="tray_copy_proxy">Copy proxy address</string>
+    <string name="tray_show">Show window</string>
+    <string name="tray_hide">Hide window</string>
+    <string name="tray_quit">Quit ZedSecure</string>
     <string name="group_all">All</string>
     <string name="group_manual">Manual</string>
 

@@ -34,6 +34,23 @@ import dev.cluvex.zedsecure.data.config.ConfigRepository
 import dev.cluvex.zedsecure.core.LogBus
 import dev.cluvex.zedsecure.domain.model.ConnectionState
 import dev.cluvex.zedsecure.shared.resources.Res
+import dev.cluvex.zedsecure.shared.resources.state_connected
+import dev.cluvex.zedsecure.shared.resources.state_connecting
+import dev.cluvex.zedsecure.shared.resources.state_disconnecting
+import dev.cluvex.zedsecure.shared.resources.state_error
+import dev.cluvex.zedsecure.shared.resources.state_idle
+import dev.cluvex.zedsecure.shared.resources.action_connect
+import dev.cluvex.zedsecure.shared.resources.action_disconnect
+import dev.cluvex.zedsecure.shared.resources.tray_server
+import dev.cluvex.zedsecure.shared.resources.tray_mode
+import dev.cluvex.zedsecure.shared.resources.tray_copy_proxy
+import dev.cluvex.zedsecure.shared.resources.tray_show
+import dev.cluvex.zedsecure.shared.resources.tray_hide
+import dev.cluvex.zedsecure.shared.resources.tray_quit
+import dev.cluvex.zedsecure.shared.resources.mode_system_proxy
+import dev.cluvex.zedsecure.shared.resources.mode_socks
+import dev.cluvex.zedsecure.shared.resources.mode_tun
+import dev.cluvex.zedsecure.shared.resources.tray_all_servers
 import dev.cluvex.zedsecure.shared.resources.ic_tray_connected
 import dev.cluvex.zedsecure.shared.resources.ic_tray_connecting
 import dev.cluvex.zedsecure.shared.resources.ic_tray_disconnected
@@ -50,6 +67,7 @@ import dev.cluvex.zedsecure.domain.model.RunMode
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.flow.first
 import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
 import dev.cluvex.zedsecure.desktop.core.Os
 import dev.cluvex.zedsecure.desktop.core.TunMode
 import dev.cluvex.zedsecure.desktop.platform.AdminPassword
@@ -228,39 +246,52 @@ fun main(args: Array<String>) {
                     }
                 }
             }
+            val stateConnected = stringResource(Res.string.state_connected)
+            val stateConnecting = stringResource(Res.string.state_connecting)
+            val stateDisconnecting = stringResource(Res.string.state_disconnecting)
+            val stateError = stringResource(Res.string.state_error)
+            val stateIdle = stringResource(Res.string.state_idle)
+            val labelConnect = stringResource(Res.string.action_connect)
+            val labelDisconnect = stringResource(Res.string.action_disconnect)
+            val labelServer = stringResource(Res.string.tray_server)
+            val labelMode = stringResource(Res.string.tray_mode)
+            val labelCopyProxy = stringResource(Res.string.tray_copy_proxy)
+            val labelShow = stringResource(Res.string.tray_show)
+            val labelHide = stringResource(Res.string.tray_hide)
+            val labelQuit = stringResource(Res.string.tray_quit)
+            val modeSystem = stringResource(Res.string.mode_system_proxy)
+            val modeSocks = stringResource(Res.string.mode_socks)
+            val modeTun = stringResource(Res.string.mode_tun)
+            val allServers = stringResource(Res.string.tray_all_servers, profiles.size)
             val statusLine = when {
-                connected -> "Connected · ${status.serverName ?: ""}".trimEnd(' ', '·')
-                status.state == ConnectionState.Connecting -> "Connecting…"
-                status.state == ConnectionState.Disconnecting -> "Disconnecting…"
-                status.state == ConnectionState.Error -> "Connection failed"
-                else -> "Not connected"
+                connected -> listOfNotNull(stateConnected, status.serverName?.takeIf { it.isNotBlank() }).joinToString(" · ")
+                status.state == ConnectionState.Connecting -> stateConnecting
+                status.state == ConnectionState.Disconnecting -> stateDisconnecting
+                status.state == ConnectionState.Error -> stateError
+                else -> stateIdle
             }
+            val speeds = "↓ ${humanBps(status.downloadBps)}   ↑ ${humanBps(status.uploadBps)}"
             val tip = buildString {
                 append("ZedSecure · ").append(statusLine)
-                if (connected) {
-                    append("\n↓ ").append(humanBps(status.downloadBps)).append("   ↑ ").append(humanBps(status.uploadBps))
-                }
+                if (connected) append("\n").append(speeds)
             }
             val active = profiles.firstOrNull { it.id == activeId }
             val shown = (listOfNotNull(active) + profiles.filter { it.id != activeId }).take(TRAY_SERVERS)
             val proxyPort = VpnManager.activeSocksPort ?: LocalProxy.SOCKS_PORT
             val entries = buildList {
-                add(TrayEntry.Action("ZedSecure ${AppInfo.versionName}", enabled = false))
                 add(TrayEntry.Action(statusLine, enabled = false))
-                if (connected) {
-                    add(TrayEntry.Action("↓ ${humanBps(status.downloadBps)}    ↑ ${humanBps(status.uploadBps)}", enabled = false))
-                }
+                if (connected) add(TrayEntry.Action(speeds, enabled = false))
                 add(TrayEntry.Separator)
                 add(
                     TrayEntry.Action(
-                        if (connected || connecting) "Disconnect" else "Connect",
+                        if (connected || connecting) labelDisconnect else labelConnect,
                         enabled = status.state != ConnectionState.Disconnecting,
                     ) { DesktopVpn.toggle(configRepository) },
                 )
                 if (profiles.isNotEmpty()) {
                     add(
                         TrayEntry.Sub(
-                            "Server",
+                            labelServer,
                             shown.map { profile ->
                                 TrayEntry.Check(profile.name.take(48), checked = profile.id == activeId) {
                                     if (profile.id != activeId) {
@@ -271,7 +302,7 @@ fun main(args: Array<String>) {
                             } + if (profiles.size > shown.size) {
                                 listOf(
                                     TrayEntry.Separator,
-                                    TrayEntry.Action("All ${profiles.size} servers…") { windowVisible = true; raiseWindow++ },
+                                    TrayEntry.Action(allServers) { windowVisible = true; raiseWindow++ },
                                 )
                             } else {
                                 emptyList()
@@ -281,11 +312,11 @@ fun main(args: Array<String>) {
                 }
                 add(
                     TrayEntry.Sub(
-                        "Mode",
+                        labelMode,
                         listOfNotNull(
-                            RunMode.SystemProxy to "System proxy",
-                            RunMode.ProxyOnly to "SOCKS only",
-                            (RunMode.Vpn to "TUN · all traffic").takeIf { TunMode.supported() },
+                            RunMode.SystemProxy to modeSystem,
+                            RunMode.ProxyOnly to modeSocks,
+                            (RunMode.Vpn to modeTun).takeIf { TunMode.supported() },
                         ).map { (mode, label) ->
                             TrayEntry.Check(label, checked = settings.runMode == mode) {
                                 if (settings.runMode != mode) {
@@ -296,15 +327,15 @@ fun main(args: Array<String>) {
                         },
                     ),
                 )
-                add(TrayEntry.Action("Copy proxy address · 127.0.0.1:$proxyPort") {
+                add(TrayEntry.Action("$labelCopyProxy · 127.0.0.1:$proxyPort") {
                     DesktopPlatform.copyToClipboard("127.0.0.1:$proxyPort")
                 })
                 add(TrayEntry.Separator)
-                add(TrayEntry.Action(if (windowVisible) "Hide window" else "Show window") {
+                add(TrayEntry.Action(if (windowVisible) labelHide else labelShow) {
                     windowVisible = !windowVisible
                     if (windowVisible) raiseWindow++
                 })
-                add(TrayEntry.Action("Quit ZedSecure") { DesktopVpn.shutdown(); exitApplication() })
+                add(TrayEntry.Action(labelQuit) { DesktopVpn.shutdown(); exitApplication() })
             }
             val trayIconKey = when {
                 connected -> "connected"

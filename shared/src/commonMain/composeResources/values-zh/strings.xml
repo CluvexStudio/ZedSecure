@@ -303,7 +303,14 @@
     <string name="mode_socks">仅 SOCKS</string>
     <string name="mode_socks_body">只在 127.0.0.1 上开启本地 SOCKS 和 HTTP 代理，不做其他更改。请自行在各应用中设置。</string>
     <string name="mode_tun">TUN（VPN）</string>
-    <string name="mode_tun_body">通过虚拟网卡转发所有应用的流量，包括忽略系统代理的应用。每次连接都需要管理员权限。Tor 和 Psiphon 仍使用系统代理。</string>
+    <string name="mode_tun_body">通过虚拟网卡转发所有应用的流量，包括忽略系统代理的应用。ZedSecure 每次运行只需要一次管理员权限。Tor 和 Psiphon，以及以它们开头的链，仍使用系统代理。</string>
+    <string name="tray_server">服务器</string>
+    <string name="tray_all_servers">全部 %1$d 个服务器…</string>
+    <string name="tray_mode">模式</string>
+    <string name="tray_copy_proxy">复制代理地址</string>
+    <string name="tray_show">显示窗口</string>
+    <string name="tray_hide">隐藏窗口</string>
+    <string name="tray_quit">退出 ZedSecure</string>
     <string name="group_all">全部</string>
     <string name="group_manual">手动</string>
 

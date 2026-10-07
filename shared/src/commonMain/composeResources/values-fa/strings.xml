@@ -413,7 +413,14 @@
     <string name="mode_socks">فقط SOCKS</string>
     <string name="mode_socks_body">فقط یک پروکسی SOCKS و HTTP محلی روی 127.0.0.1 باز می‌کند و چیز دیگری را تغییر نمی‌دهد. هر برنامه را خودتان روی آن تنظیم کنید.</string>
     <string name="mode_tun">TUN (VPN)</string>
-    <string name="mode_tun_body">همهٔ برنامه‌ها را از یک کارت شبکهٔ مجازی عبور می‌دهد، حتی برنامه‌هایی که پروکسی سیستم را نادیده می‌گیرند. هر بار که وصل می‌شوید دسترسی مدیر سیستم می‌خواهد. Tor و سایفون همچنان از پروکسی سیستم استفاده می‌کنند.</string>
+    <string name="mode_tun_body">همهٔ برنامه‌ها را از یک کارت شبکهٔ مجازی عبور می‌دهد، حتی برنامه‌هایی که پروکسی سیستم را نادیده می‌گیرند. در هر اجرای ZedSecure فقط یک‌بار دسترسی مدیر سیستم می‌خواهد. Tor و سایفون، و زنجیره‌هایی که با آن‌ها شروع می‌شوند، همچنان از پروکسی سیستم استفاده می‌کنند.</string>
+    <string name="tray_server">سرور</string>
+    <string name="tray_all_servers">همهٔ %1$d سرور…</string>
+    <string name="tray_mode">حالت</string>
+    <string name="tray_copy_proxy">کپی آدرس پروکسی</string>
+    <string name="tray_show">نمایش پنجره</string>
+    <string name="tray_hide">پنهان کردن پنجره</string>
+    <string name="tray_quit">خروج از ZedSecure</string>
     <string name="option_none">هیچ‌کدام</string>
 
     <string name="title_ui_settings">رابط کاربری</string>
