@@ -63,6 +63,7 @@ class AppContainer(context: Context) {
 
         scope.launch {
             runCatching { GeoAssetsRepository(context).seedBundled(BuildConfig.VERSION_CODE.toLong()) }
+            dev.cluvex.zedsecure.data.assets.GeoAutoFetch.start(scope, GeoAssetsRepository(context)) { settingsRepository.settings.value }
         }
 
         runCatching {

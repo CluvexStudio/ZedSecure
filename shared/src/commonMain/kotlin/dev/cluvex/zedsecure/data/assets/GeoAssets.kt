@@ -14,7 +14,7 @@ interface GeoAssets {
 
     fun allPresent(): Boolean
 
-    suspend fun downloadAll(source: GeoFilesSource = GeoFilesSource.Loyalsoldier): Boolean
+    suspend fun downloadAll(source: GeoFilesSource = GeoFilesSource.Chocolate4U): Boolean
 
     suspend fun importBytes(bytes: ByteArray, name: String): Boolean
 

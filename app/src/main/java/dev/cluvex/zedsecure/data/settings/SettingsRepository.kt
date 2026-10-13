@@ -32,12 +32,24 @@ class SettingsRepository(context: Context) {
     val settings: StateFlow<AppSettings> = _settings.asStateFlow()
 
     private fun read(): AppSettings {
-        val d = AppSettings(useZepTun = true)
+        val d = AppSettings(useZepTun = true, directDns = "localhost")
+        if (!prefs.getBoolean(KEY_ROUTING_DEFAULTS_MIGRATED, false)) {
+            val edit = prefs.edit()
+            if (prefs.getString("direct_dns", null) == LEGACY_DIRECT_DNS) edit.putString("direct_dns", d.directDns)
+            if (prefs.getString("domain_strategy", null) == DomainStrategy.IpIfNonMatch.name) {
+                edit.putString("domain_strategy", d.domainStrategy.name)
+            }
+            if (prefs.getString("tor_rendezvous", null) == LEGACY_RENDEZVOUS) edit.putString("tor_rendezvous", d.torSnowflakeRendezvous)
+            edit.putBoolean(KEY_ROUTING_DEFAULTS_MIGRATED, true).apply()
+        }
         return AppSettings(
 
             themeMode = prefs.enum("theme_mode", d.themeMode),
             dynamicColor = prefs.getBoolean("dynamic_color", d.dynamicColor),
             accentColor = prefs.getInt("accent_color", d.accentColor),
+            colorStyle = prefs.enum("color_style", d.colorStyle),
+            colorContrast = prefs.enum("color_contrast", d.colorContrast),
+            appDesign = prefs.enum("app_design", d.appDesign),
             amoledBlack = prefs.getBoolean("amoled_black", d.amoledBlack),
             language = prefs.enum("language", d.language),
 
@@ -245,6 +257,9 @@ class SettingsRepository(context: Context) {
             putString("theme_mode", s.themeMode.name)
             putBoolean("dynamic_color", s.dynamicColor)
             putInt("accent_color", s.accentColor)
+            putString("color_style", s.colorStyle.name)
+            putString("color_contrast", s.colorContrast.name)
+            putString("app_design", s.appDesign.name)
             putBoolean("amoled_black", s.amoledBlack)
             putString("language", s.language.name)
             putArgb("custom_color_download", s.customDownloadColor)
@@ -460,6 +475,9 @@ class SettingsRepository(context: Context) {
 
     companion object {
         private const val PREFS_NAME = "zed_settings"
+        private const val KEY_ROUTING_DEFAULTS_MIGRATED = "routing_defaults_migrated"
+        private const val LEGACY_RENDEZVOUS = "amp"
+        private const val LEGACY_DIRECT_DNS = "223.5.5.5"
 
         private val json = Json { ignoreUnknownKeys = true }
         private val RULESETS = ListSerializer(RulesetItem.serializer())

@@ -4,6 +4,12 @@ import kotlinx.serialization.Serializable
 
 enum class ThemeMode { System, Light, Dark }
 
+enum class ColorStyle { ZedSecure, TonalSpot, Vibrant, Expressive, Rainbow, FruitSalad, Fidelity, Neutral, Monochrome }
+
+enum class ColorContrast(val level: Double) { Standard(0.0), Medium(0.5), High(1.0) }
+
+enum class AppDesign { Pixel, Portal, Old }
+
 enum class ScreenTransition {
     Fade,
 
@@ -206,6 +212,9 @@ data class AppSettings(
     val accentColor: Int = 0,
 
     val amoledBlack: Boolean = false,
+
+    val colorStyle: ColorStyle = ColorStyle.ZedSecure,
+    val colorContrast: ColorContrast = ColorContrast.Standard,
     val language: AppLanguage = AppLanguage.System,
 
     val customDownloadColor: Long? = null,
@@ -224,6 +233,8 @@ data class AppSettings(
 
     val customConfigCardColor: Long? = null,
     val customConfigCardTextColor: Long? = null,
+
+    val appDesign: AppDesign = AppDesign.Pixel,
 
     val connectButtonStyle: ConnectButtonStyle = ConnectButtonStyle.Hero,
 
@@ -299,13 +310,13 @@ data class AppSettings(
 
     val socksEnableUdp: Boolean = false,
     val remoteDns: String = "https://cloudflare-dns.com/dns-query",
-    val directDns: String = "223.5.5.5",
+    val directDns: String = "8.8.8.8",
 
     val dnsHosts: String = "",
     val logLevel: LogLevel = LogLevel.Warning,
     val outboundDomainResolve: OutboundDomainResolve = OutboundDomainResolve.ResolveAndAddToHosts,
 
-    val domainStrategy: DomainStrategy = DomainStrategy.IpIfNonMatch,
+    val domainStrategy: DomainStrategy = DomainStrategy.AsIs,
     val routingMode: RoutingMode = RoutingMode.BypassLan,
     val blockAds: Boolean = false,
 
@@ -387,7 +398,7 @@ data class AppSettings(
     val ratePromptLastShownMs: Long = 0L,
     val rateNeverAsk: Boolean = false,
 
-    val geoFilesSource: GeoFilesSource = GeoFilesSource.Loyalsoldier,
+    val geoFilesSource: GeoFilesSource = GeoFilesSource.Chocolate4U,
 
     val autoUpdateSubscriptions: Boolean = false,
     val subscriptionUpdateIntervalHours: Int = 12,
@@ -447,7 +458,7 @@ data class AppSettings(
     val torIsolateDestAddr: Boolean = false,
     val torIsolateDestPort: Boolean = false,
 
-    val torSnowflakeRendezvous: String = "amp",
+    val torSnowflakeRendezvous: String = "cdn77",
 
     val torSnowflakeStun: String = "",
 

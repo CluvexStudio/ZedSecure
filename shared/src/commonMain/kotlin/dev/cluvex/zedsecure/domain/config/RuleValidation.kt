@@ -96,13 +96,13 @@ object RuleValidation {
         }
     }
 
-    fun usableDomains(domains: List<String>, geoAssetsAvailable: Boolean): List<String> =
+    fun usableDomains(domains: List<String>, geoAssetsAvailable: Boolean, codes: GeoCodes? = null): List<String> =
         domains.filter { e ->
-            checkDomainEntry(e) == null && (geoAssetsAvailable || !isGeoDomain(e))
+            checkDomainEntry(e) == null && (geoAssetsAvailable || !isGeoDomain(e)) && codes?.allowsDomain(e) != false
         }
 
-    fun usableIps(ips: List<String>, geoAssetsAvailable: Boolean): List<String> =
+    fun usableIps(ips: List<String>, geoAssetsAvailable: Boolean, codes: GeoCodes? = null): List<String> =
         ips.filter { e ->
-            checkIpEntry(e) == null && (geoAssetsAvailable || !isGeoIp(e))
+            checkIpEntry(e) == null && (geoAssetsAvailable || !isGeoIp(e)) && codes?.allowsIp(e) != false
         }
 }

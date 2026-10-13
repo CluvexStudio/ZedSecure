@@ -70,6 +70,24 @@ object XrayJsonBuilder {
     private const val TAG_DNS_OUT = "dns-out"
 
     private const val FAKEDNS_POOL = "198.18.0.0/15"
+    private val KNOWN_DNS_HOSTS = mapOf(
+        "cloudflare-dns.com" to listOf("104.16.248.249", "104.16.249.249"),
+        "dns.cloudflare.com" to listOf("162.159.61.8", "172.64.41.8"),
+        "one.one.one.one" to listOf("1.1.1.1", "1.0.0.1"),
+        "1dot1dot1dot1.cloudflare-dns.com" to listOf("1.1.1.1", "1.0.0.1"),
+        "dns.google" to listOf("8.8.8.8", "8.8.4.4"),
+        "dns.quad9.net" to listOf("9.9.9.9", "149.112.112.112"),
+        "doh.opendns.com" to listOf("146.112.41.2"),
+        "dns.adguard-dns.com" to listOf("94.140.14.14", "94.140.15.15"),
+        "common.dot.dns.yandex.net" to listOf("77.88.8.8", "77.88.8.1"),
+        "dns.alidns.com" to listOf("223.5.5.5", "223.6.6.6"),
+        "doh.pub" to listOf("1.12.12.12", "120.53.53.53"),
+        "dot.pub" to listOf("1.12.12.12", "120.53.53.53"),
+        "dns.sb" to listOf("45.11.45.11", "185.222.222.222"),
+    )
+    private const val TUN_NOISE_PORTS = "135,137-139,5353"
+    private val TUN_NOISE_IPS = listOf("224.0.0.0/3", "ff00::/8")
+    private val REAL_ANSWER_DOMAINS = listOf("domain:msftconnecttest.com", "domain:msftncsi.com")
     private const val FAKEDNS_POOL_SIZE = 65535
 
     private data class EffectiveRule(
@@ -85,9 +103,10 @@ object XrayJsonBuilder {
         rulesets: List<dev.cluvex.zedsecure.domain.model.RulesetItem>,
         geo: Boolean,
         networkType: String?,
+        codes: GeoCodes?,
     ): List<EffectiveRule> = rulesets.filter { it.enabled && it.appliesOn(networkType) }.mapNotNull { r ->
-        val domains = RuleValidation.usableDomains(r.domain, geo)
-        val ips = RuleValidation.usableIps(r.ip, geo)
+        val domains = RuleValidation.usableDomains(r.domain, geo, codes)
+        val ips = RuleValidation.usableIps(r.ip, geo, codes)
 
         if (r.domain.isNotEmpty() && domains.isEmpty()) return@mapNotNull null
         if (r.ip.isNotEmpty() && ips.isEmpty()) return@mapNotNull null
@@ -458,7 +477,7 @@ object XrayJsonBuilder {
             }
             val geo = options.geoAssetsAvailable
 
-            val rules = if (forSpeedtest) emptyList() else effectiveRules(options.rulesets, geo, options.networkType)
+            val rules = if (forSpeedtest) emptyList() else effectiveRules(options.rulesets, geo, options.networkType, options.geoCodes)
 
             val dnsSplit = if (forSpeedtest) DnsSplit() else dnsSplit(rules, options)
             if (!forSpeedtest) put("dns", dns(options, dnsSplit))
@@ -466,6 +485,8 @@ object XrayJsonBuilder {
                 put("domainStrategy", options.domainStrategy)
                 putJsonArray("rules") {
                     if (forSpeedtest) return@putJsonArray
+
+                    if (options.tunTraffic && !options.carrier) tunNoiseRules(TAG_SOCKS_IN).forEach { add(it) }
 
                     if (localDnsActive(options)) {
                         addJsonObject {
@@ -491,11 +512,11 @@ object XrayJsonBuilder {
                             }
                         }
                     } else {
-                        customRule(options.customBlockRules, "block", geo).forEach { add(it) }
-                        customRule(options.customDirectRules, "direct", geo).forEach { add(it) }
-                        customRule(options.customProxyRules, "proxy", geo).forEach { add(it) }
+                        customRule(options.customBlockRules, "block", geo, options.geoCodes).forEach { add(it) }
+                        customRule(options.customDirectRules, "direct", geo, options.geoCodes).forEach { add(it) }
+                        customRule(options.customProxyRules, "proxy", geo, options.geoCodes).forEach { add(it) }
                     }
-                    if (options.blockAds && options.geoAssetsAvailable) {
+                    if (options.blockAds && geoSite(options, "category-ads-all")) {
                         addJsonObject {
                             put("type", "field")
                             put("outboundTag", "block")
@@ -507,21 +528,28 @@ object XrayJsonBuilder {
                             put("type", "field")
                             put("outboundTag", "direct")
                             putJsonArray("ip") {
-                                if (options.geoAssetsAvailable) {
+                                if (geoIp(options, "private")) {
                                     add("geoip:private")
                                 } else {
                                     PRIVATE_RANGES.forEach { add(it) }
                                 }
                             }
                         }
+                        addJsonObject {
+                            put("type", "field")
+                            put("outboundTag", "direct")
+                            putJsonArray("domain") { lanDomains(options).forEach { add(it) } }
+                        }
                     }
 
-                    if (options.bypassIran && options.geoAssetsAvailable) {
+                    if (options.bypassIran && geoIp(options, "ir")) {
                         addJsonObject {
                             put("type", "field")
                             put("outboundTag", "direct")
                             putJsonArray("ip") { add("geoip:ir") }
                         }
+                    }
+                    if (options.bypassIran && geoSite(options, "category-ir")) {
                         addJsonObject {
                             put("type", "field")
                             put("outboundTag", "direct")
@@ -542,16 +570,20 @@ object XrayJsonBuilder {
 
         val singBox: SingBoxTuning = SingBoxTuning(),
         val logLevel: String = "warning",
-        val domainStrategy: String = "IPIfNonMatch",
+        val domainStrategy: String = "AsIs",
         val sniffing: Boolean = true,
         val routeOnly: Boolean = false,
 
         val carrier: Boolean = false,
+
+        val tunTraffic: Boolean = false,
         val bypassLan: Boolean = true,
         val bypassIran: Boolean = false,
         val blockAds: Boolean = false,
 
         val geoAssetsAvailable: Boolean = false,
+
+        val geoCodes: GeoCodes? = null,
         val customProxyRules: List<String> = emptyList(),
         val customDirectRules: List<String> = emptyList(),
         val customBlockRules: List<String> = emptyList(),
@@ -612,6 +644,41 @@ object XrayJsonBuilder {
         (!it.auth || it.username.isNotBlank() && it.password.isNotBlank()) &&
             it.port in 1..65534 && !LocalPorts.isInternal(it.port) && !LocalPorts.isInternal(it.port + 1)
     }
+
+    fun tunNoiseRules(inboundTag: String): List<JsonObject> = listOf(
+        buildJsonObject {
+            put("type", "field")
+            putJsonArray("inboundTag") { add(inboundTag) }
+            put("network", "udp")
+            put("port", TUN_NOISE_PORTS)
+            put("outboundTag", "block")
+        },
+        buildJsonObject {
+            put("type", "field")
+            putJsonArray("inboundTag") { add(inboundTag) }
+            putJsonArray("ip") { TUN_NOISE_IPS.forEach { add(it) } }
+            put("outboundTag", "block")
+        },
+    )
+
+    private fun dnsServerHost(address: String): String? {
+        val rest = address.trim().substringAfter("://", "")
+        if (rest.isEmpty()) return null
+        val hostPort = rest.substringBefore('/').substringBefore('?')
+        if (hostPort.startsWith("[")) return null
+        val host = hostPort.substringBefore(':').lowercase()
+        return host.takeIf { it.isNotEmpty() && !isIpLiteral(it) }
+    }
+
+    private fun lanDomains(options: BuildOptions): List<String> =
+        if (geoSite(options, "private")) listOf("geosite:private")
+        else listOf("domain:localhost", "domain:local", "domain:lan")
+
+    private fun geoSite(options: BuildOptions, code: String): Boolean =
+        options.geoAssetsAvailable && options.geoCodes?.hasSite(code) != false
+
+    private fun geoIp(options: BuildOptions, code: String): Boolean =
+        options.geoAssetsAvailable && options.geoCodes?.hasIp(code) != false
 
     private fun localDnsActive(options: BuildOptions): Boolean = options.localDns && !options.carrier
 
@@ -686,6 +753,7 @@ object XrayJsonBuilder {
         entries: List<String>,
         outboundTag: String,
         geoAssetsAvailable: Boolean = true,
+        codes: GeoCodes? = null,
     ): List<JsonObject> {
         val clean = entries
             .map { it.trim() }
@@ -695,8 +763,8 @@ object XrayJsonBuilder {
         val rawIps = clean.filter { RoutingMigration.looksLikeAddress(it) }
         val rawDomains = clean - rawIps.toSet()
 
-        val ips = RuleValidation.usableIps(rawIps, geoAssetsAvailable)
-        val domains = RuleValidation.usableDomains(rawDomains, geoAssetsAvailable)
+        val ips = RuleValidation.usableIps(rawIps, geoAssetsAvailable, codes)
+        val domains = RuleValidation.usableDomains(rawDomains, geoAssetsAvailable, codes)
 
         return buildList {
             if (domains.isNotEmpty()) add(
@@ -734,9 +802,7 @@ object XrayJsonBuilder {
         val proxied = mutableListOf<String>()
         val blocked = mutableListOf<String>()
 
-        val localDomains = if (options.geoAssetsAvailable) listOf("geosite:private")
-        else listOf("domain:localhost", "domain:local", "domain:lan")
-        domestic += "${TAG_DOMESTIC_DNS}-base" to localDomains
+        domestic += "${TAG_DOMESTIC_DNS}-base" to lanDomains(options)
 
         rules.forEachIndexed { index, r ->
             if (r.domains.isEmpty()) return@forEachIndexed
@@ -784,15 +850,23 @@ object XrayJsonBuilder {
             if (i > 0) e.substring(0, i).trim() to e.substring(i + 1).trim() else null
         }.filter { it.first.isNotEmpty() && it.second.isNotEmpty() }
 
+        val dnsServerHosts = (listOf(options.remoteDns, options.directDns) + options.serverDns)
+            .mapNotNull { dnsServerHost(it) }
+            .distinct()
+            .mapNotNull { host -> KNOWN_DNS_HOSTS[host]?.let { host to it } }
+            .filter { (host, _) -> hosts.none { it.first.equals(host, ignoreCase = true) } }
+
         val pinnedServers = if (options.outboundDomainResolve == "1") {
             options.resolvedServerHosts.keys.mapNotNull { host ->
                 resolvedIps(host, options)?.let { host to it }
             }
         } else emptyList()
-        if (hosts.isNotEmpty() || split.blockedDomains.isNotEmpty() || pinnedServers.isNotEmpty()) putJsonObject("hosts") {
+        if (hosts.isNotEmpty() || split.blockedDomains.isNotEmpty() || pinnedServers.isNotEmpty() || dnsServerHosts.isNotEmpty()) putJsonObject("hosts") {
             pinnedServers.forEach { (host, ips) ->
                 if (ips.size == 1) put(host, ips[0]) else putJsonArray(host) { ips.forEach { add(it) } }
             }
+
+            dnsServerHosts.forEach { (host, ips) -> putJsonArray(host) { ips.forEach { add(it) } } }
 
             split.blockedDomains.forEach { put(it, "127.0.0.1") }
 
@@ -802,6 +876,11 @@ object XrayJsonBuilder {
             if (fakeDnsActive(options)) add("fakedns")
             options.serverDns.forEach { add(it) }
             add(options.remoteDns)
+            if (fakeDnsActive(options)) addJsonObject {
+                put("address", options.remoteDns)
+                putJsonArray("domains") { REAL_ANSWER_DOMAINS.forEach { add(it) } }
+                put("skipFallback", true)
+            }
             if (split.proxyDomains.isNotEmpty()) addJsonObject {
                 put("address", options.remoteDns)
                 putJsonArray("domains") { split.proxyDomains.forEach { add(it) } }
@@ -1096,7 +1175,7 @@ object XrayJsonBuilder {
         val fake = fakeDnsActive(options)
         put("enabled", (options.sniffing || fake) && !options.carrier)
         putJsonArray("destOverride") {
-            if (options.sniffing) { add("http"); add("tls") }
+            if (options.sniffing) { add("http"); add("tls"); add("quic") }
             if (fake) add("fakedns")
         }
         put("routeOnly", options.routeOnly)

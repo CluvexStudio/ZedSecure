@@ -181,7 +181,9 @@ object RoutingPresets {
     private val directLanDomain = { rule("Direct LAN domains", RulesetItem.OUTBOUND_DIRECT, domain = listOf("geosite:private")) }
 
     private fun iranWhitelist() = listOf(
+        rule("Bypass BitTorrent", RulesetItem.OUTBOUND_DIRECT, protocol = listOf("bittorrent")),
         blockUdp443(),
+        rule("Block ads", RulesetItem.OUTBOUND_BLOCK, domain = listOf("geosite:category-ads-all")),
         directLanIp(),
         directLanDomain(),
         rule("Bypass Iran domains", RulesetItem.OUTBOUND_DIRECT, domain = listOf("domain:ir", "geosite:category-ir")),

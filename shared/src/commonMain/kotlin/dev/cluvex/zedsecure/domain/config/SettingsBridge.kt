@@ -7,6 +7,8 @@ import dev.cluvex.zedsecure.domain.model.VpnBypassLan
 fun AppSettings.toBuildOptions(
     geoAssetsAvailable: Boolean = false,
 
+    geoCodes: GeoCodes? = null,
+
     ruleOutbounds: Map<String, ServerConfig> = emptyMap(),
 
     ruleGroups: Map<String, RuleGroup> = emptyMap(),
@@ -27,6 +29,7 @@ fun AppSettings.toBuildOptions(
     bypassIran = routingMode == RoutingMode.BypassIran || routingMode == RoutingMode.BypassLanAndIran,
     blockAds = blockAds,
     geoAssetsAvailable = geoAssetsAvailable,
+    geoCodes = geoCodes,
     customProxyRules = customProxyRules.toRuleList(),
     customDirectRules = customDirectRules.toRuleList(),
     customBlockRules = customBlockRules.toRuleList(),
