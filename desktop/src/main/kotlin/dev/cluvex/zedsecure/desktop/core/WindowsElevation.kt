@@ -113,6 +113,12 @@ object WindowsElevation {
         if (isAlive) request("TUN_DOWN", 25)
     }
 
+    fun hevUp(dir: File): Result<Unit> = answer(request("HEV_UP ${dir.absolutePath}", 60), "hev did not answer")
+
+    fun hevDown() {
+        if (isAlive) request("HEV_DOWN", 40)
+    }
+
     fun ocUp(dir: File): Result<Unit> = answer(request("OC_UP ${dir.absolutePath}", 120), "OpenConnect did not answer")
 
     fun ocDown() {
