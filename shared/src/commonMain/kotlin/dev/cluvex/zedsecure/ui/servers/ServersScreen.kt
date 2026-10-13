@@ -134,9 +134,12 @@ fun ServersScreen(
     autoSortAfterTest: Boolean = false,
 
     personalization: Personalization = Personalization.Default,
+    reduceMotion: Boolean = false,
 ) {
     val platform = LocalPlatform.current
     val scope = rememberCoroutineScope()
+    val entranceStart = remember { System.currentTimeMillis() }
+    val springIn = !reduceMotion && dev.cluvex.zedsecure.ui.theme.LocalAppDesign.current == dev.cluvex.zedsecure.domain.model.AppDesign.Pixel
     val lockedCannotShare = stringResource(Res.string.locked_cannot_share)
 
     fun toastImportFailure(e: Throwable) {
@@ -958,6 +961,7 @@ fun ServersScreen(
                                 Box(
 
                                     Modifier
+                                        .springEntrance(position, entranceStart, springIn)
                                         .then(if (twoColumns) Modifier.fillMaxHeight() else Modifier)
 
                                         .then(if (position == 0) Modifier.tourTarget(TourTargets.SERVER_CARD) else Modifier)
@@ -2095,7 +2099,7 @@ private fun AddServerSheet(
             Option(Res.drawable.ic_bolt, Res.string.psiphon_add_title, onPsiphon, free = true)
             Option(Res.drawable.ic_lock, Res.string.tor_add_title, onTor, free = true)
             Option(Res.drawable.ic_speed, Res.string.ssh_add_title, onSsh)
-            Option(Res.drawable.ic_bolt, Res.string.snispoof_add_title, onSniSpoof)
+            if (LocalPlatform.current.supportsSniSpoof) Option(Res.drawable.ic_bolt, Res.string.snispoof_add_title, onSniSpoof)
 
             OptionGroup(Res.string.add_group_dns)
             Option(Res.drawable.ic_public, Res.string.dns_tunnel_add_title, onDnsTunnel)
@@ -2315,3 +2319,25 @@ private object JsonEditor {
 }
 
 private data class OvpnPrompt(val text: String, val name: String)
+
+@Composable
+private fun Modifier.springEntrance(index: Int, startedAt: Long, enabled: Boolean): Modifier {
+    if (!enabled || System.currentTimeMillis() - startedAt > ENTRANCE_WINDOW_MS) return this
+    val reveal = remember { androidx.compose.animation.core.Animatable(0f) }
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(index.coerceAtMost(ENTRANCE_STAGGER_LIMIT) * ENTRANCE_STEP_MS)
+        reveal.animateTo(1f, androidx.compose.animation.core.spring(dampingRatio = 0.62f, stiffness = 380f))
+    }
+    return graphicsLayer {
+        val v = reveal.value
+        alpha = v.coerceIn(0f, 1f)
+        translationY = (1f - v) * 26.dp.toPx()
+        val s = 0.96f + 0.04f * v
+        scaleX = s
+        scaleY = s
+    }
+}
+
+private const val ENTRANCE_WINDOW_MS = 800L
+private const val ENTRANCE_STAGGER_LIMIT = 12
+private const val ENTRANCE_STEP_MS = 45L

@@ -88,6 +88,7 @@ fun MainScaffold(
         mutableStateOf(dev.cluvex.zedsecure.ui.settings.SettingsPage.Root)
     }
     val connectionVm: ConnectionViewModel = viewModel { ConnectionViewModel() }
+    val homeVm: dev.cluvex.zedsecure.ui.home.HomeViewModel = viewModel { dev.cluvex.zedsecure.ui.home.HomeViewModel() }
     val effectsSpec = MaterialTheme.motionScheme.defaultEffectsSpec<Float>()
 
     val profiles by configRepository.profiles.collectAsStateWithLifecycle()
@@ -198,6 +199,7 @@ fun MainScaffold(
             when (dest) {
                 TopDestination.Home -> HomeScreen(
                     connectionVm = connectionVm,
+                    homeVm = homeVm,
                     activeConfigName = activeProfile?.let { p ->
                         if (p.isAutoSelect) {
                             stringResource(
@@ -227,6 +229,7 @@ fun MainScaffold(
 
                     personalization = settings.toPersonalization(),
                     connectStyle = settings.connectButtonStyle,
+                    design = settings.appDesign,
                     contentPadding = innerPadding,
                     onToggleConnection = onToggleConnection,
 
@@ -248,6 +251,7 @@ fun MainScaffold(
                     autoRemoveInvalidAfterTest = settings.autoRemoveInvalidAfterTest,
                     autoSortAfterTest = settings.autoSortAfterTest,
                     personalization = settings.toPersonalization(),
+                    reduceMotion = settings.reduceMotion,
                     onServerActivated = {
                         if (settings.homeAfterSelect) current = TopDestination.Home
 
@@ -311,8 +315,10 @@ fun MainScaffold(
         }
 
         val vpnStatus by dev.cluvex.zedsecure.core.VpnManager.status.collectAsStateWithLifecycle()
+        val detailsOpen by homeVm.expanded.collectAsStateWithLifecycle()
         HomeFabCluster(
-            visible = current == TopDestination.Home,
+            visible = current == TopDestination.Home &&
+                !(detailsOpen && settings.appDesign == dev.cluvex.zedsecure.domain.model.AppDesign.Pixel),
             showSpeedTest = vpnStatus.state == dev.cluvex.zedsecure.domain.model.ConnectionState.Connected &&
                 activeProfile?.isDnsBasedTunnel != true,
             reduceMotion = settings.reduceMotion,

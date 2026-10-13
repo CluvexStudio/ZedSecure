@@ -48,7 +48,7 @@ fun SupportPage(
         subtitle = stringResource(Res.string.support_subtitle),
         contentPadding = contentPadding,
         modifier = modifier,
-        titleIcon = Res.drawable.ic_favorite,
+        art = SettingsArts.Support,
     ) {
         Surface(
             shape = MaterialTheme.shapes.largeIncreased,

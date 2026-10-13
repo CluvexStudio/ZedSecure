@@ -57,6 +57,8 @@ interface Platform {
 
     val supportsSystemProxy: Boolean get() = false
 
+    val supportsSniSpoof: Boolean get() = true
+
     val supportsTun: Boolean get() = true
 
     val choosesTunEngine: Boolean get() = true

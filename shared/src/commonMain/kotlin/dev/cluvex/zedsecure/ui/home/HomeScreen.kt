@@ -36,6 +36,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -96,6 +97,9 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalDensity
@@ -120,6 +124,7 @@ import dev.cluvex.zedsecure.shared.resources.Res
 import dev.cluvex.zedsecure.shared.resources.*
 import dev.cluvex.zedsecure.domain.model.ConnectButtonStyle
 import dev.cluvex.zedsecure.domain.model.ConnectionState
+import dev.cluvex.zedsecure.domain.model.AppDesign
 import dev.cluvex.zedsecure.ui.onboarding.TourTargets
 import dev.cluvex.zedsecure.ui.onboarding.tourTarget
 import dev.cluvex.zedsecure.ui.components.MorphingBlob
@@ -173,6 +178,7 @@ fun HomeScreen(
     personalization: Personalization = Personalization.Default,
 
     connectStyle: ConnectButtonStyle = ConnectButtonStyle.Pill,
+    design: AppDesign = AppDesign.Pixel,
     homeVm: HomeViewModel = viewModel { HomeViewModel() },
 ) {
     val ui by connectionVm.ui.collectAsStateWithLifecycle()
@@ -194,6 +200,91 @@ fun HomeScreen(
     var statusLastTap by remember { mutableLongStateOf(0L) }
     var showLogs by remember { mutableStateOf(false) }
     val haptics = LocalHapticFeedback.current
+
+    if (design != AppDesign.Old) {
+        Box(modifier.fillMaxSize()) {
+            if (design == AppDesign.Pixel) {
+                PixelHome(
+                    ui = ui,
+                    info = info,
+                    infoExpanded = infoExpanded,
+                    onOpenInfo = homeVm::openDetails,
+                    onCloseInfo = homeVm::closeDetails,
+                    onRefreshPing = homeVm::refreshPing,
+                    onRefreshPlace = homeVm::refreshPlace,
+                    onRefreshInfo = { homeVm.refresh(force = true) },
+                    activeConfigName = activeConfigName,
+                    activeConfigDetail = activeConfigDetail,
+                    activeLocked = activeLocked,
+                    lockedNote = lockedNote,
+                    localProxyAddress = localProxyAddress,
+                    showConnectionInfo = showConnectionInfo,
+                    reduceMotion = reduceMotion,
+                    contentPadding = contentPadding,
+                    onToggleConnection = onToggleConnection,
+                    onBrowseConfigs = onBrowseConfigs,
+                    onSecretUnlocked = onSecretUnlocked,
+                    onShowLogs = { showLogs = true },
+                    onBurst = {
+                        burst++
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    },
+                    onStatusTap = {
+                        val now = System.currentTimeMillis()
+                        statusTaps = if (now - statusLastTap < TAP_WINDOW_MS) statusTaps + 1 else 1
+                        statusLastTap = now
+                        if (statusTaps >= 3) {
+                            statusTaps = 0
+                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                            laser++
+                        }
+                    },
+                )
+            } else {
+                PortalHome(
+                    ui = ui,
+                    info = info,
+                    infoExpanded = infoExpanded,
+                    onToggleInfo = homeVm::toggleExpanded,
+                    onRefreshInfo = { homeVm.refresh(force = true) },
+                    activeConfigName = activeConfigName,
+                    activeConfigDetail = activeConfigDetail,
+                    activeLocked = activeLocked,
+                    lockedNote = lockedNote,
+                    localProxyAddress = localProxyAddress,
+                    showConnectionInfo = showConnectionInfo,
+                    reduceMotion = reduceMotion,
+                    contentPadding = contentPadding,
+                    onToggleConnection = onToggleConnection,
+                    onBrowseConfigs = onBrowseConfigs,
+                    onSecretUnlocked = onSecretUnlocked,
+                    onShowLogs = { showLogs = true },
+                    onBurst = {
+                        burst++
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    },
+                    onStatusTap = {
+                        val now = System.currentTimeMillis()
+                        statusTaps = if (now - statusLastTap < TAP_WINDOW_MS) statusTaps + 1 else 1
+                        statusLastTap = now
+                        if (statusTaps >= 3) {
+                            statusTaps = 0
+                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                            laser++
+                        }
+                    },
+                )
+            }
+            ParticleBurst(trigger = burst)
+            dev.cluvex.zedsecure.ui.easteregg.LaserBounce(
+                trigger = laser,
+                color = MaterialTheme.colorScheme.primary,
+                reduceMotion = reduceMotion,
+            )
+        }
+        if (showLogs) LogSheet(onDismiss = { showLogs = false })
+        return
+    }
 
     Box(
         modifier = modifier
@@ -256,7 +347,7 @@ fun HomeScreen(
                             info = info,
                             expanded = infoExpanded,
                             onToggle = homeVm::toggleExpanded,
-                            onRefresh = homeVm::refresh,
+                            onRefresh = { homeVm.refresh(force = true) },
                         )
                     }
                 }
@@ -448,11 +539,11 @@ fun HomeScreen(
     if (showLogs) LogSheet(onDismiss = { showLogs = false })
 }
 
-private const val STAGE_ID = "home-stage"
+internal const val STAGE_ID = "home-stage"
 
 private val STAGE_MIN = 148.dp
 
-private fun Modifier.scrollFade(state: ScrollState, length: Dp = 28.dp): Modifier = this
+internal fun Modifier.scrollFade(state: ScrollState, length: Dp = 28.dp): Modifier = this
     .graphicsLayer {
         compositingStrategy = if (state.canScrollForward || state.canScrollBackward) {
             CompositingStrategy.Offscreen
@@ -484,7 +575,7 @@ private fun Modifier.scrollFade(state: ScrollState, length: Dp = 28.dp): Modifie
 private const val MAX_STAGE_PX = 16_384
 
 @Composable
-private fun StageColumn(
+internal fun StageColumn(
     viewport: Dp,
     stageMin: Dp,
     modifier: Modifier = Modifier,
@@ -587,6 +678,14 @@ private fun Hero(
         ConnectionState.Connecting, ConnectionState.Reconnecting -> ZedGradients.connecting
         else -> ZedGradients.idle
     }
+    val actionLabel = stringResource(
+        when {
+            state == ConnectionState.Disconnecting -> Res.string.state_disconnecting
+            state.isTransitioning -> Res.string.action_cancel
+            state.isActive -> Res.string.action_disconnect
+            else -> Res.string.action_connect
+        },
+    )
 
     MorphingBlob(
         progress = morph,
@@ -606,12 +705,21 @@ private fun Hero(
                 },
             )
 
-            .pointerInput(onTap) {
-                detectTapGestures(
-                    onLongPress = { onLongPress() },
-                    onTap = onTap?.let { handler -> { _ -> handler() } },
-                )
-            },
+            .then(
+                if (onTap != null) {
+                    Modifier
+                        .semantics { contentDescription = actionLabel }
+                        .combinedClickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            role = Role.Button,
+                            onLongClick = onLongPress,
+                            onClick = onTap,
+                        )
+                } else {
+                    Modifier.pointerInput(onLongPress) { detectTapGestures(onLongPress = { onLongPress() }) }
+                },
+            ),
     ) {
         AnimatedContent(
             targetState = state,
@@ -708,7 +816,7 @@ private fun BrandHeader(
 }
 
 @Composable
-private fun FaultBanner(
+internal fun FaultBanner(
     fault: dev.cluvex.zedsecure.core.ConnectionFault,
     connected: Boolean,
     onShowLogs: () -> Unit,
@@ -770,7 +878,8 @@ private fun FaultBanner(
     }
 }
 
-private fun faultTitle(c: dev.cluvex.zedsecure.core.ConnectionFault.Cause) = when (c) {
+internal fun faultTitle(c: dev.cluvex.zedsecure.core.ConnectionFault.Cause) = when (c) {
+    dev.cluvex.zedsecure.core.ConnectionFault.Cause.PortBusy -> Res.string.fault_port_busy
     dev.cluvex.zedsecure.core.ConnectionFault.Cause.Timeout -> Res.string.fault_timeout
     dev.cluvex.zedsecure.core.ConnectionFault.Cause.ServerClosed -> Res.string.fault_server_closed
     dev.cluvex.zedsecure.core.ConnectionFault.Cause.Refused -> Res.string.fault_refused
@@ -785,7 +894,8 @@ private fun faultTitle(c: dev.cluvex.zedsecure.core.ConnectionFault.Cause) = whe
     dev.cluvex.zedsecure.core.ConnectionFault.Cause.Unknown -> Res.string.fault_unknown
 }
 
-private fun faultHint(c: dev.cluvex.zedsecure.core.ConnectionFault.Cause) = when (c) {
+internal fun faultHint(c: dev.cluvex.zedsecure.core.ConnectionFault.Cause) = when (c) {
+    dev.cluvex.zedsecure.core.ConnectionFault.Cause.PortBusy -> Res.string.fault_port_busy_hint
     dev.cluvex.zedsecure.core.ConnectionFault.Cause.Timeout -> Res.string.fault_timeout_hint
     dev.cluvex.zedsecure.core.ConnectionFault.Cause.ServerClosed -> Res.string.fault_server_closed_hint
     dev.cluvex.zedsecure.core.ConnectionFault.Cause.Refused -> Res.string.fault_refused_hint
@@ -1401,7 +1511,7 @@ private fun GraphTile(
     }
 }
 
-private fun rateFraction(bytesPerSecond: Long): Float {
+internal fun rateFraction(bytesPerSecond: Long): Float {
     if (bytesPerSecond <= 0L) return 0f
     val kb = bytesPerSecond / 1024.0
     return (ln(1.0 + kb) / FULL_SCALE_LN).toFloat().coerceIn(0f, 1f)
@@ -1676,7 +1786,7 @@ private class BurstParticle(
 )
 
 @Composable
-private fun ParticleBurst(trigger: Int) {
+internal fun ParticleBurst(trigger: Int) {
     val colors = listOf(ZedViolet, ZedHotPink, ZedLime, ZedCyan)
     val particles = remember { mutableStateListOf<BurstParticle>() }
     var tick by remember { mutableLongStateOf(0L) }
@@ -1745,7 +1855,7 @@ private fun ParticleBurst(trigger: Int) {
     }
 }
 
-private fun ConnectionState.labelRes(): StringResource = when (this) {
+internal fun ConnectionState.labelRes(): StringResource = when (this) {
     ConnectionState.Idle -> Res.string.state_idle
     ConnectionState.Connecting -> Res.string.state_connecting
     ConnectionState.Connected -> Res.string.state_connected

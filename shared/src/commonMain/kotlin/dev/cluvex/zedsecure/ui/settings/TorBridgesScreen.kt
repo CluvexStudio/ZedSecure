@@ -72,9 +72,10 @@ fun TorBridgesScreen(
     Column(modifier.fillMaxSize().padding(contentPadding)) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
             Spacer(Modifier.height(8.dp))
-            dev.cluvex.zedsecure.ui.components.PageHeader(
+            SettingsHeader(
                 title = stringResource(Res.string.tor_bridges_title),
                 subtitle = transport,
+                art = SettingsArts.Tor,
             )
             Spacer(Modifier.height(8.dp))
             Text(

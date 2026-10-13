@@ -87,6 +87,7 @@ fun LiveMonitorPage(contentPadding: PaddingValues, modifier: Modifier) {
     SettingsPageScaffold(
         title = stringResource(Res.string.monitor_title),
         subtitle = stringResource(if (computer) Res.string.monitor_subtitle_computer else Res.string.monitor_subtitle),
+        art = SettingsArts.Monitor,
         contentPadding = contentPadding,
         modifier = modifier,
     ) {

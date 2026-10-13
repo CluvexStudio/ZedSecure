@@ -83,6 +83,7 @@
     <string name="info_no_ip">Определение адреса…</string>
     <string name="info_no_ipv6">Недоступно</string>
     <string name="info_unknown_location">Неизвестное расположение</string>
+    <string name="info_tap_to_refresh">Нажмите на плитку, чтобы запросить заново</string>
 
     <string name="vault_pick_servers">Выберите серверы для блокировки</string>
     <string name="vault_form_name">Отображаемое имя</string>
@@ -325,6 +326,11 @@
 
     <string name="routing_title">Маршрутизация</string>
     <string name="routing_subtitle">Выберите, какой трафик идёт через туннель</string>
+    <string name="routing_geo_missing_title">Нет файлов geo</string>
+    <string name="routing_geo_missing_body">Правила с geosite или geoip выключены, пока эти файлы не скачаны. ZedSecure скачает их сам, как только сможет.</string>
+    <string name="routing_geo_failed">Не удалось скачать. Подключитесь и попробуйте снова или добавьте файлы в Настройки › Файлы данных.</string>
+    <string name="routing_geo_download">Скачать</string>
+    <string name="routing_geo_downloading">Скачивание…</string>
     <string name="routing_domain_strategy">Стратегия доменов</string>
     <string name="routing_mode">Режим маршрутизации</string>
     <string name="routing_mode_global">Глобальный прокси</string>
@@ -375,6 +381,8 @@
     <string name="routing_export_ok">Набор правил скопирован в буфер обмена</string>
     <string name="rule_locked">Закреплено</string>
     <string name="rule_locked_desc">Сохранять это правило при замене набора пресетом или импортом. Закреплённые правила нельзя изменить или удалить.</string>
+    <string name="rule_unlock_title">Открепить это правило?</string>
+    <string name="rule_unlock">Открепить</string>
     <string name="rule_outbound_missing">Прокси (целевой сервер отсутствует)</string>
     <string name="rule_field_hint">Разделяйте значения запятыми. Простой домен совпадает как подстрока — example.com совпадёт и с notexample.community. Используйте domain:example.com для домена и поддоменов или full:example.com для точного совпадения. Также принимаются geosite:, keyword:, regexp:. Для IP — geoip: и CIDR. Протокол: http, tls, bittorrent.</string>
     <string name="rule_move_up">Вверх</string>
@@ -494,6 +502,8 @@
     <string name="tun_engine_zeptun">zeptun (рекомендуется)</string>
     <string name="tun_engine_hev">hev-socks5-tunnel</string>
     <string name="tun_engine_sub">То, что превращает пакеты из туннеля в проксированные соединения. zeptun держит тёплые соединения и ограничивает свою память; старый движок оставлен на случай, если устройство с ним не согласится.</string>
+    <string name="tun_engine_hev_default">hev-socks5-tunnel (по умолчанию)</string>
+    <string name="tun_engine_sub_desktop">В Windows по умолчанию используется hev. zeptun дополнительно блокирует брандмауэром Windows DNS-запросы мимо туннеля; выберите его, если hev не работает на этом ПК.</string>
     <string name="title_pref_hev_tunnel_rw_timeout">Тайм-аут чтения/записи Hev TUN</string>
     <string name="summary_pref_hev_tunnel_rw_timeout">Секунды, как tcp,udp</string>
 
@@ -1150,6 +1160,8 @@
     <string name="fault_transport">Несовпадение транспорта</string>
     <string name="fault_transport_hint">Сервер ответил, но не тем транспортом, который ожидает конфиг. Вероятно, неверен path, заголовок host или имя сервиса.</string>
     <string name="fault_unknown">Не удалось подключиться</string>
+    <string name="fault_port_busy">Порт уже занят</string>
+    <string name="fault_port_busy_hint">Другое приложение или другая копия ZedSecure уже использует локальный порт прокси. Отключите его и попробуйте снова.</string>
     <string name="lan_share_connect_title">Подключайте другие устройства к</string>
     <string name="lan_share_no_address">Пока нет адреса в локальной сети. Подключитесь к Wi-Fi или включите точку доступа.</string>
     <string name="lan_share_user">Логин: %1$s (пароль ниже)</string>
@@ -1410,4 +1422,34 @@
     <string name="update_check_summary_github">Искать новую версию на GitHub</string>
     <string name="rate_title_github">ZedSecure на GitHub</string>
     <string name="rate_summary_github">Открыть страницу проекта: поставить звезду, сообщить о проблеме или посмотреть код</string>
+    <string name="settings_hero_tagline">Сделайте по-своему</string>
+    <string name="settings_group_personal">Персонализация</string>
+    <string name="settings_group_tools">Инструменты</string>
+    <string name="settings_group_colors">Цвета</string>
+    <string name="settings_group_display">Язык и экран</string>
+    <string name="settings_group_behaviour">Списки и уведомления</string>
+    <string name="color_style_title">Цветовой стиль</string>
+    <string name="color_style_sub">Полная палитра строится из акцентного цвета</string>
+    <string name="color_style_zedsecure">ZedSecure</string>
+    <string name="color_style_tonal">Мягкий</string>
+    <string name="color_style_vibrant">Яркий</string>
+    <string name="color_style_expressive">Выразительный</string>
+    <string name="color_style_rainbow">Радуга</string>
+    <string name="color_style_fruit_salad">Фруктовый</string>
+    <string name="color_style_fidelity">Точный</string>
+    <string name="color_style_neutral">Нейтральный</string>
+    <string name="color_style_monochrome">Монохром</string>
+    <string name="contrast_title">Контрастность</string>
+    <string name="contrast_standard">Обычная</string>
+    <string name="contrast_medium">Средняя</string>
+    <string name="contrast_high">Высокая</string>
+    <string name="portal_hint">Нажмите, чтобы подключиться</string>
+    <string name="home_design_title">Дизайн приложения</string>
+    <string name="home_design_sub">Вид всего приложения: главный экран, шрифт, формы и анимация. Цвета настраиваются отдельно.</string>
+    <string name="home_design_portal">Портал</string>
+    <string name="home_design_old">Старый</string>
+    <string name="home_design_old_note">Стили кнопки, плиток и карточек относятся к старому дизайну. Выберите «Старый», чтобы изменить их.</string>
+    <string name="home_design_pixel">Pixel</string>
+    <string name="pixel_tap_cancel">Нажмите, чтобы отменить</string>
+    <string name="pixel_other_server">Другой сервер</string>
 </resources>

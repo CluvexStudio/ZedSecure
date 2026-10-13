@@ -19,6 +19,8 @@ data class NetworkInfo(
     val countryCode: String? = null,
     val pingMs: Int? = null,
     val loading: Boolean = false,
+    val pingLoading: Boolean = false,
+    val placeLoading: Boolean = false,
     val error: String? = null,
 
     val fault: dev.cluvex.zedsecure.core.ConnectionFault? = null,
@@ -32,8 +34,8 @@ class NetworkInfoRepository(
 
     private val get: suspend (url: String) -> String = { url -> tunnelGet(url) },
 ) {
-    suspend fun fetchInfo(preferredUrl: String? = null): NetworkInfo = coroutineScope {
-        cached()?.let { return@coroutineScope it }
+    suspend fun fetchInfo(preferredUrl: String? = null, force: Boolean = false): NetworkInfo = coroutineScope {
+        if (!force) cached()?.let { return@coroutineScope it }
 
         val tunnelActive = VpnManager.activeSocksPort != null ||
             VpnManager.status.value.state == ConnectionState.Connected

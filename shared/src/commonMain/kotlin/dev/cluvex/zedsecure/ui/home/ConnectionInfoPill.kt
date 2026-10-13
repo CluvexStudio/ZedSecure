@@ -51,7 +51,7 @@ fun ConnectionInfoPill(
     modifier: Modifier = Modifier,
 ) {
     val chevronRotation by animateFloatAsState(
-        targetValue = if (expanded) 90f else 0f,
+        targetValue = if (expanded) 90f * dev.cluvex.zedsecure.ui.motion.layoutSign() else 0f,
         animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
         label = "chevron",
     )

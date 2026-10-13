@@ -1,5 +1,7 @@
 package dev.cluvex.zedsecure.ui.theme
 
+import dev.cluvex.zedsecure.domain.model.AppDesign
+
 import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.text.TextStyle
@@ -34,6 +36,14 @@ fun interFamily() = FontFamily(
 fun interDisplayFamily() = FontFamily(
     Font(Res.font.interdisplay_semibold, FontWeight.SemiBold),
     Font(Res.font.interdisplay_bold, FontWeight.Bold),
+)
+
+@Composable
+fun googleSansFamily() = FontFamily(
+    Font(Res.font.googlesans_regular, FontWeight.Normal),
+    Font(Res.font.googlesans_medium, FontWeight.Medium),
+    Font(Res.font.googlesans_semibold, FontWeight.SemiBold),
+    Font(Res.font.googlesans_bold, FontWeight.Bold),
 )
 
 @Composable
@@ -126,9 +136,7 @@ private fun expressiveTypography(
 )
 
 @Composable
-private fun latinTypography(): Typography {
-    val d = interDisplayFamily()
-    val b = interFamily()
+private fun latinTypography(d: FontFamily = interDisplayFamily(), b: FontFamily = interFamily()): Typography {
     return expressiveTypography(
         displayLarge = style(d, FontWeight.Bold, 57.sp, 64.sp, (-0.5).sp),
         displayMedium = style(d, FontWeight.Bold, 45.sp, 52.sp, (-0.25).sp),
@@ -171,5 +179,8 @@ private fun persianTypography(): Typography {
 }
 
 @Composable
-fun typographyFor(language: String): Typography =
-    if (language == "fa") persianTypography() else latinTypography()
+fun typographyFor(language: String, design: AppDesign = AppDesign.Old): Typography = when {
+    language == "fa" -> persianTypography()
+    design == AppDesign.Pixel && language != "ru" -> googleSansFamily().let { latinTypography(it, it) }
+    else -> latinTypography()
+}

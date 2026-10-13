@@ -48,7 +48,6 @@ import coil3.request.ImageRequest
 import dev.cluvex.zedsecure.shared.resources.Res
 import dev.cluvex.zedsecure.shared.resources.*
 import dev.cluvex.zedsecure.domain.model.AppSettings
-import dev.cluvex.zedsecure.ui.components.PageHeader
 import dev.cluvex.zedsecure.ui.components.PickerField
 import dev.cluvex.zedsecure.ui.platform.InstalledApp
 import dev.cluvex.zedsecure.ui.platform.LocalPlatform
@@ -69,9 +68,10 @@ fun PerAppProxyScreen(
     if (!platform.supportsPerAppProxy) {
         Column(modifier.fillMaxSize().padding(contentPadding)) {
             Spacer(Modifier.height(8.dp))
-            PageHeader(
+            SettingsHeader(
                 title = stringResource(Res.string.per_app_title),
                 subtitle = stringResource(Res.string.per_app_subtitle),
+                art = SettingsArts.PerApp,
             )
             Spacer(Modifier.height(12.dp))
             Surface(
@@ -132,9 +132,10 @@ fun PerAppProxyScreen(
 
     Column(modifier.fillMaxSize().padding(contentPadding)) {
         Spacer(Modifier.height(8.dp))
-        PageHeader(
+        SettingsHeader(
             title = stringResource(Res.string.per_app_title),
             subtitle = stringResource(Res.string.per_app_subtitle),
+            art = SettingsArts.PerApp,
         )
         Spacer(Modifier.height(12.dp))
 

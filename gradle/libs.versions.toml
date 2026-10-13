@@ -2,8 +2,8 @@
 agp = "9.3.2"
 kotlin = "2.2.10"
 
-composeBom = "2026.08.00"
-material3Expressive = "1.5.0-alpha27"
+composeBom = "2026.09.00"
+material3Expressive = "1.5.0-beta01"
 
 coreKtx = "1.19.0"
 activityCompose = "1.13.0"
@@ -19,8 +19,9 @@ graphicsShapes = "1.1.0"
 
 coil = "3.6.0"
 
-composeMultiplatform = "1.12.0"
+composeMultiplatform = "1.12.1"
 material3Multiplatform = "1.12.0-alpha03"
+materialKolor = "5.0.1"
 lifecycleMultiplatform = "2.9.1"
 
 reorderable = "3.1.0"
@@ -65,6 +66,7 @@ compose-material3-mp = { group = "org.jetbrains.compose.material3", name = "mate
 lifecycle-viewmodel-compose-mp = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycleMultiplatform" }
 lifecycle-runtime-compose-mp = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycleMultiplatform" }
 kotlinx-coroutines-swing = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-swing", version.ref = "coroutines" }
+material-kolor = { group = "com.materialkolor", name = "material-kolor", version.ref = "materialKolor" }
 reorderable = { group = "sh.calvin.reorderable", name = "reorderable", version.ref = "reorderable" }
 jsch = { group = "com.github.mwiede", name = "jsch", version = "2.27.7" }
 

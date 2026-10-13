@@ -83,6 +83,7 @@
     <string name="info_no_ip">正在查询地址…</string>
     <string name="info_no_ipv6">不可用</string>
     <string name="info_unknown_location">未知位置</string>
+    <string name="info_tap_to_refresh">点按任一卡片即可重新获取</string>
 
     <string name="vault_pick_servers">选择要锁定的服务器</string>
     <string name="vault_form_name">显示名称</string>
@@ -325,6 +326,11 @@
 
     <string name="routing_title">路由</string>
     <string name="routing_subtitle">选择哪些流量经过隧道</string>
+    <string name="routing_geo_missing_title">缺少 geo 文件</string>
+    <string name="routing_geo_missing_body">使用 geosite 或 geoip 的规则在下载这些文件之前不会生效。ZedSecure 会在可以时自动下载。</string>
+    <string name="routing_geo_failed">下载失败。请连接后重试，或在 设置 › 资源文件 中添加。</string>
+    <string name="routing_geo_download">下载</string>
+    <string name="routing_geo_downloading">正在下载…</string>
     <string name="routing_domain_strategy">域名策略</string>
     <string name="routing_mode">路由模式</string>
     <string name="routing_mode_global">全局代理</string>
@@ -375,6 +381,8 @@
     <string name="routing_export_ok">规则集已复制到剪贴板</string>
     <string name="rule_locked">锁定</string>
     <string name="rule_locked_desc">使用预设或导入替换规则集时保留此规则。锁定的规则无法编辑或删除。</string>
+    <string name="rule_unlock_title">解锁此规则？</string>
+    <string name="rule_unlock">解锁</string>
     <string name="rule_outbound_missing">代理（目标服务器已不存在）</string>
     <string name="rule_field_hint">多个值用逗号分隔。裸域名按子串匹配——example.com 也会匹配 notexample.community。用 domain:example.com 匹配该域名及其子域，用 full:example.com 精确匹配。也支持 geosite:、keyword:、regexp:。IP 支持 geoip: 和 CIDR。协议：http、tls、bittorrent。</string>
     <string name="rule_move_up">上移</string>
@@ -494,6 +502,8 @@
     <string name="tun_engine_zeptun">zeptun（推荐）</string>
     <string name="tun_engine_hev">hev-socks5-tunnel</string>
     <string name="tun_engine_sub">把安卓送进隧道的数据包变回代理连接的组件。zeptun 会预留热连接并限制自身内存；保留旧引擎是为了应对个别设备不兼容。</string>
+    <string name="tun_engine_hev_default">hev-socks5-tunnel（默认）</string>
+    <string name="tun_engine_sub_desktop">Windows 上默认使用 hev。zeptun 还会用 Windows 防火墙拦截绕过隧道的 DNS；如果 hev 在这台电脑上无法使用，请切换到它。</string>
     <string name="title_pref_hev_tunnel_rw_timeout">Hev TUN 读写超时</string>
     <string name="summary_pref_hev_tunnel_rw_timeout">单位秒，格式为 tcp,udp</string>
 
@@ -1150,6 +1160,8 @@
     <string name="fault_transport">传输方式不匹配</string>
     <string name="fault_transport_hint">服务器有响应，但不是此配置期望的传输方式。path、host 头或服务名可能有误。</string>
     <string name="fault_unknown">连接失败</string>
+    <string name="fault_port_busy">端口已被占用</string>
+    <string name="fault_port_busy_hint">另一个应用或另一个 ZedSecure 正在使用本地代理端口。请先断开它，然后重试。</string>
     <string name="lan_share_connect_title">让其他设备连接到</string>
     <string name="lan_share_no_address">暂无局域网地址。请连接 Wi-Fi 或开启热点。</string>
     <string name="lan_share_user">用户名：%1$s（密码见下方）</string>
@@ -1410,4 +1422,34 @@
     <string name="update_check_summary_github">在 GitHub 上查找新版本</string>
     <string name="rate_title_github">GitHub 上的 ZedSecure</string>
     <string name="rate_summary_github">打开项目页面：点星、报告问题或查看代码</string>
+    <string name="settings_hero_tagline">随心定制</string>
+    <string name="settings_group_personal">个性化</string>
+    <string name="settings_group_tools">工具</string>
+    <string name="settings_group_colors">颜色</string>
+    <string name="settings_group_display">语言与显示</string>
+    <string name="settings_group_behaviour">列表与通知</string>
+    <string name="color_style_title">配色风格</string>
+    <string name="color_style_sub">根据强调色生成完整配色</string>
+    <string name="color_style_zedsecure">ZedSecure</string>
+    <string name="color_style_tonal">柔和</string>
+    <string name="color_style_vibrant">鲜艳</string>
+    <string name="color_style_expressive">表现力</string>
+    <string name="color_style_rainbow">彩虹</string>
+    <string name="color_style_fruit_salad">水果沙拉</string>
+    <string name="color_style_fidelity">保真</string>
+    <string name="color_style_neutral">中性</string>
+    <string name="color_style_monochrome">单色</string>
+    <string name="contrast_title">对比度</string>
+    <string name="contrast_standard">标准</string>
+    <string name="contrast_medium">中</string>
+    <string name="contrast_high">高</string>
+    <string name="portal_hint">轻触即可连接</string>
+    <string name="home_design_title">应用设计</string>
+    <string name="home_design_sub">整个应用的外观：首页、字体、形状和动效。颜色单独设置。</string>
+    <string name="home_design_portal">大门</string>
+    <string name="home_design_old">旧版</string>
+    <string name="home_design_old_note">按钮、流量卡片和配置卡片的样式属于旧版设计。选择“旧版”即可修改。</string>
+    <string name="home_design_pixel">Pixel</string>
+    <string name="pixel_tap_cancel">轻触取消</string>
+    <string name="pixel_other_server">换个服务器</string>
 </resources>

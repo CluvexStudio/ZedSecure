@@ -42,7 +42,7 @@ fun PrivacyPage(
         subtitle = stringResource(Res.string.privacy_subtitle),
         contentPadding = contentPadding,
         modifier = modifier,
-        titleIcon = Res.drawable.ic_policy,
+        art = SettingsArts.Privacy,
     ) {
         Surface(
             shape = MaterialTheme.shapes.largeIncreased,

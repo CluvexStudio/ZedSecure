@@ -93,6 +93,7 @@
     <string name="info_no_ip">در حال دریافت نشانی…</string>
     <string name="info_no_ipv6">موجود نیست</string>
     <string name="info_unknown_location">موقعیت نامشخص</string>
+    <string name="info_tap_to_refresh">برای دریافت دوباره، روی هر کاشی بزنید</string>
 
     <string name="vault_pick_servers">سرورها را برای قفل کردن انتخاب کنید</string>
     <string name="vault_form_name">نام نمایشی</string>
@@ -281,6 +282,11 @@
 
     <string name="routing_title">مسیریابی</string>
     <string name="routing_subtitle">انتخاب کنید کدام ترافیک از تانل عبور کند</string>
+    <string name="routing_geo_missing_title">فایل‌های geo نیستند</string>
+    <string name="routing_geo_missing_body">قانون‌هایی که از geosite یا geoip استفاده می‌کنند تا دانلود این فایل‌ها خاموش‌اند. ZedSecure هر وقت بتواند خودش آن‌ها را می‌گیرد.</string>
+    <string name="routing_geo_failed">دانلود نشد. وصل شوید و دوباره امتحان کنید، یا فایل‌ها را از تنظیمات › فایل‌های داده اضافه کنید.</string>
+    <string name="routing_geo_download">دانلود</string>
+    <string name="routing_geo_downloading">در حال دانلود…</string>
     <string name="routing_domain_strategy">راهبرد دامنه</string>
     <string name="routing_mode">حالت مسیریابی</string>
     <string name="routing_mode_global">پروکسی سراسری</string>
@@ -331,6 +337,8 @@
     <string name="routing_export_ok">مجموعه قوانین در کلیپ‌بورد کپی شد</string>
     <string name="rule_locked">قفل‌شده</string>
     <string name="rule_locked_desc">هنگام جایگزینی مجموعه قوانین با پریست یا وارد کردن، این قانون حفظ می‌شود. قوانین قفل‌شده قابل ویرایش یا حذف نیستند.</string>
+    <string name="rule_unlock_title">قفل این قانون باز شود؟</string>
+    <string name="rule_unlock">باز کردن قفل</string>
     <string name="rule_outbound_missing">پروکسی (سرور مقصد موجود نیست)</string>
     <string name="rule_field_hint">مقادیر را با ویرگول جدا کنید. دامنهٔ ساده به‌صورت زیررشته تطبیق می‌خورد — example.com با notexample.community هم می‌خورد. برای دامنه و زیردامنه‌هایش از domain:example.com و برای تطابق دقیق از full:example.com استفاده کنید. geosite:، keyword: و regexp: هم پذیرفته می‌شوند. برای IP‌ها geoip: و CIDR. پروتکل: http، tls، bittorrent.</string>
     <string name="rule_move_up">بالا بردن</string>
@@ -488,6 +496,8 @@
     <string name="tun_engine_zeptun">zeptun (پیشنهادی)</string>
     <string name="tun_engine_hev">hev-socks5-tunnel</string>
     <string name="tun_engine_sub">چیزی که بسته‌های اندروید را به اتصال‌های پروکسی‌شده تبدیل می‌کند. zeptun اتصال‌های آماده نگه می‌دارد و مصرف حافظه‌اش کران‌دار است؛ موتور قدیمی برای وقتی است که دستگاهی با آن مشکل داشته باشد.</string>
+    <string name="tun_engine_hev_default">hev-socks5-tunnel (پیش‌فرض)</string>
+    <string name="tun_engine_sub_desktop">روی ویندوز hev پیش‌فرض است. zeptun با فایروال ویندوز جلوی DNSهایی را هم که بیرون از تونل می‌روند می‌گیرد؛ اگر hev روی این کامپیوتر کار نکرد، آن را انتخاب کنید.</string>
     <string name="title_pref_hev_tunnel_rw_timeout">مهلت خواندن/نوشتن Hev TUN</string>
     <string name="summary_pref_hev_tunnel_rw_timeout">ثانیه، به‌صورت tcp,udp</string>
     <string name="title_pref_sniffing_enabled">فعال‌سازی sniffing</string>
@@ -723,7 +733,7 @@
     <string name="tor_fascist_firewall_sum">فقط به رله‌های پورت ۸۰ و ۴۴۳ وصل شو</string>
     <string name="dns_ssh_enable">SSH روی DNS</string>
     <string name="dns_ssh_forward">عبور DNS از SSH</string>
-    <string name="title_pref_accent">رنگ لهجه</string>
+    <string name="title_pref_accent">رنگ تأکیدی</string>
     <string name="title_pref_amoled">مشکی AMOLED</string>
     <string name="summary_pref_amoled">سطوح کاملاً مشکی در حالت تیره</string>
     <string name="master_dns_add_title">افزودن MasterDNS</string>
@@ -1142,6 +1152,8 @@
     <string name="fault_transport">ترنسپورت ناجور است</string>
     <string name="fault_transport_hint">سرور پاسخ داد، ولی نه با ترنسپورتی که این کانفیگ انتظار دارد. احتمالاً path، هدر host یا نام سرویس اشتباه است.</string>
     <string name="fault_unknown">اتصال ناموفق بود</string>
+    <string name="fault_port_busy">پورت در حال استفاده است</string>
+    <string name="fault_port_busy_hint">برنامهٔ دیگری، یا نسخهٔ دیگری از ZedSecure، همین حالا از پورت پروکسی محلی استفاده می‌کند. آن را قطع کنید و دوباره امتحان کنید.</string>
     <string name="lan_share_connect_title">دستگاه‌های دیگر را به این آدرس وصل کنید</string>
     <string name="lan_share_no_address">هنوز آدرس شبکهٔ محلی ندارید. به یک Wi-Fi وصل شوید یا هات‌اسپات را روشن کنید.</string>
     <string name="lan_share_user">نام کاربری: %1$s (رمز در پایین است)</string>
@@ -1402,4 +1414,34 @@
     <string name="update_check_summary_github">جست‌وجوی نسخهٔ جدیدتر در گیت‌هاب</string>
     <string name="rate_title_github">ZedSecure در گیت‌هاب</string>
     <string name="rate_summary_github">صفحهٔ پروژه را باز کنید تا ستاره بدهید، مشکلی را گزارش کنید یا کد را ببینید</string>
+    <string name="settings_hero_tagline">به سلیقهٔ خودت</string>
+    <string name="settings_group_personal">شخصی‌سازی</string>
+    <string name="settings_group_tools">ابزارها</string>
+    <string name="settings_group_colors">رنگ‌ها</string>
+    <string name="settings_group_display">زبان و نمایش</string>
+    <string name="settings_group_behaviour">فهرست‌ها و اعلان‌ها</string>
+    <string name="color_style_title">سبک رنگ</string>
+    <string name="color_style_sub">یک پالت کامل از رنگ تأکیدی شما ساخته می‌شود</string>
+    <string name="color_style_zedsecure">ZedSecure</string>
+    <string name="color_style_tonal">ملایم</string>
+    <string name="color_style_vibrant">پرانرژی</string>
+    <string name="color_style_expressive">اکسپرسیو</string>
+    <string name="color_style_rainbow">رنگین‌کمان</string>
+    <string name="color_style_fruit_salad">سالاد میوه</string>
+    <string name="color_style_fidelity">وفادار</string>
+    <string name="color_style_neutral">خنثی</string>
+    <string name="color_style_monochrome">تک‌رنگ</string>
+    <string name="contrast_title">کنتراست</string>
+    <string name="contrast_standard">استاندارد</string>
+    <string name="contrast_medium">متوسط</string>
+    <string name="contrast_high">زیاد</string>
+    <string name="portal_hint">برای اتصال لمس کنید</string>
+    <string name="home_design_title">طراحی اپ</string>
+    <string name="home_design_sub">ظاهر کل اپ: صفحهٔ اصلی، فونت، شکل‌ها و حرکت‌ها. رنگ‌ها جدا تنظیم می‌شوند.</string>
+    <string name="home_design_portal">درگاه</string>
+    <string name="home_design_old">قدیمی</string>
+    <string name="home_design_old_note">سبک دکمه، کاشی‌ها و کارت‌ها مخصوص طراحی قدیمی است. برای تغییرشان «قدیمی» را انتخاب کن.</string>
+    <string name="home_design_pixel">پیکسل</string>
+    <string name="pixel_tap_cancel">برای لغو لمس کنید</string>
+    <string name="pixel_other_server">سرور دیگر</string>
 </resources>

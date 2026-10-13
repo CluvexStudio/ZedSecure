@@ -41,7 +41,6 @@ import dev.cluvex.zedsecure.data.assets.GeoAsset
 import dev.cluvex.zedsecure.data.assets.GeoAssets
 import dev.cluvex.zedsecure.domain.model.AppSettings
 import dev.cluvex.zedsecure.domain.model.GeoFilesSource
-import dev.cluvex.zedsecure.ui.components.PageHeader
 import dev.cluvex.zedsecure.ui.platform.LocalPlatform
 import kotlinx.coroutines.launch
 
@@ -63,9 +62,10 @@ fun AssetsScreen(
             .padding(contentPadding),
     ) {
         Spacer(Modifier.height(8.dp))
-        PageHeader(
+        SettingsHeader(
             title = stringResource(Res.string.assets_title),
             subtitle = stringResource(Res.string.assets_subtitle),
+            art = SettingsArts.Assets,
         )
         Spacer(Modifier.height(14.dp))
 
@@ -105,7 +105,7 @@ fun AssetsScreen(
 
             Spacer(Modifier.height(4.dp))
 
-            SettingsGroup {
+            SettingsGroup(inset = 0.dp) {
                 SettingsListRow(
                     title = stringResource(Res.string.assets_source),
                     options = GeoFilesSource.entries.map { it to it.repo },

@@ -82,6 +82,7 @@
     <string name="info_no_ip">Looking up address…</string>
     <string name="info_no_ipv6">Not available</string>
     <string name="info_unknown_location">Unknown location</string>
+    <string name="info_tap_to_refresh">Tap a tile to fetch it again</string>
 
     <string name="vault_pick_servers">Pick servers to lock</string>
     <string name="vault_form_name">Display name</string>
@@ -324,6 +325,11 @@
 
     <string name="routing_title">Routing</string>
     <string name="routing_subtitle">Choose which traffic goes through the tunnel</string>
+    <string name="routing_geo_missing_title">Geo files are missing</string>
+    <string name="routing_geo_missing_body">Rules that use geosite or geoip are off until these files are downloaded. ZedSecure fetches them on its own once it can.</string>
+    <string name="routing_geo_failed">The download failed. Connect and try again, or add the files in Settings › Asset files.</string>
+    <string name="routing_geo_download">Download</string>
+    <string name="routing_geo_downloading">Downloading…</string>
     <string name="routing_domain_strategy">Domain strategy</string>
     <string name="routing_mode">Routing mode</string>
     <string name="routing_mode_global">Global proxy</string>
@@ -374,6 +380,8 @@
     <string name="routing_export_ok">Ruleset copied to clipboard</string>
     <string name="rule_locked">Locked</string>
     <string name="rule_locked_desc">Keep this rule when replacing the ruleset with a preset or an import. Locked rules cannot be edited or deleted.</string>
+    <string name="rule_unlock_title">Unlock this rule?</string>
+    <string name="rule_unlock">Unlock</string>
     <string name="rule_outbound_missing">Proxy (target server missing)</string>
     <string name="rule_field_hint">Separate multiple values with commas. A bare domain matches as a substring — example.com would also match notexample.community. Use domain:example.com for the domain and its subdomains, or full:example.com for an exact match. Also accepted: geosite:, keyword:, regexp:. IPs accept geoip: and CIDR. Protocol: http, tls, bittorrent.</string>
     <string name="rule_move_up">Move up</string>
@@ -493,6 +501,8 @@
     <string name="tun_engine_zeptun">zeptun (recommended)</string>
     <string name="tun_engine_hev">hev-socks5-tunnel</string>
     <string name="tun_engine_sub">What turns the packets Android sends into the tunnel back into proxied connections. zeptun keeps warm connections ready and bounds its own memory; the older engine is here in case a device disagrees.</string>
+    <string name="tun_engine_hev_default">hev-socks5-tunnel (default)</string>
+    <string name="tun_engine_sub_desktop">hev is the default on Windows. zeptun also blocks DNS that tries to leave outside the tunnel through the Windows firewall; switch to it if hev does not work on this PC.</string>
     <string name="title_pref_hev_tunnel_rw_timeout">Hev TUN read/write timeout</string>
     <string name="summary_pref_hev_tunnel_rw_timeout">Seconds, as tcp,udp</string>
 
@@ -1149,6 +1159,8 @@
     <string name="fault_transport">Transport mismatch</string>
     <string name="fault_transport_hint">The server answered, but not with the transport this config expects. The path, host header or service name is likely wrong.</string>
     <string name="fault_unknown">Connection failed</string>
+    <string name="fault_port_busy">Port already in use</string>
+    <string name="fault_port_busy_hint">Another app, or another copy of ZedSecure, is already using the local proxy port. Disconnect it, then try again.</string>
     <string name="lan_share_connect_title">Connect other devices to</string>
     <string name="lan_share_no_address">No local network address yet. Join a Wi-Fi network or turn on the hotspot.</string>
     <string name="lan_share_user">Username: %1$s (the password is below)</string>
@@ -1409,4 +1421,34 @@
     <string name="update_check_summary_github">Look for a newer version on GitHub</string>
     <string name="rate_title_github">ZedSecure on GitHub</string>
     <string name="rate_summary_github">Open the project page to star it, report a problem or read the code</string>
+    <string name="settings_hero_tagline">Make it yours</string>
+    <string name="settings_group_personal">Personalize</string>
+    <string name="settings_group_tools">Tools</string>
+    <string name="settings_group_colors">Colors</string>
+    <string name="settings_group_display">Language and display</string>
+    <string name="settings_group_behaviour">Lists and notifications</string>
+    <string name="color_style_title">Color style</string>
+    <string name="color_style_sub">A full palette is generated from your accent color</string>
+    <string name="color_style_zedsecure">ZedSecure</string>
+    <string name="color_style_tonal">Tonal</string>
+    <string name="color_style_vibrant">Vibrant</string>
+    <string name="color_style_expressive">Expressive</string>
+    <string name="color_style_rainbow">Rainbow</string>
+    <string name="color_style_fruit_salad">Fruit salad</string>
+    <string name="color_style_fidelity">Fidelity</string>
+    <string name="color_style_neutral">Neutral</string>
+    <string name="color_style_monochrome">Monochrome</string>
+    <string name="contrast_title">Contrast</string>
+    <string name="contrast_standard">Standard</string>
+    <string name="contrast_medium">Medium</string>
+    <string name="contrast_high">High</string>
+    <string name="portal_hint">Tap to connect</string>
+    <string name="home_design_title">App design</string>
+    <string name="home_design_sub">The look of the whole app: home, type, shapes and motion. Colours stay separate.</string>
+    <string name="home_design_portal">Portal</string>
+    <string name="home_design_old">Old</string>
+    <string name="home_design_old_note">Button, tile and card styles belong to the Old design. Pick Old to change them.</string>
+    <string name="home_design_pixel">Pixel</string>
+    <string name="pixel_tap_cancel">Tap to cancel</string>
+    <string name="pixel_other_server">Other server</string>
 </resources>

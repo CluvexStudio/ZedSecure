@@ -1,9 +1,21 @@
-@file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
+@file:OptIn(
+    androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class,
+    androidx.compose.animation.ExperimentalSharedTransitionApi::class,
+)
 
 package dev.cluvex.zedsecure.ui.settings
 
 import dev.cluvex.zedsecure.ui.platform.BackHandler
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,6 +55,8 @@ import dev.cluvex.zedsecure.domain.model.NotifChip
 import dev.cluvex.zedsecure.domain.model.OutboundDomainResolve
 import dev.cluvex.zedsecure.domain.model.RunMode
 import dev.cluvex.zedsecure.domain.model.ThemeMode
+import dev.cluvex.zedsecure.domain.model.ColorContrast
+import dev.cluvex.zedsecure.domain.model.AppDesign
 import dev.cluvex.zedsecure.domain.model.TrafficCardStyle
 import dev.cluvex.zedsecure.domain.model.TrafficTileSize
 import dev.cluvex.zedsecure.domain.model.UiFontScale
@@ -128,6 +142,10 @@ fun SettingsScreen(
     val goBack: (() -> Unit)? = if (page == SettingsPage.Root) null else goUp
     dev.cluvex.zedsecure.ui.components.ProvidePageBack(goBack) {
     val sign = dev.cluvex.zedsecure.ui.motion.layoutSign()
+    val scrim = androidx.compose.material3.MaterialTheme.colorScheme.background
+    val statusBar = contentPadding.calculateTopPadding()
+    androidx.compose.animation.SharedTransitionLayout(Modifier.statusBarScrim(scrim, statusBar)) {
+    val sharedScope = this
     androidx.compose.animation.AnimatedContent(
         targetState = page,
         transitionSpec = {
@@ -140,6 +158,7 @@ fun SettingsScreen(
         },
         label = "settings-page",
     ) { shown ->
+    val visibilityScope = this
     val decoration = transitionDecoration(
         style = settings.screenTransition,
         forward = pageDepth(shown) >= pageDepth(page),
@@ -147,6 +166,10 @@ fun SettingsScreen(
         reduceMotion = settings.reduceMotion,
     )
     androidx.compose.foundation.layout.Box(decoration) {
+    val artTransition = remember(sharedScope, visibilityScope) { ArtTransition(sharedScope, visibilityScope) }
+    androidx.compose.runtime.CompositionLocalProvider(
+        LocalArtTransition provides artTransition.takeUnless { settings.reduceMotion },
+    ) {
     stateHolder.SaveableStateProvider(shown) {
         when (shown) {
             SettingsPage.Root -> RootPage(
@@ -180,6 +203,7 @@ fun SettingsScreen(
             SettingsPage.Ai -> ai?.let {
                 SettingsPageScaffold(
                     title = stringResource(Res.string.ai_title),
+                    art = SettingsArts.Ai,
                     subtitle = stringResource(Res.string.ai_subtitle),
                     contentPadding = contentPadding,
                     modifier = modifier,
@@ -226,7 +250,28 @@ fun SettingsScreen(
     }
     }
     }
+    }
+    }
 }
+
+private val ScrimFade = 14.dp
+
+private fun Modifier.statusBarScrim(color: androidx.compose.ui.graphics.Color, height: androidx.compose.ui.unit.Dp): Modifier =
+    if (height <= 0.dp) {
+        this
+    } else {
+        drawWithContent {
+            drawContent()
+            val band = height.toPx()
+            val fade = ScrimFade.toPx()
+            drawRect(color, size = androidx.compose.ui.geometry.Size(size.width, band))
+            drawRect(
+                androidx.compose.ui.graphics.Brush.verticalGradient(listOf(color, color.copy(alpha = 0f)), startY = band, endY = band + fade),
+                topLeft = androidx.compose.ui.geometry.Offset(0f, band),
+                size = androidx.compose.ui.geometry.Size(size.width, fade),
+            )
+        }
+    }
 
 private fun pageDepth(page: SettingsPage): Int = when (page) {
     SettingsPage.Root -> 0
@@ -250,42 +295,58 @@ private fun RootPage(
     var checkTrigger by androidx.compose.runtime.remember { androidx.compose.runtime.mutableIntStateOf(0) }
     var checking by androidx.compose.runtime.remember { mutableStateOf(false) }
 
-    SettingsPageScaffold(
-        title = stringResource(Res.string.settings_title),
-        contentPadding = contentPadding,
-        modifier = modifier,
+    androidx.compose.foundation.layout.Column(
+        modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .padding(contentPadding),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
+        SettingsHero(
+            title = stringResource(Res.string.settings_title),
+            tagline = stringResource(Res.string.settings_hero_tagline),
+            reduceMotion = settings.reduceMotion,
+        )
+
         SettingsGroup(modifier = Modifier.tourTargetInPage(TourTargets.SETTINGS_SUPPORT)) {
-            SettingsMenuRow(
+            SettingsBannerRow(
                 stringResource(Res.string.support_title),
                 stringResource(Res.string.support_subtitle),
-                leadingIcon = Res.drawable.ic_favorite,
+                art = SettingsArts.Support,
             ) { onOpen(SettingsPage.Support) }
         }
 
-        SettingsGroup(modifier = Modifier.tourTargetInPage(TourTargets.SETTINGS_LOOK)) {
+        SettingsGroup(
+            stringResource(Res.string.settings_group_personal),
+            modifier = Modifier.tourTargetInPage(TourTargets.SETTINGS_LOOK),
+        ) {
             SettingsMenuRow(
                 stringResource(Res.string.title_ui_settings),
                 stringResource(Res.string.summary_ui_settings),
+                art = SettingsArts.Appearance,
             ) { onOpen(SettingsPage.Ui) }
             SettingsMenuRow(
                 stringResource(Res.string.title_mode_settings),
                 stringResource(Res.string.summary_mode_settings),
+                art = SettingsArts.Mode,
             ) { onOpen(SettingsPage.Mode) }
             SettingsMenuRow(
                 stringResource(Res.string.monitor_title),
                 stringResource(Res.string.monitor_subtitle),
+                art = SettingsArts.Monitor,
             ) { onOpen(SettingsPage.Monitor) }
             if (hasAi) {
                 SettingsMenuRow(
                     stringResource(Res.string.ai_title),
                     stringResource(Res.string.ai_subtitle),
+                    art = SettingsArts.Ai,
                 ) { onOpen(SettingsPage.Ai) }
             }
             if (onReplayTour != null) {
                 SettingsMenuRow(
                     stringResource(Res.string.tour_replay_title),
                     stringResource(Res.string.tour_replay_subtitle),
+                    art = SettingsArts.Tour,
                 ) { onReplayTour() }
             }
         }
@@ -297,6 +358,7 @@ private fun RootPage(
             SettingsMenuRow(
                 stringResource(Res.string.routing_title),
                 stringResource(Res.string.routing_subtitle),
+                art = SettingsArts.Routing,
             ) { onOpen(SettingsPage.Routing) }
             SettingsMenuRow(
                 stringResource(Res.string.per_app_title),
@@ -305,10 +367,12 @@ private fun RootPage(
                 } else {
                     stringResource(Res.string.per_app_mode_off)
                 },
+                art = SettingsArts.PerApp,
             ) { onOpen(SettingsPage.PerApp) }
             SettingsMenuRow(
                 stringResource(Res.string.assets_title),
                 stringResource(Res.string.assets_subtitle),
+                art = SettingsArts.Assets,
             ) { onOpen(SettingsPage.Assets) }
         }
 
@@ -319,14 +383,17 @@ private fun RootPage(
             SettingsMenuRow(
                 stringResource(Res.string.title_dns_protocols),
                 stringResource(Res.string.summary_dns_protocols),
+                art = SettingsArts.Dns,
             ) { onOpen(SettingsPage.DnsProtocols) }
             SettingsMenuRow(
                 stringResource(Res.string.title_tor_settings),
                 stringResource(Res.string.summary_tor_settings),
+                art = SettingsArts.Tor,
             ) { onOpen(SettingsPage.Tor) }
             SettingsMenuRow(
                 stringResource(Res.string.title_ssh_settings),
                 stringResource(Res.string.summary_ssh_settings),
+                art = SettingsArts.Ssh,
             ) { onOpen(SettingsPage.Ssh) }
         }
 
@@ -337,41 +404,53 @@ private fun RootPage(
             SettingsMenuRow(
                 stringResource(Res.string.title_vpn_settings),
                 stringResource(Res.string.summary_vpn_settings),
+                art = SettingsArts.Vpn,
             ) { onOpen(SettingsPage.Vpn) }
             SettingsMenuRow(
                 stringResource(Res.string.title_core_settings),
                 stringResource(Res.string.summary_core_settings),
+                art = SettingsArts.Core,
             ) { onOpen(SettingsPage.Core) }
             SettingsMenuRow(
                 stringResource(Res.string.title_mux_settings),
                 stringResource(Res.string.summary_mux_settings),
+                art = SettingsArts.Mux,
             ) { onOpen(SettingsPage.Mux) }
             SettingsMenuRow(
                 stringResource(Res.string.title_fragment_settings),
                 stringResource(Res.string.summary_fragment_settings),
+                art = SettingsArts.Fragment,
             ) { onOpen(SettingsPage.Fragment) }
             SettingsMenuRow(
                 stringResource(Res.string.title_singbox_settings),
                 stringResource(Res.string.summary_singbox_settings),
+                art = SettingsArts.SingBox,
             ) { onOpen(SettingsPage.SingBox) }
             SettingsMenuRow(
                 stringResource(Res.string.title_observatory_settings),
                 stringResource(Res.string.summary_observatory_settings),
+                art = SettingsArts.Observatory,
             ) { onOpen(SettingsPage.Observatory) }
             SettingsMenuRow(
                 stringResource(Res.string.title_advanced),
                 stringResource(Res.string.summary_advanced),
+                art = SettingsArts.Advanced,
             ) { onOpen(SettingsPage.Advanced) }
         }
 
-        SettingsGroup(modifier = Modifier.tourTargetInPage(TourTargets.SETTINGS_TOOLS)) {
+        SettingsGroup(
+            stringResource(Res.string.settings_group_tools),
+            modifier = Modifier.tourTargetInPage(TourTargets.SETTINGS_TOOLS),
+        ) {
             SettingsMenuRow(
                 stringResource(Res.string.map_title),
                 stringResource(Res.string.map_settings_sub),
+                art = SettingsArts.Map,
             ) { onOpen(SettingsPage.Map) }
             SettingsMenuRow(
                 stringResource(Res.string.title_speedtest),
                 stringResource(Res.string.summary_speedtest),
+                art = SettingsArts.SpeedTest,
             ) { onOpen(SettingsPage.SpeedTest) }
         }
 
@@ -387,19 +466,28 @@ private fun RootPage(
                     fromPlay -> stringResource(Res.string.update_check_summary)
                     else -> stringResource(Res.string.update_check_summary_github)
                 },
+                art = SettingsArts.Update,
+                trailing = if (checking) {
+                    { SettingsBusyIndicator() }
+                } else {
+                    null
+                },
             ) { if (!checking) { checking = true; checkTrigger++ } }
             SettingsMenuRow(
                 stringResource(if (fromPlay) Res.string.rate_title else Res.string.rate_title_github),
                 stringResource(if (fromPlay) Res.string.rate_summary else Res.string.rate_summary_github),
+                art = SettingsArts.Rate,
             ) { platform.openStorePage() }
             SettingsMenuRow(
                 stringResource(Res.string.privacy_title),
                 stringResource(Res.string.privacy_settings_sub),
-                leadingIcon = Res.drawable.ic_policy,
+                art = SettingsArts.Privacy,
             ) { onOpen(SettingsPage.Privacy) }
-            SettingsMenuRow(stringResource(Res.string.settings_about), AppInfo.versionName) {
-                onAbout()
-            }
+            SettingsMenuRow(
+                stringResource(Res.string.settings_about),
+                AppInfo.versionName,
+                art = SettingsArts.About,
+            ) { onAbout() }
         }
 
         ManualUpdateCheckHost(
@@ -407,6 +495,7 @@ private fun RootPage(
             trigger = checkTrigger,
             onFinished = { checking = false },
         )
+        Spacer(Modifier.height(28.dp))
     }
 }
 
@@ -419,6 +508,7 @@ private fun DnsProtocolsPage(
 ) {
     SettingsPageScaffold(
         title = stringResource(Res.string.title_dns_protocols),
+        art = SettingsArts.Dns,
         contentPadding = contentPadding,
         modifier = modifier,
     ) {
@@ -523,6 +613,7 @@ private fun TorPage(
 ) {
     SettingsPageScaffold(
         title = stringResource(Res.string.title_tor_settings),
+        art = SettingsArts.Tor,
         contentPadding = contentPadding,
         modifier = modifier,
     ) {
@@ -719,6 +810,7 @@ private fun SshPage(
 ) {
     SettingsPageScaffold(
         title = stringResource(Res.string.title_ssh_settings),
+        art = SettingsArts.Ssh,
         contentPadding = contentPadding,
         modifier = modifier,
     ) {
@@ -758,73 +850,95 @@ private fun UiPage(
 ) {
     SettingsPageScaffold(
         title = stringResource(Res.string.title_ui_settings),
+        art = SettingsArts.Appearance,
         subtitle = stringResource(Res.string.summary_ui_settings),
         contentPadding = contentPadding,
         modifier = modifier,
     ) {
-        SettingsGroup(title = stringResource(Res.string.transition_title)) {
-            TransitionPicker(
-                selected = s.screenTransition,
-                reduceMotion = s.reduceMotion,
-                onSelect = { style -> onUpdate { it.copy(screenTransition = style) } },
+        val dynamicActive = s.dynamicColor && LocalPlatform.current.supportsDynamicColor
+        val oldHome = s.appDesign == AppDesign.Old
+        SettingsGroup {
+            AppDesignPicker(
+                selected = s.appDesign,
+                onSelect = { v -> onUpdate { it.copy(appDesign = v) } },
             )
-        }
-
-        SettingsGroup(title = stringResource(Res.string.theme_profile_title)) {
-            ThemeProfileRow(
-                label = stringResource(Res.string.theme_profile_title),
-                subtitle = stringResource(Res.string.theme_profile_sub),
-                defaultLabel = stringResource(Res.string.theme_profile_none),
-                selectedId = s.themeProfileId,
-                onSelect = { profile ->
-                    onUpdate {
-                        if (profile == null) it.resetPersonalization()
-                        else it.applyThemeProfile(profile)
-                    }
-                },
-            )
-        }
-        SettingsGroup(title = stringResource(Res.string.nav_style_title)) {
-            SettingsListRow(
-                title = stringResource(Res.string.nav_style_title),
-                options = listOf(
-                    NavBarStyle.FloatingPill to stringResource(Res.string.nav_style_floating),
-                    NavBarStyle.CompactDock to stringResource(Res.string.nav_style_compact),
-                    NavBarStyle.ExpressivePill to stringResource(Res.string.nav_style_expressive),
-                    NavBarStyle.FullBar to stringResource(Res.string.nav_style_full),
-                    NavBarStyle.Underline to stringResource(Res.string.nav_style_underline),
-                    NavBarStyle.Minimal to stringResource(Res.string.nav_style_minimal),
-                ),
-                selected = s.navBarStyle,
-                onSelected = { v -> onUpdate { it.copy(navBarStyle = v) } },
-            )
-        }
-        SettingsGroup(title = stringResource(Res.string.connect_style_title)) {
-            ConnectStyleRow(
-                label = stringResource(Res.string.connect_style_title),
-                subtitle = stringResource(Res.string.connect_style_sub),
-                selected = s.connectButtonStyle,
-                nameOf = { style -> stringResource(style.labelRes()) },
-                onSelect = { style -> onUpdate { it.copy(connectButtonStyle = style) } },
-            )
-            if (s.connectButtonStyle == ConnectButtonStyle.Hero) {
+            if (!oldHome) {
                 SettingsInfoRow(
-                    title = stringResource(Res.string.connect_style_hero),
-                    body = stringResource(Res.string.connect_style_hero_note),
+                    title = stringResource(Res.string.home_design_title),
+                    body = stringResource(Res.string.home_design_old_note),
                 )
             }
         }
-        SettingsGroup {
-            SettingsListRow(
+
+        SettingsGroup(title = stringResource(Res.string.settings_group_colors)) {
+            SettingsChoiceRow(
                 title = stringResource(Res.string.title_pref_ui_mode_night),
+                summary = null,
                 options = listOf(
                     ThemeMode.System to stringResource(Res.string.settings_theme_system),
                     ThemeMode.Light to stringResource(Res.string.settings_theme_light),
                     ThemeMode.Dark to stringResource(Res.string.settings_theme_dark),
                 ),
                 selected = s.themeMode,
+                icons = listOf(Res.drawable.ic_fill_brightness_auto, Res.drawable.ic_fill_light_mode, Res.drawable.ic_fill_dark_mode),
                 onSelected = { v -> onUpdate { it.copy(themeMode = v) } },
             )
+            SettingsSwitchRow(
+                title = stringResource(Res.string.title_pref_dynamic_color),
+                summary = stringResource(Res.string.summary_pref_dynamic_color),
+                checked = s.dynamicColor,
+                enabled = LocalPlatform.current.supportsDynamicColor,
+                onCheckedChange = { v -> onUpdate { it.copy(dynamicColor = v) } },
+            )
+            if (!dynamicActive) {
+                ColorStylePicker(
+                    selected = s.colorStyle,
+                    accent = s.accentColor,
+                    contrast = s.colorContrast,
+                    onSelect = { style -> onUpdate { it.copy(colorStyle = style) } },
+                )
+                AccentPicker(
+                    selected = s.accentColor,
+                    onSelect = { idx -> onUpdate { it.copy(accentColor = idx) } },
+                )
+                SettingsChoiceRow(
+                    title = stringResource(Res.string.contrast_title),
+                    summary = null,
+                    options = listOf(
+                        ColorContrast.Standard to stringResource(Res.string.contrast_standard),
+                        ColorContrast.Medium to stringResource(Res.string.contrast_medium),
+                        ColorContrast.High to stringResource(Res.string.contrast_high),
+                    ),
+                    selected = s.colorContrast,
+                    onSelected = { v -> onUpdate { it.copy(colorContrast = v) } },
+                )
+            }
+            SettingsSwitchRow(
+                title = stringResource(Res.string.title_pref_amoled),
+                summary = stringResource(Res.string.summary_pref_amoled),
+                checked = s.amoledBlack,
+                onCheckedChange = { v -> onUpdate { it.copy(amoledBlack = v) } },
+            )
+        }
+
+        SettingsGroup {
+            SettingsSegment {
+                ThemeProfileRow(
+                    label = stringResource(Res.string.theme_profile_title),
+                    subtitle = stringResource(Res.string.theme_profile_sub),
+                    defaultLabel = stringResource(Res.string.theme_profile_none),
+                    selectedId = s.themeProfileId,
+                    onSelect = { profile ->
+                        onUpdate {
+                            if (profile == null) it.resetPersonalization()
+                            else it.applyThemeProfile(profile)
+                        }
+                    },
+                )
+            }
+        }
+
+        SettingsGroup(title = stringResource(Res.string.settings_group_display)) {
             SettingsListRow(
                 title = stringResource(Res.string.settings_language),
                 options = listOf(
@@ -836,6 +950,18 @@ private fun UiPage(
                 ),
                 selected = s.language,
                 onSelected = onLanguage,
+            )
+            SettingsListRow(
+                title = stringResource(Res.string.personalize_font_size),
+                options = listOf(
+                    UiFontScale.Smallest to stringResource(Res.string.personalize_font_smallest),
+                    UiFontScale.Smaller to stringResource(Res.string.personalize_font_smaller),
+                    UiFontScale.Normal to stringResource(Res.string.personalize_font_normal),
+                    UiFontScale.Larger to stringResource(Res.string.personalize_font_larger),
+                    UiFontScale.Largest to stringResource(Res.string.personalize_font_largest),
+                ),
+                selected = s.uiFontScale,
+                onSelected = { v -> onUpdate { it.copy(uiFontScale = v) } },
             )
             SettingsSwitchRow(
                 title = stringResource(Res.string.title_pref_reduce_motion),
@@ -866,121 +992,145 @@ private fun UiPage(
                     ),
                 )
             }
-            SettingsSwitchRow(
-                title = stringResource(Res.string.title_pref_dynamic_color),
-                summary = stringResource(Res.string.summary_pref_dynamic_color),
-                checked = s.dynamicColor,
-                enabled = LocalPlatform.current.supportsDynamicColor,
-                onCheckedChange = { v -> onUpdate { it.copy(dynamicColor = v) } },
-            )
-            SettingsSwitchRow(
-                title = stringResource(Res.string.title_pref_amoled),
-                summary = stringResource(Res.string.summary_pref_amoled),
-                checked = s.amoledBlack,
-                onCheckedChange = { v -> onUpdate { it.copy(amoledBlack = v) } },
-            )
+        }
 
-            if (!s.dynamicColor) {
-                AccentColorRow(
-                    label = stringResource(Res.string.title_pref_accent),
-                    selected = s.accentColor,
-                    onSelect = { idx -> onUpdate { it.copy(accentColor = idx) } },
+        SettingsGroup {
+            SettingsSegment {
+                TransitionPicker(
+                    selected = s.screenTransition,
+                    reduceMotion = s.reduceMotion,
+                    onSelect = { style -> onUpdate { it.copy(screenTransition = style) } },
                 )
             }
         }
 
-        SettingsGroup(title = stringResource(Res.string.personalize_tiles_title)) {
-            val cs = androidx.compose.material3.MaterialTheme.colorScheme
-            PersonalizeColorRow(
-                title = stringResource(Res.string.personalize_download),
-                subtitle = stringResource(Res.string.personalize_download_sub),
-                stored = s.customDownloadColor,
-                default = cs.primary,
-                preview = { c -> TrafficTilePreview(Res.drawable.ic_download, stringResource(Res.string.home_download), c) },
-                onChange = { v -> onUpdate { it.copy(customDownloadColor = v) } },
+        SettingsGroup {
+            SettingsListRow(
+                title = stringResource(Res.string.nav_style_title),
+                options = listOf(
+                    NavBarStyle.FloatingPill to stringResource(Res.string.nav_style_floating),
+                    NavBarStyle.CompactDock to stringResource(Res.string.nav_style_compact),
+                    NavBarStyle.ExpressivePill to stringResource(Res.string.nav_style_expressive),
+                    NavBarStyle.FullBar to stringResource(Res.string.nav_style_full),
+                    NavBarStyle.Underline to stringResource(Res.string.nav_style_underline),
+                    NavBarStyle.Minimal to stringResource(Res.string.nav_style_minimal),
+                ),
+                selected = s.navBarStyle,
+                onSelected = { v -> onUpdate { it.copy(navBarStyle = v) } },
             )
-            PersonalizeColorRow(
-                title = stringResource(Res.string.personalize_download_tile),
-                subtitle = stringResource(Res.string.personalize_download_tile_sub),
-                stored = s.customDownloadTileColor,
-                default = cs.surfaceContainerHigh,
-                preview = { c ->
-                    TrafficTilePreview(
-                        Res.drawable.ic_download,
-                        stringResource(Res.string.home_download),
-                        accent = s.customDownloadColor?.argbLongToColor() ?: cs.primary,
-                        container = c,
+            if (oldHome) {
+                SettingsSegment {
+                    ConnectStyleRow(
+                        label = stringResource(Res.string.connect_style_title),
+                        subtitle = stringResource(Res.string.connect_style_sub),
+                        selected = s.connectButtonStyle,
+                        nameOf = { style -> stringResource(style.labelRes()) },
+                        onSelect = { style -> onUpdate { it.copy(connectButtonStyle = style) } },
                     )
-                },
-                onChange = { v -> onUpdate { it.copy(customDownloadTileColor = v) } },
-            )
-            PersonalizeColorRow(
-                title = stringResource(Res.string.personalize_upload),
-                subtitle = stringResource(Res.string.personalize_upload_sub),
-                stored = s.customUploadColor,
-                default = cs.tertiary,
-                preview = { c -> TrafficTilePreview(Res.drawable.ic_upload, stringResource(Res.string.home_upload), c) },
-                onChange = { v -> onUpdate { it.copy(customUploadColor = v) } },
-            )
-            PersonalizeColorRow(
-                title = stringResource(Res.string.personalize_upload_tile),
-                subtitle = stringResource(Res.string.personalize_upload_tile_sub),
-                stored = s.customUploadTileColor,
-                default = cs.surfaceContainerHigh,
-                preview = { c ->
-                    TrafficTilePreview(
-                        Res.drawable.ic_upload,
-                        stringResource(Res.string.home_upload),
-                        accent = s.customUploadColor?.argbLongToColor() ?: cs.tertiary,
-                        container = c,
+                }
+                if (s.connectButtonStyle == ConnectButtonStyle.Hero) {
+                    SettingsInfoRow(
+                        title = stringResource(Res.string.connect_style_hero),
+                        body = stringResource(Res.string.connect_style_hero_note),
                     )
-                },
-                onChange = { v -> onUpdate { it.copy(customUploadTileColor = v) } },
-            )
+                }
+            }
         }
 
-        SettingsGroup(title = stringResource(Res.string.personalize_title)) {
-            val cs = androidx.compose.material3.MaterialTheme.colorScheme
-            PersonalizeColorRow(
-                title = stringResource(Res.string.personalize_connect),
-                subtitle = stringResource(Res.string.personalize_connect_sub),
-                stored = s.customConnectColor,
-                default = cs.primary,
-                preview = { c -> ConnectButtonPreview(c) },
-                onChange = { v -> onUpdate { it.copy(customConnectColor = v) } },
-            )
-            PersonalizeColorRow(
-                title = stringResource(Res.string.personalize_connected),
-                subtitle = stringResource(Res.string.personalize_connected_sub),
-                stored = s.customConnectedColor,
-                default = cs.secondaryContainer,
-                preview = { c -> ConnectButtonPreview(c) },
-                onChange = { v -> onUpdate { it.copy(customConnectedColor = v) } },
-            )
-            PersonalizeColorRow(
-                title = stringResource(Res.string.personalize_config_card),
-                subtitle = stringResource(Res.string.personalize_config_card_sub),
-                stored = s.customConfigCardColor,
-                default = cs.primaryContainer,
-                preview = { c -> ServerCardPreview(c, active = true) },
-                onChange = { v -> onUpdate { it.copy(customConfigCardColor = v) } },
-            )
-            PersonalizeColorRow(
-                title = stringResource(Res.string.personalize_config_card_text),
-                subtitle = stringResource(Res.string.personalize_config_card_text_sub),
-                stored = s.customConfigCardTextColor,
-                default = cs.onPrimaryContainer,
-                preview = { c -> TapHintPreview(c) },
-                onChange = { v -> onUpdate { it.copy(customConfigCardTextColor = v) } },
-            )
-            PersonalizeColorRow(
-                title = stringResource(Res.string.personalize_tap_hint),
-                subtitle = stringResource(Res.string.personalize_tap_hint_sub),
-                stored = s.customTapHintColor,
-                default = cs.onPrimaryContainer.copy(alpha = 0.75f),
-                preview = { c -> TapHintPreview(c) },
-                onChange = { v -> onUpdate { it.copy(customTapHintColor = v) } },
-            )
+        if (oldHome) {
+            SettingsGroup(title = stringResource(Res.string.personalize_tiles_title)) {
+                val cs = androidx.compose.material3.MaterialTheme.colorScheme
+                PersonalizeColorRow(
+                    title = stringResource(Res.string.personalize_download),
+                    subtitle = stringResource(Res.string.personalize_download_sub),
+                    stored = s.customDownloadColor,
+                    default = cs.primary,
+                    preview = { c -> TrafficTilePreview(Res.drawable.ic_download, stringResource(Res.string.home_download), c) },
+                    onChange = { v -> onUpdate { it.copy(customDownloadColor = v) } },
+                )
+                PersonalizeColorRow(
+                    title = stringResource(Res.string.personalize_download_tile),
+                    subtitle = stringResource(Res.string.personalize_download_tile_sub),
+                    stored = s.customDownloadTileColor,
+                    default = cs.surfaceContainerHigh,
+                    preview = { c ->
+                        TrafficTilePreview(
+                            Res.drawable.ic_download,
+                            stringResource(Res.string.home_download),
+                            accent = s.customDownloadColor?.argbLongToColor() ?: cs.primary,
+                            container = c,
+                        )
+                    },
+                    onChange = { v -> onUpdate { it.copy(customDownloadTileColor = v) } },
+                )
+                PersonalizeColorRow(
+                    title = stringResource(Res.string.personalize_upload),
+                    subtitle = stringResource(Res.string.personalize_upload_sub),
+                    stored = s.customUploadColor,
+                    default = cs.tertiary,
+                    preview = { c -> TrafficTilePreview(Res.drawable.ic_upload, stringResource(Res.string.home_upload), c) },
+                    onChange = { v -> onUpdate { it.copy(customUploadColor = v) } },
+                )
+                PersonalizeColorRow(
+                    title = stringResource(Res.string.personalize_upload_tile),
+                    subtitle = stringResource(Res.string.personalize_upload_tile_sub),
+                    stored = s.customUploadTileColor,
+                    default = cs.surfaceContainerHigh,
+                    preview = { c ->
+                        TrafficTilePreview(
+                            Res.drawable.ic_upload,
+                            stringResource(Res.string.home_upload),
+                            accent = s.customUploadColor?.argbLongToColor() ?: cs.tertiary,
+                            container = c,
+                        )
+                    },
+                    onChange = { v -> onUpdate { it.copy(customUploadTileColor = v) } },
+                )
+            }
+
+            SettingsGroup(title = stringResource(Res.string.personalize_title)) {
+                val cs = androidx.compose.material3.MaterialTheme.colorScheme
+                PersonalizeColorRow(
+                    title = stringResource(Res.string.personalize_connect),
+                    subtitle = stringResource(Res.string.personalize_connect_sub),
+                    stored = s.customConnectColor,
+                    default = cs.primary,
+                    preview = { c -> ConnectButtonPreview(c) },
+                    onChange = { v -> onUpdate { it.copy(customConnectColor = v) } },
+                )
+                PersonalizeColorRow(
+                    title = stringResource(Res.string.personalize_connected),
+                    subtitle = stringResource(Res.string.personalize_connected_sub),
+                    stored = s.customConnectedColor,
+                    default = cs.secondaryContainer,
+                    preview = { c -> ConnectButtonPreview(c) },
+                    onChange = { v -> onUpdate { it.copy(customConnectedColor = v) } },
+                )
+                PersonalizeColorRow(
+                    title = stringResource(Res.string.personalize_config_card),
+                    subtitle = stringResource(Res.string.personalize_config_card_sub),
+                    stored = s.customConfigCardColor,
+                    default = cs.primaryContainer,
+                    preview = { c -> ServerCardPreview(c, active = true) },
+                    onChange = { v -> onUpdate { it.copy(customConfigCardColor = v) } },
+                )
+                PersonalizeColorRow(
+                    title = stringResource(Res.string.personalize_config_card_text),
+                    subtitle = stringResource(Res.string.personalize_config_card_text_sub),
+                    stored = s.customConfigCardTextColor,
+                    default = cs.onPrimaryContainer,
+                    preview = { c -> TapHintPreview(c) },
+                    onChange = { v -> onUpdate { it.copy(customConfigCardTextColor = v) } },
+                )
+                PersonalizeColorRow(
+                    title = stringResource(Res.string.personalize_tap_hint),
+                    subtitle = stringResource(Res.string.personalize_tap_hint_sub),
+                    stored = s.customTapHintColor,
+                    default = cs.onPrimaryContainer.copy(alpha = 0.75f),
+                    preview = { c -> TapHintPreview(c) },
+                    onChange = { v -> onUpdate { it.copy(customTapHintColor = v) } },
+                )
+            }
         }
         SettingsGroup(title = stringResource(Res.string.personalize_servers_title)) {
             val cs = androidx.compose.material3.MaterialTheme.colorScheme
@@ -1039,18 +1189,6 @@ private fun UiPage(
                 selected = s.listDensity,
                 onSelected = { v -> onUpdate { it.copy(listDensity = v) } },
             )
-            SettingsListRow(
-                title = stringResource(Res.string.personalize_font_size),
-                options = listOf(
-                    UiFontScale.Smallest to stringResource(Res.string.personalize_font_smallest),
-                    UiFontScale.Smaller to stringResource(Res.string.personalize_font_smaller),
-                    UiFontScale.Normal to stringResource(Res.string.personalize_font_normal),
-                    UiFontScale.Larger to stringResource(Res.string.personalize_font_larger),
-                    UiFontScale.Largest to stringResource(Res.string.personalize_font_largest),
-                ),
-                selected = s.uiFontScale,
-                onSelected = { v -> onUpdate { it.copy(uiFontScale = v) } },
-            )
             SettingsActionRow(
                 title = stringResource(Res.string.personalize_reset_all),
                 summary = stringResource(Res.string.personalize_reset_all_sub),
@@ -1058,7 +1196,7 @@ private fun UiPage(
                 onClick = { onUpdate { it.resetPersonalization() } },
             )
         }
-        SettingsGroup {
+        SettingsGroup(title = stringResource(Res.string.settings_group_behaviour)) {
             SettingsSwitchRow(
                 title = stringResource(Res.string.title_pref_speed_enabled),
                 summary = stringResource(Res.string.summary_pref_speed_enabled),
@@ -1109,43 +1247,45 @@ private fun UiPage(
                 checked = s.homeAfterSelect,
                 onCheckedChange = { v -> onUpdate { it.copy(homeAfterSelect = v) } },
             )
-            SettingsSwitchRow(
-                title = stringResource(Res.string.title_pref_traffic_tiles),
-                summary = stringResource(Res.string.summary_pref_traffic_tiles),
-                checked = s.showTrafficTiles,
-                onCheckedChange = { v -> onUpdate { it.copy(showTrafficTiles = v) } },
-            )
-            SettingsSwitchRow(
-                title = stringResource(Res.string.title_pref_traffic_tiles_top),
-                summary = stringResource(Res.string.summary_pref_traffic_tiles_top),
-                checked = s.trafficTilesAboveHero,
-                enabled = s.showTrafficTiles,
-                onCheckedChange = { v -> onUpdate { it.copy(trafficTilesAboveHero = v) } },
-            )
-            SettingsListRow(
-                title = stringResource(Res.string.title_pref_traffic_card_style),
-                options = listOf(
-                    TrafficCardStyle.Cards to stringResource(Res.string.card_style_cards),
-                    TrafficCardStyle.Duo to stringResource(Res.string.card_style_duo),
-                    TrafficCardStyle.Rings to stringResource(Res.string.card_style_rings),
-                    TrafficCardStyle.Minimal to stringResource(Res.string.card_style_minimal),
-                    TrafficCardStyle.Graph to stringResource(Res.string.card_style_graph),
-                ),
-                selected = s.trafficCardStyle,
-                enabled = s.showTrafficTiles,
-                onSelected = { v -> onUpdate { it.copy(trafficCardStyle = v) } },
-            )
-            SettingsListRow(
-                title = stringResource(Res.string.title_pref_traffic_tile_size),
-                options = listOf(
-                    TrafficTileSize.Small to stringResource(Res.string.tile_size_small),
-                    TrafficTileSize.Normal to stringResource(Res.string.tile_size_normal),
-                    TrafficTileSize.Large to stringResource(Res.string.tile_size_large),
-                ),
-                selected = s.trafficTileSize,
-                enabled = s.showTrafficTiles,
-                onSelected = { v -> onUpdate { it.copy(trafficTileSize = v) } },
-            )
+            if (oldHome) {
+                SettingsSwitchRow(
+                    title = stringResource(Res.string.title_pref_traffic_tiles),
+                    summary = stringResource(Res.string.summary_pref_traffic_tiles),
+                    checked = s.showTrafficTiles,
+                    onCheckedChange = { v -> onUpdate { it.copy(showTrafficTiles = v) } },
+                )
+                SettingsSwitchRow(
+                    title = stringResource(Res.string.title_pref_traffic_tiles_top),
+                    summary = stringResource(Res.string.summary_pref_traffic_tiles_top),
+                    checked = s.trafficTilesAboveHero,
+                    enabled = s.showTrafficTiles,
+                    onCheckedChange = { v -> onUpdate { it.copy(trafficTilesAboveHero = v) } },
+                )
+                SettingsListRow(
+                    title = stringResource(Res.string.title_pref_traffic_card_style),
+                    options = listOf(
+                        TrafficCardStyle.Cards to stringResource(Res.string.card_style_cards),
+                        TrafficCardStyle.Duo to stringResource(Res.string.card_style_duo),
+                        TrafficCardStyle.Rings to stringResource(Res.string.card_style_rings),
+                        TrafficCardStyle.Minimal to stringResource(Res.string.card_style_minimal),
+                        TrafficCardStyle.Graph to stringResource(Res.string.card_style_graph),
+                    ),
+                    selected = s.trafficCardStyle,
+                    enabled = s.showTrafficTiles,
+                    onSelected = { v -> onUpdate { it.copy(trafficCardStyle = v) } },
+                )
+                SettingsListRow(
+                    title = stringResource(Res.string.title_pref_traffic_tile_size),
+                    options = listOf(
+                        TrafficTileSize.Small to stringResource(Res.string.tile_size_small),
+                        TrafficTileSize.Normal to stringResource(Res.string.tile_size_normal),
+                        TrafficTileSize.Large to stringResource(Res.string.tile_size_large),
+                    ),
+                    selected = s.trafficTileSize,
+                    enabled = s.showTrafficTiles,
+                    onSelected = { v -> onUpdate { it.copy(trafficTileSize = v) } },
+                )
+            }
         }
     }
 }
@@ -1187,6 +1327,7 @@ private fun VpnPage(
     val hevOn = isVpn
     SettingsPageScaffold(
         title = stringResource(Res.string.title_vpn_settings),
+        art = SettingsArts.Vpn,
         subtitle = stringResource(Res.string.summary_vpn_settings),
         contentPadding = contentPadding,
         modifier = modifier,
@@ -1227,7 +1368,7 @@ private fun VpnPage(
             )
             SettingsListRow(
                 title = stringResource(Res.string.title_pref_vpn_interface_address),
-                options = VpnInterfaceAddress.entries.map { it to it.label },
+                options = VpnInterfaceAddress.entries.map { it to dev.cluvex.zedsecure.ui.format.ltrIsolate(it.label) },
                 selected = s.vpnInterfaceAddress,
                 enabled = isVpn,
                 onSelected = { v -> onUpdate { it.copy(vpnInterfaceAddress = v) } },
@@ -1244,11 +1385,13 @@ private fun VpnPage(
                 },
             )
 
-            MtuOptimizeRow(
-                enabled = isVpn,
-                serverHost = mtuHint?.host,
-                overhead = mtuHint?.overhead ?: dev.cluvex.zedsecure.data.net.MtuOverheads.worstCase(),
-            ) { mtu -> onUpdate { it.copy(vpnMtu = mtu) } }
+            SettingsSegment {
+                MtuOptimizeRow(
+                    enabled = isVpn,
+                    serverHost = mtuHint?.host,
+                    overhead = mtuHint?.overhead ?: dev.cluvex.zedsecure.data.net.MtuOverheads.worstCase(),
+                ) { mtu -> onUpdate { it.copy(vpnMtu = mtu) } }
+            }
             SettingsListRow(
                 title = stringResource(Res.string.title_pref_vpn_bypass_lan),
                 options = listOf(
@@ -1292,7 +1435,24 @@ private fun VpnPage(
             )
         }
 
-        if (LocalPlatform.current.choosesTunEngine) {
+        if (LocalPlatform.current.choosesTunEngine && LocalPlatform.current.isComputer) {
+            SettingsGroup {
+                SettingsListRow(
+                    title = stringResource(Res.string.tun_engine_title),
+                    options = listOf(
+                        false to stringResource(Res.string.tun_engine_hev_default),
+                        true to "zeptun",
+                    ),
+                    selected = s.useZepTun,
+                    enabled = hevOn,
+                    onSelected = { v -> onUpdate { it.copy(useZepTun = v) } },
+                )
+                SettingsInfoRow(
+                    stringResource(Res.string.tun_engine_title),
+                    stringResource(Res.string.tun_engine_sub_desktop),
+                )
+            }
+        } else if (LocalPlatform.current.choosesTunEngine) {
             SettingsGroup {
                 SettingsInfoRow(
                     stringResource(Res.string.title_pref_use_hev_tunnel),
@@ -1341,6 +1501,7 @@ private fun CorePage(
     val localProxy = s.effectiveLocalProxy
     SettingsPageScaffold(
         title = stringResource(Res.string.title_core_settings),
+        art = SettingsArts.Core,
         subtitle = stringResource(Res.string.summary_core_settings),
         contentPadding = contentPadding,
         modifier = modifier,
@@ -1539,6 +1700,7 @@ private fun SingBoxPage(
 ) {
     SettingsPageScaffold(
         title = stringResource(Res.string.title_singbox_settings),
+        art = SettingsArts.SingBox,
         subtitle = stringResource(Res.string.summary_singbox_settings),
         contentPadding = contentPadding,
         modifier = modifier,
@@ -1680,6 +1842,7 @@ private fun MuxPage(
 ) {
     SettingsPageScaffold(
         title = stringResource(Res.string.title_mux_settings),
+        art = SettingsArts.Mux,
         subtitle = stringResource(Res.string.summary_mux_settings),
         contentPadding = contentPadding,
         modifier = modifier,
@@ -1734,6 +1897,7 @@ private fun FragmentPage(
 ) {
     SettingsPageScaffold(
         title = stringResource(Res.string.title_fragment_settings),
+        art = SettingsArts.Fragment,
         subtitle = stringResource(Res.string.summary_fragment_settings),
         contentPadding = contentPadding,
         modifier = modifier,
@@ -1792,6 +1956,7 @@ private fun ObservatoryPage(
     val minutes = stringResource(Res.string.auto_minutes, "%s")
     SettingsPageScaffold(
         title = stringResource(Res.string.title_observatory_settings),
+        art = SettingsArts.Observatory,
         subtitle = stringResource(Res.string.summary_observatory_settings),
         contentPadding = contentPadding,
         modifier = modifier,
@@ -1840,6 +2005,7 @@ private fun AdvancedPage(
 ) {
     SettingsPageScaffold(
         title = stringResource(Res.string.title_advanced),
+        art = SettingsArts.Advanced,
         subtitle = stringResource(Res.string.summary_advanced),
         contentPadding = contentPadding,
         modifier = modifier,
@@ -1934,6 +2100,7 @@ private fun ModePage(
 ) {
     SettingsPageScaffold(
         title = stringResource(Res.string.title_mode_settings),
+        art = SettingsArts.Mode,
         subtitle = stringResource(Res.string.summary_mode_settings),
         contentPadding = contentPadding,
         modifier = modifier,
@@ -1950,7 +2117,10 @@ private fun ModePage(
                         (RunMode.Vpn to stringResource(Res.string.mode_tun)).takeIf { tun },
                     )
                 } else {
-                    listOf(RunMode.Vpn, RunMode.ProxyOnly).map { it to it.value }
+                    listOf(
+                        RunMode.Vpn to stringResource(Res.string.mode_vpn_explained),
+                        RunMode.ProxyOnly to stringResource(Res.string.mode_proxy_explained),
+                    )
                 },
                 selected = if (desktop && !tun && s.runMode == RunMode.Vpn) RunMode.SystemProxy else s.runMode,
                 onSelected = { v -> onUpdate { it.copy(runMode = v) } },

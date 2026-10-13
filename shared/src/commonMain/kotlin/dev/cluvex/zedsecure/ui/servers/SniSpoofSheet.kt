@@ -97,7 +97,7 @@ fun SniSpoofSheet(
                         placeholder = { Text(stringResource(Res.string.snispoof_pick_hint)) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(pickerOpen) },
                         modifier = Modifier.fillMaxWidth().menuAnchor(
-                            androidx.compose.material3.MenuAnchorType.PrimaryNotEditable,
+                            androidx.compose.material3.ExposedDropdownMenuAnchorType.PrimaryNotEditable,
                         ),
                     )
                     DropdownMenu(expanded = pickerOpen, onDismissRequest = { pickerOpen = false }) {

@@ -2,7 +2,6 @@ package dev.cluvex.zedsecure.ui.theme
 
 import androidx.compose.material3.ColorScheme
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
 import dev.cluvex.zedsecure.domain.model.AppSettings
 import dev.cluvex.zedsecure.domain.model.CardCornerStyle
@@ -27,23 +26,6 @@ val AccentPresets: List<AccentPreset> = listOf(
 
 fun Color.readableOn(): Color =
     if (luminance() > 0.5f) Color(0xFF10131A) else Color.White
-
-private fun onColorFor(color: Color): Color = color.readableOn()
-
-fun ColorScheme.withAccent(index: Int, dark: Boolean): ColorScheme {
-    val preset = AccentPresets.getOrNull(index) ?: return this
-    val base = if (dark) preset.dark else preset.light
-    val container = if (dark) lerp(base, Color.Black, 0.55f) else lerp(base, Color.White, 0.82f)
-    val onContainer = if (dark) lerp(base, Color.White, 0.85f) else lerp(base, Color.Black, 0.6f)
-    return copy(
-        primary = base,
-        onPrimary = onColorFor(base),
-        primaryContainer = container,
-        onPrimaryContainer = onContainer,
-        inversePrimary = if (dark) preset.light else preset.dark,
-        surfaceTint = base,
-    )
-}
 
 fun ColorScheme.amoled(dark: Boolean): ColorScheme {
     if (!dark) return this

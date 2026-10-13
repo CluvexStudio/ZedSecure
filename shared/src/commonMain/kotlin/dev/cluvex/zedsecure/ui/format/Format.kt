@@ -1,19 +1,19 @@
 package dev.cluvex.zedsecure.ui.format
 
 fun formatRate(bytesPerSecond: Long): Pair<String, String> = when {
-    bytesPerSecond <= 0 -> "0" to "B/s"
-    bytesPerSecond < 1_024 -> bytesPerSecond.toString() to "B/s"
+    bytesPerSecond <= 0 -> "%d".format(0) to "B/s"
+    bytesPerSecond < 1_024 -> "%d".format(bytesPerSecond) to "B/s"
     bytesPerSecond < 1_048_576 -> {
         val kb = bytesPerSecond / 1024.0
-        (if (kb < 10) "%.1f".format(kb) else kb.toInt().toString()) to "KB/s"
+        (if (kb < 10) "%.1f".format(kb) else "%d".format(kb.toInt())) to "KB/s"
     }
     bytesPerSecond < 1_073_741_824 -> "%.1f".format(bytesPerSecond / 1_048_576.0) to "MB/s"
     else -> "%.2f".format(bytesPerSecond / 1_073_741_824.0) to "GB/s"
 }
 
 fun formatBytes(bytes: Long): String = when {
-    bytes <= 0 -> "0 B"
-    bytes < 1_024 -> "$bytes B"
+    bytes <= 0 -> "%d B".format(0)
+    bytes < 1_024 -> "%d B".format(bytes)
     bytes < 1_048_576 -> "%.1f KB".format(bytes / 1024.0)
     bytes < 1_073_741_824 -> "%.1f MB".format(bytes / 1_048_576.0)
     else -> "%.2f GB".format(bytes / 1_073_741_824.0)

@@ -295,6 +295,10 @@ class MainActivity : ComponentActivity() {
                 dynamicColor = settings.dynamicColor,
                 accentColor = settings.accentColor,
                 amoledBlack = settings.amoledBlack,
+                colorStyle = settings.colorStyle,
+                colorContrast = settings.colorContrast,
+                design = settings.appDesign,
+                animateColors = !settings.reduceMotion,
                 languageTag = langTag,
                 fontScale = settings.uiFontScale.scale,
             ) {

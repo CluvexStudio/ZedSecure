@@ -149,35 +149,25 @@ fun PersonalizeColorRow(
 ) {
     var open by remember { mutableStateOf(false) }
     val current = stored?.argbLongToColor() ?: default
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clickable { open = true }
-            .padding(horizontal = 20.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
-            Text(
-                if (stored == null) stringResource(Res.string.personalize_default) else current.toHex(),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+    SettingsRow(
+        title = title,
+        description = if (stored == null) stringResource(Res.string.personalize_default) else current.toHex(),
+        trailing = {
+            Box(
+                Modifier
+                    .size(34.dp)
+                    .clip(CircleShape)
+                    .background(current)
+                    .border(
+                        width = if (stored == null) 1.dp else 2.dp,
+                        color = if (stored == null) MaterialTheme.colorScheme.outlineVariant
+                        else MaterialTheme.colorScheme.onSurface,
+                        shape = CircleShape,
+                    ),
             )
-        }
-        Spacer(Modifier.width(12.dp))
-        Box(
-            Modifier
-                .size(34.dp)
-                .clip(CircleShape)
-                .background(current)
-                .border(
-                    width = if (stored == null) 1.dp else 2.dp,
-                    color = if (stored == null) MaterialTheme.colorScheme.outlineVariant
-                    else MaterialTheme.colorScheme.onSurface,
-                    shape = CircleShape,
-                ),
-        )
-    }
+        },
+        onClick = { open = true },
+    )
     if (open) {
         ColorPickerDialog(
             title = title,
