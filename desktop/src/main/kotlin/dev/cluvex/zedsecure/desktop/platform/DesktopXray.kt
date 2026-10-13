@@ -34,7 +34,7 @@ object DesktopXray {
         return JsonObject(root + ("inbounds" to moved)).toString()
     }
 
-    fun frontConfig(listenPort: Int, upstreamPort: Int): String = buildJsonObject {
+    fun frontConfig(listenPort: Int, upstreamPort: Int, blockTunNoise: Boolean = false): String = buildJsonObject {
         putJsonObject("log") { put("loglevel", "warning") }
         putJsonArray("inbounds") {
             addJsonObject {
@@ -60,6 +60,15 @@ object DesktopXray {
                         }
                     }
                 }
+            }
+            if (blockTunNoise) addJsonObject {
+                put("tag", "block")
+                put("protocol", "blackhole")
+            }
+        }
+        if (blockTunNoise) putJsonObject("routing") {
+            putJsonArray("rules") {
+                dev.cluvex.zedsecure.domain.config.XrayJsonBuilder.tunNoiseRules("front-in").forEach { add(it) }
             }
         }
     }.toString()

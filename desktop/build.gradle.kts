@@ -70,7 +70,8 @@ dependencies {
     implementation(libs.kotlinx.coroutines.swing)
     implementation(libs.kotlinx.serialization.json)
     testImplementation(kotlin("test"))
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testImplementation("org.jetbrains.compose.ui:ui-test:${libs.versions.composeMultiplatform.get()}")
+    testImplementation("org.junit.platform:junit-platform-launcher")
 }
 
 compose.desktop {

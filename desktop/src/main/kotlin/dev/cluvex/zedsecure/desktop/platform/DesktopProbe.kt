@@ -1,7 +1,7 @@
 package dev.cluvex.zedsecure.desktop.platform
 
+import dev.cluvex.zedsecure.core.LogBus
 import dev.cluvex.zedsecure.core.VpnManager
-import dev.cluvex.zedsecure.desktop.core.Os
 import dev.cluvex.zedsecure.desktop.core.XrayBinary
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
@@ -19,6 +19,11 @@ object DesktopProbe {
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
     private val work = File(System.getProperty("java.io.tmpdir"), "zedsecure/probe").apply { mkdirs() }
     private val seq = AtomicInteger(0)
+    private val running = java.util.concurrent.ConcurrentHashMap.newKeySet<Process>()
+
+    init {
+        Runtime.getRuntime().addShutdownHook(Thread { running.forEach { runCatching { it.destroyForcibly() } } })
+    }
 
     @Volatile private var cachedBin: File? = null
     private fun bin(): File? {
@@ -42,25 +47,36 @@ object DesktopProbe {
         val cfg = File(work, "probe-$id.json").apply { writeText(probeConfig) }
         var proc: Process? = null
         return try {
-            val env = if (Os.current == Os.WINDOWS) null else arrayOf("XRAY_LOCATION_ASSET=${work.absolutePath}")
-            proc = Runtime.getRuntime().exec(
-                arrayOf(bin.absolutePath, "run", "-c", cfg.absolutePath), env, work,
-            )
-            drain(proc)
+            proc = ProcessBuilder(bin.absolutePath, "run", "-c", cfg.absolutePath)
+                .directory(work)
+                .apply { environment()["XRAY_LOCATION_ASSET"] = dev.cluvex.zedsecure.desktop.core.DesktopGeoAssets.dir.absolutePath }
+                .start()
+            running += proc
+            val tail = java.util.concurrent.ConcurrentLinkedDeque<String>()
+            drain(proc, tail)
 
-            if (!waitPortReady(port, proc, timeoutMs = 4_000)) return -1
-            timedRequests(url, port)
+            if (!waitPortReady(port, proc, timeoutMs = 4_000)) {
+                LogBus.append("W/Probe the probe core did not open port $port: ${tail.joinToString(" | ").take(300)}")
+                return -1
+            }
+            timedRequests(url, port) { reason -> LogBus.append("W/Probe $url through the probe core: $reason") }
         } catch (e: Exception) {
+            LogBus.append("W/Probe ${e.javaClass.simpleName}: ${e.message}")
             -1
         } finally {
+            proc?.let { running -= it }
             runCatching { proc?.destroyForcibly() }
             runCatching { cfg.delete() }
         }
     }
 
-    private fun drain(proc: Process) {
-        Thread { runCatching { proc.inputStream.bufferedReader().forEachLine { } } }.apply { isDaemon = true }.start()
-        Thread { runCatching { proc.errorStream.bufferedReader().forEachLine { } } }.apply { isDaemon = true }.start()
+    private fun drain(proc: Process, tail: java.util.concurrent.ConcurrentLinkedDeque<String>) {
+        fun keep(line: String) {
+            tail.addLast(line.trim())
+            while (tail.size > 6) tail.pollFirst()
+        }
+        Thread { runCatching { proc.inputStream.bufferedReader().forEachLine { keep(it) } } }.apply { isDaemon = true }.start()
+        Thread { runCatching { proc.errorStream.bufferedReader().forEachLine { keep(it) } } }.apply { isDaemon = true }.start()
     }
 
     private fun waitPortReady(port: Int, proc: Process, timeoutMs: Int): Boolean {
@@ -76,7 +92,7 @@ object DesktopProbe {
         return false
     }
 
-    private fun timedRequests(url: String, socksPort: Int): Long {
+    private fun timedRequests(url: String, socksPort: Int, onFailure: (String) -> Unit = {}): Long {
         if (socksPort <= 0) return -1
         val uri = runCatching { java.net.URI(url) }.getOrNull() ?: return -1
         val https = uri.scheme.equals("https", ignoreCase = true)
@@ -91,7 +107,10 @@ object DesktopProbe {
             Socket().use { raw ->
                 raw.connect(InetSocketAddress("127.0.0.1", socksPort), CONNECT_TIMEOUT_MS)
                 raw.soTimeout = READ_TIMEOUT_MS
-                if (!socksConnect(raw, host, port)) return -1
+                if (!socksConnect(raw, host, port)) {
+                    onFailure("the core refused the SOCKS request")
+                    return -1
+                }
                 val socket: Socket = if (https) {
                     val tls = (javax.net.ssl.SSLSocketFactory.getDefault() as javax.net.ssl.SSLSocketFactory)
                         .createSocket(raw, host, port, true) as javax.net.ssl.SSLSocket
@@ -105,13 +124,17 @@ object DesktopProbe {
                     val started = if (attempt == 0) coldStart else System.nanoTime()
                     output.write(request)
                     output.flush()
-                    val response = readResponse(input) ?: return best
+                    val response = readResponse(input) ?: run {
+                        if (best < 0) onFailure("no HTTP answer")
+                        return best
+                    }
                     val ms = (System.nanoTime() - started) / 1_000_000
                     if (response.code in 200..399 && (best < 0 || ms < best)) best = ms
                     if (!response.keepAlive) return best
                 }
             }
         } catch (e: Exception) {
+            if (best < 0) onFailure("${e.javaClass.simpleName}: ${e.message}")
             return best
         }
         return best

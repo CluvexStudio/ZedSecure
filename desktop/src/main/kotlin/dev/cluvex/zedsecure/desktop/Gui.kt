@@ -16,7 +16,9 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Notification
 import androidx.compose.ui.window.Tray
@@ -32,6 +34,7 @@ import coil3.svg.SvgDecoder
 import dev.cluvex.zedsecure.core.VpnManager
 import dev.cluvex.zedsecure.data.config.ConfigRepository
 import dev.cluvex.zedsecure.core.LogBus
+import dev.cluvex.zedsecure.domain.model.AppLanguage
 import dev.cluvex.zedsecure.domain.model.ConnectionState
 import dev.cluvex.zedsecure.shared.resources.Res
 import dev.cluvex.zedsecure.shared.resources.state_connected
@@ -86,8 +89,8 @@ import dev.cluvex.zedsecure.ui.theme.ZedSecureTheme
 import androidx.compose.ui.platform.LocalWindowInfo
 import java.awt.GraphicsEnvironment
 
-private val configRepository = ConfigRepository(DesktopKeyValueStore("configs"))
-private val desktopSettings = DesktopSettings(DesktopKeyValueStore("settings"))
+private val configRepository by lazy { ConfigRepository(DesktopKeyValueStore("configs")) }
+private val desktopSettings by lazy { DesktopSettings(DesktopKeyValueStore("settings")) }
 
 private val WIN_W = 420.dp
 private val WIN_H = 860.dp
@@ -129,24 +132,8 @@ fun main(args: Array<String>) {
         }
     }
 
-    DesktopVpn.settingsProvider = { desktopSettings.settings.value }
-
-    DesktopVpn.ruleOutboundsProvider = { configRepository.resolveRuleOutbounds(it) }
-    DesktopVpn.ruleGroupsProvider = { configRepository.resolveRuleGroups(it) }
-    DesktopVpn.chainConfigProvider = { profile, options ->
-        runCatching { configRepository.buildChainConfig(profile, options) }.getOrNull()
-    }
-
-    dev.cluvex.zedsecure.core.CoreProbe.measureDelay = { url -> DesktopProbe.measureDelay(url) }
-
-    dev.cluvex.zedsecure.core.AutoSelect.readStatus = {
-        dev.cluvex.zedsecure.desktop.platform.DesktopStats.latestAutoSelect
-    }
-
-    VpnManager.deviceVpnProbe = { dev.cluvex.zedsecure.desktop.platform.DesktopVpnDetector.anyVpn() }
-    dev.cluvex.zedsecure.core.CoreProbe.measureOutboundDelay = { cfg, url ->
-        DesktopProbe.measureOutboundDelay(cfg, url)
-    }
+    val background = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO)
+    wireDesktopServices(configRepository, desktopSettings, background)
 
     kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO).launch {
         while (true) {
@@ -405,14 +392,18 @@ fun main(args: Array<String>) {
                 ThemeMode.Light -> false
                 ThemeMode.Dark -> true
             }
-            val langTag = settings.language.tag ?: "en"
+            val langTag = languageTagFor(settings.language)
 
-            ProvideAppLanguage(langTag, dark) {
+            ProvideAppLanguage(langTag) {
                 ZedSecureTheme(
                     darkTheme = dark,
                     dynamicColor = false,
                     accentColor = settings.accentColor,
                     amoledBlack = settings.amoledBlack,
+                    colorStyle = settings.colorStyle,
+                    colorContrast = settings.colorContrast,
+                    design = settings.appDesign,
+                    animateColors = !settings.reduceMotion,
                     languageTag = langTag,
                     fontScale = settings.uiFontScale.scale,
                 ) {
@@ -450,12 +441,51 @@ fun main(args: Array<String>) {
     }
 }
 
-@Composable
-private fun ProvideAppLanguage(langTag: String, dark: Boolean, content: @Composable () -> Unit) {
-    remember(langTag) {
-        java.util.Locale.setDefault(java.util.Locale.forLanguageTag(langTag)); langTag
+internal fun wireDesktopServices(
+    configRepository: ConfigRepository,
+    desktopSettings: DesktopSettings,
+    background: kotlinx.coroutines.CoroutineScope,
+) {
+    DesktopVpn.settingsProvider = { desktopSettings.settings.value }
+
+    DesktopVpn.ruleOutboundsProvider = { configRepository.resolveRuleOutbounds(it) }
+    DesktopVpn.ruleGroupsProvider = { configRepository.resolveRuleGroups(it) }
+    DesktopVpn.chainConfigProvider = { profile, options ->
+        runCatching { configRepository.buildChainConfig(profile, options) }.getOrNull()
     }
-    content()
+
+    dev.cluvex.zedsecure.core.CoreProbe.measureDelay = { url -> DesktopProbe.measureDelay(url) }
+
+    dev.cluvex.zedsecure.core.AutoSelect.readStatus = {
+        dev.cluvex.zedsecure.desktop.platform.DesktopStats.latestAutoSelect
+    }
+
+    VpnManager.deviceVpnProbe = { dev.cluvex.zedsecure.desktop.platform.DesktopVpnDetector.anyVpn() }
+    dev.cluvex.zedsecure.core.CoreProbe.measureOutboundDelay = { cfg, url ->
+        DesktopProbe.measureOutboundDelay(cfg, url)
+    }
+
+    dev.cluvex.zedsecure.data.assets.GeoAutoFetch.start(background, dev.cluvex.zedsecure.desktop.core.DesktopGeoAssets) {
+        desktopSettings.settings.value
+    }
+    background.launch {
+        dev.cluvex.zedsecure.data.assets.GeoAutoFetch.ready.collect { DesktopVpn.reconnect(configRepository) }
+    }
+}
+
+private val systemLanguageTag: String =
+    java.util.Locale.getDefault(java.util.Locale.Category.DISPLAY).language
+        .takeIf { tag -> AppLanguage.entries.any { it.tag == tag } } ?: "en"
+
+internal fun languageTagFor(language: AppLanguage): String = language.tag ?: systemLanguageTag
+
+@Composable
+internal fun ProvideAppLanguage(langTag: String, content: @Composable () -> Unit) {
+    val locale = remember(langTag) {
+        java.util.Locale.forLanguageTag(langTag).also { java.util.Locale.setDefault(it) }
+    }
+    val direction = if (java.awt.ComponentOrientation.getOrientation(locale).isLeftToRight) LayoutDirection.Ltr else LayoutDirection.Rtl
+    CompositionLocalProvider(LocalLayoutDirection provides direction, content = content)
 }
 
 private fun humanBps(bps: Long): String {

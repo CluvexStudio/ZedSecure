@@ -23,13 +23,14 @@ class DesktopOpenConnect(
             else -> runCatching { Files.createTempDirectory(workDir.also { it.mkdirs() }.toPath(), "oc-").toFile() }.getOrNull()
         } ?: return Result.failure(IllegalStateException("Could not create a private directory for OpenConnect"))
         state = dir
-        val args = runCatching { arguments(dir, binary.script) }.getOrElse {
+        val script = if (os == Os.LINUX) binary.script?.let { wrapScript(dir, it) } else binary.script
+        val args = runCatching { arguments(dir, script) }.getOrElse {
             discard()
             return Result.failure(it)
         }
         File(dir, SECRET).writeText(profile.password + "\n")
         val up = when (os) {
-            Os.LINUX -> startLinux(dir, binary.executable, args)
+            Os.LINUX -> startLinux(dir, binary.executable, args, awaitScript = script != null)
             Os.WINDOWS -> startWindows(dir, binary.executable, args)
             Os.MACOS -> startMac(dir, binary.executable, args)
             else -> false
@@ -140,9 +141,22 @@ class DesktopOpenConnect(
         else -> "OpenConnect is not bundled with this build"
     }
 
-    private fun startLinux(dir: File, executable: File, args: List<String>): Boolean {
+    internal fun wrapScript(dir: File, real: File): File = File(dir, WRAPPER).apply {
+        writeText(
+            """
+            |#!/bin/sh
+            |${shQuote(real.absolutePath)} "${'$'}@"
+            |rc=${'$'}?
+            |[ "${'$'}{reason:-}" = connect ] && echo "${'$'}rc" > ${shQuote(File(dir, CONFIGURED).absolutePath)}
+            |exit ${'$'}rc
+            |""".trimMargin(),
+        )
+        setExecutable(true, true)
+    }
+
+    private fun startLinux(dir: File, executable: File, args: List<String>, awaitScript: Boolean): Boolean {
         val script = File(dir, "oc-up.sh").apply {
-            writeText(linuxScript(executable, args, dir))
+            writeText(linuxScript(executable, args, dir, awaitScript))
             setExecutable(true, true)
         }
         if (!LinuxBroker.ensure(workDir, askPassword)) return false
@@ -154,13 +168,13 @@ class DesktopOpenConnect(
         return awaitReady(dir, null)
     }
 
-    internal fun linuxScript(executable: File, args: List<String>, dir: File): String = """
+    internal fun linuxScript(executable: File, args: List<String>, dir: File, awaitScript: Boolean = false): String = """
         |#!/bin/sh
         |PATH=${LinuxBroker.SAFE_PATH}
         |export PATH
         |umask 022
         |DIR=${shQuote(dir.absolutePath)}
-        |rm -f "${'$'}DIR/$READY" "${'$'}DIR/$FAILED"
+        |rm -f "${'$'}DIR/$READY" "${'$'}DIR/$FAILED" "${'$'}DIR/$CONFIGURED"
         |${shQuote(executable.absolutePath)} ${args.joinToString(" ") { shQuote(it) }} < "${'$'}DIR/$SECRET" > "${'$'}DIR/$LOG" 2>&1 &
         |OC=${'$'}!
         |rm -f "${'$'}DIR/$SECRET"
@@ -184,9 +198,20 @@ class DesktopOpenConnect(
         |  i=${'$'}((i + 1))
         |done
         |if ! grep -qE '$CONNECTED' "${'$'}DIR/$LOG" 2>/dev/null; then tail -n 5 "${'$'}DIR/$LOG" > "${'$'}DIR/$FAILED" 2>/dev/null; exit 1; fi
+        |${if (awaitScript) awaitConfigured() else ""}
         |echo "${'$'}OC" > "${'$'}DIR/$READY"
         |while kill -0 "${'$'}OC" 2>/dev/null; do sleep 1; done
         |exit 0
+        |""".trimMargin()
+
+    private fun awaitConfigured(): String = """
+        |i=0
+        |while [ ! -f "${'$'}DIR/$CONFIGURED" ] && [ ${'$'}i -lt ${SCRIPT_WAIT_SEC * 5} ]; do
+        |  if ! kill -0 "${'$'}OC" 2>/dev/null; then tail -n 5 "${'$'}DIR/$LOG" > "${'$'}DIR/$FAILED" 2>/dev/null; exit 1; fi
+        |  sleep 0.2
+        |  i=${'$'}((i + 1))
+        |done
+        |if [ ! -f "${'$'}DIR/$CONFIGURED" ]; then echo "the VPN script did not finish setting up the tunnel" > "${'$'}DIR/$FAILED"; exit 1; fi
         |""".trimMargin()
 
     private fun startMac(dir: File, executable: File, args: List<String>): Boolean {
@@ -281,6 +306,9 @@ class DesktopOpenConnect(
         private const val READY = "ready"
         private const val STOP = "stop"
         private const val FAILED = "failed"
+        private const val CONFIGURED = "configured"
+        private const val WRAPPER = "vpnc-wrap.sh"
+        private const val SCRIPT_WAIT_SEC = 30L
         private const val CONNECT_WAIT_SEC = 90L
         private const val STOP_WAIT_SEC = 12L
         private const val POLL_MS = 250L
