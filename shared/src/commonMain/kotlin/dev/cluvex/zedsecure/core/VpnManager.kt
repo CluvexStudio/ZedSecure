@@ -116,10 +116,11 @@ object VpnManager {
         )
     }
 
-    fun onDisconnected() {
+    fun onDisconnected(keepError: Boolean = false) {
         activeSocksPort = null
         _activeKind.value = null
         val previous = _status.value
+        if (keepError && previous.state == ConnectionState.Error) return
         _status.value = Status(
             state = ConnectionState.Idle,
             serverName = previous.serverName,

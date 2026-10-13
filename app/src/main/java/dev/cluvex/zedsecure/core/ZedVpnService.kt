@@ -75,6 +75,7 @@ class ZedVpnService : VpnService() {
     private var killSwitchActive = false
 
     @Volatile private var reconnecting = false
+    private var geoReloadJob: Job? = null
     private var holdWatch: android.net.ConnectivityManager.NetworkCallback? = null
     private val holdNetworks = java.util.Collections.synchronizedSet(HashSet<android.net.Network>())
     private var retryJob: Job? = null
@@ -907,6 +908,10 @@ class ZedVpnService : VpnService() {
         reconnecting = false
         stopHoldWatch()
         retryDelayMs = RETRY_FIRST_MS
+        geoReloadJob?.cancel()
+        geoReloadJob = scope.launch {
+            dev.cluvex.zedsecure.data.assets.GeoAutoFetch.ready.collect { reloadForGeoFiles() }
+        }
         stage = VpnNotifications.Stage.Connected
         connectWhen = System.currentTimeMillis()
         VpnManager.onConnected(remark)
@@ -969,6 +974,34 @@ class ZedVpnService : VpnService() {
         if (started) {
             builtNetworkType = type
             LogBus.append("I/Routing: the network is now $type; the rules for it are in use")
+        } else {
+            VpnManager.onError(coreStartError())
+            stopEverything()
+        }
+    }
+
+    private fun reloadForGeoFiles() {
+        if (!connected || kind != VpnManager.KIND_XRAY) return
+        if (autoSelectSession) {
+            LogBus.append("I/Routing: geo files arrived; reconnect to use the rules that need them")
+            return
+        }
+        val plan = StartPlanner(this).planActive(allowProxyOnly = proxyOnly)
+        val sameSession = plan is StartPlanner.Plan.Start && plan.kind == VpnManager.KIND_XRAY &&
+            plan.proxyOnly == proxyOnly && plan.remark == remark &&
+            plan.socksPort == (VpnManager.activeSocksPort ?: plan.socksPort)
+        if (!sameSession) {
+            LogBus.append("I/Routing: geo files arrived; reconnect to use the rules that need them")
+            return
+        }
+        swappingCore = true
+        val started = try {
+            XrayController.start((plan as StartPlanner.Plan.Start).configJson)
+        } finally {
+            swappingCore = false
+        }
+        if (started) {
+            LogBus.append("I/Routing: geo files loaded; every routing rule is in use now")
         } else {
             VpnManager.onError(coreStartError())
             stopEverything()
@@ -1246,6 +1279,8 @@ class ZedVpnService : VpnService() {
     }
 
     private fun stopEngines() {
+        geoReloadJob?.cancel()
+        geoReloadJob = null
         statsJob?.cancel()
         stopNetworkTypeWatch()
         stopAutoSelectSession()
@@ -1290,7 +1325,7 @@ class ZedVpnService : VpnService() {
         val tunToClose = tun
         tun = null
         connected = false
-        VpnManager.onDisconnected()
+        VpnManager.onDisconnected(keepError = !userStop)
         stopForeground(Service.STOP_FOREGROUND_REMOVE)
         ZedWidgetProvider.refresh(this, force = true)
 

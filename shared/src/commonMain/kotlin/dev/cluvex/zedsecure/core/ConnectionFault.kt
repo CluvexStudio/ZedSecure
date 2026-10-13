@@ -6,6 +6,8 @@ data class ConnectionFault(
     val raw: String,
 ) {
     enum class Cause {
+        PortBusy,
+
         Timeout,
 
         ServerClosed,
@@ -33,6 +35,8 @@ data class ConnectionFault(
 
     companion object {
         private val RULES: List<Pair<Cause, List<String>>> = listOf(
+            Cause.PortBusy to listOf("address already in use", "failed to listen", "eaddrinuse",
+                "only one usage of each socket address"),
             Cause.Reality to listOf("reality"),
             Cause.Certificate to listOf("x509:", "certificate signed by unknown authority",
                 "certificate is not valid", "certificate has expired", "certificate is valid for"),

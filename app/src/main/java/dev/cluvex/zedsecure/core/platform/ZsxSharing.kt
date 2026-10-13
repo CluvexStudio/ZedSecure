@@ -15,7 +15,7 @@ object ZsxSharing {
         runCatching {
             val dir = File(context.cacheDir, "shared").apply { mkdirs() }
             val file = File(dir, dev.cluvex.zedsecure.crypto.zsxFileName(fileName)).apply { writeText(text) }
-            val uri = FileProvider.getUriForFile(context, "${'$'}{context.packageName}.fileprovider", file)
+            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
             val intent = Intent(Intent.ACTION_SEND).apply {
                 type = "text/plain"
                 putExtra(Intent.EXTRA_STREAM, uri)

@@ -71,8 +71,9 @@ object ConfigParser {
         if (payload.contains('@') || (payload.contains('?') && payload.contains('&'))) {
             return parseVmessStd(payload)
         }
+        val fragment = payload.substringAfter('#', "")
         val obj = runCatching {
-            json.parseToJsonElement(decodeBase64Utf8(payload)) as JsonObject
+            json.parseToJsonElement(decodeBase64Utf8(payload.substringBefore('#'))) as JsonObject
         }.getOrElse { throw ConfigParseException("Invalid vmess payload") }
 
         fun str(key: String): String? = obj[key]?.jsonPrimitive?.contentOrNull()
@@ -87,7 +88,7 @@ object ConfigParser {
 
         return ServerConfig(
             protocol = Protocol.VMESS,
-            remark = str("ps").orEmpty(),
+            remark = str("ps")?.takeIf { it.isNotBlank() } ?: decodeRemark(fragment),
             address = str("add").orEmpty(),
             port = str("port")?.toIntOrNull() ?: 443,
             userId = str("id").orEmpty(),
