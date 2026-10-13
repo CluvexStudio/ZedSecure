@@ -1,0 +1,69 @@
+name: android-bundle
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  aab:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with: { distribution: temurin, java-version: "21" }
+      - uses: gradle/actions/setup-gradle@v5
+
+      - name: Read the version
+        id: v
+        run: |
+          echo "name=$(grep '^zedsecure.versionName=' gradle.properties | cut -d= -f2)" >> "$GITHUB_OUTPUT"
+          echo "code=$(grep '^zedsecure.versionCode=' gradle.properties | cut -d= -f2)" >> "$GITHUB_OUTPUT"
+
+      - name: Take every engine from its own build
+        run: ./tools/get-cores.sh android
+
+      - name: Unlock the Play upload key
+        env:
+          PLAY_KEYSTORE_BASE64: ${{ secrets.PLAY_KEYSTORE_BASE64 }}
+          PLAY_KEYSTORE_PASSWORD: ${{ secrets.PLAY_KEYSTORE_PASSWORD }}
+          PLAY_KEY_ALIAS: ${{ secrets.PLAY_KEY_ALIAS }}
+          PLAY_KEY_PASSWORD: ${{ secrets.PLAY_KEY_PASSWORD }}
+        run: |
+          umask 077
+          printf '%s' "$PLAY_KEYSTORE_BASE64" | base64 -d > release.keystore
+          { echo "storeFile=release.keystore"; echo "storePassword=$PLAY_KEYSTORE_PASSWORD"
+            echo "keyPassword=$PLAY_KEY_PASSWORD"; echo "keyAlias=$PLAY_KEY_ALIAS"; } > keystore.properties
+
+      - name: Build the bundle
+        run: ./gradlew :app:bundleRelease
+
+      - name: Check the bundle
+        run: |
+          set -e
+          V='${{ steps.v.outputs.name }}'
+          src=app/build/outputs/bundle/release/app-release.aab
+          [ -f "$src" ] || { echo "::error::$src was not built"; exit 1; }
+          mkdir -p dist
+          cp "$src" "dist/ZedSecure-$V.aab"
+          unzip -l "dist/ZedSecure-$V.aab" | awk '/base\/lib\//{print $4}' | sort > libs.txt
+          for abi in arm64-v8a armeabi-v7a x86_64; do
+            for lib in libgojni libtor libobfs4proxy libconjure libsnowflake libsnispoof libhev-socks5-tunnel libopenconnect libzeptun libzeptun-jni; do
+              grep -qx "base/lib/$abi/$lib.so" libs.txt || { echo "::error::$abi/$lib.so is not in the bundle"; exit 1; }
+            done
+          done
+          grep -q "base/lib/x86/" libs.txt && { echo "::error::the bundle has x86 libraries without the engines"; exit 1; } || true
+          echo "$(wc -l < libs.txt) native libraries in the bundle"
+          "$JAVA_HOME/bin/jarsigner" -verify "dist/ZedSecure-$V.aab" | tail -1
+          "$JAVA_HOME/bin/keytool" -printcert -jarfile "dist/ZedSecure-$V.aab" | grep -E 'Owner|SHA256' | head -2
+          ( cd dist && sha256sum ZedSecure-*.aab > SHA256SUMS-aab.txt )
+          ls -l dist
+
+      - name: Forget the key
+        if: always()
+        run: shred -u release.keystore keystore.properties 2>/dev/null || rm -f release.keystore keystore.properties
+
+      - uses: actions/upload-artifact@v7
+        with: { name: "android-aab-${{ steps.v.outputs.name }}-${{ steps.v.outputs.code }}", path: dist/*, retention-days: 30 }
