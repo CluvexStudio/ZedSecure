@@ -51,3 +51,8 @@ ref*.png
 
 __pycache__/
 *.pyc
+
+/app/src/test/
+/app/src/androidTest/
+/desktop/src/test/
+/shared/src/*Test/
