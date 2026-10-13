@@ -6,15 +6,14 @@ on:
 
 permissions:
   contents: write
-  actions: read
 
 jobs:
   version:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       name: ${{ steps.v.outputs.name }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: The tag matches the version
         id: v
         run: |
@@ -34,11 +33,11 @@ jobs:
 
   publish:
     needs: [version, android, desktop]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with: { name: android-apks, path: dist }
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with: { pattern: "desktop-*", path: dist, merge-multiple: true }
       - name: One draft with every platform
         env:

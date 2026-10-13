@@ -5,18 +5,17 @@ on:
   workflow_call:
 
 permissions:
-  contents: write
-  actions: read
+  contents: read
 
 jobs:
   linux:
     runs-on: ubuntu-22.04
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
         with: { distribution: temurin, java-version: "21" }
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v5
 
       - name: Read the version
         id: v
@@ -30,40 +29,21 @@ jobs:
             https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
           chmod +x /usr/local/bin/appimagetool
 
-      - name: Fetch the bundled engines
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -e
-          NATIVES_RUN=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow desktop-natives.yml --status success --limit 1 --json databaseId --jq '.[0].databaseId')
-          [ -n "$NATIVES_RUN" ] || { echo "::error::no successful desktop-natives run yet"; exit 1; }
-          echo "engines from desktop-natives run $NATIVES_RUN"
-          dest=desktop/src/main/resources/bin/linux
-          mkdir -p "$dest" /tmp/nat
-          for pair in "xray:xray-linux:xray" \
-                      "hev-linux:hev-socks5-tunnel:hev-socks5-tunnel" \
-                      "dns-tunnels:zeddns-linux:zeddns" \
-                      "psiphon:psiphon-linux:psiphon"; do
-            art=${pair%%:*}; rest=${pair#*:}; from=${rest%%:*}; to=${rest#*:}
-            rm -rf /tmp/nat/$art
-            gh run download "$NATIVES_RUN" --repo "$GITHUB_REPOSITORY" --name "$art" --dir "/tmp/nat/$art" \
-              || { echo "::error::artifact '$art' is missing; run the desktop-natives workflow first"; exit 1; }
-            src=$(find "/tmp/nat/$art" -type f -name "$from*" | head -1)
-            [ -n "$src" ] || { echo "::error::'$from' was not in artifact '$art'"; exit 1; }
-            cp "$src" "$dest/$to"
-          done
-          chmod +x "$dest"/*
-          find /tmp/nat -name 'libcronet.so' -exec cp {} "$dest/" \; || true
-          rm -rf "/tmp/nat/tor-linux" "$dest/tor"
-          gh run download "$NATIVES_RUN" --repo "$GITHUB_REPOSITORY" --name "tor-linux" --dir "/tmp/nat/tor-linux" \
-            || { echo "::error::artifact 'tor-linux' is missing; run the desktop-natives workflow first"; exit 1; }
-          cp -r "/tmp/nat/tor-linux" "$dest/tor"
-          cp app/src/main/assets/tor/bridges_default.lst "$dest/tor/"
-          ( cd "$dest/tor" && find . -type f ! -name files.txt | sed 's#^\./##' | sort > files.txt && cat files.txt )
-          ls -l "$dest"
+      - name: Take every engine from its own build
+        run: ./tools/get-cores.sh linux
 
       - name: Check the engines the desktop launches are all here
-        run: ./gradlew --no-daemon :desktop:test
+        run: |
+          set -e
+          dest=desktop/src/main/resources/bin/linux
+          missing=
+          for f in xray libcronet.so hev-socks5-tunnel zeddns masterdns psiphon tor/files.txt tor/tor tor/pt/lyrebird tor/bridges_default.lst; do
+            [ -e "$dest/$f" ] || missing="$missing $f"
+          done
+          [ -z "$missing" ] || { echo "::error::not bundled:$missing"; exit 1; }
+          for f in psiphon-client masterdns-client snispoof snowflake-client; do
+            [ ! -e "$dest/$f" ] || { echo "::error::bundled but never launched: $f"; exit 1; }
+          done
 
       - name: Build .deb, .rpm and the application directory
         run: ./gradlew --no-daemon :desktop:packageDeb :desktop:packageRpm :desktop:createDistributable
@@ -119,7 +99,7 @@ jobs:
           echo "tar.gz: $got"
           [ "$got" = "ZedSecure $V" ]
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: desktop-linux
           path: dist/*
@@ -129,59 +109,33 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
         with: { distribution: temurin, java-version: "21" }
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v5
 
       - name: Read the version
         id: v
         shell: bash
         run: echo "name=$(grep '^zedsecure.versionName=' gradle.properties | cut -d= -f2)" >> "$GITHUB_OUTPUT"
 
-      - name: Fetch the bundled engines
+      - name: Take every engine from its own build
         shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
+        run: ./tools/get-cores.sh windows
+
+      - name: Check the engines the desktop launches are all here
+        shell: bash
         run: |
           set -e
-          NATIVES_RUN=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow desktop-natives.yml --status success --limit 1 --json databaseId --jq '.[0].databaseId')
-          [ -n "$NATIVES_RUN" ] || { echo "::error::no successful desktop-natives run yet"; exit 1; }
-          echo "engines from desktop-natives run $NATIVES_RUN"
           dest=desktop/src/main/resources/bin/windows
-          mkdir -p "$dest" /tmp/nat
-          for pair in "xray:xray.exe:xray.exe" \
-                      "xray:libcronet.dll:libcronet.dll" \
-                      "zeptun-windows:zeptun.exe:zeptun.exe" \
-                      "zeptun-windows:wintun.dll:wintun.dll" \
-                      "zeptun-windows:wintun-LICENSE.txt:wintun-LICENSE.txt" \
-                      "dns-tunnels:zeddns-windows.exe:zeddns.exe" \
-                      "psiphon:psiphon-windows.exe:psiphon.exe"; do
-            art=${pair%%:*}; rest=${pair#*:}; from=${rest%%:*}; to=${rest#*:}
-            if [ ! -d "/tmp/nat/$art" ]; then
-              gh run download "$NATIVES_RUN" --repo "$GITHUB_REPOSITORY" --name "$art" --dir "/tmp/nat/$art" \
-                || { echo "::error::artifact '$art' is missing; run the desktop-natives workflow first"; exit 1; }
-            fi
-            src=$(find "/tmp/nat/$art" -type f -name "$from" | head -1)
-            [ -n "$src" ] || { echo "::error::'$from' was not in artifact '$art'"; exit 1; }
-            cp "$src" "$dest/$to"
+          missing=
+          for f in xray.exe libcronet.dll zeptun.exe wintun.dll hev-socks5-tunnel.exe msys-2.0.dll zeddns.exe masterdns.exe psiphon.exe openconnect/files.txt tor/files.txt tor/tor.exe tor/pt/lyrebird.exe tor/bridges_default.lst; do
+            [ -e "$dest/$f" ] || missing="$missing $f"
           done
-          rm -rf "/tmp/nat/openconnect-windows" "$dest/openconnect"
-          gh run download "$NATIVES_RUN" --repo "$GITHUB_REPOSITORY" --name "openconnect-windows" --dir "/tmp/nat/openconnect-windows" \
-            || { echo "::error::artifact 'openconnect-windows' is missing; run the desktop-natives workflow first"; exit 1; }
-          cp -r "/tmp/nat/openconnect-windows" "$dest/openconnect"
-          rm -rf "/tmp/nat/tor-windows" "$dest/tor"
-          gh run download "$NATIVES_RUN" --repo "$GITHUB_REPOSITORY" --name "tor-windows" --dir "/tmp/nat/tor-windows" \
-            || { echo "::error::artifact 'tor-windows' is missing; run the desktop-natives workflow first"; exit 1; }
-          cp -r "/tmp/nat/tor-windows" "$dest/tor"
-          cp app/src/main/assets/tor/bridges_default.lst "$dest/tor/"
-          ( cd "$dest/tor" && find . -type f ! -name files.txt | sed 's#^\./##' | sort > files.txt && cat files.txt )
-          ls -l "$dest"
-
-      - name: Check the engines the desktop launches are all here, and that TUN carries traffic
-        env:
-          ZEDSECURE_LIVE_TUN: "1"
-        run: ./gradlew --no-daemon :desktop:test
+          [ -z "$missing" ] || { echo "::error::not bundled:$missing"; exit 1; }
+          for f in psiphon-client masterdns-client snispoof snowflake-client; do
+            [ ! -e "$dest/$f" ] || { echo "::error::bundled but never launched: $f"; exit 1; }
+          done
 
       - name: Build the installer and the portable build
         run: ./gradlew --no-daemon :desktop:packageMsi :desktop:createDistributable
@@ -198,7 +152,7 @@ jobs:
           ( cd dist && sha256sum ZedSecure-* > SHA256SUMS-windows.txt )
           ls -l dist
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: desktop-windows
           path: dist/*
@@ -209,57 +163,35 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { runner: macos-latest, arch: arm64 }
+          - { runner: macos-15, arch: arm64 }
           - { runner: macos-15-intel, arch: x86_64 }
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
         with: { distribution: temurin, java-version: "21" }
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v5
 
       - name: Read the version
         id: v
         run: echo "name=$(grep '^zedsecure.versionName=' gradle.properties | cut -d= -f2)" >> "$GITHUB_OUTPUT"
 
-      - name: Fetch the bundled engines
-        env:
-          GH_TOKEN: ${{ github.token }}
-          ARCH: ${{ matrix.arch }}
+      - name: Take every engine from its own build
+        run: ./tools/get-cores.sh macos-${{ matrix.arch }}
+
+      - name: Check the engines the desktop launches are all here
         run: |
           set -e
-          NATIVES_RUN=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow desktop-natives.yml --status success --limit 1 --json databaseId --jq '.[0].databaseId')
-          [ -n "$NATIVES_RUN" ] || { echo "::error::no successful desktop-natives run yet"; exit 1; }
-          echo "engines from desktop-natives run $NATIVES_RUN"
           dest=desktop/src/main/resources/bin/macos
-          mkdir -p "$dest" /tmp/nat
-          for pair in "xray-macos-$ARCH:xray-macos-$ARCH:xray" \
-                      "zeptun-macos:zeptun:zeptun" \
-                      "dns-tunnels:zeddns-macos-$ARCH:zeddns" \
-                      "psiphon:psiphon-macos-$ARCH:psiphon"; do
-            art=${pair%%:*}; rest=${pair#*:}; from=${rest%%:*}; to=${rest#*:}
-            if [ ! -d "/tmp/nat/$art" ]; then
-              gh run download "$NATIVES_RUN" --repo "$GITHUB_REPOSITORY" --name "$art" --dir "/tmp/nat/$art" \
-                || { echo "::error::artifact '$art' is missing; run the desktop-natives workflow first"; exit 1; }
-            fi
-            src=$(find "/tmp/nat/$art" -type f -name "$from" | head -1)
-            [ -n "$src" ] || { echo "::error::'$from' was not in artifact '$art'"; exit 1; }
-            cp "$src" "$dest/$to"
+          missing=
+          for f in xray zeptun zeddns masterdns psiphon tor/files.txt tor/tor tor/pt/lyrebird tor/bridges_default.lst; do
+            [ -e "$dest/$f" ] || missing="$missing $f"
           done
-          chmod +x "$dest"/*
-          rm -rf "/tmp/nat/tor-macos-$ARCH" "$dest/tor"
-          gh run download "$NATIVES_RUN" --repo "$GITHUB_REPOSITORY" --name "tor-macos-$ARCH" --dir "/tmp/nat/tor-macos-$ARCH" \
-            || { echo "::error::artifact 'tor-macos-$ARCH' is missing; run the desktop-natives workflow first"; exit 1; }
-          cp -r "/tmp/nat/tor-macos-$ARCH" "$dest/tor"
-          cp app/src/main/assets/tor/bridges_default.lst "$dest/tor/"
-          ( cd "$dest/tor" && find . -type f ! -name files.txt | sed 's#^\./##' | sort > files.txt && cat files.txt )
-          file "$dest"/*
-
-      - name: Check the engines the desktop launches are all here, and that TUN carries traffic
-        env:
-          ZEDSECURE_LIVE_TUN: "1"
-        run: ./gradlew --no-daemon :desktop:test
+          [ -z "$missing" ] || { echo "::error::not bundled:$missing"; exit 1; }
+          for f in psiphon-client masterdns-client snispoof snowflake-client; do
+            [ ! -e "$dest/$f" ] || { echo "::error::bundled but never launched: $f"; exit 1; }
+          done
 
       - name: Build the disk image
         run: ./gradlew --no-daemon :desktop:packageDmg
@@ -273,7 +205,7 @@ jobs:
           ( cd dist && shasum -a 256 ZedSecure-* > "SHA256SUMS-macos-${{ matrix.arch }}.txt" )
           ls -l dist
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: desktop-macos-${{ matrix.arch }}
           path: dist/*

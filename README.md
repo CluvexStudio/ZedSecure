@@ -71,15 +71,15 @@ first time with right-click, then Open.
 ## Building
 
 ```sh
-./tools/fetch-cores.sh           # every engine at its pinned commit
-./tools/build-zedcore.sh         # the Android core; needs Go 1.26.3 and NDK 28 or newer
+./tools/get-cores.sh android     # or linux, windows, macos-arm64, macos-x86_64
 ./gradlew :app:assembleRelease   # three APKs, one per ABI
 ./gradlew :desktop:packageDeb    # or packageRpm, packageMsi, packageDmg
 ```
 
-The engines we patched are published as forks; [`tools/core-sources.txt`](tools/core-sources.txt)
-lists each one with the exact commit a release is built from. Pushing a `v*` tag builds Android and
-every desktop system in CI and puts them all in one release; Android and desktop share one version.
+Every engine is built in [ZedSecure-Cores](https://github.com/CluvexStudio/ZedSecure-Cores), one
+workflow per engine, from the forks and exact commits in its `pins.txt`. [`tools/cores.txt`](tools/cores.txt)
+names the build each release takes. Pushing a `v*` tag builds Android and every desktop system in CI
+and puts them all in one release; Android and desktop share one version.
 
 ## Credits
 

@@ -76,18 +76,18 @@ APK مخصوص دستگاهتان از [Releases](https://github.com/CluvexStudi
 <div dir="ltr">
 
 ```sh
-./tools/fetch-cores.sh           # every engine at its pinned commit
-./tools/build-zedcore.sh         # the Android core; needs Go 1.26.3 and NDK 28 or newer
+./tools/get-cores.sh android     # or linux, windows, macos-arm64, macos-x86_64
 ./gradlew :app:assembleRelease   # three APKs, one per ABI
 ./gradlew :desktop:packageDeb    # or packageRpm, packageMsi, packageDmg
 ```
 
 </div>
 
-هسته‌هایی که تغییر داده‌ایم به‌صورت فورک منتشر شده‌اند؛ در
-[`tools/core-sources.txt`](tools/core-sources.txt) هر کدام با کامیت دقیقی که هر نسخه از آن ساخته
-می‌شود آمده است. زدن تگ `v*` نسخهٔ اندروید و همهٔ نسخه‌های دسکتاپ را در CI می‌سازد و همه را در
-یک ریلیز می‌گذارد؛ اندروید و دسکتاپ یک شمارهٔ نسخه دارند.
+همهٔ هسته‌ها در [ZedSecure-Cores](https://github.com/CluvexStudio/ZedSecure-Cores) ساخته می‌شوند؛
+برای هر هسته یک workflow، از فورک‌ها و کامیت‌های دقیقی که در `pins.txt` آن آمده است.
+[`tools/cores.txt`](tools/cores.txt) نشان می‌دهد هر نسخه کدام بیلد را برمی‌دارد. زدن تگ `v*` نسخهٔ
+اندروید و همهٔ نسخه‌های دسکتاپ را در CI می‌سازد و همه را در یک ریلیز می‌گذارد؛ اندروید و دسکتاپ یک
+شمارهٔ نسخه دارند.
 
 ## سپاسگزاری
 
