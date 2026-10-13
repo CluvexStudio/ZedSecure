@@ -46,7 +46,7 @@ jobs:
           done
 
       - name: Build .deb, .rpm and the application directory
-        run: ./gradlew --no-daemon :desktop:packageDeb :desktop:packageRpm :desktop:createDistributable
+        run: ./gradlew --warning-mode all :desktop:packageDeb :desktop:packageRpm :desktop:createDistributable
 
       - name: Assemble the release files
         id: pack
@@ -138,7 +138,7 @@ jobs:
           done
 
       - name: Build the installer and the portable build
-        run: ./gradlew --no-daemon :desktop:packageMsi :desktop:createDistributable
+        run: ./gradlew --warning-mode all :desktop:packageMsi :desktop:createDistributable
 
       - name: Assemble the release files
         shell: bash
@@ -194,7 +194,7 @@ jobs:
           done
 
       - name: Build the disk image
-        run: ./gradlew --no-daemon :desktop:packageDmg
+        run: ./gradlew --warning-mode all :desktop:packageDmg
 
       - name: Assemble the release files
         run: |

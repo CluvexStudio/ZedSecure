@@ -74,7 +74,7 @@ jobs:
             echo "keyPassword=$KEY_PW"; echo "keyAlias=$ALIAS"; } > keystore.properties
 
       - name: Build
-        run: ./gradlew --no-daemon :app:assembleRelease
+        run: ./gradlew --warning-mode all :app:assembleRelease
 
       - name: Name them for people
         run: |
