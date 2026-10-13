@@ -73,8 +73,8 @@ android {
         buildConfig = true
     }
 
-    sourceSets.getByName("main").assets.srcDir(
-        rootProject.file("shared/build/composeResForAndroid"),
+    sourceSets.getByName("main").assets.directories.add(
+        rootProject.file("shared/build/composeResForAndroid").path,
     )
 
     val buildingBundle = gradle.startParameter.taskNames.any { it.contains("bundle", ignoreCase = true) }
@@ -95,6 +95,7 @@ android {
             useLegacyPackaging = true
 
             excludes += "**/x86/*.so"
+            keepDebugSymbols += "**/*.so"
         }
     }
 }

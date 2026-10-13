@@ -20,7 +20,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.SheetValue
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -125,7 +126,7 @@ private fun CountryPickerSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded)),
     ) {
         Column(Modifier.padding(horizontal = 16.dp).padding(bottom = 8.dp)) {
             Text(
@@ -191,6 +192,7 @@ private fun CountryRow(
 }
 
 private fun countryName(code: String): String {
-    val name = Locale("", code).getDisplayCountry(Locale.getDefault())
+    val name = runCatching { Locale.Builder().setRegion(code).build() }.getOrNull()
+        ?.getDisplayCountry(Locale.getDefault()).orEmpty()
     return name.ifBlank { code }
 }

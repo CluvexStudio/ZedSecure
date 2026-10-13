@@ -122,7 +122,7 @@ object SingBoxConfigs {
             putAll(root)
             put("inbounds", newInbounds)
             put("route", newRoute)
-            if (newExperimental != null) put("experimental", newExperimental)
+            put("experimental", newExperimental)
         })
         return PreparedDesktop(
             json = SingBoxJson.encode(prepared),

@@ -11,6 +11,7 @@ kotlin {
 
     compilerOptions {
         freeCompilerArgs.add("-Xskip-metadata-version-check")
+        freeCompilerArgs.add("-Xexpect-actual-classes")
     }
 
     android {

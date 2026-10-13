@@ -111,7 +111,7 @@ class SniSpoofController(
         val deadline = System.currentTimeMillis() + BIND_TIMEOUT_MS
         while (System.currentTimeMillis() < deadline) {
             val p = process
-            if (p != null && !p.isAlive()) return false
+            if (p != null && !p.isRunning()) return false
             val ok = runCatching {
                 Socket().use { it.connect(InetSocketAddress(listenHost, listenPort), 1000); true }
             }.getOrDefault(false)
@@ -123,7 +123,7 @@ class SniSpoofController(
 
     private val ACK_TIMEOUT_MARKER = "ACK timeout"
 
-    private fun Process.isAlive(): Boolean = runCatching { exitValue(); false }.getOrElse { true }
+    private fun Process.isRunning(): Boolean = runCatching { exitValue(); false }.getOrElse { true }
 
     private fun pump(stream: java.io.InputStream) {
         Thread {

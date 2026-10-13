@@ -420,7 +420,8 @@ private fun TileBadge(loading: Boolean, shape: RoundedPolygon, color: Color, con
 
 internal fun localCountry(code: String?): String? {
     val iso = code?.trim()?.takeIf { it.length == 2 } ?: return null
-    val name = java.util.Locale("", iso).getDisplayCountry(java.util.Locale.getDefault())
+    val name = runCatching { java.util.Locale.Builder().setRegion(iso).build() }.getOrNull()
+        ?.getDisplayCountry(java.util.Locale.getDefault()) ?: return null
     return name.takeIf { it.isNotBlank() && !it.equals(iso, ignoreCase = true) }
 }
 

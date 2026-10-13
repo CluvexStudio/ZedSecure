@@ -68,6 +68,7 @@ class CrossChainUdpUnsupportedException(val protocol: String, val carrier: Strin
 class ConfigRepository(private val store: KeyValueStore) {
     private val json = Json { ignoreUnknownKeys = true }
     private val lenientJson = Json { ignoreUnknownKeys = true; isLenient = true }
+    private val prettyJson = Json { prettyPrint = true }
 
     private val _profiles = MutableStateFlow(loadProfiles())
     val profiles: StateFlow<List<VpnProfile>> = _profiles.asStateFlow()
@@ -333,8 +334,7 @@ class ConfigRepository(private val store: KeyValueStore) {
 
         var added = 0
         objects.forEach { obj ->
-            val raw = Json { prettyPrint = true }
-                .encodeToString(JsonObject.serializer(), obj)
+            val raw = prettyJson.encodeToString(JsonObject.serializer(), obj)
             runCatching { addRawJson(raw, subscriptionId = subscriptionId).getOrThrow() }
                 .onSuccess { added++ }
         }

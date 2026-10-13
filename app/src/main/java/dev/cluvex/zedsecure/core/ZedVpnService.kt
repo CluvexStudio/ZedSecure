@@ -129,7 +129,7 @@ class ZedVpnService : VpnService() {
             }
         }
         when {
-            command == VpnManager.CMD_START && intent != null -> {
+            command == VpnManager.CMD_START -> {
                 val config = intent.getStringExtra(VpnManager.EXTRA_CONFIG)
                     ?: intent.getStringExtra(VpnManager.EXTRA_CONFIG_PATH)?.let { path ->
 

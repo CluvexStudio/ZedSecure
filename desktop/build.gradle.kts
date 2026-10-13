@@ -19,7 +19,7 @@ kotlin {
 
 val zedVersion = project.property("zedsecure.versionName") as String
 
-val generateVersion by tasks.registering {
+val generateVersion = tasks.register("generateVersion") {
     val out = layout.buildDirectory.dir("generated/version")
     val version = zedVersion
     inputs.property("version", version)

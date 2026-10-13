@@ -21,7 +21,8 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.SheetValue
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -95,7 +96,7 @@ fun DnsTunnelSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
 
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded)),
     ) {
         Column(
             Modifier
@@ -191,6 +192,7 @@ fun DnsTunnelSheet(
                 }
                 run {
                     Label(Res.string.dns_tunnel_query_len, suffix = "$qnameLen")
+                    @Suppress("DEPRECATION")
                     Slider(
                         value = qnameLen.toFloat(),
                         onValueChange = { qnameLen = it.toInt() },
