@@ -34,6 +34,7 @@ object TorConfigBuilder {
         dataDir: File,
         upstreamSocksPort: Int? = null,
         transports: Transports = Transports.android(nativeLibDir),
+        dnsPort: Int? = null,
     ): String =
         buildString {
             val isolation = buildString {
@@ -41,7 +42,7 @@ object TorConfigBuilder {
                 if (settings.torIsolateDestPort) append(" IsolateDestPort")
             }
             appendLine("SocksPort 127.0.0.1:$SOCKS_PORT$isolation")
-            appendLine("DNSPort 0")
+            appendLine("DNSPort ${dnsPort?.let { "127.0.0.1:$it" } ?: "0"}")
             appendLine("RunAsDaemon 0")
             appendLine("ClientOnly 1")
             appendLine("Schedulers Vanilla")

@@ -11,6 +11,8 @@ class DesktopTor(
     private val settings: AppSettings,
     private val workDir: File,
     private val upstreamSocksPort: Int? = null,
+    private val engineCgroup: String? = null,
+    val dnsPort: Int? = null,
 ) {
     @Volatile private var process: Process? = null
 
@@ -20,11 +22,12 @@ class DesktopTor(
         val home = home(workDir)
         val root = BundledTree.extract(home, "tor")
             ?: return Result.failure(IllegalStateException("Tor is not bundled for ${Os.current}"))
-        val torrc = File(home, "torrc").apply { writeText(torrc(settings, root, File(home, "data"), upstreamSocksPort)) }
+        val torrc = File(home, "torrc").apply { writeText(torrc(settings, root, File(home, "data"), upstreamSocksPort, dnsPort)) }
         if (settings.torFakeSniEnabled) println("[tor] fake SNI needs the patched Android tor; this tor connects without it")
 
         val exe = File(root, if (Os.current == Os.WINDOWS) "tor.exe" else "tor")
-        val builder = ProcessBuilder(exe.absolutePath, "-f", torrc.absolutePath)
+        val command = listOf(exe.absolutePath, "-f", torrc.absolutePath)
+        val builder = ProcessBuilder(engineCgroup?.let { EngineCgroup.wrap(command, it) } ?: command)
             .redirectErrorStream(true)
             .directory(home)
         when (Os.current) {
@@ -76,7 +79,7 @@ class DesktopTor(
     }
 
     companion object {
-        private const val BOOTSTRAP_WAIT_SEC = 180L
+        private const val BOOTSTRAP_WAIT_SEC = 900L
         private const val CONJURE_REGISTER_URL = "https://registration.refraction.network/api"
         private val BOOTSTRAP_PCT = Regex("""Bootstrapped (\d{1,3})%""")
 
@@ -96,7 +99,7 @@ class DesktopTor(
             return TorConfigBuilder.Transports(obfs = lyrebird, snowflake = lyrebird, conjure = conjure, dnstt = null)
         }
 
-        fun torrc(settings: AppSettings, root: File, dataDir: File, upstreamSocksPort: Int? = null): String {
+        fun torrc(settings: AppSettings, root: File, dataDir: File, upstreamSocksPort: Int? = null, dnsPort: Int? = null): String {
             dataDir.mkdirs()
             return TorConfigBuilder.build(
                 settings = settings,
@@ -105,6 +108,7 @@ class DesktopTor(
                 dataDir = dataDir,
                 upstreamSocksPort = upstreamSocksPort,
                 transports = transports(root),
+                dnsPort = dnsPort,
             )
         }
     }

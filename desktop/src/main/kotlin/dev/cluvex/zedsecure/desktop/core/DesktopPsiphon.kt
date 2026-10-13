@@ -17,6 +17,7 @@ class DesktopPsiphon(
     val socksPort: Int,
     private val httpPort: Int,
     private val upstreamSocksPort: Int? = null,
+    private val engineCgroup: String? = null,
 ) {
     @Volatile private var process: Process? = null
 
@@ -29,7 +30,8 @@ class DesktopPsiphon(
             writeText(upstreamSocksPort?.let { PsiphonConfigBuilder.withUpstreamProxy(built, it) } ?: built)
         }
         val started = try {
-            ProcessBuilder(bin.absolutePath, "-config", config.absolutePath)
+            val command = listOf(bin.absolutePath, "-config", config.absolutePath)
+            ProcessBuilder(engineCgroup?.let { EngineCgroup.wrap(command, it) } ?: command)
                 .redirectErrorStream(true)
                 .directory(workDir)
                 .start()
@@ -88,7 +90,7 @@ class DesktopPsiphon(
     }
 
     private companion object {
-        const val CONNECT_WAIT_SEC = 120L
+        const val CONNECT_WAIT_SEC = 600L
         val LOGGED_NOTICES = setOf(
             "Tunnels", "ConnectedServerRegion", "ActiveTunnel", "ListeningSocksProxyPort",
             "ListeningHttpProxyPort", "Alert", "Error", "UpstreamProxyError", "SocksProxyPortInUse",

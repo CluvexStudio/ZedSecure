@@ -3,12 +3,16 @@ package dev.cluvex.zedsecure.core
 import java.io.EOFException
 import java.io.InputStream
 import java.io.OutputStream
+import java.net.DatagramPacket
+import java.net.DatagramSocket
 import java.net.Inet4Address
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.net.Socket
+import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
@@ -21,6 +25,7 @@ class SocksTunBridge(
     private val upstreamPort: Int,
     private val dnsHost: String = "8.8.8.8",
     private val dnsPort: Int = 53,
+    private val localResolver: InetSocketAddress? = null,
 ) {
     private val running = AtomicBoolean(false)
     private var server: ServerSocket? = null
@@ -31,6 +36,7 @@ class SocksTunBridge(
     private var reportedDown = 0L
 
     private val resolver = ResolverPool()
+    private val localWorkers by lazy { Executors.newFixedThreadPool(LOCAL_RESOLVER_WORKERS) }
 
     val isRunning: Boolean get() = running.get()
 
@@ -58,12 +64,26 @@ class SocksTunBridge(
         false
     }
 
+    fun warmUp(timeoutMs: Long): Boolean = localResolver != null || resolver.warmUp(timeoutMs)
+
     fun stop() {
         running.set(false)
         runCatching { server?.close() }
         server = null
         resolver.shutdown()
+        if (localResolver != null) runCatching { localWorkers.shutdownNow() }
     }
+
+    private fun askLocal(target: InetSocketAddress, query: ByteArray): ByteArray? = runCatching {
+        DatagramSocket().use { socket ->
+            socket.soTimeout = LOCAL_RESOLVER_TIMEOUT_MS
+            socket.send(DatagramPacket(query, query.size, target))
+            val buffer = ByteArray(LOCAL_ANSWER_MAX)
+            val packet = DatagramPacket(buffer, buffer.size)
+            socket.receive(packet)
+            buffer.copyOf(packet.length)
+        }
+    }.getOrNull()
 
     private fun acceptLoop(socket: ServerSocket) {
         while (running.get()) {
@@ -227,8 +247,9 @@ class SocksTunBridge(
 
             if (destination != 53) continue
 
-            resolver.submit {
-                val answer = resolver.lookup(payload) ?: return@submit
+            val local = localResolver
+            val task: () -> Unit = task@{
+                val answer = (if (local != null) askLocal(local, payload) else resolver.lookup(payload)) ?: return@task
                 val reply = byteArrayOf(
                     ((answer.size shr 8) and 0xFF).toByte(),
                     (answer.size and 0xFF).toByte(),
@@ -243,6 +264,7 @@ class SocksTunBridge(
                     }
                 }
             }
+            if (local != null) runCatching { localWorkers.execute { task() } } else resolver.submit(task)
         }
     }
 
@@ -273,6 +295,22 @@ class SocksTunBridge(
 
         fun submit(task: () -> Unit) {
             runCatching { workers.submit(task) }
+        }
+
+        fun warmUp(timeoutMs: Long): Boolean {
+            val ready = CountDownLatch(1)
+            for (slot in links.indices) {
+                submit {
+                    guards[slot].lock()
+                    try {
+                        if (links[slot]?.socket?.isClosed != false) links[slot] = open()
+                        if (links[slot] != null) ready.countDown()
+                    } finally {
+                        guards[slot].unlock()
+                    }
+                }
+            }
+            return ready.await(timeoutMs, TimeUnit.MILLISECONDS)
         }
 
         fun shutdown() {
@@ -401,5 +439,8 @@ class SocksTunBridge(
         const val RESOLVER_READ_TIMEOUT_MS = 20_000
         const val COPY_BUFFER = 65536
         const val POOL_SIZE = 4
+        const val LOCAL_RESOLVER_WORKERS = 16
+        const val LOCAL_RESOLVER_TIMEOUT_MS = 15_000
+        const val LOCAL_ANSWER_MAX = 4096
     }
 }

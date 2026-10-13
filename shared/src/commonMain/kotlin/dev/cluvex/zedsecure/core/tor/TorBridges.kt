@@ -30,7 +30,7 @@ object TorBridges {
             ?: parts.getOrElse(1) { "" }
     }
 
-    suspend fun ping(bridge: Bridge, rendezvous: String = "amp", timeoutMs: Int = 4000): Long {
+    suspend fun ping(bridge: Bridge, rendezvous: String = "cdn77", timeoutMs: Int = 4000): Long {
         val (host, port) = reachabilityTarget(bridge, rendezvous) ?: return -1L
         return tcpConnectMillis(host, port, timeoutMs)
     }

@@ -143,6 +143,15 @@ object LinuxBroker {
         if (isAlive) request("TUN_DOWN", STOP_WAIT_SEC)
     }
 
+    fun excludeEngines(cgroup: String): Result<Unit> {
+        if (!EngineCgroup.isSafe(cgroup)) return Result.failure(IllegalStateException("the engine cgroup has an unexpected name"))
+        return answer(request("EXCLUDE $cgroup", STOP_WAIT_SEC), "the root helper could not keep the engines outside the tunnel")
+    }
+
+    fun includeEngines() {
+        if (isAlive) request("EXCLUDE_OFF", STOP_WAIT_SEC)
+    }
+
     fun startJob(script: File): Result<Unit> =
         answer(request("JOB ${script.absolutePath}", 10), "the root helper did not start the job")
 
@@ -307,6 +316,9 @@ object LinuxBroker {
     }
 
     private const val TUN_WAIT_SEC = 25L
+    private const val ENGINE_TABLE = "zedsecure_engines"
+    private const val ENGINE_MARK = "0x5ed0"
+    private const val ENGINE_ROUTES = 5208
     private const val STOP_WAIT_SEC = 15L
     private const val JOB_STOP_WAIT_SEC = 25L
     private val POLL_NANOS = TimeUnit.MILLISECONDS.toNanos(500)
@@ -352,6 +364,8 @@ object LinuxBroker {
         |JOB_PID=
         |ROUTES=
         |RESOLVED=
+        |EXCL=
+        |SVM=
         |say() { printf '%s\n' "${'$'}*"; }
         |is_port() { case ${'$'}1 in ''|*[!0-9]*) return 1 ;; esac; [ "${'$'}1" -ge 1 ] && [ "${'$'}1" -le 65535 ]; }
         |is_ip4() { case ${'$'}1 in ''|*[!0-9.]*) return 1 ;; *.*.*.*) return 0 ;; esac; return 1; }
@@ -409,7 +423,7 @@ object LinuxBroker {
         |    echo "tunnel:"
         |    echo "  name: ${'$'}TUN"
         |    echo "  mtu: 8500"
-        |    echo "  ipv4: 198.18.0.1"
+        |    echo "  ipv4: 172.19.0.1"
         |    [ -n "${'$'}V6" ] && echo "  ipv6: 'fdfe:dcba:9876::1'"
         |    echo "socks5:"
         |    echo "  address: 127.0.0.1"
@@ -450,6 +464,52 @@ object LinuxBroker {
         |    resolvectl --no-ask-password domain "${'$'}TUN" '~.' >/dev/null 2>&1
         |    resolvectl --no-ask-password default-route "${'$'}TUN" yes >/dev/null 2>&1
         |    RESOLVED=1
+        |  fi
+        |  say "OK"
+        |}
+        |excl_down() {
+        |  [ -n "${'$'}{EXCL}" ] || return 0
+        |  nft delete table inet $ENGINE_TABLE >/dev/null 2>&1
+        |  while ip -4 rule del fwmark $ENGINE_MARK lookup $ENGINE_ROUTES priority $ENGINE_ROUTES >/dev/null 2>&1; do :; done
+        |  while ip -6 rule del fwmark $ENGINE_MARK lookup $ENGINE_ROUTES priority $ENGINE_ROUTES >/dev/null 2>&1; do :; done
+        |  ip -4 route flush table $ENGINE_ROUTES >/dev/null 2>&1
+        |  ip -6 route flush table $ENGINE_ROUTES >/dev/null 2>&1
+        |  [ -n "${'$'}{SVM}" ] && printf '%s\n' "${'$'}{SVM}" > /proc/sys/net/ipv4/conf/all/src_valid_mark
+        |  SVM=
+        |  EXCL=
+        |}
+        |excl_up() {
+        |  excl_down
+        |  cg=${'$'}{1:-}
+        |  case ${'$'}{cg} in ''|/*|*/|*..*|*[!A-Za-z0-9@._:/+-]*) say "ERR bad cgroup"; return ;; esac
+        |  [ -d "/sys/fs/cgroup/${'$'}{cg}" ] || { say "ERR the engine cgroup is missing"; return; }
+        |  command -v nft >/dev/null 2>&1 || { say "ERR nft is not installed"; return; }
+        |  way=${'$'}(path_to -4 1.1.1.1)
+        |  [ -n "${'$'}{way}" ] || { say "ERR no route to the internet"; return; }
+        |  level=${'$'}(printf '%s\n' "${'$'}{cg}" | awk -F/ '{ print NF }')
+        |  EXCL=1
+        |  if ! ip -4 route add default ${'$'}{way} table $ENGINE_ROUTES >/dev/null 2>&1 || ! ip -4 rule add fwmark $ENGINE_MARK lookup $ENGINE_ROUTES priority $ENGINE_ROUTES >/dev/null 2>&1; then
+        |    excl_down
+        |    say "ERR could not route the engines around the tunnel"
+        |    return
+        |  fi
+        |  way6=${'$'}(path_to -6 2606:4700:4700::1111)
+        |  if [ -n "${'$'}{way6}" ] && ip -6 route add default ${'$'}{way6} table $ENGINE_ROUTES >/dev/null 2>&1; then
+        |    ip -6 rule add fwmark $ENGINE_MARK lookup $ENGINE_ROUTES priority $ENGINE_ROUTES >/dev/null 2>&1
+        |  fi
+        |  printf 'table inet %s {\n  chain output {\n    type route hook output priority mangle; policy accept;\n    socket cgroupv2 level %s "%s" meta mark set %s ct mark set meta mark\n  }\n  chain prerouting {\n    type filter hook prerouting priority mangle; policy accept;\n    ct mark %s meta mark set ct mark\n  }\n}\n' $ENGINE_TABLE "${'$'}{level}" "${'$'}{cg}" $ENGINE_MARK $ENGINE_MARK > "${'$'}{RUN}/engines.nft"
+        |  if ! nft -f "${'$'}{RUN}/engines.nft" 2>"${'$'}{RUN}/nft.err"; then
+        |    why=${'$'}(head -n 2 "${'$'}{RUN}/nft.err" | tr '\n' ' ')
+        |    excl_down
+        |    say "ERR nftables did not accept the engine rule. ${'$'}{why}"
+        |    return
+        |  fi
+        |  dev=${'$'}{way##* }
+        |  if [ "${'$'}(cat /proc/sys/net/ipv4/conf/all/rp_filter 2>/dev/null)" = 1 ] || [ "${'$'}(cat "/proc/sys/net/ipv4/conf/${'$'}{dev}/rp_filter" 2>/dev/null)" = 1 ]; then
+        |    if [ "${'$'}(cat /proc/sys/net/ipv4/conf/all/src_valid_mark 2>/dev/null)" = 0 ]; then
+        |      SVM=0
+        |      echo 1 > /proc/sys/net/ipv4/conf/all/src_valid_mark
+        |    fi
         |  fi
         |  say "OK"
         |}
@@ -498,6 +558,7 @@ object LinuxBroker {
         |}
         |cleanup() {
         |  tun_down
+        |  excl_down
         |  job_down
         |  rm -rf "${'$'}RUN"
         |}
@@ -514,6 +575,8 @@ object LinuxBroker {
         |  case ${'$'}cmd in
         |    TUN_UP) tun_up "${'$'}@" ;;
         |    TUN_DOWN) tun_down; say "OK" ;;
+        |    EXCLUDE) excl_up "${'$'}@" ;;
+        |    EXCLUDE_OFF) excl_down; say "OK" ;;
         |    JOB) job_up "${'$'}{line#JOB }" ;;
         |    JOB_STOP) job_down; say "OK" ;;
         |    REMEMBER) remember ;;
