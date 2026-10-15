@@ -92,7 +92,7 @@ data class AetherProfile(
         return if (parsePort(raw) != null) loopback(raw) else loopback(PSI_EXIT)
     }
 
-    private fun bindPort(): Int = parsePort(bind) ?: 1819
+    fun bindPort(): Int = parsePort(bind) ?: 1819
 
     /** HTTP frontend port: custom wins unless colliding (SOCKS/exits),
      * else SOCKS+1 (1822 for Tor chains), bumped past taken ports. */
@@ -275,7 +275,8 @@ class DesktopAether(
             runCatching {
                 started.inputStream.bufferedReader().forEachLine { line ->
                     onLogLine(line)
-                    when (val ev = parseAetherLogLine(line)) {
+                    val ev = parseAetherLogLine(line)
+                    when (ev) {
                         is AetherLogEvent.EngineStarted -> engineSeen.set(true)
                         is AetherLogEvent.OverlayReady -> overlayReady.set(true)
                         else -> Unit
