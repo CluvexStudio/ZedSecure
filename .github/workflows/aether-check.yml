@@ -26,4 +26,4 @@ jobs:
       - uses: gradle/actions/setup-gradle@v3
 
       - name: Compile desktop (JVM)
-        run: ./gradlew :desktop:compileKotlinJvm --no-daemon
+        run: ./gradlew :desktop:compileKotlin --no-daemon
