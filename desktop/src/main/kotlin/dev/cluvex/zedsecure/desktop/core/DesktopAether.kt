@@ -123,7 +123,7 @@ data class AetherProfile(
 
     fun flagHttpAddr(): String {
         val port = frontendHttpPort()
-        val host = bind.substringBeforeLast(':').ifBlank { "127.0.0.1" }
+        val host = bind.substringBeforeLast(':').trim('[', ']').ifBlank { "127.0.0.1" }
         return "$host:$port"
     }
 
