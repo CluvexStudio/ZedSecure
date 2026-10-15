@@ -1,58 +1,46 @@
 package dev.cluvex.zedsecure.desktop.platform
 
-import dev.cluvex.zedsecure.desktop.core.AetherLogEvent
 import dev.cluvex.zedsecure.desktop.core.DesktopAether
-import dev.cluvex.zedsecure.desktop.core.AetherProfile
 import dev.cluvex.zedsecure.desktop.core.Os
 import dev.cluvex.zedsecure.desktop.core.SystemProxy
+import dev.cluvex.zedsecure.desktop.core.aetherProfileFromJson
+import dev.cluvex.zedsecure.domain.config.AetherLogEvent
+import dev.cluvex.zedsecure.domain.config.AetherProfile
 import dev.cluvex.zedsecure.platform.KeyValueStore
+import dev.cluvex.zedsecure.ui.aether.AetherBridge
+import dev.cluvex.zedsecure.ui.aether.AetherUiState
+import dev.cluvex.zedsecure.ui.aether.MatrixRow
 import java.io.File
+import java.net.InetSocketAddress
+import java.net.Proxy
+import java.net.Socket
+import java.net.URL
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlin.concurrent.thread
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Aether section controller: the automatic WARP tunnel (MASQUE/WireGuard/
  * gool/mim + Tor/Psiphon overlays) as an isolated section beside the stock
- * engines. Own profile store, own state flow, own engine instance —
+ * engines. Own profile store, own state flow, own engine instances —
  * nothing here touches VpnManager, AppSettings or stock profiles.
  *
  * Routing v1 is loopback endpoints + optional system proxy (mirrors the
  * reference GUI); TUN mode can reuse TunMode later without changing this
  * controller's contract.
  */
-object AetherVpn {
+object AetherVpn : AetherBridge {
     private const val PROFILE_KEY = "aether.profile.v1"
     private const val SYSPROXY_KEY = "aether.sysproxy"
 
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
-    enum class State { IDLE, WORKING, LIVE, ERROR }
-
-    data class UiState(
-        val state: State = State.IDLE,
-        val profile: AetherProfile = AetherProfile(),
-        val socksAddr: String = "127.0.0.1:1819",
-        val httpAddr: String = "127.0.0.1:1820",
-        val torExit: String? = null,
-        val psiExit: String? = null,
-        val statusLine: String = "",
-        val detailLine: String = "",
-        val torPercent: Int? = null,
-        val upBytes: Long = 0L,
-        val downBytes: Long = 0L,
-        val upRate: Long = 0L,
-        val downRate: Long = 0L,
-        val clients: Int = 0,
-        val sysProxy: Boolean = false,
-        val logTail: List<String> = emptyList(),
-    )
-
-    private val _state = MutableStateFlow(UiState())
-    val state: StateFlow<UiState> = _state.asStateFlow()
+    private val _state = MutableStateFlow(AetherUiState())
+    override val state: StateFlow<AetherUiState> = _state.asStateFlow()
 
     private lateinit var store: KeyValueStore
     private lateinit var workDir: File
@@ -68,7 +56,7 @@ object AetherVpn {
         this.workDir = workDir
         val saved = runCatching {
             store.getString(PROFILE_KEY)?.let { raw ->
-                AetherProfile.fromJson(json.parseToJsonElement(raw) as JsonObject)
+                aetherProfileFromJson(json.parseToJsonElement(raw) as JsonObject)
             }
         }.getOrNull()
         val sys = store.getString(SYSPROXY_KEY) == "1"
@@ -78,20 +66,20 @@ object AetherVpn {
         )
     }
 
-    fun updateProfile(p: AetherProfile) {
+    override fun updateProfile(p: AetherProfile) {
         _state.value = _state.value.copy(profile = p)
         if (this::store.isInitialized) {
             runCatching { store.putString(PROFILE_KEY, p.toJson().toString()) }
         }
     }
 
-    fun setSysProxy(on: Boolean) {
+    override fun setSysProxy(on: Boolean) {
         _state.value = _state.value.copy(sysProxy = on)
         if (this::store.isInitialized) runCatching {
             store.putString(SYSPROXY_KEY, if (on) "1" else "0")
         }
         val s = _state.value
-        if (on && s.state == State.LIVE) {
+        if (on && s.phase == "live") {
             val hp = s.httpAddr.substringAfterLast(':').toIntOrNull() ?: 1820
             SystemProxy.set("127.0.0.1", hp)
         } else if (!on) {
@@ -99,16 +87,16 @@ object AetherVpn {
         }
     }
 
-    fun toggle() {
-        if (_state.value.state == State.WORKING || _state.value.state == State.LIVE) disconnect()
+    override fun toggle() {
+        if (_state.value.phase == "working" || _state.value.phase == "live") disconnect()
         else connect()
     }
 
-    fun connect() {
-        if (_state.value.state == State.WORKING || _state.value.state == State.LIVE) return
+    private fun connect() {
+        if (_state.value.phase == "working" || _state.value.phase == "live") return
         val profile = _state.value.profile
         wantStop = false
-        updateStatus(State.WORKING, "Starting Aether…", "")
+        patch(phase = "working", statusLine = "Starting Aether…", detailLine = "")
         thread(name = "aether-section", isDaemon = true) {
             val eng = DesktopAether(workDir, profile)
             engine = eng
@@ -120,16 +108,15 @@ object AetherVpn {
                     _state.value = _state.value.copy(logTail = events.toList())
                 }
             }
-            val attemptStart = System.currentTimeMillis()
             val res = eng.start(
                 onEvent = { ev ->
                     when (ev) {
                         is AetherLogEvent.EngineStarted ->
-                            updateStatus(State.WORKING, "Engine up — hunting a route…", "")
+                            patch(phase = "working", statusLine = "Engine up — hunting a route…")
                         is AetherLogEvent.OverlayReady ->
-                            updateStatus(State.WORKING, "Overlay ready — waiting on ports…", "")
+                            patch(phase = "working", statusLine = "Overlay ready — waiting on ports…")
                         is AetherLogEvent.ScanBudget ->
-                            updateStatus(State.WORKING, "Scanning…", "budget ${ev.secs}s")
+                            patch(phase = "working", statusLine = "Scanning…", detailLine = "budget ${ev.secs}s")
                         is AetherLogEvent.TorPercent -> _state.value =
                             _state.value.copy(torPercent = ev.pct, detailLine = "Tor bootstrap ${ev.pct}%")
                         is AetherLogEvent.Traffic -> onTraffic(ev.upBytes, ev.downBytes)
@@ -140,11 +127,10 @@ object AetherVpn {
             if (wantStop) return@thread
             res.onSuccess {
                 val httpPort = profile.frontendHttpPort()
-                val httpHost = "127.0.0.1"
                 _state.value = _state.value.copy(
-                    state = State.LIVE,
+                    phase = "live",
                     socksAddr = profile.primaryAddr(),
-                    httpAddr = "$httpHost:$httpPort",
+                    httpAddr = "127.0.0.1:$httpPort",
                     torExit = profile.torExit(),
                     psiExit = profile.psiExit(),
                     statusLine = "Tunnel live",
@@ -156,9 +142,13 @@ object AetherVpn {
                 }
             }.onFailure { e ->
                 engine = null
-                updateStatus(State.ERROR, "Connection failed", e.message ?: "")
+                patch(phase = "error", statusLine = "Connection failed", detailLine = e.message ?: "")
             }
         }
+    }
+
+    private fun patch(phase: String, statusLine: String, detailLine: String = _state.value.detailLine) {
+        _state.value = _state.value.copy(phase = phase, statusLine = statusLine, detailLine = detailLine)
     }
 
     private fun onTraffic(up: Long, down: Long) {
@@ -173,24 +163,21 @@ object AetherVpn {
         _state.value = s.copy(upBytes = up, downBytes = down, upRate = upRate, downRate = downRate)
     }
 
-    private fun updateStatus(state: State, line: String, detail: String) {
-        _state.value = _state.value.copy(state = state, statusLine = line, detailLine = detail)
-    }
-
-    fun disconnect() {
+    override fun disconnect() {
         wantStop = true
+        stopMatrix()
         engine?.stop()
         engine = null
         SystemProxy.clear()
         lastStatsAt = 0L
         _state.value = _state.value.copy(
-            state = State.IDLE, statusLine = "", detailLine = "",
+            phase = "idle", statusLine = "", detailLine = "",
             torPercent = null, upRate = 0L, downRate = 0L, clients = 0,
         )
     }
 
     /** Best-effort LAN client count (ESTABLISHED to our ports). */
-    fun refreshClients(): Int {
+    override fun refreshClients(): Int {
         val ports = setOf(
             _state.value.socksAddr.substringAfterLast(':').toIntOrNull(),
             _state.value.httpAddr.substringAfterLast(':').toIntOrNull(),
@@ -211,8 +198,6 @@ object AetherVpn {
             val ips = mutableSetOf<String>()
             out.lines().forEach { line ->
                 val parts = line.trim().split(Regex("\\s+"))
-                // netstat: Proto Recv-Q Send-Q Local ... Foreign ... (State)
-                // ss -Htn: State Recv-Q Send-Q Local:port Peer:port
                 val local = parts.getOrNull(3) ?: return@forEach
                 val remote = parts.getOrNull(4) ?: parts.getOrNull(5) ?: return@forEach
                 val lport = local.substringAfterLast(':').toIntOrNull() ?: return@forEach
@@ -225,5 +210,125 @@ object AetherVpn {
         }.getOrDefault(0)
         _state.value = _state.value.copy(clients = n)
         return n
+    }
+
+    // ---- Connection matrix: every protocol × warp/psiphon at once ----
+
+    private val matrixTransports = listOf(
+        Triple("warp", "none", 60L),
+        Triple("psiphon", "psiphon", 150L),
+        Triple("psiphon-only", "psiphon_only", 150L),
+    )
+
+    private fun lanePorts(lane: Int): Triple<String, String, String> {
+        val socks = 1830 + lane * 2
+        return Triple("127.0.0.1:$socks", "127.0.0.1:${1900 + lane * 2}", (socks + 1).toString())
+    }
+
+    private val matrixCancel = AtomicBoolean(false)
+    private val matrixProtocols = listOf("auto", "masque", "wireguard", "gool", "gool-classic", "mim")
+
+    private data class Combo(val key: String, val proto: String, val transport: String, val budget: Long)
+
+    override fun runMatrix() {
+        if (_state.value.matrixRunning) return
+        if (_state.value.phase == "working" || _state.value.phase == "live") return
+        matrixCancel.set(false)
+        val base = _state.value.profile.copy(quickReconnect = false)
+        val combos = matrixProtocols.flatMap { p ->
+            matrixTransports.map { (label, transport, budget) -> Combo("$p+$label", p, transport, budget) }
+        }
+        _state.value = _state.value.copy(
+            matrixRunning = true,
+            matrix = combos.map { MatrixRow(key = it.key, proto = it.proto, trans = it.key.substringAfter('+'), phase = "idle") },
+        )
+        combos.forEachIndexed { i, combo ->
+            thread(name = "aether-matrix-$i", isDaemon = true) {
+                runMatrixCombo(i, base, combo)
+            }
+        }
+    }
+
+    override fun stopMatrix() {
+        matrixCancel.set(true)
+        if (_state.value.matrixRunning) {
+            _state.value = _state.value.copy(matrixRunning = false)
+        }
+    }
+
+    private fun runMatrixCombo(lane: Int, base: AetherProfile, combo: Combo) {
+        setMatrixRow(combo.key, "running", false, null, null, "…")
+        val (bind, psiBind, httpPort) = lanePorts(lane)
+        val profile = base.copy(
+            protocol = combo.proto,
+            extraTransport = combo.transport,
+            bind = bind,
+            psiphonBind = psiBind,
+            httpPort = httpPort,
+        )
+        val dir = File(workDir, "matrix-slot-$lane").apply { mkdirs() }
+        val eng = DesktopAether(dir, profile)
+        val res = eng.start(scanBudgetSecs = combo.budget, waitExtraSecs = 0L)
+        if (matrixCancel.get()) {
+            eng.stop()
+            setMatrixRow(combo.key, "done", false, null, null, "cancelled")
+            finishMatrixIfDone()
+            return
+        }
+        if (res.isFailure) {
+            eng.stop()
+            setMatrixRow(combo.key, "done", false, null, null, res.exceptionOrNull()?.message ?: "failed")
+            finishMatrixIfDone()
+            return
+        }
+        val exit = profile.primaryAddr()
+        // Through-tunnel latency: tiny fetch through this lane's SOCKS.
+        val ping = measureThrough(bind)
+        eng.stop()
+        if (matrixCancel.get()) {
+            setMatrixRow(combo.key, "done", false, null, null, "cancelled")
+        } else if (ping != null) {
+            setMatrixRow(combo.key, "done", true, ping, exit, "")
+        } else {
+            setMatrixRow(combo.key, "done", false, null, exit, "connected, no traffic")
+        }
+        finishMatrixIfDone()
+    }
+
+    private fun setMatrixRow(key: String, phase: String, ok: Boolean, ms: Long?, exit: String?, note: String) {
+        _state.value = _state.value.copy(
+            matrix = _state.value.matrix.map {
+                if (it.key == key) it.copy(phase = phase, ok = ok, ms = ms, exit = exit, note = note) else it
+            },
+        )
+    }
+
+    private fun finishMatrixIfDone() {
+        // Called once per finished lane-combo; exact counting via size check.
+        synchronized(this) {
+            val done = _state.value.matrix.count { it.phase == "done" }
+            if (done >= _state.value.matrix.size && _state.value.matrix.isNotEmpty()) {
+                _state.value = _state.value.copy(matrixRunning = false)
+            }
+        }
+    }
+
+    private fun measureThrough(socksBind: String): Long? {
+        return try {
+            val port = socksBind.substringAfterLast(':').toInt()
+            val proxy = Proxy(Proxy.Type.SOCKS, InetSocketAddress("127.0.0.1", port))
+            val url = URL("https://www.cloudflare.com/cdn-cgi/trace")
+            val t = System.currentTimeMillis()
+            (url.openConnection(proxy) as java.net.HttpURLConnection).run {
+                connectTimeout = 12000
+                readTimeout = 12000
+                connect()
+                inputStream.use { it.readBytes() }
+                disconnect()
+            }
+            System.currentTimeMillis() - t
+        } catch (_: Exception) {
+            null
+        }
     }
 }

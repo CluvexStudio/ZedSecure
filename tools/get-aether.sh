@@ -18,7 +18,7 @@ case "$TARGET" in
   windows)     ASSET="aether-windows-x86_64.zip"    ; SUB="windows" ; BIN="aether.exe" ;;
   macos-arm64) ASSET="aether-macos-arm64.tar.gz"   ; SUB="macos"   ; BIN="aether" ;;
   macos-x86_64) ASSET="aether-macos-x86_64.tar.gz" ; SUB="macos"   ; BIN="aether" ;;
-  *) echo "unknown target $TARGET" >&2; exit 1 ;;
+  *) echo "unknown target $TARGET (want: linux, windows, macos-arm64, macos-x86_64)" >&2; exit 1 ;;
 esac
 
 BASE="https://github.com/CluvexStudio/Aether/releases/download/$AETHER_VERSION"
