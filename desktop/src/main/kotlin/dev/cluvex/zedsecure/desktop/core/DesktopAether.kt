@@ -5,6 +5,7 @@ import java.net.Socket
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlinx.serialization.Serializable
 
 /**
  * Aether censorship-tunnel engine (CluvexStudio/Aether v2.3.0): automatic
@@ -16,6 +17,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  * same fixed exits (Tor 1820 / Psiphon 1821 unless overridden), same
  * per-mode HTTP flags, same gating. Empty extras forward nothing.
  */
+@Serializable
 data class AetherProfile(
     val protocol: String = "auto",
     val scanMode: String = "balanced",
