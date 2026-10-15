@@ -5,13 +5,13 @@ import dev.cluvex.zedsecure.desktop.core.DesktopAether
 import dev.cluvex.zedsecure.desktop.core.AetherProfile
 import dev.cluvex.zedsecure.desktop.core.Os
 import dev.cluvex.zedsecure.desktop.core.SystemProxy
-import dev.cluvex.zedsecure.desktop.core.parseAetherLogLine
 import dev.cluvex.zedsecure.platform.KeyValueStore
 import java.io.File
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
 import kotlin.concurrent.thread
 
 /**
@@ -67,7 +67,9 @@ object AetherVpn {
         this.store = store
         this.workDir = workDir
         val saved = runCatching {
-            store.getString(PROFILE_KEY)?.let { json.decodeFromString<AetherProfile>(it) }
+            store.getString(PROFILE_KEY)?.let { raw ->
+                AetherProfile.fromJson(json.parseToJsonElement(raw) as JsonObject)
+            }
         }.getOrNull()
         val sys = store.getString(SYSPROXY_KEY) == "1"
         _state.value = _state.value.copy(
@@ -79,7 +81,7 @@ object AetherVpn {
     fun updateProfile(p: AetherProfile) {
         _state.value = _state.value.copy(profile = p)
         if (this::store.isInitialized) {
-            runCatching { store.putString(PROFILE_KEY, json.encodeToString(AetherProfile.serializer(), p)) }
+            runCatching { store.putString(PROFILE_KEY, p.toJson().toString()) }
         }
     }
 

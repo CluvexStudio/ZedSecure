@@ -5,7 +5,11 @@ import java.net.Socket
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
-import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 /**
  * Aether censorship-tunnel engine (CluvexStudio/Aether v2.3.0): automatic
@@ -17,7 +21,6 @@ import kotlinx.serialization.Serializable
  * same fixed exits (Tor 1820 / Psiphon 1821 unless overridden), same
  * per-mode HTTP flags, same gating. Empty extras forward nothing.
  */
-@Serializable
 data class AetherProfile(
     val protocol: String = "auto",
     val scanMode: String = "balanced",
@@ -48,6 +51,32 @@ data class AetherProfile(
     companion object {
         const val TOR_EXIT = "127.0.0.1:1820"
         const val PSI_EXIT = "127.0.0.1:1821"
+
+        /** Manual JSON mapping (desktop module has no serialization plugin). */
+        fun fromJson(o: JsonObject): AetherProfile {
+            fun s(k: String) = (o[k] as? JsonPrimitive)?.content ?: ""
+            fun b(k: String, d: Boolean) = (o[k] as? JsonPrimitive)?.booleanOrNull ?: d
+            return AetherProfile(
+                protocol = s("protocol").ifBlank { "auto" },
+                scanMode = s("scanMode").ifBlank { "balanced" },
+                ipVersion = s("ipVersion").ifBlank { "v4" },
+                quickReconnect = b("quickReconnect", true),
+                noize = s("noize").ifBlank { "firewall" },
+                bind = s("bind").ifBlank { "127.0.0.1:1819" },
+                httpPort = s("httpPort"),
+                extraTransport = s("extraTransport").ifBlank { "none" },
+                torBind = s("torBind"), torBridges = b("torBridges", false),
+                torRelays = s("torRelays"), torBridge = s("torBridge"),
+                torBridgeFile = s("torBridgeFile"),
+                psiphonBind = s("psiphonBind"), psiphonRegion = s("psiphonRegion"),
+                psiphonMode = s("psiphonMode").ifBlank { "auto" },
+                psiphonConfig = s("psiphonConfig"), psiphonCdnIps = s("psiphonCdnIps"),
+                psiphonCdnSni = s("psiphonCdnSni"), psiphonCdnSets = s("psiphonCdnSets"),
+                psiphonServerEntries = s("psiphonServerEntries"),
+                upstream = s("upstream"), dns = s("dns"), exitLoc = s("exitLoc"),
+                masqueHttp2 = b("masqueHttp2", false),
+            )
+        }
     }
 
     private fun isTor() = extraTransport == "tor" || extraTransport == "tor_reverse" || extraTransport == "tor_only"
@@ -115,7 +144,7 @@ data class AetherProfile(
     }
 
     /** User-facing SOCKS: the Tor/Psiphon exit in chain modes. */
-    fun primaryAddr(): String = torExit() ?: psiExit() ?: loopback("$bind")
+    fun primaryAddr(): String = torExit() ?: psiExit() ?: loopback(bind)
 
     fun httpFrontFlag(): String = when {
         extraTransport == "psiphon" || extraTransport == "psiphon_reverse" || extraTransport == "psiphon_only" -> "--psiphon-http"
@@ -189,6 +218,20 @@ data class AetherProfile(
     fun env(): Map<String, String> = mapOf(
         "AETHER_MASQUE_HTTP2" to if (masqueHttp2) "1" else "0",
     )
+
+    fun toJson(): JsonObject = buildJsonObject {
+        put("protocol", protocol); put("scanMode", scanMode); put("ipVersion", ipVersion)
+        put("quickReconnect", quickReconnect); put("noize", noize)
+        put("bind", bind); put("httpPort", httpPort); put("extraTransport", extraTransport)
+        put("torBind", torBind); put("torBridges", torBridges); put("torRelays", torRelays)
+        put("torBridge", torBridge); put("torBridgeFile", torBridgeFile)
+        put("psiphonBind", psiphonBind); put("psiphonRegion", psiphonRegion)
+        put("psiphonMode", psiphonMode); put("psiphonConfig", psiphonConfig)
+        put("psiphonCdnIps", psiphonCdnIps); put("psiphonCdnSni", psiphonCdnSni)
+        put("psiphonCdnSets", psiphonCdnSets); put("psiphonServerEntries", psiphonServerEntries)
+        put("upstream", upstream); put("dns", dns); put("exitLoc", exitLoc)
+        put("masqueHttp2", masqueHttp2)
+    }
 }
 
 /** Structured core-log events (same markers the reference GUI keys on). */
