@@ -1,8 +1,6 @@
 package dev.cluvex.zedsecure.desktop.core
 
-import dev.cluvex.zedsecure.domain.config.AetherLogEvent
 import dev.cluvex.zedsecure.domain.config.AetherProfile
-import dev.cluvex.zedsecure.domain.config.parseAetherLogLine
 
 import java.io.File
 import java.net.Socket

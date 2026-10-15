@@ -1,10 +1,9 @@
 package dev.cluvex.zedsecure.desktop.platform
 
+import dev.cluvex.zedsecure.desktop.core.AetherLogEvent
 import dev.cluvex.zedsecure.desktop.core.DesktopAether
 import dev.cluvex.zedsecure.desktop.core.Os
 import dev.cluvex.zedsecure.desktop.core.SystemProxy
-import dev.cluvex.zedsecure.desktop.core.aetherProfileFromJson
-import dev.cluvex.zedsecure.domain.config.AetherLogEvent
 import dev.cluvex.zedsecure.domain.config.AetherProfile
 import dev.cluvex.zedsecure.platform.KeyValueStore
 import dev.cluvex.zedsecure.ui.aether.AetherBridge
@@ -56,7 +55,7 @@ object AetherVpn : AetherBridge {
         this.workDir = workDir
         val saved = runCatching {
             store.getString(PROFILE_KEY)?.let { raw ->
-                aetherProfileFromJson(json.parseToJsonElement(raw) as JsonObject)
+                AetherProfile.fromJson(json.parseToJsonElement(raw) as JsonObject)
             }
         }.getOrNull()
         val sys = store.getString(SYSPROXY_KEY) == "1"
