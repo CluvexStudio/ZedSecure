@@ -422,6 +422,7 @@ fun main(args: Array<String>) {
                             onActiveServerChanged = { reconnectIfRunning() },
                             onUpdateSettings = { transform -> desktopSettings.update(transform) },
                             onLanguage = { lang -> desktopSettings.update { it.copy(language = lang) } },
+                            aetherBridge = dev.cluvex.zedsecure.desktop.platform.AetherVpn,
                         )
                         val passwordRequest by AdminPassword.request.collectAsState()
                         passwordRequest?.let { request ->
@@ -447,6 +448,12 @@ internal fun wireDesktopServices(
     background: kotlinx.coroutines.CoroutineScope,
 ) {
     DesktopVpn.settingsProvider = { desktopSettings.settings.value }
+
+    // Aether section: isolated store + work dir beside the stock ones.
+    dev.cluvex.zedsecure.desktop.platform.AetherVpn.configure(
+        DesktopKeyValueStore("aether"),
+        java.io.File(System.getProperty("java.io.tmpdir"), "zedsecure/aether"),
+    )
 
     DesktopVpn.ruleOutboundsProvider = { configRepository.resolveRuleOutbounds(it) }
     DesktopVpn.ruleGroupsProvider = { configRepository.resolveRuleGroups(it) }

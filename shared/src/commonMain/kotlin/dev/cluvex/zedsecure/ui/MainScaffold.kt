@@ -71,6 +71,7 @@ fun MainScaffold(
     onLanguage: (AppLanguage) -> Unit,
 
     aiBridge: dev.cluvex.zedsecure.domain.ai.AiAppBridge? = null,
+    aetherBridge: dev.cluvex.zedsecure.ui.aether.AetherBridge? = null,
     appVersion: String = "",
 ) {
     val platform = dev.cluvex.zedsecure.ui.platform.LocalPlatform.current
@@ -263,6 +264,15 @@ fun MainScaffold(
                     contentPadding = innerPadding,
                     onImportRequested = onImportZsx,
                 )
+                TopDestination.Aether -> {
+                    val bridge = aetherBridge
+                    if (bridge != null) {
+                        dev.cluvex.zedsecure.ui.aether.AetherScreen(
+                            bridge = bridge,
+                            modifier = Modifier.padding(innerPadding),
+                        )
+                    }
+                }
                 TopDestination.Settings -> SettingsScreen(
                     settings = settings,
                     contentPadding = innerPadding,
