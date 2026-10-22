@@ -62,13 +62,14 @@ class StartPlanner(context: Context) {
             return Plan.Failure(messageFor(e))
         }
         val settings = settingsRepository.settings.value
+        val socksPort = LocalPortPicker.pickPair(LocalProxy.SOCKS_PORT, LocalPorts.reservedPorts)
 
         val proxyOnly = allowProxyOnly && settings.runMode == RunMode.ProxyOnly && kind == VpnManager.KIND_XRAY
         return Plan.Start(
-            configJson = configJson,
+            configJson = XrayJsonBuilder.withProxyPorts(configJson, LocalProxy.SOCKS_PORT, socksPort),
             remark = if (profile.isAutoSelect) autoSelectRemark(profile) else profile.name,
             kind = kind,
-            socksPort = LocalProxy.SOCKS_PORT,
+            socksPort = socksPort,
             proxyOnly = proxyOnly,
         )
     }

@@ -41,4 +41,21 @@ object LocalPorts {
     fun lanSocksPort(requested: Int): Int =
         if (requested in 1024..65534 && !isInternal(requested) && !isInternal(requested + 1)) requested
         else LAN_SOCKS
+
+    /** Ports the other engines claim, so the local proxy port picker must not land on one of them.
+     *  [XRAY_SOCKS] and [XRAY_HTTP] are deliberately left out: they are the pair the picker is
+     *  placing — XRAY_HTTP is never bound on its own, it is always XRAY_SOCKS + 1 — so leaving
+     *  them in would push every pick off 10808 and change the ordinary single-instance case. */
+    val reservedPorts: Set<Int> = buildSet {
+        addAll(
+            listOf(
+                SNI_SPOOF, DESKTOP_METRICS, SHIM,
+                PSIPHON_SOCKS, PSIPHON_HTTP, TOR_SOCKS, LAN_SOCKS, CHAIN_CARRIER,
+            ),
+        )
+        addAll(SSH..SSH_MAX)
+        addAll(DNS_TUNNEL..DNS_TUNNEL_MAX)
+        addAll(MASTER_DNS..MASTER_DNS_MAX)
+        addAll(SSH_OVER_DNS..SSH_OVER_DNS_MAX)
+    }
 }

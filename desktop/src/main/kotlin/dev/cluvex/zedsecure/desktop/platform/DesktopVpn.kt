@@ -12,7 +12,7 @@ import dev.cluvex.zedsecure.desktop.core.DesktopTor
 import dev.cluvex.zedsecure.desktop.core.DesktopTun
 import dev.cluvex.zedsecure.desktop.core.EngineCgroup
 import dev.cluvex.zedsecure.desktop.core.PhysicalInterface
-import dev.cluvex.zedsecure.desktop.core.LocalPortPicker
+import dev.cluvex.zedsecure.core.LocalPortPicker
 import dev.cluvex.zedsecure.desktop.core.SystemProxy
 import dev.cluvex.zedsecure.desktop.core.Os
 import dev.cluvex.zedsecure.desktop.core.TunMode
@@ -21,6 +21,7 @@ import dev.cluvex.zedsecure.domain.config.DnsTunnelProfile
 import dev.cluvex.zedsecure.domain.config.Ikev2Profile
 import dev.cluvex.zedsecure.domain.config.LocalPorts
 import dev.cluvex.zedsecure.domain.config.LocalProxy
+import dev.cluvex.zedsecure.domain.config.XrayJsonBuilder
 import dev.cluvex.zedsecure.domain.config.PsiphonProfile
 import dev.cluvex.zedsecure.domain.config.SshProfile
 import dev.cluvex.zedsecure.domain.config.autoSelectTuning
@@ -415,7 +416,7 @@ object DesktopVpn {
         val options = settings.toBuildOptions(geoAssetsAvailable = geoAssetsAvailable(), geoCodes = geoCodes(settings))
             .copy(carrier = true, appendHttpProxy = false, lan = null)
         val port = localPort(CARRIER_PORT)
-        val json = keepCoreOutside(DesktopXray.withSocksPort(xrayJsonOf(outer, options), LocalProxy.SOCKS_PORT, port))
+        val json = keepCoreOutside(XrayJsonBuilder.withProxyPorts(xrayJsonOf(outer, options), LocalProxy.SOCKS_PORT, port))
         carrierBypass = resolveHosts(DesktopXray.extractServerHosts(json))
         val core = XrayCore(work)
         carrier = core
@@ -462,10 +463,10 @@ object DesktopVpn {
             ),
         ).let(::vpnModeOptions)
         val chained = dev.cluvex.zedsecure.domain.config.XrayJsonBuilder.withCarrierProxy(xrayJsonOf(inner, options), carrierPort)
-        val socksPort = localPort(LocalProxy.SOCKS_PORT, setOf(carrierPort))
+        val socksPort = proxyPort(LocalProxy.SOCKS_PORT, setOf(carrierPort))
         val metricsPort = localPort(METRICS_PORT, setOf(socksPort, carrierPort))
         val bypass = carrierBypass
-        val json = DesktopXray.augmentWithMetrics(DesktopXray.withSocksPort(chained, LocalProxy.SOCKS_PORT, socksPort), metricsPort)
+        val json = DesktopXray.augmentWithMetrics(XrayJsonBuilder.withProxyPorts(chained, LocalProxy.SOCKS_PORT, socksPort), metricsPort)
             .let { if (bypass != null) keepCoreOutside(it) else it }
         val core = XrayCore(work)
         if (!core.start(json)) return "the core did not start"
@@ -531,10 +532,10 @@ object DesktopVpn {
         }.getOrElse {
             VpnManager.onError(it.message ?: "This config type isn't supported on desktop yet"); return
         }
-        val socksPort = localPort(LocalProxy.SOCKS_PORT)
-        val metricsPort = localPort(METRICS_PORT, setOf(socksPort))
+        val socksPort = proxyPort(LocalProxy.SOCKS_PORT)
+        val metricsPort = localPort(METRICS_PORT, setOf(socksPort, socksPort + 1))
         val ported = DesktopXray.augmentWithMetrics(
-            DesktopXray.withSocksPort(baseJson, LocalProxy.SOCKS_PORT, socksPort),
+            XrayJsonBuilder.withProxyPorts(baseJson, LocalProxy.SOCKS_PORT, socksPort),
             metricsPort,
         )
         VpnManager.onStarting(name)
@@ -614,6 +615,15 @@ object DesktopVpn {
         LocalPortPicker.pick(preferred, taken).also { port ->
             if (port != preferred) {
                 LogBus.append("W/Desktop port $preferred is in use by another program; using $port instead")
+            }
+        }
+
+    /** Like [localPort], but also keeps `port + 1` clear: with appendHttpProxy on, Xray listens
+     *  for the HTTP proxy there and a colliding neighbour would move the clash, not fix it. */
+    private fun proxyPort(preferred: Int, taken: Set<Int> = emptySet()): Int =
+        LocalPortPicker.pickPair(preferred, taken).also { port ->
+            if (port != preferred) {
+                LogBus.append("W/Desktop proxy port $preferred is in use; using $port instead")
             }
         }
 
