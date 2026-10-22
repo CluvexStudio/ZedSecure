@@ -17,23 +17,6 @@ import kotlinx.serialization.json.putJsonObject
 object DesktopXray {
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 
-    fun withSocksPort(config: String, from: Int, to: Int): String {
-        if (from == to) return config
-        val root = runCatching { json.parseToJsonElement(config).jsonObject }.getOrNull() ?: return config
-        val inbounds = root["inbounds"] as? JsonArray ?: return config
-        val moved = JsonArray(
-            inbounds.map { element ->
-                val inbound = element as? JsonObject ?: return@map element
-                if ((inbound["port"] as? JsonPrimitive)?.intOrNull == from) {
-                    JsonObject(inbound + ("port" to JsonPrimitive(to)))
-                } else {
-                    inbound
-                }
-            },
-        )
-        return JsonObject(root + ("inbounds" to moved)).toString()
-    }
-
     fun frontConfig(listenPort: Int, upstreamPort: Int, blockTunNoise: Boolean = false): String = buildJsonObject {
         putJsonObject("log") { put("loglevel", "warning") }
         putJsonArray("inbounds") {

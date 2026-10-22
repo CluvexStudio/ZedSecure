@@ -10,6 +10,8 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.addJsonObject
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
@@ -120,6 +122,27 @@ object XrayJsonBuilder {
 
     private fun emittedTagFor(ruleTag: String): String =
         "out-" + ruleTag.map { if (it.isLetterOrDigit() || it == '-' || it == '_') it else '_' }.joinToString("")
+
+    /** Moves the loopback SOCKS inbound from [from] to [to], and with it the HTTP inbound Xray
+     *  pairs at `from + 1` — both must follow or the bridge would dial a port nothing listens on.
+     *  Only inbounds listening on 127.0.0.1 are touched: the LAN share listens on 0.0.0.0 and its
+     *  port is the user's choice, shown in the UI, so it must not be rewritten behind their back.
+     *  Returns [config] unchanged when the port did not move or the inbounds are not there. */
+    fun withProxyPorts(config: String, from: Int, to: Int): String {
+        if (from == to) return config
+        val root = runCatching { leanJson.parseToJsonElement(config).jsonObject }.getOrNull() ?: return config
+        val inbounds = root["inbounds"] as? JsonArray ?: return config
+        val moved = JsonArray(
+            inbounds.map { element ->
+                val inbound = element as? JsonObject ?: return@map element
+                val port = (inbound["port"] as? JsonPrimitive)?.intOrNull
+                if (port != from && port != from + 1) return@map element
+                if ((inbound["listen"] as? JsonPrimitive)?.content != "127.0.0.1") return@map element
+                JsonObject(inbound + ("port" to JsonPrimitive(if (port == from) to else to + 1)))
+            },
+        )
+        return JsonObject(root + ("inbounds" to moved)).toString()
+    }
 
     fun build(
         server: ServerConfig,
