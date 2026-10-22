@@ -69,6 +69,10 @@ object XrayJsonBuilder {
 
     private const val TAG_DNS_OUT = "dns-out"
 
+    private const val ONION_DOMAIN = "domain:onion"
+
+    private const val ENGINE_HANDSHAKE_SEC = 60
+
     private const val FAKEDNS_POOL = "198.18.0.0/15"
     private val KNOWN_DNS_HOSTS = mapOf(
         "cloudflare-dns.com" to listOf("104.16.248.249", "104.16.249.249"),
@@ -133,6 +137,87 @@ object XrayJsonBuilder {
         val withDns = if (server.dnsServers.isEmpty()) options else options.copy(serverDns = server.dnsServers)
         return assemble(socksPort, withDns, forSpeedtest) { add(proxyOutbound(server, withDns)) }
     }
+
+    data class EngineFront(
+        val port: Int,
+        val onion: Boolean = false,
+    )
+
+    fun buildEngineFront(
+        front: EngineFront,
+        socksPort: Int = LocalProxy.SOCKS_PORT,
+        options: BuildOptions = BuildOptions(),
+        remoteDns: String = ENGINE_REMOTE_DNS,
+    ): String {
+        val frontOptions = options.copy(
+            carrier = false,
+            localDns = true,
+            dialerSocksPort = null,
+            serverDns = emptyList(),
+            remoteDns = streamDns(remoteDns),
+            engineFront = front,
+        )
+        return assemble(socksPort, frontOptions, forSpeedtest = false) { add(engineOutbound(front.port)) }
+    }
+
+    const val ENGINE_REMOTE_DNS = "8.8.8.8"
+
+    fun streamDns(address: String): String {
+        val value = address.trim().ifEmpty { ENGINE_REMOTE_DNS }
+        val scheme = value.substringBefore("://", "").lowercase()
+        if (scheme.isNotEmpty() && scheme != "udp") return value
+        val hostPort = value.substringAfter("://")
+        if (hostPort.equals("localhost", ignoreCase = true)) return value
+        val bracketed = hostPort.startsWith("[")
+        val host = when {
+            bracketed -> hostPort.substringAfter('[').substringBefore(']')
+            hostPort.count { it == ':' } == 1 -> hostPort.substringBefore(':')
+            else -> hostPort
+        }
+        val port = when {
+            bracketed -> hostPort.substringAfter("]:", "").toIntOrNull()
+            hostPort.count { it == ':' } == 1 -> hostPort.substringAfter(':').toIntOrNull()
+            else -> null
+        } ?: 53
+        if (host.isEmpty()) return "tcp://$ENGINE_REMOTE_DNS:53"
+        return if (':' in host) "tcp://[$host]:$port" else "tcp://$host:$port"
+    }
+
+    fun withSocksPort(config: String, from: Int, to: Int): String {
+        if (from == to) return config
+        val root = runCatching { leanJson.parseToJsonElement(Jsonc.strip(config)) as? JsonObject }.getOrNull() ?: return config
+        val inbounds = root["inbounds"] as? JsonArray ?: return config
+        val moved = JsonArray(
+            inbounds.map { element ->
+                val inbound = element as? JsonObject ?: return@map element
+                if ((inbound["port"] as? JsonPrimitive)?.content?.toIntOrNull() == from) {
+                    JsonObject(inbound + ("port" to JsonPrimitive(to)))
+                } else {
+                    inbound
+                }
+            },
+        )
+        return JsonObject(root + ("inbounds" to moved)).toString()
+    }
+
+    fun withLocalPorts(config: String, from: Int, to: Int): String =
+        if (from == to) config else withSocksPort(withSocksPort(config, from + 1, to + 1), from, to)
+
+    private fun engineOutbound(port: Int) = buildJsonObject {
+        put("tag", "proxy")
+        put("protocol", "socks")
+        putJsonObject("settings") {
+            putJsonArray("servers") {
+                addJsonObject {
+                    put("address", "127.0.0.1")
+                    put("port", port)
+                }
+            }
+        }
+    }
+
+    private fun onionFakeDns(options: BuildOptions): Boolean =
+        options.engineFront?.onion == true && !fakeDnsActive(options)
 
     fun buildSingBox(
         fragment: String,
@@ -451,7 +536,7 @@ object XrayJsonBuilder {
                 putJsonArray("inbounds") {}
             }
 
-            if (!forSpeedtest && fakeDnsActive(options)) {
+            if (!forSpeedtest && (fakeDnsActive(options) || onionFakeDns(options))) {
                 putJsonArray("fakedns") {
                     addJsonObject {
                         put("ipPool", FAKEDNS_POOL)
@@ -498,6 +583,14 @@ object XrayJsonBuilder {
                     }
 
                     dnsRoutingRules(dnsSplit).forEach { add(it) }
+
+                    if (options.engineFront?.onion == true) {
+                        addJsonObject {
+                            put("type", "field")
+                            put("outboundTag", "proxy")
+                            putJsonArray("domain") { add(ONION_DOMAIN) }
+                        }
+                    }
 
                     if (options.rulesets.isNotEmpty()) {
                         rules.forEach { r ->
@@ -556,10 +649,18 @@ object XrayJsonBuilder {
                             putJsonArray("domain") { add("geosite:category-ir") }
                         }
                     }
+
+                    if (options.engineFront != null) {
+                        addJsonObject {
+                            put("type", "field")
+                            put("network", "udp")
+                            put("outboundTag", "block")
+                        }
+                    }
                 }
             }
             if (!forSpeedtest) {
-                put("policy", statsPolicy())
+                put("policy", statsPolicy(slowUpstream = options.engineFront != null))
                 putJsonObject("stats") {}
             }
         }
@@ -630,6 +731,8 @@ object XrayJsonBuilder {
         val muxXudpQuic: String = "reject",
 
         val dialerSocksPort: Int? = null,
+
+        val engineFront: EngineFront? = null,
     )
 
     data class LanShare(
@@ -874,6 +977,11 @@ object XrayJsonBuilder {
         }
         putJsonArray("servers") {
             if (fakeDnsActive(options)) add("fakedns")
+            if (onionFakeDns(options)) addJsonObject {
+                put("address", "fakedns")
+                putJsonArray("domains") { add(ONION_DOMAIN) }
+                put("skipFallback", true)
+            }
             options.serverDns.forEach { add(it) }
             add(options.remoteDns)
             if (fakeDnsActive(options)) addJsonObject {
@@ -1172,7 +1280,7 @@ object XrayJsonBuilder {
     }
 
     private fun sniffingBlock(options: BuildOptions): JsonObject = buildJsonObject {
-        val fake = fakeDnsActive(options)
+        val fake = fakeDnsActive(options) || onionFakeDns(options)
         put("enabled", (options.sniffing || fake) && !options.carrier)
         putJsonArray("destOverride") {
             if (options.sniffing) { add("http"); add("tls"); add("quic") }
@@ -1253,8 +1361,9 @@ private fun quietAccessLog(value: JsonElement): JsonElement {
     return JsonObject(log + ("access" to JsonPrimitive("none")))
 }
 
-private fun statsPolicy() = buildJsonObject {
+private fun statsPolicy(slowUpstream: Boolean = false) = buildJsonObject {
         putJsonObject("levels") {
+            if (slowUpstream) putJsonObject("0") { put("handshake", ENGINE_HANDSHAKE_SEC) }
             putJsonObject("8") {
                 put("connIdle", 300)
                 put("downlinkOnly", 1)

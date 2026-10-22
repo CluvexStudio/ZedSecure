@@ -21,6 +21,9 @@ object XrayController {
     var onCoreShutdown: (() -> Unit)? = null
 
     @Volatile
+    private var stoppingOnPurpose = false
+
+    @Volatile
     var lastError: String? = null
         private set
 
@@ -41,7 +44,7 @@ object XrayController {
             override fun onEmitStatus(status: Long, message: String?): Long = 0
             override fun startup(): Long = 0
             override fun shutdown(): Long {
-                onCoreShutdown?.invoke()
+                if (!stoppingOnPurpose) onCoreShutdown?.invoke()
                 return 0
             }
         })
@@ -65,7 +68,7 @@ object XrayController {
 
     fun start(configJson: String): Boolean {
         val c = ready() ?: return false
-        if (c.isRunning) runCatching { c.stopLoop() }
+        if (c.isRunning) stopQuietly(c)
         lastError = null
         return try {
             c.startLoop(configJson, 0)
@@ -78,13 +81,24 @@ object XrayController {
     }
 
     fun stop() {
-        runCatching { if (controller?.isRunning == true) controller?.stopLoop() }
-            .onFailure { Log.e(TAG, "stopLoop failed", it) }
+        controller?.takeIf { runCatching { it.isRunning }.getOrDefault(false) }?.let { stopQuietly(it) }
     }
 
-    fun readTrafficDelta(): Pair<Long, Long> {
-        val raw = runCatching { controller?.queryAllOutboundTrafficStats() }.getOrNull()
-            ?: return 0L to 0L
+    @Synchronized
+    private fun stopQuietly(c: CoreController) {
+        stoppingOnPurpose = true
+        try {
+            runCatching { c.stopLoop() }.onFailure { Log.e(TAG, "stopLoop failed", it) }
+        } finally {
+            stoppingOnPurpose = false
+        }
+    }
+
+    fun readTrafficDelta(): Pair<Long, Long> =
+        trafficDeltaOf(runCatching { controller?.queryAllOutboundTrafficStats() }.getOrNull())
+
+    fun trafficDeltaOf(stats: String?): Pair<Long, Long> {
+        val raw = stats ?: return 0L to 0L
         var down = 0L
         var up = 0L
 

@@ -125,6 +125,13 @@ object WindowsElevation {
         if (isAlive) request("OC_DOWN", 25)
     }
 
+    fun allowLan(ports: List<Int>): Result<Unit> =
+        answer(request("LAN_ALLOW ${ports.joinToString(",")}", 30), "the helper did not open the LAN port")
+
+    fun closeLan() {
+        if (isAlive) request("LAN_CLOSE", 15)
+    }
+
     fun trustCa(file: File): Result<Unit> = answer(request("CA_TRUST ${file.absolutePath}", 30), "the helper did not answer")
 
     fun close() {

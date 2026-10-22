@@ -201,6 +201,10 @@ class AndroidPlatform(
         ZsxSharing.shareMany(context, files)
     }
 
+    override fun saveFile(name: String, mime: String, bytes: ByteArray) {
+        ZsxSharing.shareAs(context, name, mime, bytes)
+    }
+
     override val supportsPerAppProxy: Boolean get() = true
 
     override fun lanIpv4Addresses(): List<String> = LanAddresses.ipv4()

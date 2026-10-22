@@ -152,6 +152,13 @@ object LinuxBroker {
         if (isAlive) request("EXCLUDE_OFF", STOP_WAIT_SEC)
     }
 
+    fun engineCgroup(): Result<String> =
+        answer(request("ENGINES", STOP_WAIT_SEC), "the root helper could not make a cgroup for the engines")
+            .map { EngineCgroup.NAME }
+
+    fun joinEngine(pid: Long): Result<Unit> =
+        answer(request("ENGINE_JOIN $pid", STOP_WAIT_SEC), "the root helper could not move the engine outside the tunnel")
+
     fun startJob(script: File): Result<Unit> =
         answer(request("JOB ${script.absolutePath}", 10), "the root helper did not start the job")
 
@@ -366,6 +373,8 @@ object LinuxBroker {
         |RESOLVED=
         |EXCL=
         |SVM=
+        |ENG=
+        |CALLER=${'$'}{SUDO_UID:-${'$'}{PKEXEC_UID:-}}
         |say() { printf '%s\n' "${'$'}*"; }
         |is_port() { case ${'$'}1 in ''|*[!0-9]*) return 1 ;; esac; [ "${'$'}1" -ge 1 ] && [ "${'$'}1" -le 65535 ]; }
         |is_ip4() { case ${'$'}1 in ''|*[!0-9.]*) return 1 ;; *.*.*.*) return 0 ;; esac; return 1; }
@@ -513,6 +522,28 @@ object LinuxBroker {
         |  fi
         |  say "OK"
         |}
+        |eng_up() {
+        |  [ -f /sys/fs/cgroup/cgroup.controllers ] || { say "ERR this system does not use cgroup v2"; return; }
+        |  [ -d "/sys/fs/cgroup/${EngineCgroup.NAME}" ] || mkdir "/sys/fs/cgroup/${EngineCgroup.NAME}" 2>/dev/null || { say "ERR could not create the engine cgroup"; return; }
+        |  ENG=1
+        |  say "OK"
+        |}
+        |eng_join() {
+        |  pid=${'$'}{1:-}
+        |  case ${'$'}{pid} in ''|*[!0-9]*) say "ERR bad process id"; return ;; esac
+        |  [ -n "${'$'}{ENG}" ] || { say "ERR the engine cgroup is missing"; return; }
+        |  owner=${'$'}(stat -c %u "/proc/${'$'}{pid}" 2>/dev/null)
+        |  [ -n "${'$'}{CALLER}" ] && [ "${'$'}{owner}" = "${'$'}{CALLER}" ] || { say "ERR that process does not belong to this account"; return; }
+        |  state=${'$'}(sed -n 's/.*) \([A-Za-z]\) .*/\1/p' "/proc/${'$'}{pid}/stat" 2>/dev/null)
+        |  [ "${'$'}{state}" = T ] || { say "ERR the engine is not waiting to be moved"; return; }
+        |  echo "${'$'}{pid}" > "/sys/fs/cgroup/${EngineCgroup.NAME}/cgroup.procs" 2>/dev/null || { say "ERR could not move the engine"; return; }
+        |  kill -CONT "${'$'}{pid}" 2>/dev/null
+        |  say "OK"
+        |}
+        |eng_down() {
+        |  [ -n "${'$'}{ENG}" ] && rmdir "/sys/fs/cgroup/${EngineCgroup.NAME}" 2>/dev/null
+        |  ENG=
+        |}
         |job_down() {
         |  [ -n "${'$'}JOB_PID" ] || return 0
         |  kill -TERM "${'$'}JOB_PID" 2>/dev/null
@@ -560,6 +591,7 @@ object LinuxBroker {
         |  tun_down
         |  excl_down
         |  job_down
+        |  eng_down
         |  rm -rf "${'$'}RUN"
         |}
         |trap cleanup EXIT
@@ -577,6 +609,8 @@ object LinuxBroker {
         |    TUN_DOWN) tun_down; say "OK" ;;
         |    EXCLUDE) excl_up "${'$'}@" ;;
         |    EXCLUDE_OFF) excl_down; say "OK" ;;
+        |    ENGINES) eng_up ;;
+        |    ENGINE_JOIN) eng_join "${'$'}@" ;;
         |    JOB) job_up "${'$'}{line#JOB }" ;;
         |    JOB_STOP) job_down; say "OK" ;;
         |    REMEMBER) remember ;;

@@ -113,6 +113,7 @@ class SettingsRepository(context: Context) {
             proxySharing = prefs.getBoolean("proxy_sharing", d.proxySharing),
             dynamicSocksPort = prefs.getBoolean("dynamic_socks_port", d.dynamicSocksPort),
             socksPort = prefs.getInt("socks_port", d.socksPort),
+            localProxyPort = prefs.getInt("local_proxy_port", d.localProxyPort),
             socksUsername = prefs.str("socks_username", d.socksUsername),
             socksPassword = prefs.str("socks_password", d.socksPassword),
             lanShareAuth = prefs.getBoolean("lan_share_auth", d.lanShareAuth),
@@ -325,6 +326,7 @@ class SettingsRepository(context: Context) {
             putBoolean("proxy_sharing", s.proxySharing)
             putBoolean("dynamic_socks_port", s.dynamicSocksPort)
             putInt("socks_port", s.socksPort)
+            putInt("local_proxy_port", s.localProxyPort)
             putString("socks_username", s.socksUsername)
             putString("socks_password", s.socksPassword)
             putBoolean("lan_share_auth", s.lanShareAuth)

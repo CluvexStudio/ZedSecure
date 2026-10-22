@@ -10,7 +10,7 @@ class HevWindowsTun(
     private val bypassIps: List<String> = emptyList(),
     private val udpOverTcp: Boolean = false,
     private val dnsServers: String = ZeptunTun.DEFAULT_DNS,
-    private val ipv6: Boolean = false,
+    private val ipv6: Boolean = true,
     private val routes: List<String> = ROUTES,
     private val logLevel: String = "warn",
 ) : DesktopTun {

@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.cluvex.zedsecure.data.config.ConfigRepository
+import dev.cluvex.zedsecure.domain.config.effectiveLocalProxyPort
 import dev.cluvex.zedsecure.shared.resources.Res
 import dev.cluvex.zedsecure.shared.resources.auto_group_all
 import dev.cluvex.zedsecure.shared.resources.auto_title_for
@@ -218,7 +219,7 @@ fun MainScaffold(
                     },
                     lockedNote = lockedNote,
                     localProxyAddress = if (settings.runMode == dev.cluvex.zedsecure.domain.model.RunMode.ProxyOnly) {
-                        "127.0.0.1:${dev.cluvex.zedsecure.core.VpnManager.activeSocksPort ?: dev.cluvex.zedsecure.domain.config.LocalProxy.SOCKS_PORT}"
+                        "127.0.0.1:${dev.cluvex.zedsecure.core.VpnManager.activeSocksPort ?: settings.effectiveLocalProxyPort}"
                     } else null,
                     activeLocked = activeProfile?.isLocked == true,
                     reduceMotion = settings.reduceMotion,

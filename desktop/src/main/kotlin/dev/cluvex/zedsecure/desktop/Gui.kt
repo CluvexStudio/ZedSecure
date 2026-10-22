@@ -79,6 +79,7 @@ import dev.cluvex.zedsecure.desktop.platform.DesktopProbe
 import dev.cluvex.zedsecure.desktop.platform.DesktopPlatform
 import dev.cluvex.zedsecure.desktop.platform.DesktopSettings
 import dev.cluvex.zedsecure.desktop.platform.DesktopVpn
+import dev.cluvex.zedsecure.desktop.platform.SingleInstance
 import dev.cluvex.zedsecure.domain.model.ThemeMode
 import dev.cluvex.zedsecure.platform.AppInfo
 import dev.cluvex.zedsecure.ui.MainScaffold
@@ -114,6 +115,10 @@ fun main(args: Array<String>) {
         println("ZedSecure $BUILD_VERSION")
         return
     }
+    if (!SingleInstance.claim()) {
+        println("ZedSecure is already running; its window was brought to the front")
+        return
+    }
     AppInfo.versionName = BUILD_VERSION
     Runtime.getRuntime().addShutdownHook(Thread { runCatching { DesktopVpn.shutdown() } })
 
@@ -134,6 +139,7 @@ fun main(args: Array<String>) {
 
     val background = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO)
     wireDesktopServices(configRepository, desktopSettings, background)
+    DesktopVpn.repairLeftovers()
 
     kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO).launch {
         while (true) {
@@ -168,6 +174,12 @@ fun main(args: Array<String>) {
         }
         var windowVisible by remember { mutableStateOf(true) }
         var raiseWindow by remember { mutableStateOf(0) }
+        LaunchedEffect(Unit) {
+            SingleInstance.showRequests.collect {
+                windowVisible = true
+                raiseWindow++
+            }
+        }
         val status by VpnManager.status.collectAsState()
         val connecting = status.state == ConnectionState.Connecting || status.state == ConnectionState.Disconnecting
         val connected = status.state == ConnectionState.Connected

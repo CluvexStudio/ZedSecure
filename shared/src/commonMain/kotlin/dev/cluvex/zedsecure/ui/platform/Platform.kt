@@ -39,6 +39,8 @@ interface Platform {
 
     fun shareFiles(files: List<Pair<String, ByteArray>>) {}
 
+    fun saveFile(name: String, mime: String, bytes: ByteArray) {}
+
     fun liveStats(): LiveStats = LiveStats()
 
     val isComputer: Boolean get() = false

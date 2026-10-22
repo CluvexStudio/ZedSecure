@@ -33,7 +33,7 @@ object GeoLookup {
             ?: return null.also { rememberFailure(host) }
 
         val body = runCatching { httpGetViaSocks("https://api.ip.sb/geoip/$ip", socksPort = null, connectTimeoutMs = 6_000, readTimeoutMs = 6_000) }.getOrNull()
-            ?: runCatching { httpGetViaSocks("https://api.ip.sb/geoip/$ip", socksPort = LocalProxy.SOCKS_PORT, connectTimeoutMs = 6_000, readTimeoutMs = 6_000) }.getOrNull()
+            ?: runCatching { httpGetViaSocks("https://api.ip.sb/geoip/$ip", socksPort = dev.cluvex.zedsecure.core.VpnManager.activeSocksPort ?: LocalProxy.SOCKS_PORT, connectTimeoutMs = 6_000, readTimeoutMs = 6_000) }.getOrNull()
             ?: return null.also { rememberFailure(host) }
 
         val code = runCatching {

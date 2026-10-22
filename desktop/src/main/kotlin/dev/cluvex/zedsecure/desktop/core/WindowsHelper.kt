@@ -62,6 +62,8 @@ object WindowsHelper {
                 "HEV_DOWN" -> { stopHev(); "OK" }
                 "OC_UP" -> ocUp(File(rest))
                 "OC_DOWN" -> { stopOc(); "OK" }
+                "LAN_ALLOW" -> allowLan(rest)
+                "LAN_CLOSE" -> { closeLan(); "OK" }
                 "CA_TRUST" -> trustCa(File(rest))
                 "PING" -> "OK"
                 else -> "ERR unknown command"
@@ -152,9 +154,27 @@ object WindowsHelper {
             val routes = synchronized(bypassRoutes) { bypassRoutes.toList().also { bypassRoutes.clear() } }
             routes.forEach { args -> netsh(*(listOf("interface", "ipv4", "delete", "route") + args).toTypedArray()) }
             if (p != null) {
-                stop(p)
+                stop(p, HEV_STOP_WAIT_MS)
                 runCommand("ipconfig", "/flushdns")
             }
+        }
+
+        private fun allowLan(ports: String): String {
+            val list = ports.split(',').mapNotNull { it.trim().toIntOrNull()?.takeIf { p -> p in 1..65535 } }.distinct()
+            if (list.isEmpty()) return "ERR no port to open"
+            closeLan()
+            val joined = list.joinToString(",")
+            val opened = listOf("TCP", "UDP").all { protocol ->
+                netsh(
+                    "advfirewall", "firewall", "add", "rule", "name=$LAN_RULE", "dir=in", "action=allow",
+                    "protocol=$protocol", "localport=$joined", "profile=any",
+                )
+            }
+            return if (opened) "OK" else "ERR Windows Firewall did not accept the LAN rule"
+        }
+
+        private fun closeLan() {
+            runCommand("netsh", "advfirewall", "firewall", "delete", "rule", "name=$LAN_RULE")
         }
 
         fun clearLeftovers() = clearNrpt()
@@ -270,8 +290,8 @@ object WindowsHelper {
             ocDir = null
         }
 
-        private fun stop(p: Process) {
-            if (p.isAlive) runCatching { WinApi.sendCtrlC(p.pid(), p, STOP_WAIT_MS) }
+        private fun stop(p: Process, graceMs: Long = STOP_WAIT_MS) {
+            if (p.isAlive) runCatching { WinApi.sendCtrlC(p.pid(), p, graceMs) }
             if (p.isAlive && !p.waitFor(1, TimeUnit.SECONDS)) {
                 p.destroyForcibly()
                 p.waitFor(5, TimeUnit.SECONDS)
@@ -315,5 +335,7 @@ object WindowsHelper {
     private const val TUN_WAIT_MS = 30_000L
     private const val OC_WAIT_MS = 90_000L
     private const val STOP_WAIT_MS = 10_000L
+    private const val HEV_STOP_WAIT_MS = 1_500L
+    private const val LAN_RULE = "ZedSecure LAN sharing"
     private const val POLL_MS = 200L
 }

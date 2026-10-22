@@ -16,6 +16,8 @@ import dev.cluvex.zedsecure.domain.config.UnsupportedTransportException
 import dev.cluvex.zedsecure.domain.config.VpnProfile
 import dev.cluvex.zedsecure.domain.config.XrayJsonBuilder
 import dev.cluvex.zedsecure.domain.config.autoSelectTuning
+import dev.cluvex.zedsecure.domain.config.effectiveLocalProxyPort
+import dev.cluvex.zedsecure.domain.config.engineRemoteDns
 import dev.cluvex.zedsecure.domain.config.singBoxDeviceOptions
 import dev.cluvex.zedsecure.domain.config.toBuildOptions
 import dev.cluvex.zedsecure.domain.model.AppSettings
@@ -68,7 +70,7 @@ class StartPlanner(context: Context) {
             configJson = configJson,
             remark = if (profile.isAutoSelect) autoSelectRemark(profile) else profile.name,
             kind = kind,
-            socksPort = LocalProxy.SOCKS_PORT,
+            socksPort = settings.effectiveLocalProxyPort,
             proxyOnly = proxyOnly,
         )
     }
@@ -166,8 +168,8 @@ class StartPlanner(context: Context) {
             return dev.cluvex.zedsecure.domain.config.PsiphonConfigBuilder.build(
                 profile = psiphon,
                 dataDirPath = dataDir.absolutePath,
-                socksPort = LocalPorts.PSIPHON_SOCKS,
-                httpPort = LocalPorts.PSIPHON_HTTP,
+                socksPort = freePort(LocalPorts.PSIPHON_SOCKS),
+                httpPort = freePort(LocalPorts.PSIPHON_HTTP),
             )
         }
         profile.masterDnsSettings()?.let {
@@ -226,6 +228,10 @@ class StartPlanner(context: Context) {
         }
     }
 
+    private val reserved = mutableSetOf<Int>()
+
+    private fun freePort(preferred: Int): Int = LocalPortPicker.pick(preferred, reserved).also { reserved += it }
+
     private fun buildCrossChainWrapper(profile: VpnProfile): String {
         val (inner, outer) = configRepository.crossChainMembers(profile)
 
@@ -247,6 +253,16 @@ class StartPlanner(context: Context) {
         }.toString()
     }
 
+    fun engineFront(enginePort: Int, onion: Boolean = false): String {
+        val settings = settingsRepository.settings.value
+        return XrayJsonBuilder.buildEngineFront(
+            XrayJsonBuilder.EngineFront(enginePort, onion),
+            LocalProxy.SOCKS_PORT,
+            settings.buildOptions(GeoAssetsRepository(appContext).allPresent()),
+            settings.engineRemoteDns(),
+        )
+    }
+
     private fun AppSettings.buildOptions(
         geoReady: Boolean,
         carrier: Boolean = false,
@@ -266,7 +282,7 @@ class StartPlanner(context: Context) {
             ruleGroups = ruleGroups,
             resolvedServerHosts = hosts,
             networkType = NetworkKind.current(appContext),
-        )
+        ).let { if (carrier) it.copy(lan = null, appendHttpProxy = false) else it }
     }
 
     private fun physicalServersOf(profile: VpnProfile): List<ServerConfig> {

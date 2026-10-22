@@ -75,6 +75,24 @@ class ZedWidgetProvider : AppWidgetProvider() {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
             }
 
+        private fun connectsInPlace(ctx: Context): Boolean = runCatching {
+            val profile = (ctx.applicationContext as dev.cluvex.zedsecure.ZedSecureApp)
+                .container.configRepository.activeProfile()
+            profile != null && profile.ikev2Settings() == null && android.net.VpnService.prepare(ctx) == null
+        }.getOrDefault(false)
+
+        private fun connectAction(ctx: Context): PendingIntent {
+            val flags = PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            if (!connectsInPlace(ctx)) return PendingIntent.getActivity(ctx, REQ_TOGGLE, connectIntent(ctx), flags)
+            val start = Intent(ctx, ZedVpnService::class.java)
+                .putExtra(VpnManager.EXTRA_COMMAND, VpnManager.CMD_START_ACTIVE)
+            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                PendingIntent.getForegroundService(ctx, REQ_TOGGLE, start, flags)
+            } else {
+                PendingIntent.getService(ctx, REQ_TOGGLE, start, flags)
+            }
+        }
+
         private data class Snapshot(
             val state: String,
             val server: String,
@@ -163,10 +181,7 @@ class ZedWidgetProvider : AppWidgetProvider() {
                         PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
                     )
                 } else {
-                    PendingIntent.getActivity(
-                        ctx, REQ_TOGGLE, connectIntent(ctx),
-                        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
-                    )
+                    connectAction(ctx)
                 },
             )
             views.setOnClickPendingIntent(

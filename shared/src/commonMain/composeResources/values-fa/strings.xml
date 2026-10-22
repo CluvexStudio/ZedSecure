@@ -421,7 +421,9 @@
     <string name="mode_socks">فقط SOCKS</string>
     <string name="mode_socks_body">فقط یک پروکسی SOCKS و HTTP محلی روی 127.0.0.1 باز می‌کند و چیز دیگری را تغییر نمی‌دهد. هر برنامه را خودتان روی آن تنظیم کنید.</string>
     <string name="mode_tun">TUN (VPN)</string>
-    <string name="mode_tun_body">همهٔ برنامه‌ها را از یک کارت شبکهٔ مجازی عبور می‌دهد، حتی برنامه‌هایی که پروکسی سیستم را نادیده می‌گیرند. در هر اجرای ZedSecure فقط یک‌بار دسترسی مدیر سیستم می‌خواهد. Tor و سایفون، و زنجیره‌هایی که با آن‌ها شروع می‌شوند، همچنان از پروکسی سیستم استفاده می‌کنند.</string>
+    <string name="mode_tun_body">همهٔ برنامه‌ها را از یک کارت شبکهٔ مجازی عبور می‌دهد، حتی برنامه‌هایی که پروکسی سیستم را نادیده می‌گیرند. در هر اجرای ZedSecure فقط یک‌بار دسترسی مدیر سیستم می‌خواهد. در ویندوز و مک، Tor و سایفون، و زنجیره‌هایی که با آن‌ها شروع می‌شوند، همچنان از پروکسی سیستم استفاده می‌کنند.</string>
+    <string name="mode_tun_system_proxy">پروکسی سیستم هم تنظیم شود</string>
+    <string name="mode_tun_system_proxy_sum">برنامه‌هایی که پروکسی سیستم را می‌خوانند، مثل کروم، تا وقتی تونل وصل است از همین اتصال استفاده می‌کنند. با قطع اتصال پاک می‌شود.</string>
     <string name="tray_server">سرور</string>
     <string name="tray_all_servers">همهٔ %1$d سرور…</string>
     <string name="tray_mode">حالت</string>
@@ -506,6 +508,8 @@
     <string name="summary_pref_route_only_enabled">دامنهٔ sniff‌شده فقط برای مسیریابی استفاده شود و IP به‌عنوان مقصد بماند</string>
     <string name="title_pref_enable_local_proxy">فعال‌سازی پروکسی محلی</string>
     <string name="summary_pref_enable_local_proxy">بدون آن ورودی SOCKS وجود ندارد و به‌روزرسانی سابسکریپشن‌ها از پروکسی عبور نمی‌کند</string>
+    <string name="title_pref_local_proxy_port">پورت پروکسی محلی</string>
+    <string name="toast_local_proxy_port_invalid">پورتی بین ۱۰۲۴ و ۶۵۵۳۴ انتخاب کنید که ZedSecure و اشتراک در شبکهٔ محلی از آن استفاده نمی‌کنند</string>
     <string name="title_pref_proxy_sharing_enabled">اجازهٔ اتصال از شبکهٔ محلی</string>
     <string name="summary_pref_proxy_sharing_enabled">دستگاه‌های دیگر در همین شبکه با نام کاربری و رمز زیر می‌توانند از پروکسی استفاده کنند</string>
     <string name="title_pref_dynamic_socks_port">پورت تصادفی پروکسی محلی</string>
@@ -545,6 +549,13 @@
     <string name="title_pref_auto_test_after_update">تست پس از به‌روزرسانی سابسکریپشن</string>
     <string name="title_pref_auto_remove_invalid">حذف کانفیگ‌های نامعتبر پس از تست</string>
     <string name="title_pref_auto_sort_after_test">مرتب‌سازی بر اساس نتیجه پس از تست</string>
+    <string name="settings_backup_group">پشتیبان تنظیمات</string>
+    <string name="settings_export">خروجی گرفتن از تنظیمات</string>
+    <string name="settings_export_sum">همهٔ تنظیمات را در یک فایل ذخیره می‌کند تا به دستگاه دیگری ببرید. رمز اشتراک در شبکهٔ محلی هم در فایل هست.</string>
+    <string name="settings_import">وارد کردن تنظیمات</string>
+    <string name="settings_import_sum">فایل تنظیماتی را که از ZedSecure گرفته شده بارگذاری می‌کند. کانفیگ‌ها و اشتراک‌ها تغییر نمی‌کنند.</string>
+    <string name="settings_imported">تنظیمات وارد شد</string>
+    <string name="settings_import_invalid">این فایل پشتیبان تنظیمات ZedSecure نیست</string>
 
     <string name="notif_channel_name">وضعیت اتصال</string>
     <string name="notif_channel_desc">هنگام اتصال، تونل، سرعت و مدت زمان را زنده نشان می‌دهد</string>
@@ -1154,6 +1165,8 @@
     <string name="fault_unknown">اتصال ناموفق بود</string>
     <string name="fault_port_busy">پورت در حال استفاده است</string>
     <string name="fault_port_busy_hint">برنامهٔ دیگری، یا نسخهٔ دیگری از ZedSecure، همین حالا از پورت پروکسی محلی استفاده می‌کند. آن را قطع کنید و دوباره امتحان کنید.</string>
+    <string name="fault_config">کانفیگ قابل خواندن نیست</string>
+    <string name="fault_config_hint">هسته پیش از اتصال روی یکی از تنظیمات این کانفیگ متوقف شد. جزئیات پایین نشان می‌دهد کدام بخش. کانفیگ را دوباره وارد کنید یا اشتراکش را به‌روز کنید.</string>
     <string name="lan_share_connect_title">دستگاه‌های دیگر را به این آدرس وصل کنید</string>
     <string name="lan_share_no_address">هنوز آدرس شبکهٔ محلی ندارید. به یک Wi-Fi وصل شوید یا هات‌اسپات را روشن کنید.</string>
     <string name="lan_share_user">نام کاربری: %1$s (رمز در پایین است)</string>

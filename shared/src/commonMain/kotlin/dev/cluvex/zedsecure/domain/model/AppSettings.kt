@@ -281,6 +281,8 @@ data class AppSettings(
 
     val runMode: RunMode = RunMode.Vpn,
 
+    val tunSystemProxy: Boolean = false,
+
     val enableIpv6: Boolean = false,
     val preferIpv6: Boolean = false,
     val localDnsEnabled: Boolean = false,
@@ -303,6 +305,8 @@ data class AppSettings(
     val dynamicSocksPort: Boolean = false,
 
     val socksPort: Int = dev.cluvex.zedsecure.domain.config.LocalPorts.LAN_SOCKS,
+
+    val localProxyPort: Int = dev.cluvex.zedsecure.domain.config.LocalPorts.XRAY_SOCKS,
 
     val socksUsername: String = "",
     val socksPassword: String = "",

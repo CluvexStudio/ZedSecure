@@ -31,10 +31,12 @@ class DesktopPsiphon(
         }
         val started = try {
             val command = listOf(bin.absolutePath, "-config", config.absolutePath)
-            ProcessBuilder(engineCgroup?.let { EngineCgroup.wrap(command, it) } ?: command)
-                .redirectErrorStream(true)
-                .directory(workDir)
-                .start()
+            EngineCgroup.start(
+                ProcessBuilder(command)
+                    .redirectErrorStream(true)
+                    .directory(workDir),
+                engineCgroup,
+            )
         } catch (e: Exception) {
             return Result.failure(IllegalStateException("Psiphon failed to start: ${e.message}"))
         }

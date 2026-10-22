@@ -12,6 +12,9 @@ object HevTunCore {
     @Volatile
     private var running = false
 
+    @Volatile
+    private var stopping: Thread? = null
+
     fun start(
         context: Context,
         tun: ParcelFileDescriptor,
@@ -32,7 +35,17 @@ object HevTunCore {
         rwTimeout: String = DEFAULT_RW_TIMEOUT,
     ): Boolean {
         if (running) return false
+        stopping?.let { previous ->
+            val onMain = android.os.Looper.myLooper() == android.os.Looper.getMainLooper()
+            previous.join(if (onMain) STOP_JOIN_MS else STOP_JOIN_WORKER_MS)
+            if (previous.isAlive) {
+                Log.e(TAG, "the previous hev is still stopping; not starting a second one")
+                return false
+            }
+            stopping = null
+        }
         return try {
+            val fd = tun.fd
             val (tcpTimeout, udpTimeout) = parseRwTimeout(rwTimeout)
             val yaml = buildYaml(
                 socksPort, mtu, ipv4, ipv6, preferIpv6, udpOverTcp, socksUser, socksPass, pipeline,
@@ -41,7 +54,7 @@ object HevTunCore {
                 udpTimeoutSeconds = udpTimeout,
             )
             val file = File(context.filesDir, "hev-tunnel.yaml").apply { writeText(yaml) }
-            TProxyService.TProxyStartService(file.absolutePath, tun.fd)
+            TProxyService.TProxyStartService(file.absolutePath, fd)
             running = true
             true
         } catch (e: Exception) {
@@ -62,6 +75,7 @@ object HevTunCore {
             { runCatching { TProxyService.TProxyStopService() }.onFailure { Log.e(TAG, "stop failed", it) } },
             "hev-stop",
         )
+        stopping = worker
         worker.start()
         val onMain = android.os.Looper.myLooper() == android.os.Looper.getMainLooper()
         worker.join(if (onMain) STOP_JOIN_MS else STOP_JOIN_WORKER_MS)

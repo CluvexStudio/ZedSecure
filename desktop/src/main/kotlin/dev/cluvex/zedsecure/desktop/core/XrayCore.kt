@@ -15,7 +15,7 @@ import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.util.concurrent.TimeUnit
 
-class XrayCore(private val workDir: File) {
+class XrayCore(private val workDir: File, private val engineCgroup: String? = null) {
     private var process: Process? = null
 
     val isRunning: Boolean get() = process?.isAlive == true
@@ -37,10 +37,12 @@ class XrayCore(private val workDir: File) {
             return false
         }
         return try {
-            process = ProcessBuilder(*command(bin))
-                .directory(workDir)
-                .apply { environment()["XRAY_LOCATION_ASSET"] = DesktopGeoAssets.dir.absolutePath }
-                .start()
+            process = EngineCgroup.start(
+                ProcessBuilder(*command(bin))
+                    .directory(workDir)
+                    .apply { environment()["XRAY_LOCATION_ASSET"] = DesktopGeoAssets.dir.absolutePath },
+                engineCgroup,
+            )
             Thread { runCatching { process?.inputStream?.bufferedReader()?.forEachLine { println("[xray] $it") } } }
                 .apply { isDaemon = true }.start()
             Thread { runCatching { process?.errorStream?.bufferedReader()?.forEachLine { println("[xray] $it") } } }

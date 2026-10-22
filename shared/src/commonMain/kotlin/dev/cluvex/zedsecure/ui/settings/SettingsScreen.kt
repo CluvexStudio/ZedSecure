@@ -73,6 +73,7 @@ import dev.cluvex.zedsecure.ui.update.ManualUpdateCheckHost
 import dev.cluvex.zedsecure.domain.config.LocalPorts
 import dev.cluvex.zedsecure.domain.config.SingBoxTuning
 import dev.cluvex.zedsecure.domain.config.effectiveLanSocksPort
+import dev.cluvex.zedsecure.domain.config.effectiveLocalProxyPort
 import dev.cluvex.zedsecure.platform.secureRandomToken
 
 enum class SettingsPage {
@@ -1554,6 +1555,24 @@ private fun CorePage(
                 },
             )
 
+            val portPlatform = LocalPlatform.current
+            val badProxyPort = stringResource(Res.string.toast_local_proxy_port_invalid)
+            SettingsEditRow(
+                title = stringResource(Res.string.title_pref_local_proxy_port),
+                value = s.effectiveLocalProxyPort.toString(),
+                enabled = localProxy,
+                numeric = true,
+                onValueChanged = { v ->
+                    val port = v.trim().toIntOrNull()
+                    val lan = s.effectiveLanSocksPort
+                    if (port != null && LocalPorts.localProxyPort(port) == port && port != lan && port + 1 != lan && port != lan + 1) {
+                        onUpdate { it.copy(localProxyPort = port) }
+                    } else {
+                        portPlatform.toast(badProxyPort)
+                    }
+                },
+            )
+
             SettingsSwitchRow(
                 title = stringResource(Res.string.title_pref_proxy_sharing_enabled),
                 summary = stringResource(Res.string.summary_pref_proxy_sharing_enabled),
@@ -2077,6 +2096,44 @@ private fun AdvancedPage(
                 onCheckedChange = { v -> onUpdate { it.copy(autoSortAfterTest = v) } },
             )
         }
+        SettingsBackupGroup(s, onUpdate)
+    }
+}
+
+@Composable
+private fun SettingsBackupGroup(s: AppSettings, onUpdate: ((AppSettings) -> AppSettings) -> Unit) {
+    val platform = LocalPlatform.current
+    val scope = rememberCoroutineScope()
+    val imported = stringResource(Res.string.settings_imported)
+    val invalid = stringResource(Res.string.settings_import_invalid)
+    SettingsGroup(stringResource(Res.string.settings_backup_group)) {
+        SettingsActionRow(
+            title = stringResource(Res.string.settings_export),
+            summary = stringResource(Res.string.settings_export_sum),
+            onClick = {
+                platform.saveFile(
+                    dev.cluvex.zedsecure.domain.model.SettingsBackup.FILE_NAME,
+                    "application/json",
+                    dev.cluvex.zedsecure.domain.model.SettingsBackup.export(s).encodeToByteArray(),
+                )
+            },
+        )
+        SettingsActionRow(
+            title = stringResource(Res.string.settings_import),
+            summary = stringResource(Res.string.settings_import_sum),
+            onClick = {
+                scope.launch {
+                    val pick = platform.pickFileBytes() ?: return@launch
+                    val restored = dev.cluvex.zedsecure.domain.model.SettingsBackup.read(pick.bytes.decodeToString())
+                    if (restored == null) {
+                        platform.toast(invalid)
+                    } else {
+                        onUpdate { restored }
+                        platform.toast(imported)
+                    }
+                }
+            },
+        )
     }
 }
 
@@ -2125,10 +2182,18 @@ private fun ModePage(
                 selected = if (desktop && !tun && s.runMode == RunMode.Vpn) RunMode.SystemProxy else s.runMode,
                 onSelected = { v -> onUpdate { it.copy(runMode = v) } },
             )
+            if (desktop && tun && s.runMode == RunMode.Vpn) {
+                SettingsSwitchRow(
+                    title = stringResource(Res.string.mode_tun_system_proxy),
+                    summary = stringResource(Res.string.mode_tun_system_proxy_sum),
+                    checked = s.tunSystemProxy,
+                    onCheckedChange = { v -> onUpdate { it.copy(tunSystemProxy = v) } },
+                )
+            }
             if (s.runMode == RunMode.ProxyOnly) {
                 val platform = LocalPlatform.current
                 val copied = stringResource(Res.string.copied)
-                val address = "127.0.0.1:${dev.cluvex.zedsecure.core.VpnManager.activeSocksPort ?: dev.cluvex.zedsecure.domain.config.LocalProxy.SOCKS_PORT}"
+                val address = "127.0.0.1:${dev.cluvex.zedsecure.core.VpnManager.activeSocksPort ?: s.effectiveLocalProxyPort}"
                 SettingsActionRow(
                     title = stringResource(Res.string.mode_local_proxy_title),
                     summary = stringResource(Res.string.mode_local_proxy_body, address),

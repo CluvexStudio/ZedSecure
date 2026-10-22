@@ -15,12 +15,13 @@ class TorController(
     private val upstreamSocksPort: Int? = null,
 
     private val onProgress: (Int) -> Unit = {},
+
+    val socksPort: Int = TorConfigBuilder.SOCKS_PORT,
 ) {
     private val active = AtomicBoolean(false)
     private var process: Process? = null
     private var reader: Thread? = null
 
-    val socksPort: Int get() = TorConfigBuilder.SOCKS_PORT
     val isRunning: Boolean get() = active.get()
 
     fun start(): Boolean {
@@ -34,7 +35,7 @@ class TorController(
             val dataDir = File(context.filesDir, "tor_data").apply { mkdirs() }
             val nativeLibDir = context.applicationInfo.nativeLibraryDir
             val torrc = File(torDir, "torrc").apply {
-                writeText(TorConfigBuilder.build(settings, nativeLibDir, torDir, dataDir, upstreamSocksPort))
+                writeText(TorConfigBuilder.build(settings, nativeLibDir, torDir, dataDir, upstreamSocksPort, socksPort = socksPort))
             }
 
             val cmd = mutableListOf(

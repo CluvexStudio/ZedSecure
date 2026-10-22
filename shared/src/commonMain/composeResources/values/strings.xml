@@ -303,7 +303,9 @@
     <string name="mode_socks">SOCKS only</string>
     <string name="mode_socks_body">Only opens a local SOCKS and HTTP proxy on 127.0.0.1 and changes nothing else. Point each app at it yourself.</string>
     <string name="mode_tun">TUN (VPN)</string>
-    <string name="mode_tun_body">Sends every app through a virtual network adapter, including apps that ignore the system proxy. Asks for administrator rights once each time ZedSecure runs. Tor and Psiphon, and chains that start with them, keep using the system proxy.</string>
+    <string name="mode_tun_body">Sends every app through a virtual network adapter, including apps that ignore the system proxy. Asks for administrator rights once each time ZedSecure runs. On Windows and macOS, Tor and Psiphon, and chains that start with them, keep using the system proxy.</string>
+    <string name="mode_tun_system_proxy">Also set the system proxy</string>
+    <string name="mode_tun_system_proxy_sum">Apps that read the system proxy, such as Chrome, use the same connection while the tunnel is up. It is cleared when you disconnect.</string>
     <string name="tray_server">Server</string>
     <string name="tray_all_servers">All %1$d servers…</string>
     <string name="tray_mode">Mode</string>
@@ -512,6 +514,8 @@
     <string name="summary_pref_route_only_enabled">Use the sniffed domain for routing only, keep the IP as target</string>
     <string name="title_pref_enable_local_proxy">Enable local proxy</string>
     <string name="summary_pref_enable_local_proxy">Without it there is no SOCKS inbound, so subscription updates cannot be proxied</string>
+    <string name="title_pref_local_proxy_port">Local proxy port</string>
+    <string name="toast_local_proxy_port_invalid">Use a port from 1024 to 65534 that ZedSecure and LAN sharing do not use</string>
     <string name="title_pref_proxy_sharing_enabled">Allow connections from the LAN</string>
     <string name="summary_pref_proxy_sharing_enabled">Other devices on this network can use the proxy with the username and password below</string>
     <string name="title_pref_dynamic_socks_port">Random local proxy port</string>
@@ -557,6 +561,13 @@
     <string name="title_pref_auto_test_after_update">Test after updating a subscription</string>
     <string name="title_pref_auto_remove_invalid">Delete invalid configs after testing</string>
     <string name="title_pref_auto_sort_after_test">Sort by result after testing</string>
+    <string name="settings_backup_group">Settings backup</string>
+    <string name="settings_export">Export settings</string>
+    <string name="settings_export_sum">Saves every setting to a file for another device. The file includes the LAN sharing password.</string>
+    <string name="settings_import">Import settings</string>
+    <string name="settings_import_sum">Loads a settings file exported from ZedSecure. Configs and subscriptions are not changed.</string>
+    <string name="settings_imported">Settings imported</string>
+    <string name="settings_import_invalid">This file is not a ZedSecure settings backup</string>
     <string name="subs_user_agent">User-Agent (optional)</string>
     <string name="vault_no_password_needed">This file has no password. Import it?</string>
     <string name="zsx_import_action">Import</string>
@@ -1161,6 +1172,8 @@
     <string name="fault_unknown">Connection failed</string>
     <string name="fault_port_busy">Port already in use</string>
     <string name="fault_port_busy_hint">Another app, or another copy of ZedSecure, is already using the local proxy port. Disconnect it, then try again.</string>
+    <string name="fault_config">The config could not be read</string>
+    <string name="fault_config_hint">The core stopped at a setting in this config before connecting. The details below show which one. Import the config again or update its subscription.</string>
     <string name="lan_share_connect_title">Connect other devices to</string>
     <string name="lan_share_no_address">No local network address yet. Join a Wi-Fi network or turn on the hotspot.</string>
     <string name="lan_share_user">Username: %1$s (the password is below)</string>

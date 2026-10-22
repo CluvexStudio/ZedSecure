@@ -880,6 +880,7 @@ internal fun FaultBanner(
 
 internal fun faultTitle(c: dev.cluvex.zedsecure.core.ConnectionFault.Cause) = when (c) {
     dev.cluvex.zedsecure.core.ConnectionFault.Cause.PortBusy -> Res.string.fault_port_busy
+    dev.cluvex.zedsecure.core.ConnectionFault.Cause.Config -> Res.string.fault_config
     dev.cluvex.zedsecure.core.ConnectionFault.Cause.Timeout -> Res.string.fault_timeout
     dev.cluvex.zedsecure.core.ConnectionFault.Cause.ServerClosed -> Res.string.fault_server_closed
     dev.cluvex.zedsecure.core.ConnectionFault.Cause.Refused -> Res.string.fault_refused
@@ -896,6 +897,7 @@ internal fun faultTitle(c: dev.cluvex.zedsecure.core.ConnectionFault.Cause) = wh
 
 internal fun faultHint(c: dev.cluvex.zedsecure.core.ConnectionFault.Cause) = when (c) {
     dev.cluvex.zedsecure.core.ConnectionFault.Cause.PortBusy -> Res.string.fault_port_busy_hint
+    dev.cluvex.zedsecure.core.ConnectionFault.Cause.Config -> Res.string.fault_config_hint
     dev.cluvex.zedsecure.core.ConnectionFault.Cause.Timeout -> Res.string.fault_timeout_hint
     dev.cluvex.zedsecure.core.ConnectionFault.Cause.ServerClosed -> Res.string.fault_server_closed_hint
     dev.cluvex.zedsecure.core.ConnectionFault.Cause.Refused -> Res.string.fault_refused_hint

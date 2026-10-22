@@ -102,6 +102,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -648,6 +649,7 @@ private fun PixelErrorCard(
     val fault = error?.takeIf { it.isNotBlank() }?.let { ConnectionFault.classify(it) }
     val known = fault != null && fault.cause != ConnectionFault.Cause.Unknown
     val shake = remember { Animatable(0f) }
+    var rawOpen by remember(error) { mutableStateOf(false) }
     LaunchedEffect(error) {
         for (x in listOf(12f, -10f, 7f, -4f, 2f, 0f)) shake.animateTo(x, tween(55))
     }
@@ -688,9 +690,10 @@ private fun PixelErrorCard(
                     fault.raw,
                     style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
                     color = cs.onErrorContainer.copy(alpha = 0.7f),
-                    maxLines = 2,
+                    maxLines = if (rawOpen) 10 else 2,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center,
+                    modifier = Modifier.clickable { rawOpen = !rawOpen },
                 )
             }
             Spacer(Modifier.height(18.dp))
@@ -763,6 +766,7 @@ private fun PixelServerRow(
                         },
                     ),
                     style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Medium,
                     color = cs.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,

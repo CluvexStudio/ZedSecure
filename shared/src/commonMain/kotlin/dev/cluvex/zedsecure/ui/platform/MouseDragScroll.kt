@@ -7,5 +7,7 @@ import androidx.compose.ui.Modifier
 
 expect fun Modifier.mouseDragScroll(state: ScrollableState): Modifier
 
+expect fun Modifier.mouseWheelScroll(state: ScrollableState): Modifier
+
 fun Modifier.draggableHorizontalScroll(state: ScrollState): Modifier =
     mouseDragScroll(state).horizontalScroll(state)

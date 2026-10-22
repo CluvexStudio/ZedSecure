@@ -6,10 +6,12 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
 import kotlin.math.abs
 
 actual fun Modifier.mouseDragScroll(state: ScrollableState): Modifier = composed {
@@ -38,3 +40,21 @@ actual fun Modifier.mouseDragScroll(state: ScrollableState): Modifier = composed
         }
     }
 }
+
+actual fun Modifier.mouseWheelScroll(state: ScrollableState): Modifier =
+    pointerInput(state) {
+        val step = WHEEL_STEP.toPx()
+        awaitPointerEventScope {
+            while (true) {
+                val event = awaitPointerEvent(PointerEventPass.Initial)
+                if (event.type != PointerEventType.Scroll) continue
+                val change = event.changes.firstOrNull() ?: continue
+                val delta = change.scrollDelta
+                val notches = if (delta.x != 0f) delta.x else delta.y
+                if (notches == 0f) continue
+                if (state.dispatchRawDelta(notches * step) != 0f) change.consume()
+            }
+        }
+    }
+
+private val WHEEL_STEP = 64.dp

@@ -304,7 +304,9 @@
     <string name="mode_socks">Только SOCKS</string>
     <string name="mode_socks_body">Открывает только локальный прокси SOCKS и HTTP на 127.0.0.1 и больше ничего не меняет. Укажите его в нужных приложениях сами.</string>
     <string name="mode_tun">TUN (VPN)</string>
-    <string name="mode_tun_body">Пропускает все приложения через виртуальный сетевой адаптер, даже те, что игнорируют системный прокси. Запрашивает права администратора один раз за запуск ZedSecure. Tor и Psiphon, а также цепочки, которые с них начинаются, по-прежнему используют системный прокси.</string>
+    <string name="mode_tun_body">Пропускает все приложения через виртуальный сетевой адаптер, даже те, что игнорируют системный прокси. Запрашивает права администратора один раз за запуск ZedSecure. В Windows и macOS Tor и Psiphon, а также цепочки, которые с них начинаются, по-прежнему используют системный прокси.</string>
+    <string name="mode_tun_system_proxy">Также задать системный прокси</string>
+    <string name="mode_tun_system_proxy_sum">Приложения, которые читают системный прокси, например Chrome, используют то же подключение, пока работает туннель. Сбрасывается при отключении.</string>
     <string name="tray_server">Сервер</string>
     <string name="tray_all_servers">Все серверы (%1$d)…</string>
     <string name="tray_mode">Режим</string>
@@ -513,6 +515,8 @@
     <string name="summary_pref_route_only_enabled">Использовать определённый домен только для маршрутизации, оставляя IP как цель</string>
     <string name="title_pref_enable_local_proxy">Включить локальный прокси</string>
     <string name="summary_pref_enable_local_proxy">Без него нет входящего SOCKS, поэтому обновления подписок нельзя пропустить через прокси</string>
+    <string name="title_pref_local_proxy_port">Порт локального прокси</string>
+    <string name="toast_local_proxy_port_invalid">Укажите порт от 1024 до 65534, который не заняты ZedSecure и общим доступом в локальной сети</string>
     <string name="title_pref_proxy_sharing_enabled">Разрешить подключения из локальной сети</string>
     <string name="summary_pref_proxy_sharing_enabled">Другие устройства в этой сети смогут пользоваться прокси с логином и паролем ниже</string>
     <string name="title_pref_dynamic_socks_port">Случайный порт локального прокси</string>
@@ -558,6 +562,13 @@
     <string name="title_pref_auto_test_after_update">Тестировать после обновления подписки</string>
     <string name="title_pref_auto_remove_invalid">Удалять нерабочие конфигурации после теста</string>
     <string name="title_pref_auto_sort_after_test">Сортировать по результату после теста</string>
+    <string name="settings_backup_group">Резервная копия настроек</string>
+    <string name="settings_export">Экспорт настроек</string>
+    <string name="settings_export_sum">Сохраняет все настройки в файл для другого устройства. В файле есть пароль общего доступа в локальной сети.</string>
+    <string name="settings_import">Импорт настроек</string>
+    <string name="settings_import_sum">Загружает файл настроек, экспортированный из ZedSecure. Конфиги и подписки не меняются.</string>
+    <string name="settings_imported">Настройки импортированы</string>
+    <string name="settings_import_invalid">Этот файл не является резервной копией настроек ZedSecure</string>
     <string name="subs_user_agent">User-Agent (необязательно)</string>
     <string name="vault_no_password_needed">У этого файла нет пароля. Импортировать его?</string>
     <string name="zsx_import_action">Импорт</string>
@@ -1162,6 +1173,8 @@
     <string name="fault_unknown">Не удалось подключиться</string>
     <string name="fault_port_busy">Порт уже занят</string>
     <string name="fault_port_busy_hint">Другое приложение или другая копия ZedSecure уже использует локальный порт прокси. Отключите его и попробуйте снова.</string>
+    <string name="fault_config">Не удалось прочитать конфиг</string>
+    <string name="fault_config_hint">Ядро остановилось на одной из настроек этого конфига ещё до подключения. Ниже видно, на какой. Импортируйте конфиг заново или обновите подписку.</string>
     <string name="lan_share_connect_title">Подключайте другие устройства к</string>
     <string name="lan_share_no_address">Пока нет адреса в локальной сети. Подключитесь к Wi-Fi или включите точку доступа.</string>
     <string name="lan_share_user">Логин: %1$s (пароль ниже)</string>

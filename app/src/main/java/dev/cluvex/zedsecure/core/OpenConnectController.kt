@@ -14,6 +14,7 @@ import java.io.File
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
+import kotlin.concurrent.withLock
 
 class OpenConnectController(
     private val service: VpnService,
@@ -33,6 +34,12 @@ class OpenConnectController(
     @Volatile private var session: Session? = null
     @Volatile private var worker: Thread? = null
     @Volatile private var stopped = false
+    @Volatile private var looping = false
+    @Volatile private var pausing = false
+    @Volatile private var networkWatch: android.net.ConnectivityManager.NetworkCallback? = null
+    private val networks = java.util.Collections.synchronizedSet(mutableSetOf<android.net.Network>())
+    private val networkLock = java.util.concurrent.locks.ReentrantLock()
+    private val networkBack = networkLock.newCondition()
 
     private val rxBytes = AtomicLong(0)
     private val txBytes = AtomicLong(0)
@@ -70,6 +77,8 @@ class OpenConnectController(
 
     fun stop() {
         stopped = true
+        unwatchNetworks()
+        networkLock.withLock { networkBack.signalAll() }
         AuthFormBus.cancel()
         SsoBus.cancel()
         CertTrustBus.reject()
@@ -95,6 +104,66 @@ class OpenConnectController(
         } finally {
             runCatching { s.destroy() }
             session = null
+        }
+    }
+
+    private fun watchNetworks() {
+        if (networkWatch != null) return
+        val cm = service.getSystemService(android.net.ConnectivityManager::class.java) ?: return
+        val request = android.net.NetworkRequest.Builder()
+            .addCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .addCapability(android.net.NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
+            .build()
+        val best = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+        val callback = object : android.net.ConnectivityManager.NetworkCallback() {
+            @Volatile private var current: android.net.Network? = null
+
+            override fun onAvailable(network: android.net.Network) {
+                networks.add(network)
+                networkLock.withLock { networkBack.signalAll() }
+                val previous = current
+                if (best || previous == null) current = network
+                if (best && previous != null && previous != network) reconnect()
+            }
+
+            override fun onLost(network: android.net.Network) {
+                networks.remove(network)
+                if (networks.isEmpty()) {
+                    current = null
+                    reconnect()
+                } else if (network == current) {
+                    current = synchronized(networks) { networks.firstOrNull() }
+                    reconnect()
+                }
+            }
+        }
+        runCatching {
+            if (best) {
+                cm.registerBestMatchingNetworkCallback(request, callback, android.os.Handler(android.os.Looper.getMainLooper()))
+            } else {
+                cm.registerNetworkCallback(request, callback)
+            }
+        }
+            .onSuccess { networkWatch = callback }
+            .onFailure { Log.w(TAG, "network watch unavailable", it) }
+    }
+
+    private fun unwatchNetworks() {
+        val cb = networkWatch ?: return
+        networkWatch = null
+        runCatching { service.getSystemService(android.net.ConnectivityManager::class.java)?.unregisterNetworkCallback(cb) }
+        networks.clear()
+    }
+
+    private fun reconnect() {
+        if (stopped || !looping || pausing) return
+        pausing = true
+        runCatching { session?.pause() }
+    }
+
+    private fun awaitNetwork() {
+        networkLock.withLock {
+            while (!stopped && networks.isEmpty()) networkBack.await(NETWORK_WAIT_MS, TimeUnit.MILLISECONDS)
         }
     }
 
@@ -425,7 +494,19 @@ class OpenConnectController(
 
             val reconnectTimeout = profile.reconnectTimeoutSec
                 .takeIf { it > 0 } ?: OpenConnectProfile.DEFAULT_RECONNECT_TIMEOUT
-            val rc = mainloop(reconnectTimeout, RECONNECT_INTERVAL_MIN)
+            watchNetworks()
+            var rc: Int
+            while (true) {
+                looping = true
+                rc = mainloop(reconnectTimeout, RECONNECT_INTERVAL_MIN)
+                looping = false
+                if (stopped || rc != 0 || !pausing) break
+                pausing = false
+                awaitNetwork()
+                if (stopped) break
+                onLog(PRG_INFO, "the network changed; reconnecting the tunnel")
+            }
+            unwatchNetworks()
             runCatching { tunPfd?.close() }
             tunPfd = null
             cleanupCertMaterial()
@@ -474,6 +555,8 @@ class OpenConnectController(
         private const val MIN_MTU = 576
 
         private const val DTLS_ATTEMPT_PERIOD = 60
+
+        private const val NETWORK_WAIT_MS = 5_000L
 
         @OptIn(kotlin.io.encoding.ExperimentalEncodingApi::class)
         fun decodeBase64(text: String): ByteArray {

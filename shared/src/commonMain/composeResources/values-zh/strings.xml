@@ -304,7 +304,9 @@
     <string name="mode_socks">仅 SOCKS</string>
     <string name="mode_socks_body">只在 127.0.0.1 上开启本地 SOCKS 和 HTTP 代理，不做其他更改。请自行在各应用中设置。</string>
     <string name="mode_tun">TUN（VPN）</string>
-    <string name="mode_tun_body">通过虚拟网卡转发所有应用的流量，包括忽略系统代理的应用。ZedSecure 每次运行只需要一次管理员权限。Tor 和 Psiphon，以及以它们开头的链，仍使用系统代理。</string>
+    <string name="mode_tun_body">通过虚拟网卡转发所有应用的流量，包括忽略系统代理的应用。ZedSecure 每次运行只需要一次管理员权限。在 Windows 和 macOS 上，Tor 和 Psiphon，以及以它们开头的链，仍使用系统代理。</string>
+    <string name="mode_tun_system_proxy">同时设置系统代理</string>
+    <string name="mode_tun_system_proxy_sum">隧道连接期间，读取系统代理的应用（如 Chrome）也使用同一连接。断开时会清除。</string>
     <string name="tray_server">服务器</string>
     <string name="tray_all_servers">全部 %1$d 个服务器…</string>
     <string name="tray_mode">模式</string>
@@ -513,6 +515,8 @@
     <string name="summary_pref_route_only_enabled">仅使用嗅探到的域名进行路由，目标仍保持 IP</string>
     <string name="title_pref_enable_local_proxy">启用本地代理</string>
     <string name="summary_pref_enable_local_proxy">不启用则没有 SOCKS 入站，订阅更新将无法走代理</string>
+    <string name="title_pref_local_proxy_port">本地代理端口</string>
+    <string name="toast_local_proxy_port_invalid">请使用 1024 到 65534 之间、ZedSecure 与局域网共享均未占用的端口</string>
     <string name="title_pref_proxy_sharing_enabled">允许来自局域网的连接</string>
     <string name="summary_pref_proxy_sharing_enabled">同一网络中的其他设备可使用下方的用户名和密码连接此代理</string>
     <string name="title_pref_dynamic_socks_port">随机本地代理端口</string>
@@ -558,6 +562,13 @@
     <string name="title_pref_auto_test_after_update">更新订阅后测试</string>
     <string name="title_pref_auto_remove_invalid">测试后删除无效配置</string>
     <string name="title_pref_auto_sort_after_test">测试后按结果排序</string>
+    <string name="settings_backup_group">设置备份</string>
+    <string name="settings_export">导出设置</string>
+    <string name="settings_export_sum">将所有设置保存到文件，便于迁移到其他设备。文件中包含局域网共享密码。</string>
+    <string name="settings_import">导入设置</string>
+    <string name="settings_import_sum">载入从 ZedSecure 导出的设置文件。配置和订阅不会改变。</string>
+    <string name="settings_imported">设置已导入</string>
+    <string name="settings_import_invalid">此文件不是 ZedSecure 设置备份</string>
     <string name="subs_user_agent">User-Agent (可选)</string>
     <string name="vault_no_password_needed">此文件没有密码。是否导入？</string>
     <string name="zsx_import_action">导入</string>
@@ -1162,6 +1173,8 @@
     <string name="fault_unknown">连接失败</string>
     <string name="fault_port_busy">端口已被占用</string>
     <string name="fault_port_busy_hint">另一个应用或另一个 ZedSecure 正在使用本地代理端口。请先断开它，然后重试。</string>
+    <string name="fault_config">无法读取此配置</string>
+    <string name="fault_config_hint">内核在连接前停在了此配置的某项设置上。下方详情会指出是哪一项。请重新导入配置或更新订阅。</string>
     <string name="lan_share_connect_title">让其他设备连接到</string>
     <string name="lan_share_no_address">暂无局域网地址。请连接 Wi-Fi 或开启热点。</string>
     <string name="lan_share_user">用户名：%1$s（密码见下方）</string>

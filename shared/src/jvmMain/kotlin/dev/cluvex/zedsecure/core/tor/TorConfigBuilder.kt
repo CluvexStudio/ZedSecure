@@ -35,13 +35,14 @@ object TorConfigBuilder {
         upstreamSocksPort: Int? = null,
         transports: Transports = Transports.android(nativeLibDir),
         dnsPort: Int? = null,
+        socksPort: Int = SOCKS_PORT,
     ): String =
         buildString {
             val isolation = buildString {
                 if (settings.torIsolateDestAddr) append(" IsolateDestAddr")
                 if (settings.torIsolateDestPort) append(" IsolateDestPort")
             }
-            appendLine("SocksPort 127.0.0.1:$SOCKS_PORT$isolation")
+            appendLine("SocksPort 127.0.0.1:$socksPort$isolation")
             appendLine("DNSPort ${dnsPort?.let { "127.0.0.1:$it" } ?: "0"}")
             appendLine("RunAsDaemon 0")
             appendLine("ClientOnly 1")

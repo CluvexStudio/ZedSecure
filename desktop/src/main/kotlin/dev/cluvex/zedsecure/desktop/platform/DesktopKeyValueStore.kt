@@ -38,7 +38,7 @@ class DesktopKeyValueStore(name: String) : KeyValueStore {
     override fun putBoolean(key: String, value: Boolean) { props.setProperty(key, value.toString()); persist() }
     override fun remove(key: String) { props.remove(key); persist() }
 
-    private companion object {
+    companion object {
         fun configDir(): File {
             val os = System.getProperty("os.name").lowercase()
             val home = System.getProperty("user.home")

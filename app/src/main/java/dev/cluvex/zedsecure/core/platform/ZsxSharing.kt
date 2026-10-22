@@ -28,6 +28,23 @@ object ZsxSharing {
         }
     }
 
+    fun shareAs(context: Context, fileName: String, mime: String, bytes: ByteArray) {
+        runCatching {
+            val dir = File(context.cacheDir, "shared").apply { mkdirs() }
+            val file = File(dir, fileName).apply { writeBytes(bytes) }
+            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                type = mime
+                putExtra(Intent.EXTRA_STREAM, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            val chooser = Intent.createChooser(intent, null).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            context.startActivity(chooser)
+        }
+    }
+
     fun shareMany(context: Context, files: List<Pair<String, ByteArray>>) {
         if (files.isEmpty()) return
         val dir = File(context.cacheDir, "shared").apply { mkdirs() }

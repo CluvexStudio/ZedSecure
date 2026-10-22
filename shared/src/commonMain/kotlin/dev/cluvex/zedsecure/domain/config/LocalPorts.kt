@@ -9,8 +9,6 @@ object LocalPorts {
 
     const val DESKTOP_METRICS = 10817
 
-    const val SHIM = 10820
-
     const val PSIPHON_SOCKS = 10830
     const val PSIPHON_HTTP = 10831
 
@@ -34,9 +32,13 @@ object LocalPorts {
 
     fun isInternal(port: Int): Boolean =
         port == XRAY_SOCKS || port == XRAY_HTTP || port == SNI_SPOOF || port == DESKTOP_METRICS ||
-            port == SHIM || port == PSIPHON_SOCKS || port == PSIPHON_HTTP || port == TOR_SOCKS || port == CHAIN_CARRIER ||
+            port == PSIPHON_SOCKS || port == PSIPHON_HTTP || port == TOR_SOCKS || port == CHAIN_CARRIER ||
             port in SSH..SSH_MAX || port in DNS_TUNNEL..DNS_TUNNEL_MAX ||
             port in MASTER_DNS..MASTER_DNS_MAX || port in SSH_OVER_DNS..SSH_OVER_DNS_MAX
+
+    fun localProxyPort(requested: Int): Int =
+        if (requested == XRAY_SOCKS || requested in 1024..65534 && !isInternal(requested) && !isInternal(requested + 1)) requested
+        else XRAY_SOCKS
 
     fun lanSocksPort(requested: Int): Int =
         if (requested in 1024..65534 && !isInternal(requested) && !isInternal(requested + 1)) requested

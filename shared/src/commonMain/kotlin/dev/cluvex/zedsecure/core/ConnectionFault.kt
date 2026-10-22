@@ -8,6 +8,8 @@ data class ConnectionFault(
     enum class Cause {
         PortBusy,
 
+        Config,
+
         Timeout,
 
         ServerClosed,
@@ -37,6 +39,10 @@ data class ConnectionFault(
         private val RULES: List<Pair<Cause, List<String>>> = listOf(
             Cause.PortBusy to listOf("address already in use", "failed to listen", "eaddrinuse",
                 "only one usage of each socket address"),
+            Cause.Config to listOf("config error", "failed to parse json config", "failed to parse config",
+                "failed to load config", "failed to build conf", "failed to build outbound",
+                "failed to build inbound", "failed to build stream settings", "json: cannot unmarshal",
+                "unknown field"),
             Cause.Reality to listOf("reality"),
             Cause.Certificate to listOf("x509:", "certificate signed by unknown authority",
                 "certificate is not valid", "certificate has expired", "certificate is valid for"),

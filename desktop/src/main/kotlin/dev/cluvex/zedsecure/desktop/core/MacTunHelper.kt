@@ -1,0 +1,258 @@
+package dev.cluvex.zedsecure.desktop.core
+
+import java.io.File
+import java.nio.file.Files
+
+internal object MacTunHelper {
+    private const val LABEL = "tun"
+    private const val PROMPT_WAIT_SEC = 180L
+    private const val READY_WAIT_SEC = 45L
+    private const val STOP_WAIT_MS = 8_000L
+    private const val POLL_MS = 200L
+    private const val LOG_TAIL = 40
+
+    @Volatile private var process: Process? = null
+    @Volatile private var control: File? = null
+
+    val dnsLeftBehind: Boolean get() = File(ZeptunTun.MAC_DNS_RESTORE).isFile
+
+    @Synchronized
+    fun up(workDir: File, zeptun: File, toml: String): Boolean {
+        val ctrl = ensure(workDir, zeptun) ?: return false
+        listOf("ready", "failed", "lost", "stop").forEach { File(ctrl, it).delete() }
+        File(ctrl, "zeptun.toml").writeText(toml)
+        File(ctrl, "start").writeText("start")
+        return awaitReady(ctrl)
+    }
+
+    @Synchronized
+    fun down() {
+        val ctrl = control ?: return
+        if (process?.isAlive != true) return
+        File(ctrl, "stop").writeText("stop")
+        val deadline = System.currentTimeMillis() + STOP_WAIT_MS
+        while ((File(ctrl, "stop").isFile || File(ctrl, "ready").isFile) && System.currentTimeMillis() < deadline) {
+            if (process?.isAlive != true) break
+            Thread.sleep(POLL_MS)
+        }
+    }
+
+    @Synchronized
+    fun repair(workDir: File, zeptun: File?): Boolean {
+        if (!dnsLeftBehind) return true
+        println("[$LABEL] the DNS of this Mac still points at the tunnel from an earlier run; putting it back")
+        if (zeptun == null) return false
+        return ensure(workDir, zeptun) != null && !dnsLeftBehind
+    }
+
+    @Synchronized
+    fun close() {
+        val ctrl = control ?: return
+        runCatching { File(ctrl, "exit").writeText("exit") }
+        process?.let { running ->
+            val deadline = System.currentTimeMillis() + STOP_WAIT_MS
+            while (running.isAlive && System.currentTimeMillis() < deadline) Thread.sleep(POLL_MS)
+        }
+        process = null
+        control = null
+        runCatching { ctrl.deleteRecursively() }
+    }
+
+    fun lastLog(): List<String> {
+        val ctrl = control ?: return emptyList()
+        return runCatching { File(ctrl, "zeptun.log").readLines().takeLast(LOG_TAIL) }.getOrDefault(emptyList())
+            .filter { it.isNotBlank() }
+    }
+
+    private fun ensure(workDir: File, zeptun: File): File? {
+        control?.takeIf { process?.isAlive == true }?.let { return it }
+        control?.let { runCatching { it.deleteRecursively() } }
+        control = null
+        process = null
+        val ctrl = runCatching { Files.createTempDirectory(workDir.also { it.mkdirs() }.toPath(), "mactun-").toFile() }
+            .onFailure { println("[$LABEL] could not create a control directory: ${it.message}") }
+            .getOrNull() ?: return null
+        val script = File(ctrl, "tun-helper.sh")
+        val staged = runCatching {
+            script.writeText(script())
+            script.setExecutable(true, true)
+            zeptun.copyTo(File(ctrl, "zeptun"), overwrite = true)
+        }
+        if (staged.isFailure) {
+            println("[$LABEL] could not stage the helper: ${staged.exceptionOrNull()?.message}")
+            ctrl.deleteRecursively()
+            return null
+        }
+        val args = listOf(
+            "/bin/sh", script.absolutePath, File(ctrl, "zeptun").absolutePath, ctrl.absolutePath,
+            ProcessHandle.current().pid().toString(),
+        )
+        val command = if (passwordlessSudo()) {
+            println("[$LABEL] using sudo, which needs no password here")
+            listOf("sudo", "-n") + args
+        } else {
+            val shell = args.joinToString(" ") { shQuote(it) }
+            val apple = "do shell script \"" + shell.replace("\\", "\\\\").replace("\"", "\\\"") +
+                "\" with administrator privileges"
+            listOf("osascript", "-e", apple)
+        }
+        val started = runCatching { ProcessBuilder(command).redirectErrorStream(true).start() }.getOrElse {
+            println("[$LABEL] the helper did not start: ${it.message}")
+            ctrl.deleteRecursively()
+            return null
+        }
+        Thread {
+            runCatching { started.inputStream.bufferedReader().forEachLine { if (it.isNotBlank()) println("[$LABEL] $it") } }
+        }.apply { isDaemon = true; name = "tun-helper-output" }.start()
+        val deadline = System.currentTimeMillis() + PROMPT_WAIT_SEC * 1000
+        while (System.currentTimeMillis() < deadline) {
+            if (File(ctrl, "helper").isFile) {
+                process = started
+                control = ctrl
+                return ctrl
+            }
+            if (File(ctrl, "failed").isFile || !started.isAlive) break
+            Thread.sleep(POLL_MS)
+        }
+        val why = runCatching { File(ctrl, "failed").readText().trim() }.getOrNull()
+        println("[$LABEL] ${why ?: "the administrator prompt was dismissed or the helper stopped"}")
+        started.destroy()
+        ctrl.deleteRecursively()
+        return null
+    }
+
+    private fun awaitReady(ctrl: File): Boolean {
+        val deadline = System.currentTimeMillis() + READY_WAIT_SEC * 1000
+        while (System.currentTimeMillis() < deadline) {
+            if (File(ctrl, "ready").isFile) return true
+            if (File(ctrl, "failed").isFile) {
+                println("[$LABEL] ${runCatching { File(ctrl, "failed").readText().trim() }.getOrDefault("zeptun failed")}")
+                return false
+            }
+            if (process?.isAlive != true) {
+                println("[$LABEL] the helper stopped")
+                return false
+            }
+            Thread.sleep(POLL_MS)
+        }
+        println("[$LABEL] zeptun did not come up in $READY_WAIT_SEC seconds")
+        File(ctrl, "stop").writeText("stop")
+        return false
+    }
+
+    private fun passwordlessSudo(): Boolean =
+        runCatching { exec("sudo", "-n", "true", timeoutSec = 5).first == 0 }.getOrDefault(false)
+
+    private fun shQuote(value: String): String = "'" + value.replace("'", "'\\''") + "'"
+
+    internal fun script(): String = """
+        |#!/bin/sh
+        |PATH=/usr/bin:/bin:/usr/sbin:/sbin
+        |export PATH
+        |CTRL="${'$'}2"
+        |APP_PID="${'$'}3"
+        |TAB="${'$'}(printf '\t')"
+        |PERSIST="${ZeptunTun.MAC_DNS_RESTORE}"
+        |RUN=${'$'}(mktemp -d /tmp/zedsecure-tun.XXXXXX) || { echo "the helper has no private directory" >"${'$'}CTRL/failed"; exit 1; }
+        |BACKUP="${'$'}RUN/dns-backup"
+        |if ! cp "${'$'}1" "${'$'}RUN/zeptun" || ! chmod 700 "${'$'}RUN/zeptun"; then
+        |  echo "zeptun could not be staged" >"${'$'}CTRL/failed"
+        |  rm -rf "${'$'}RUN"
+        |  exit 1
+        |fi
+        |ZP=
+        |restore_dns() {
+        |  [ -f "${'$'}1" ] || return 0
+        |  while IFS="${'$'}TAB" read -r svc servers; do
+        |    [ -n "${'$'}svc" ] || continue
+        |    if [ "${'$'}servers" = "Empty" ]; then
+        |      networksetup -setdnsservers "${'$'}svc" Empty >/dev/null 2>&1
+        |    else
+        |      networksetup -setdnsservers "${'$'}svc" ${'$'}servers >/dev/null 2>&1
+        |    fi
+        |  done < "${'$'}1"
+        |  rm -f "${'$'}1"
+        |  dscacheutil -flushcache >/dev/null 2>&1
+        |  killall -HUP mDNSResponder >/dev/null 2>&1
+        |}
+        |point_dns_at_tunnel() {
+        |  : > "${'$'}BACKUP"
+        |  networksetup -listallnetworkservices 2>/dev/null | tail -n +2 | grep -v '^\*' | while IFS= read -r svc; do
+        |    [ -n "${'$'}svc" ] || continue
+        |    cur=${'$'}(networksetup -getdnsservers "${'$'}svc" 2>/dev/null | grep -E '^[0-9A-Fa-f:.]+${'$'}' | tr '\n' ' ' | sed 's/ *${'$'}//')
+        |    [ -n "${'$'}cur" ] || cur=Empty
+        |    printf '%s\t%s\n' "${'$'}svc" "${'$'}cur" >> "${'$'}BACKUP"
+        |  done
+        |  mkdir -p "${'$'}(dirname "${'$'}PERSIST")" && cp "${'$'}BACKUP" "${'$'}PERSIST"
+        |  while IFS="${'$'}TAB" read -r svc servers; do
+        |    networksetup -setdnsservers "${'$'}svc" ${ZeptunTun.MAC_TUN_DNS} >/dev/null 2>&1
+        |  done < "${'$'}BACKUP"
+        |  dscacheutil -flushcache >/dev/null 2>&1
+        |  killall -HUP mDNSResponder >/dev/null 2>&1
+        |}
+        |tun_down() {
+        |  restore_dns "${'$'}BACKUP"
+        |  rm -f "${'$'}PERSIST"
+        |  if [ -n "${'$'}ZP" ]; then
+        |    kill "${'$'}ZP" 2>/dev/null
+        |    i=0
+        |    while kill -0 "${'$'}ZP" 2>/dev/null && [ ${'$'}i -lt 30 ]; do sleep 0.1; i=${'$'}((i + 1)); done
+        |    kill -9 "${'$'}ZP" 2>/dev/null
+        |    wait "${'$'}ZP" 2>/dev/null
+        |  fi
+        |  ZP=
+        |  rm -f "${'$'}CTRL/ready"
+        |}
+        |tun_up() {
+        |  tun_down
+        |  rm -f "${'$'}CTRL/failed" "${'$'}CTRL/lost"
+        |  if ! cp "${'$'}CTRL/zeptun.toml" "${'$'}RUN/zeptun.toml" 2>/dev/null; then
+        |    echo "the tunnel settings are missing" >"${'$'}CTRL/failed"
+        |    return
+        |  fi
+        |  "${'$'}RUN/zeptun" run -c "${'$'}RUN/zeptun.toml" >"${'$'}CTRL/zeptun.log" 2>&1 &
+        |  ZP=${'$'}!
+        |  UP=
+        |  i=0
+        |  while [ ${'$'}i -lt 150 ]; do
+        |    kill -0 "${'$'}ZP" 2>/dev/null || break
+        |    if ifconfig | grep -q 'inet ${ZeptunTun.TUN_V4} '; then UP=1; break; fi
+        |    sleep 0.2
+        |    i=${'$'}((i + 1))
+        |  done
+        |  if [ -z "${'$'}UP" ]; then
+        |    echo "zeptun did not bring the tunnel up. ${'$'}(tail -n 5 "${'$'}CTRL/zeptun.log" 2>/dev/null | tr '\n' ' ')" >"${'$'}CTRL/failed"
+        |    tun_down
+        |    return
+        |  fi
+        |  point_dns_at_tunnel
+        |  echo "${'$'}ZP" >"${'$'}CTRL/ready"
+        |}
+        |cleanup() {
+        |  trap '' INT TERM HUP
+        |  tun_down
+        |  rm -rf "${'$'}RUN"
+        |  rm -f "${'$'}CTRL/helper"
+        |}
+        |trap cleanup EXIT
+        |trap 'exit 0' INT TERM HUP
+        |restore_dns "${'$'}PERSIST"
+        |echo "${'$'}${'$'}" >"${'$'}CTRL/helper"
+        |while kill -0 "${'$'}APP_PID" 2>/dev/null && [ ! -e "${'$'}CTRL/exit" ]; do
+        |  if [ -e "${'$'}CTRL/start" ]; then
+        |    rm -f "${'$'}CTRL/start"
+        |    tun_up
+        |  fi
+        |  if [ -e "${'$'}CTRL/stop" ]; then
+        |    tun_down
+        |    rm -f "${'$'}CTRL/stop"
+        |  fi
+        |  if [ -n "${'$'}ZP" ] && ! kill -0 "${'$'}ZP" 2>/dev/null; then
+        |    tun_down
+        |    echo "zeptun stopped" >"${'$'}CTRL/lost"
+        |  fi
+        |  sleep 0.25
+        |done
+        |exit 0
+        |""".trimMargin()
+}

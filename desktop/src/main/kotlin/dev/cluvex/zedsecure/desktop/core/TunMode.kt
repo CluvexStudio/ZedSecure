@@ -59,14 +59,13 @@ class TunMode(
             askPassword: ((retry: Boolean) -> AdminAnswer?)?,
             allowApps: List<File> = emptyList(),
             zeptunOnWindows: Boolean = false,
-            ipv6: Boolean = false,
             excludeCgroup: String? = null,
         ): DesktopTun? = when {
             usesZeptun(zeptunOnWindows = zeptunOnWindows) -> ZeptunBinary.extract(workDir)?.let {
                 ZeptunTun(it, socksPort, workDir, bypassIps = bypassIps, udpOverTcp = udpOverTcp, dnsServers = dnsServers, allowApps = allowApps)
             }
             Os.current == Os.WINDOWS -> HevBinary.extract(workDir)?.let {
-                HevWindowsTun(it, socksPort, workDir, bypassIps = bypassIps, udpOverTcp = udpOverTcp, dnsServers = dnsServers, ipv6 = ipv6)
+                HevWindowsTun(it, socksPort, workDir, bypassIps = bypassIps, udpOverTcp = udpOverTcp, dnsServers = dnsServers)
             }
             else -> TunMode(
                 socksPort, workDir, bypassIps = bypassIps, udpOverTcp = udpOverTcp, dnsServers = dnsServers,

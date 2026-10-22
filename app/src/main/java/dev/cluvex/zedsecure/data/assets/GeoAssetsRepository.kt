@@ -149,6 +149,6 @@ class GeoAssetsRepository(private val context: Context) : GeoAssets {
 
         val FILES = listOf(GEOIP, GEOSITE)
 
-        val BUNDLED = listOf(GEOIP, GEOSITE, "geoip-only-cn-private.dat")
+        val BUNDLED = listOf(GEOIP, GEOSITE)
     }
 }

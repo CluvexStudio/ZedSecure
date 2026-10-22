@@ -139,7 +139,8 @@ fun AutoSelectCard(
                 Text(
                     line,
                     style = MaterialTheme.typography.bodySmall,
-                    color = onContainer.copy(alpha = 0.75f),
+                    fontWeight = FontWeight.Medium,
+                    color = onContainer.copy(alpha = 0.85f),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )

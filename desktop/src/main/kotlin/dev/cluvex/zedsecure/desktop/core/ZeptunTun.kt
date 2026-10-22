@@ -2,7 +2,6 @@ package dev.cluvex.zedsecure.desktop.core
 
 import java.io.File
 import java.nio.file.Files
-import java.util.concurrent.TimeUnit
 
 class ZeptunTun(
     private val zeptun: File,
@@ -15,7 +14,6 @@ class ZeptunTun(
     private val allowApps: List<File> = emptyList(),
     private val os: Os = Os.current,
 ) : DesktopTun {
-    @Volatile private var helper: Process? = null
     @Volatile private var state: File? = null
     @Volatile private var windowsUp = false
 
@@ -102,79 +100,19 @@ class ZeptunTun(
     }
 
     private fun startMac(): Boolean {
-        val (dir, engine) = stage() ?: return false
-        val config = File(dir, "zeptun.toml").apply { writeText(toml()) }
-        val script = File(dir, "tun-helper.sh").apply {
-            writeText(macHelper())
-            setExecutable(true, true)
-        }
-        val args = listOf(
-            "/bin/sh", script.absolutePath, engine.absolutePath, config.absolutePath, dir.absolutePath,
-            ProcessHandle.current().pid().toString(),
-        )
-        val command = if (passwordlessSudo()) {
-            println("[tun] using sudo, which needs no password here")
-            listOf("sudo", "-n") + args
-        } else {
-            val shell = args.joinToString(" ") { shQuote(it) }
-            val apple = "do shell script \"" + shell.replace("\\", "\\\\").replace("\"", "\\\"") +
-                "\" with administrator privileges"
-            listOf("osascript", "-e", apple)
-        }
-        val process = runCatching {
-            ProcessBuilder(command).redirectErrorStream(true).start()
-        }.getOrElse {
-            println("[tun] the helper did not start: ${it.message}")
-            discard()
-            return false
-        }
-        helper = process
-        Thread {
-            runCatching { process.inputStream.bufferedReader().forEachLine { if (it.isNotBlank()) println("[tun] $it") } }
-        }.apply { isDaemon = true; name = "tun-helper-output" }.start()
-        return awaitReady(dir, process)
-    }
-
-    private fun passwordlessSudo(): Boolean =
-        runCatching { exec("sudo", "-n", "true", timeoutSec = 5).first == 0 }.getOrDefault(false)
-
-    private fun awaitReady(dir: File, process: Process?): Boolean {
-        val ready = File(dir, "ready")
-        val failed = File(dir, "failed")
-        val deadline = System.currentTimeMillis() + READY_WAIT_SEC * 1000
-        while (System.currentTimeMillis() < deadline) {
-            if (ready.isFile) return true
-            if (failed.isFile) {
-                println("[tun] ${runCatching { failed.readText().trim() }.getOrDefault("zeptun failed")}")
-                stop()
-                return false
-            }
-            if (process != null && !process.isAlive) {
-                println("[tun] the administrator prompt was dismissed or the helper stopped")
-                discard()
-                return false
-            }
-            Thread.sleep(POLL_MS)
-        }
-        println("[tun] zeptun did not come up in $READY_WAIT_SEC seconds")
-        stop()
-        return false
+        val up = MacTunHelper.up(workDir, zeptun, toml())
+        if (!up) MacTunHelper.lastLog().forEach { println("[zeptun] $it") }
+        return up
     }
 
     override fun stop() {
-        val dir = state ?: return
-        if (os == Os.WINDOWS) {
-            if (windowsUp) WindowsElevation.tunDown()
-            windowsUp = false
-            discard()
+        if (os == Os.MACOS) {
+            MacTunHelper.down()
             return
         }
-        runCatching { File(dir, "stop").writeText("stop") }
-        val ready = File(dir, "ready")
-        val deadline = System.currentTimeMillis() + STOP_WAIT_MS
-        while (ready.isFile && System.currentTimeMillis() < deadline) Thread.sleep(POLL_MS)
-        helper?.let { if (!it.waitFor(2, TimeUnit.SECONDS)) it.destroy() }
-        helper = null
+        if (state == null) return
+        if (windowsUp) WindowsElevation.tunDown()
+        windowsUp = false
         discard()
     }
 
@@ -187,79 +125,6 @@ class ZeptunTun(
         runCatching { dir.deleteRecursively() }
     }
 
-    internal fun macHelper(): String = """
-        |#!/bin/sh
-        |PATH=/usr/bin:/bin:/usr/sbin:/sbin
-        |export PATH
-        |ZEPTUN="${'$'}1"
-        |CONFIG="${'$'}2"
-        |STATE="${'$'}3"
-        |APP_PID="${'$'}4"
-        |TAB="${'$'}(printf '\t')"
-        |PERSIST="$MAC_DNS_RESTORE"
-        |BACKUP="${'$'}STATE/dns-backup"
-        |rm -f "${'$'}STATE/ready" "${'$'}STATE/stop" "${'$'}STATE/failed"
-        |restore_dns() {
-        |  [ -f "${'$'}1" ] || return 0
-        |  while IFS="${'$'}TAB" read -r svc servers; do
-        |    [ -n "${'$'}svc" ] || continue
-        |    if [ "${'$'}servers" = "Empty" ]; then
-        |      networksetup -setdnsservers "${'$'}svc" Empty >/dev/null 2>&1
-        |    else
-        |      networksetup -setdnsservers "${'$'}svc" ${'$'}servers >/dev/null 2>&1
-        |    fi
-        |  done < "${'$'}1"
-        |  rm -f "${'$'}1"
-        |  dscacheutil -flushcache >/dev/null 2>&1
-        |  killall -HUP mDNSResponder >/dev/null 2>&1
-        |}
-        |point_dns_at_tunnel() {
-        |  : > "${'$'}BACKUP"
-        |  networksetup -listallnetworkservices 2>/dev/null | tail -n +2 | grep -v '^\*' | while IFS= read -r svc; do
-        |    [ -n "${'$'}svc" ] || continue
-        |    cur=${'$'}(networksetup -getdnsservers "${'$'}svc" 2>/dev/null | grep -E '^[0-9A-Fa-f:.]+${'$'}' | tr '\n' ' ' | sed 's/ *${'$'}//')
-        |    [ -n "${'$'}cur" ] || cur=Empty
-        |    printf '%s\t%s\n' "${'$'}svc" "${'$'}cur" >> "${'$'}BACKUP"
-        |  done
-        |  mkdir -p "${'$'}(dirname "${'$'}PERSIST")" && cp "${'$'}BACKUP" "${'$'}PERSIST"
-        |  while IFS="${'$'}TAB" read -r svc servers; do
-        |    networksetup -setdnsservers "${'$'}svc" $MAC_TUN_DNS >/dev/null 2>&1
-        |  done < "${'$'}BACKUP"
-        |  dscacheutil -flushcache >/dev/null 2>&1
-        |  killall -HUP mDNSResponder >/dev/null 2>&1
-        |}
-        |restore_dns "${'$'}PERSIST"
-        |"${'$'}ZEPTUN" run -c "${'$'}CONFIG" >"${'$'}STATE/zeptun.log" 2>&1 &
-        |ZP=${'$'}!
-        |cleanup() {
-        |  kill "${'$'}ZP" 2>/dev/null
-        |  wait "${'$'}ZP" 2>/dev/null
-        |  restore_dns "${'$'}BACKUP"
-        |  rm -f "${'$'}PERSIST"
-        |  rm -f "${'$'}STATE/ready"
-        |}
-        |trap cleanup EXIT
-        |trap 'exit 0' INT TERM HUP
-        |UP=
-        |i=0
-        |while [ ${'$'}i -lt 150 ]; do
-        |  kill -0 "${'$'}ZP" 2>/dev/null || break
-        |  if ifconfig | grep -q 'inet $TUN_V4 '; then UP=1; break; fi
-        |  sleep 0.2
-        |  i=${'$'}((i + 1))
-        |done
-        |if [ -z "${'$'}UP" ]; then
-        |  echo "zeptun did not bring the tunnel up. ${'$'}(tail -n 5 "${'$'}STATE/zeptun.log" 2>/dev/null | tr '\n' ' ')" >"${'$'}STATE/failed"
-        |  exit 1
-        |fi
-        |point_dns_at_tunnel
-        |echo "${'$'}ZP" >"${'$'}STATE/ready"
-        |while kill -0 "${'$'}ZP" 2>/dev/null && [ ! -e "${'$'}STATE/stop" ] && kill -0 "${'$'}APP_PID" 2>/dev/null; do
-        |  sleep 0.3
-        |done
-        |exit 0
-        |""".trimMargin()
-
     companion object {
         const val ADAPTER = "ZedSecure"
         const val TUN_V4 = "172.19.0.1"
@@ -268,9 +133,6 @@ class ZeptunTun(
         const val ADAPTER_GUID = "7E2B5D41-0C9A-4F3E-8B6D-2A91C4E7F053"
         const val MAC_TUN_DNS = "172.19.0.2"
         const val MAC_DNS_RESTORE = "/Library/Application Support/ZedSecure/dns-restore"
-        private const val READY_WAIT_SEC = 45L
-        private const val STOP_WAIT_MS = 8_000L
-        private const val POLL_MS = 200L
         private const val LOG_TAIL = 40
 
         private val IPV4 = Regex("""^\d{1,3}(\.\d{1,3}){3}$""")
@@ -307,7 +169,5 @@ class ZeptunTun(
 
         private fun tomlList(values: List<String>): String =
             values.joinToString(", ", "[", "]") { "\"" + it.replace("\\", "\\\\").replace("\"", "\\\"") + "\"" }
-
-        private fun shQuote(value: String): String = "'" + value.replace("'", "'\\''") + "'"
     }
 }

@@ -111,6 +111,7 @@ import dev.cluvex.zedsecure.ui.theme.ZedLime
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import dev.cluvex.zedsecure.ui.platform.mouseDragScroll
+import dev.cluvex.zedsecure.ui.platform.mouseWheelScroll
 import dev.cluvex.zedsecure.ui.platform.onSecondaryClick
 import dev.cluvex.zedsecure.ui.platform.GridScrollbar
 import androidx.compose.ui.text.input.ImeAction
@@ -709,7 +710,8 @@ fun ServersScreen(
                     contentPadding = PaddingValues(horizontal = 20.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth().tourTarget(TourTargets.SERVERS_GROUPS)
-                        .mouseDragScroll(groupRow),
+                        .mouseDragScroll(groupRow)
+                        .mouseWheelScroll(groupRow),
                 ) {
                     if (showAllGroup) {
                         item(key = "group-all") {

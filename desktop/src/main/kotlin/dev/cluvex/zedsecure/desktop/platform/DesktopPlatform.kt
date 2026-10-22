@@ -100,6 +100,15 @@ object DesktopPlatform : Platform {
         if (failed > 0) toast("Could not save $failed of ${named.size} files")
     }
 
+    override fun saveFile(name: String, mime: String, bytes: ByteArray) {
+        val chooser = JFileChooser().apply {
+            dialogTitle = "Save"
+            selectedFile = File(System.getProperty("user.home"), name)
+        }
+        if (chooser.showSaveDialog(null) != JFileChooser.APPROVE_OPTION) return
+        runCatching { chooser.selectedFile.writeBytes(bytes) }.onFailure { toast(it.message ?: "Could not save") }
+    }
+
     internal fun uniqueNames(files: List<Pair<String, ByteArray>>): List<Pair<String, ByteArray>> {
         val used = mutableSetOf<String>()
         return files.map { (name, bytes) ->
