@@ -127,6 +127,16 @@ object ZepTunCore {
         appendLine("[stack]")
         appendLine("tcp_idle_timeout_ms = $tcpIdleMs")
         appendLine("udp_idle_timeout_ms = $udpIdleMs")
+        appendLine("tcp_rx_window = $TCP_RX_WINDOW")
+        appendLine("tcp_tx_buffer = $TCP_TX_BUFFER")
+        appendLine("tcp_tx_budget = $TCP_TX_BUDGET")
+        appendLine("timestamps = true")
+        appendLine("max_tcp_sessions = $MAX_TCP_SESSIONS")
+        appendLine("max_udp_sessions = $MAX_UDP_SESSIONS")
+        appendLine()
+        appendLine("[io]")
+        appendLine("rx_parallel = $RX_PARALLEL")
+        appendLine("tx_slots = $TX_SLOTS")
         appendLine()
         appendLine("[handler]")
         appendLine("kind = \"socks5\"")
@@ -155,4 +165,12 @@ object ZepTunCore {
         "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
 
     const val DEFAULT_RW_TIMEOUT = "300,60"
+
+    private const val TCP_RX_WINDOW = 512 * 1024
+    private const val TCP_TX_BUFFER = 256 * 1024
+    private const val TCP_TX_BUDGET = 16 * 1024 * 1024
+    private const val MAX_TCP_SESSIONS = 4096
+    private const val MAX_UDP_SESSIONS = 2048
+    private const val RX_PARALLEL = 8
+    private const val TX_SLOTS = 1024
 }
