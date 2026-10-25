@@ -1,15 +1,15 @@
 <div dir="rtl">
 
 <p align="center">
-  <img src="docs/assets/icon.png" width="104" alt="ZedSecure">
+  <img src="docs/assets/icon.png" width="104" alt="ZX VPN">
 </p>
 
-<h1 align="center">ZedSecure</h1>
+<h1 align="center">ZX VPN</h1>
 
 <p align="center">همهٔ راه‌های عبور، در یک برنامه.</p>
 
 <p align="center">
-  <a href="https://github.com/CluvexStudio/ZedSecure/releases/latest"><img src="https://img.shields.io/github/v/release/CluvexStudio/ZedSecure?style=flat-square&color=C7F24E&labelColor=15170B&label=release" alt="آخرین نسخه"></a>
+  <a href="https://github.com/AMINOPY/ZX-VPN-/releases/latest"><img src="https://img.shields.io/github/v/release/AMINOPY/ZX-VPN-?style=flat-square&color=C7F24E&labelColor=15170B&label=release" alt="آخرین نسخه"></a>
   <a href="https://play.google.com/store/apps/details?id=com.zedsecure.vpn"><img src="https://img.shields.io/badge/Google%20Play-install-C7F24E?style=flat-square&labelColor=15170B" alt="گوگل پلی"></a>
   <img src="https://img.shields.io/badge/Android%20%C2%B7%20Linux%20%C2%B7%20Windows%20%C2%B7%20macOS-C7F24E?style=flat-square&labelColor=15170B" alt="اندروید، لینوکس، ویندوز، مک">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-C7F24E?style=flat-square&labelColor=15170B" alt="AGPL-3.0"></a>
@@ -17,9 +17,9 @@
 
 <p align="center"><a href="README.md">English</a> · <b>فارسی</b></p>
 
-## ZedSecure چیست؟
+## ZX VPN چیست؟
 
-ZedSecure یک کلاینت VPN و پروکسی برای اندروید، لینوکس، ویندوز و مک است که به‌جای یک هسته، چند هسته
+ZX VPN یک کلاینت VPN و پروکسی برای اندروید، لینوکس، ویندوز و مک است که به‌جای یک هسته، چند هسته
 را با هم دارد. وقتی یک مسیر بسته شود، مسیر بعدی از قبل نصب است: Xray و sing-box برای پروتکل‌های
 رایج، سایفون و Tor برای وقتی که هیچ چیز دیگری وصل نمی‌شود، تونل DNS برای شبکه‌هایی که جز DNS
 تقریباً چیزی رد نمی‌کنند، و WireGuard و AmneziaWG و OpenConnect و IKEv2 برای سرورهایی که خودتان
@@ -27,7 +27,7 @@ ZedSecure یک کلاینت VPN و پروکسی برای اندروید، لین
 سریع‌ترینشان می‌رود.
 
 <p align="center">
-  <img src="docs/assets/showcase.png" width="100%" alt="ZedSecure: خانه، سرورها و تنظیمات">
+  <img src="docs/assets/showcase.png" width="100%" alt="ZX VPN: خانه، سرورها و تنظیمات">
 </p>
 
 ## هسته‌ها
@@ -58,12 +58,12 @@ ZedSecure یک کلاینت VPN و پروکسی برای اندروید، لین
 ## دانلود
 
 **اندروید:** از [گوگل پلی](https://play.google.com/store/apps/details?id=com.zedsecure.vpn)، یا
-APK مخصوص دستگاهتان از [Releases](https://github.com/CluvexStudio/ZedSecure/releases/latest)
+APK مخصوص دستگاهتان از [Releases](https://github.com/AMINOPY/ZX-VPN-/releases/latest)
 (`arm64-v8a` برای تقریباً همهٔ گوشی‌ها، `armeabi-v7a` برای گوشی‌های قدیمی‌تر).
 
 **لینوکس:** فایل `.deb`، `.rpm`، `.AppImage` یا `.tar.gz` از Releases. روی آرچ لینوکس، بستهٔ
-[`zedsecure-bin`](https://aur.archlinux.org/packages/zedsecure-bin) که کاربران ساخته‌اند در AUR هست:
-`yay -S zedsecure-bin`. روی NixOS:
+[`zx-vpn-bin`](https://aur.archlinux.org/packages/zx-vpn-bin) که کاربران ساخته‌اند در AUR هست:
+`yay -S zx-vpn-bin`. روی NixOS:
 `nix run github:CluvexStudio/ZedSecure`
 
 **ویندوز:** نصب‌کنندهٔ `.msi`، یا نسخهٔ قابل حمل `.zip`.
@@ -83,7 +83,7 @@ APK مخصوص دستگاهتان از [Releases](https://github.com/CluvexStudi
 
 </div>
 
-همهٔ هسته‌ها در [ZedSecure-Cores](https://github.com/CluvexStudio/ZedSecure-Cores) ساخته می‌شوند؛
+همهٔ هسته‌ها در [ZX VPN-Cores](https://github.com/AMINOPY/ZX-VPN--Cores) ساخته می‌شوند؛
 برای هر هسته یک workflow، از فورک‌ها و کامیت‌های دقیقی که در `pins.txt` آن آمده است.
 [`tools/cores.txt`](tools/cores.txt) نشان می‌دهد هر نسخه کدام بیلد را برمی‌دارد. زدن تگ `v*` نسخهٔ
 اندروید و همهٔ نسخه‌های دسکتاپ را در CI می‌سازد و همه را در یک ریلیز می‌گذارد؛ اندروید و دسکتاپ یک
@@ -104,7 +104,7 @@ override سراسری رزالور و جلوگیری از fallback ی DNS، و �
 نسخهٔ 3.0.9 موتور `zeddns` است که برای همین اپ نوشته شده؛ همان قابلیت‌ها را دارد، اما با کد
 خودش.
 
-ZedSecure همچنین روی
+ZX VPN همچنین روی
 [Xray-core](https://github.com/XTLS/Xray-core)، [sing-box](https://github.com/SagerNet/sing-box)،
 [سایفون](https://github.com/Psiphon-Labs/psiphon-tunnel-core)، [Tor](https://www.torproject.org/)،
 [MasterDnsVPN](https://github.com/masterking32/MasterDnsVPN)،
