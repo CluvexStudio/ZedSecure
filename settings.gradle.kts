@@ -26,7 +26,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "ZX VPN"
+rootProject.name = "ZXVPN"
 include(":app")
 include(":shared")
 include(":desktop")
