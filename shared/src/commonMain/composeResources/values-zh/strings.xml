@@ -928,7 +928,7 @@
     <string name="personalize_upload_tile_sub">为它们后面的矩形着色</string>
     <string name="subs_ua_preset">User-Agent</string>
     <string name="subs_ua_v2rayng">v2rayNG（推荐）</string>
-    <string name="subs_ua_ZX VPN">ZX VPN</string>
+    <string name="subs_ua_zedsecure">ZX VPN</string>
     <string name="subs_ua_custom">自定义</string>
     <string name="subs_ua_hint">许多提供商只向 v2rayNG User-Agent 返回其 JSON 自定义配置，对其他客户端则返回普通链接。</string>
     <string name="subs_edit">编辑订阅</string>
@@ -1443,7 +1443,7 @@
     <string name="settings_group_behaviour">列表与通知</string>
     <string name="color_style_title">配色风格</string>
     <string name="color_style_sub">根据强调色生成完整配色</string>
-    <string name="color_style_ZX VPN">ZX VPN</string>
+    <string name="color_style_zedsecure">ZX VPN</string>
     <string name="color_style_tonal">柔和</string>
     <string name="color_style_vibrant">鲜艳</string>
     <string name="color_style_expressive">表现力</string>
