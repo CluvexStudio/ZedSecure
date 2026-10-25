@@ -88,10 +88,10 @@ jobs:
           for abi in arm64-v8a armeabi-v7a x86_64; do
             src="app/build/outputs/apk/release/app-$abi-release.apk"
             [ -f "$src" ] || { echo "::error::$src was not built"; exit 1; }
-            cp "$src" "dist/ZedSecure-$V-$abi.apk"
+            cp "$src" "dist/ZX-VPN-$V-$abi.apk"
           done
           BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
-          python3 tools/universal-apk.py "dist/ZedSecure-$V-arm64-v8a.apk" /tmp/universal.apk "dist/ZedSecure-$V-armeabi-v7a.apk"
+          python3 tools/universal-apk.py "dist/ZX-VPN-$V-arm64-v8a.apk" /tmp/universal.apk "dist/ZX-VPN-$V-armeabi-v7a.apk"
           "$BT/zipalign" -f -P 16 4 /tmp/universal.apk /tmp/universal-aligned.apk
           STORE_PW=$(grep '^storePassword=' keystore.properties | cut -d= -f2-) \
           KEY_PW=$(grep '^keyPassword=' keystore.properties | cut -d= -f2-) \
@@ -99,18 +99,18 @@ jobs:
             --ks-key-alias "$(grep '^keyAlias=' keystore.properties | cut -d= -f2-)" \
             --ks-pass env:STORE_PW --key-pass env:KEY_PW \
             --v1-signing-enabled false --v2-signing-enabled true --v3-signing-enabled false --v4-signing-enabled false \
-            --out "dist/ZedSecure-$V-universal.apk" /tmp/universal-aligned.apk
+            --out "dist/ZX-VPN-$V-universal.apk" /tmp/universal-aligned.apk
           rm -f /tmp/universal.apk /tmp/universal-aligned.apk
-          for apk in dist/ZedSecure-*.apk; do
+          for apk in dist/ZX-VPN-*.apk; do
             "$BT/apksigner" verify "$apk"
             a=$("$BT/apksigner" verify --print-certs "$apk" | grep -m1 'SHA-256' | awk '{print $NF}')
-            b=$("$BT/apksigner" verify --print-certs "dist/ZedSecure-$V-arm64-v8a.apk" | grep -m1 'SHA-256' | awk '{print $NF}')
+            b=$("$BT/apksigner" verify --print-certs "dist/ZX-VPN-$V-arm64-v8a.apk" | grep -m1 'SHA-256' | awk '{print $NF}')
             [ "$a" = "$b" ] || { echo "::error::$apk is signed with a different key"; exit 1; }
           done
-          "$BT/aapt2" dump badging "dist/ZedSecure-$V-universal.apk" | grep -q "native-code: 'arm64-v8a' 'armeabi-v7a'" \
+          "$BT/aapt2" dump badging "dist/ZX-VPN-$V-universal.apk" | grep -q "native-code: 'arm64-v8a' 'armeabi-v7a'" \
             || { echo "::error::the universal APK does not carry both ARM ABIs"; exit 1; }
-          ( cd dist && sha256sum ZedSecure-*.apk > SHA256SUMS-android.txt )
-          "$JAVA_HOME/bin/keytool" -printcert -jarfile "dist/ZedSecure-$V-arm64-v8a.apk" | grep -E 'Owner|SHA-256' | head -2
+          ( cd dist && sha256sum ZX-VPN-*.apk > SHA256SUMS-android.txt )
+          "$JAVA_HOME/bin/keytool" -printcert -jarfile "dist/ZX-VPN-$V-arm64-v8a.apk" | grep -E 'Owner|SHA-256' | head -2
           ls -l dist
 
       - name: Forget the key
