@@ -47,8 +47,8 @@ jobs:
           src=app/build/outputs/bundle/release/app-release.aab
           [ -f "$src" ] || { echo "::error::$src was not built"; exit 1; }
           mkdir -p dist
-          cp "$src" "dist/ZedSecure-$V.aab"
-          unzip -l "dist/ZedSecure-$V.aab" | awk '/base\/lib\//{print $4}' | sort > libs.txt
+          cp "$src" "dist/ZX-VPN-$V.aab"
+          unzip -l "dist/ZX-VPN-$V.aab" | awk '/base\/lib\//{print $4}' | sort > libs.txt
           for abi in arm64-v8a armeabi-v7a x86_64; do
             for lib in libgojni libtor libobfs4proxy libconjure libsnowflake libsnispoof libhev-socks5-tunnel libopenconnect libzeptun libzeptun-jni; do
               grep -qx "base/lib/$abi/$lib.so" libs.txt || { echo "::error::$abi/$lib.so is not in the bundle"; exit 1; }
@@ -56,9 +56,9 @@ jobs:
           done
           grep -q "base/lib/x86/" libs.txt && { echo "::error::the bundle has x86 libraries without the engines"; exit 1; } || true
           echo "$(wc -l < libs.txt) native libraries in the bundle"
-          "$JAVA_HOME/bin/jarsigner" -verify "dist/ZedSecure-$V.aab" | tail -1
-          "$JAVA_HOME/bin/keytool" -printcert -jarfile "dist/ZedSecure-$V.aab" | grep -E 'Owner|SHA256' | head -2
-          ( cd dist && sha256sum ZedSecure-*.aab > SHA256SUMS-aab.txt )
+          "$JAVA_HOME/bin/jarsigner" -verify "dist/ZX-VPN-$V.aab" | tail -1
+          "$JAVA_HOME/bin/keytool" -printcert -jarfile "dist/ZX-VPN-$V.aab" | grep -E 'Owner|SHA256' | head -2
+          ( cd dist && sha256sum ZX-VPN-*.aab > SHA256SUMS-aab.txt )
           ls -l dist
 
       - name: Forget the key
