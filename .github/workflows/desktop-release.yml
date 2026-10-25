@@ -138,6 +138,7 @@ jobs:
           done
 
       - name: Build the installer and the portable build
+        shell: bash
         run: ./gradlew --warning-mode all :desktop:packageMsi :desktop:createDistributable
 
       - name: Assemble the release files
