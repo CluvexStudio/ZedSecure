@@ -407,7 +407,7 @@ fun main(args: Array<String>) {
             val langTag = languageTagFor(settings.language)
 
             ProvideAppLanguage(langTag) {
-                ZX VPNTheme(
+                ZedSecureTheme(
                     darkTheme = dark,
                     dynamicColor = false,
                     accentColor = settings.accentColor,
