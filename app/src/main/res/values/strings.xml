@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">ZedSecure</string>
+    <string name="app_name">ZX VPN</string>
     <string name="brand_tagline">Private. Fast. Yours.</string>
 
     <string name="nav_home">Home</string>
@@ -233,9 +233,9 @@
     <string name="zsx_wrong_password">Incorrect password</string>
     <string name="zsx_imported">Locked config imported</string>
     <string name="zsx_invalid">Not a valid .zsx file</string>
-    <string name="zsx_legacy">This locked config was made by an older version of ZedSecure. Ask whoever shared it for a new copy.</string>
+    <string name="zsx_legacy">This locked config was made by an older version of ZX VPN. Ask whoever shared it for a new copy.</string>
 
-    <string name="cd_app_logo">ZedSecure logo</string>
+    <string name="cd_app_logo">ZX VPN logo</string>
     <string name="cd_connection_status">Connection status</string>
     <string name="cd_settings">Open settings</string>
 
@@ -611,7 +611,7 @@
     <string name="notif_chip_on">On</string>
     <string name="notif_chip_off">Off</string>
     <string name="notif_title_disconnected">Tunnel stopped</string>
-    <string name="notif_kill_switch_body">The tunnel dropped. The kill switch is holding traffic and ZedSecure reconnects as soon as the network is back.</string>
+    <string name="notif_kill_switch_body">The tunnel dropped. The kill switch is holding traffic and ZX VPN reconnects as soon as the network is back.</string>
     <string name="widget_description">Connect or disconnect, with live status and session traffic.</string>
     <string name="widget_no_server">No server selected</string>
 
@@ -665,7 +665,7 @@
     <string name="snispoof_no_ack">The edge never acknowledged the fake packet, so every connection was reset. This network or this clean IP does not allow the spoof — try a different clean IP.</string>
     <string name="qr_scan_hint">Point the camera at a QR code</string>
     <string name="qr_scan_chunk_progress">Part %1$d of %2$d — hold still for the rest</string>
-    <string name="tile_label">ZedSecure VPN</string>
+    <string name="tile_label">ZX VPN VPN</string>
     <string name="switch_server_timeout">Could not switch server — the previous connection did not stop.</string>
     <string name="engine_failed_with_reason">%1$s: %2$s</string>
     <string name="engine_failed_ssh">SSH failed to connect</string>
@@ -681,8 +681,8 @@
     <string name="engine_invalid_config_dnstunnel">The DNS tunnel configuration is invalid</string>
     <string name="engine_invalid_config_masterdns">The MasterDNS configuration is invalid</string>
     <string name="engine_invalid_config_openconnect">The OpenConnect configuration is invalid</string>
-    <string name="deeplink_open_label">Import into ZedSecure</string>
-    <string name="engine_ikev2_needs_app">IKEv2 profiles cannot be started by always-on VPN. Open ZedSecure to connect.</string>
+    <string name="deeplink_open_label">Import into ZX VPN</string>
+    <string name="engine_ikev2_needs_app">IKEv2 profiles cannot be started by always-on VPN. Open ZX VPN to connect.</string>
     <string name="auto_notif_remark">Auto · %1$s</string>
     <string name="auto_no_members">No server in this group can be used by Auto</string>
     <string name="auto_group_all_short">All servers</string>
