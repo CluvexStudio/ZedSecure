@@ -47,6 +47,10 @@ jobs:
               [ -f "$so" ] || continue
               readelf --dyn-syms -W "$so" | grep -qE ' (JNI_OnLoad|Java_)' || { echo "::error::$abi/$lib.so has no JNI entry points; the app would crash loading it"; exit 1; }
             done
+            for so in app/src/main/jniLibs/$abi/*.so; do
+              case "$so" in */libzeptun*) continue ;; esac
+              if readelf -d "$so" | grep -qE '\(RELR\)|0x0*6fffe000 '; then echo "::error::$so uses RELR relocations, which Android 7 and 8 cannot load"; exit 1; fi
+            done
           done
           find app/src/main/jniLibs -name '*.so' | sort
 

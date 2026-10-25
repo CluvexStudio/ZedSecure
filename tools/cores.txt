@@ -4,6 +4,6 @@ dns-tunnels  CluvexStudio/ZedSecure-Cores   dns-tunnels-r2
 psiphon      CluvexStudio/ZedSecure-Cores   psiphon-r2
 tor          CluvexStudio/ZedSecure-Cores   tor-r4
 snispoof     CluvexStudio/ZedSecure-Cores   snispoof-r3
-hev          CluvexStudio/ZedSecure-Cores   hev-r2
+hev          CluvexStudio/ZedSecure-Cores   hev-r3
 openconnect  CluvexStudio/ZedSecure-Cores   openconnect-r2
 zeptun       Noisemux/zeptun                v1.1.3
