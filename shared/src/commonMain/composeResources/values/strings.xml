@@ -927,7 +927,7 @@
     <string name="personalize_upload_tile_sub">Colours the rectangle behind them</string>
     <string name="subs_ua_preset">User-Agent</string>
     <string name="subs_ua_v2rayng">v2rayNG (recommended)</string>
-    <string name="subs_ua_ZX VPN">ZX VPN</string>
+    <string name="subs_ua_zedsecure">ZX VPN</string>
     <string name="subs_ua_custom">Custom</string>
     <string name="subs_ua_hint">Many providers only send their JSON custom configs to the v2rayNG User-Agent, and send plain links to anything else.</string>
     <string name="subs_edit">Edit subscription</string>
@@ -1442,7 +1442,7 @@
     <string name="settings_group_behaviour">Lists and notifications</string>
     <string name="color_style_title">Color style</string>
     <string name="color_style_sub">A full palette is generated from your accent color</string>
-    <string name="color_style_ZX VPN">ZX VPN</string>
+    <string name="color_style_zedsecure">ZX VPN</string>
     <string name="color_style_tonal">Tonal</string>
     <string name="color_style_vibrant">Vibrant</string>
     <string name="color_style_expressive">Expressive</string>
