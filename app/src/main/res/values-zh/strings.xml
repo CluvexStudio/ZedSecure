@@ -80,7 +80,7 @@
     <string name="core_start_failed_reason">内核启动失败：%1$s</string>
     <string name="core_geo_code_missing">路由数据中的 %2$s 不包含“%1$s”。请在“设置 → 数据文件”中更换来源或更新文件。</string>
     <string name="core_geo_file_missing">缺少路由数据文件 %1$s。请在“设置 → 数据文件”中下载。</string>
-    <string name="zsx_legacy">此锁定配置由旧版 ZedSecure 创建。请让分享者重新发送一份。</string>
+    <string name="zsx_legacy">此锁定配置由旧版 ZX VPN 创建。请让分享者重新发送一份。</string>
 
     <string name="notif_stage_preparing">正在准备…</string>
     <string name="notif_stage_interface">正在设置网络接口…</string>
@@ -91,7 +91,7 @@
     <string name="notif_chip_on">已开启</string>
     <string name="notif_chip_off">已关闭</string>
     <string name="notif_title_disconnected">隧道已停止</string>
-    <string name="notif_kill_switch_body">隧道已断开。终止开关正在拦截流量，网络恢复后 ZedSecure 会自动重新连接。</string>
+    <string name="notif_kill_switch_body">隧道已断开。终止开关正在拦截流量，网络恢复后 ZX VPN 会自动重新连接。</string>
     <string name="widget_description">连接或断开，并显示实时状态与本次流量。</string>
     <string name="widget_no_server">未选择服务器</string>
     <string name="chain_member_missing">代理链缺少：%1$s</string>
@@ -141,7 +141,7 @@
     <string name="snispoof_no_ack">边缘服务器未确认伪造数据包，连接全部被重置。此网络或此 Clean IP 不支持该方式，请更换 Clean IP。</string>
     <string name="qr_scan_hint">将摄像头对准二维码</string>
     <string name="qr_scan_chunk_progress">第 %1$d / %2$d 部分 — 请保持稳定</string>
-    <string name="tile_label">ZedSecure VPN</string>
+    <string name="tile_label">ZX VPN VPN</string>
     <string name="switch_server_timeout">无法切换服务器——上一个连接未停止。</string>
     <string name="engine_failed_with_reason">%1$s：%2$s</string>
     <string name="engine_failed_ssh">SSH 连接失败</string>
@@ -157,8 +157,8 @@
     <string name="engine_invalid_config_dnstunnel">DNS 隧道配置无效</string>
     <string name="engine_invalid_config_masterdns">MasterDNS 配置无效</string>
     <string name="engine_invalid_config_openconnect">OpenConnect 配置无效</string>
-    <string name="deeplink_open_label">导入到 ZedSecure</string>
-    <string name="engine_ikev2_needs_app">始终开启的 VPN 无法启动 IKEv2 配置。请打开 ZedSecure 进行连接。</string>
+    <string name="deeplink_open_label">导入到 ZX VPN</string>
+    <string name="engine_ikev2_needs_app">始终开启的 VPN 无法启动 IKEv2 配置。请打开 ZX VPN 进行连接。</string>
     <string name="auto_notif_remark">自动 · %1$s</string>
     <string name="auto_no_members">该组中没有可供自动模式使用的服务器</string>
     <string name="auto_group_all_short">全部服务器</string>

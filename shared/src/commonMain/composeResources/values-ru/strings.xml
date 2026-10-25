@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">ZedSecure</string>
+    <string name="app_name">ZX VPN</string>
     <string name="brand_tagline">Приватно. Быстро. Ваше.</string>
 
     <string name="nav_home">Главная</string>
@@ -129,7 +129,7 @@
 
     <string name="vault_title">Хранилище</string>
     <string name="vault_intro_title">Закрытые конфигурации</string>
-    <string name="vault_intro_body">Поделитесь сервером в виде файла .zsx. Приложение подключается, не показывая конфигурацию, но у ZedSecure открытый исходный код, поэтому это лишь скрывает её от глаз, а не делает секретной. Пароль определяет, кто сможет её импортировать.</string>
+    <string name="vault_intro_body">Поделитесь сервером в виде файла .zsx. Приложение подключается, не показывая конфигурацию, но у ZX VPN открытый исходный код, поэтому это лишь скрывает её от глаз, а не делает секретной. Пароль определяет, кто сможет её импортировать.</string>
     <string name="vault_create">Создать закрытую конфигурацию</string>
     <string name="vault_import">Импорт файла .zsx</string>
     <string name="vault_empty_title">Хранилище пусто</string>
@@ -268,9 +268,9 @@
     <string name="zsx_wrong_password">Неверный пароль</string>
     <string name="zsx_imported">Закрытая конфигурация импортирована</string>
     <string name="zsx_invalid">Недопустимый файл .zsx</string>
-    <string name="zsx_legacy">Эта закрытая конфигурация создана в старой версии ZedSecure. Попросите отправителя прислать новую копию.</string>
+    <string name="zsx_legacy">Эта закрытая конфигурация создана в старой версии ZX VPN. Попросите отправителя прислать новую копию.</string>
 
-    <string name="cd_app_logo">Логотип ZedSecure</string>
+    <string name="cd_app_logo">Логотип ZX VPN</string>
     <string name="cd_connection_status">Статус подключения</string>
     <string name="cd_settings">Открыть настройки</string>
 
@@ -304,7 +304,7 @@
     <string name="mode_socks">Только SOCKS</string>
     <string name="mode_socks_body">Открывает только локальный прокси SOCKS и HTTP на 127.0.0.1 и больше ничего не меняет. Укажите его в нужных приложениях сами.</string>
     <string name="mode_tun">TUN (VPN)</string>
-    <string name="mode_tun_body">Пропускает все приложения через виртуальный сетевой адаптер, даже те, что игнорируют системный прокси. Запрашивает права администратора один раз за запуск ZedSecure. В Windows и macOS Tor и Psiphon, а также цепочки, которые с них начинаются, по-прежнему используют системный прокси.</string>
+    <string name="mode_tun_body">Пропускает все приложения через виртуальный сетевой адаптер, даже те, что игнорируют системный прокси. Запрашивает права администратора один раз за запуск ZX VPN. В Windows и macOS Tor и Psiphon, а также цепочки, которые с них начинаются, по-прежнему используют системный прокси.</string>
     <string name="mode_tun_system_proxy">Также задать системный прокси</string>
     <string name="mode_tun_system_proxy_sum">Приложения, которые читают системный прокси, например Chrome, используют то же подключение, пока работает туннель. Сбрасывается при отключении.</string>
     <string name="tray_server">Сервер</string>
@@ -313,7 +313,7 @@
     <string name="tray_copy_proxy">Скопировать адрес прокси</string>
     <string name="tray_show">Показать окно</string>
     <string name="tray_hide">Скрыть окно</string>
-    <string name="tray_quit">Выйти из ZedSecure</string>
+    <string name="tray_quit">Выйти из ZX VPN</string>
     <string name="group_all">Все</string>
     <string name="group_manual">Вручную</string>
 
@@ -329,7 +329,7 @@
     <string name="routing_title">Маршрутизация</string>
     <string name="routing_subtitle">Выберите, какой трафик идёт через туннель</string>
     <string name="routing_geo_missing_title">Нет файлов geo</string>
-    <string name="routing_geo_missing_body">Правила с geosite или geoip выключены, пока эти файлы не скачаны. ZedSecure скачает их сам, как только сможет.</string>
+    <string name="routing_geo_missing_body">Правила с geosite или geoip выключены, пока эти файлы не скачаны. ZX VPN скачает их сам, как только сможет.</string>
     <string name="routing_geo_failed">Не удалось скачать. Подключитесь и попробуйте снова или добавьте файлы в Настройки › Файлы данных.</string>
     <string name="routing_geo_download">Скачать</string>
     <string name="routing_geo_downloading">Скачивание…</string>
@@ -516,7 +516,7 @@
     <string name="title_pref_enable_local_proxy">Включить локальный прокси</string>
     <string name="summary_pref_enable_local_proxy">Без него нет входящего SOCKS, поэтому обновления подписок нельзя пропустить через прокси</string>
     <string name="title_pref_local_proxy_port">Порт локального прокси</string>
-    <string name="toast_local_proxy_port_invalid">Укажите порт от 1024 до 65534, который не заняты ZedSecure и общим доступом в локальной сети</string>
+    <string name="toast_local_proxy_port_invalid">Укажите порт от 1024 до 65534, который не заняты ZX VPN и общим доступом в локальной сети</string>
     <string name="title_pref_proxy_sharing_enabled">Разрешить подключения из локальной сети</string>
     <string name="summary_pref_proxy_sharing_enabled">Другие устройства в этой сети смогут пользоваться прокси с логином и паролем ниже</string>
     <string name="title_pref_dynamic_socks_port">Случайный порт локального прокси</string>
@@ -566,9 +566,9 @@
     <string name="settings_export">Экспорт настроек</string>
     <string name="settings_export_sum">Сохраняет все настройки в файл для другого устройства. В файле есть пароль общего доступа в локальной сети.</string>
     <string name="settings_import">Импорт настроек</string>
-    <string name="settings_import_sum">Загружает файл настроек, экспортированный из ZedSecure. Конфиги и подписки не меняются.</string>
+    <string name="settings_import_sum">Загружает файл настроек, экспортированный из ZX VPN. Конфиги и подписки не меняются.</string>
     <string name="settings_imported">Настройки импортированы</string>
-    <string name="settings_import_invalid">Этот файл не является резервной копией настроек ZedSecure</string>
+    <string name="settings_import_invalid">Этот файл не является резервной копией настроек ZX VPN</string>
     <string name="subs_user_agent">User-Agent (необязательно)</string>
     <string name="vault_no_password_needed">У этого файла нет пароля. Импортировать его?</string>
     <string name="zsx_import_action">Импорт</string>
@@ -915,9 +915,9 @@
     <string name="update_checking">Проверка…</string>
     <string name="update_up_to_date">У вас последняя версия</string>
     <string name="update_check_failed">Не удалось проверить обновления</string>
-    <string name="rate_title">Оценить ZedSecure</string>
+    <string name="rate_title">Оценить ZX VPN</string>
     <string name="rate_summary">Поставить оценку и отзыв в Google Play</string>
-    <string name="rate_prompt_title">Нравится ZedSecure?</string>
+    <string name="rate_prompt_title">Нравится ZX VPN?</string>
     <string name="rate_prompt_body">Оценка в Google Play поможет другим найти приложение. Это займёт минуту.</string>
     <string name="rate_action_rate">Оценить</string>
     <string name="rate_action_later">Не сейчас</string>
@@ -928,7 +928,7 @@
     <string name="personalize_upload_tile_sub">Цвет прямоугольника за ними</string>
     <string name="subs_ua_preset">User-Agent</string>
     <string name="subs_ua_v2rayng">v2rayNG (рекомендуется)</string>
-    <string name="subs_ua_zedsecure">ZedSecure</string>
+    <string name="subs_ua_zedsecure">ZX VPN</string>
     <string name="subs_ua_custom">Свой</string>
     <string name="subs_ua_hint">Многие провайдеры отдают свои JSON-конфигурации только User-Agent v2rayNG, а всем остальным — обычные ссылки.</string>
     <string name="subs_edit">Изменить подписку</string>
@@ -988,8 +988,8 @@
     <string name="add_group_subscription">Подписка</string>
 
     <string name="battery_opt_title">Оптимизация батареи</string>
-    <string name="battery_opt_on">Оптимизация батареи включена для ZedSecure и может разрывать туннель в фоне. Нажмите, чтобы открыть системный список и выбрать «Не оптимизировать».</string>
-    <string name="battery_opt_off">ZedSecure исключён. Туннель не будет приостанавливаться ради экономии батареи.</string>
+    <string name="battery_opt_on">Оптимизация батареи включена для ZX VPN и может разрывать туннель в фоне. Нажмите, чтобы открыть системный список и выбрать «Не оптимизировать».</string>
+    <string name="battery_opt_off">ZX VPN исключён. Туннель не будет приостанавливаться ради экономии батареи.</string>
     <string name="chain_search">Поиск серверов</string>
     <string name="chain_search_clear">Очистить поиск</string>
     <string name="chain_group_xray">Серверы Xray</string>
@@ -1063,7 +1063,7 @@
     <string name="privacy_subtitle">Краткая и точная сводка — полный текст доступен онлайн</string>
     <string name="privacy_headline">Без аккаунта. Без нашего сервера. Без аналитики.</string>
     <string name="privacy_client_title">Клиент, а не VPN-сервис</string>
-    <string name="privacy_client_body">ZedSecure подключается к серверам, подпискам и сетям, которые добавляете вы. Мы не управляем ни одним из них, и ваш трафик к нам не попадает.</string>
+    <string name="privacy_client_body">ZX VPN подключается к серверам, подпискам и сетям, которые добавляете вы. Мы не управляем ни одним из них, и ваш трафик к нам не попадает.</string>
     <string name="privacy_device_title">Остаётся на вашем устройстве</string>
     <string name="privacy_device_body">Конфигурации, учётные данные, настройки, статистика и логи хранятся в приватном хранилище приложения и удаляются при удалении приложения. Конфигурации хранилища зашифрованы AES-256-GCM.</string>
     <string name="privacy_nocollect_title">Не собирается</string>
@@ -1172,7 +1172,7 @@
     <string name="fault_transport_hint">Сервер ответил, но не тем транспортом, который ожидает конфиг. Вероятно, неверен path, заголовок host или имя сервиса.</string>
     <string name="fault_unknown">Не удалось подключиться</string>
     <string name="fault_port_busy">Порт уже занят</string>
-    <string name="fault_port_busy_hint">Другое приложение или другая копия ZedSecure уже использует локальный порт прокси. Отключите его и попробуйте снова.</string>
+    <string name="fault_port_busy_hint">Другое приложение или другая копия ZX VPN уже использует локальный порт прокси. Отключите его и попробуйте снова.</string>
     <string name="fault_config">Не удалось прочитать конфиг</string>
     <string name="fault_config_hint">Ядро остановилось на одной из настроек этого конфига ещё до подключения. Ниже видно, на какой. Импортируйте конфиг заново или обновите подписку.</string>
     <string name="lan_share_connect_title">Подключайте другие устройства к</string>
@@ -1184,7 +1184,7 @@
     <string name="title_pref_lan_auth">Требовать имя пользователя и пароль</string>
     <string name="summary_pref_lan_auth">Если выключить, общим прокси сможет пользоваться любой в этой сети.</string>
     <string name="lan_share_no_auth">Без имени пользователя и пароля</string>
-    <string name="toast_lan_port_invalid">Укажите порт от 1024 до 65534, который не занят самим ZedSecure</string>
+    <string name="toast_lan_port_invalid">Укажите порт от 1024 до 65534, который не занят самим ZX VPN</string>
     <string name="toast_lan_credential_required">Для доступа из локальной сети нужны и логин, и пароль</string>
     <string name="dns_prevent_fallback_always">Всегда включено. Каждый резолвер DNS-туннеля идёт через туннель, поэтому запрос никогда не уйдёт в обычную сеть.</string>
     <string name="settings_sub_interval_hour">Каждый час</string>
@@ -1238,7 +1238,7 @@
     <string name="auto_members">Серверы</string>
     <string name="auto_history">Последние переключения</string>
     <string name="auto_how_title">Как работает «Авто»</string>
-    <string name="auto_how_body">Новые соединения идут через самый быстрый сервер группы. Если он перестаёт отвечать, затронутые соединения за секунду-две продолжаются на следующем сервере, и «Авто» остаётся на нём, пока не найдётся заметно более быстрый — поэтому ваш адрес не меняется постоянно. «Авто» использует собственные настройки маршрутизации и DNS ZedSecure, в том числе для пользовательских конфигов.</string>
+    <string name="auto_how_body">Новые соединения идут через самый быстрый сервер группы. Если он перестаёт отвечать, затронутые соединения за секунду-две продолжаются на следующем сервере, и «Авто» остаётся на нём, пока не найдётся заметно более быстрый — поэтому ваш адрес не меняется постоянно. «Авто» использует собственные настройки маршрутизации и DNS ZX VPN, в том числе для пользовательских конфигов.</string>
     <string name="auto_ago_now">только что</string>
     <string name="auto_ago_minutes">%1$s мин назад</string>
     <string name="auto_ago_hours">%1$s ч назад</string>
@@ -1286,7 +1286,7 @@
     <string name="onb_next">Далее</string>
     <string name="onb_back">Назад</string>
     <string name="onb_theme_title">Светлая или тёмная?</string>
-    <string name="onb_theme_body">Выберите внешний вид ZedSecure. Изменить можно в любой момент в настройках.</string>
+    <string name="onb_theme_body">Выберите внешний вид ZX VPN. Изменить можно в любой момент в настройках.</string>
     <string name="onb_preset_title">Выберите оформление</string>
     <string name="onb_preset_body">Готовый набор цветов. Каждый из них потом можно поменять.</string>
     <string name="onb_preset_stock">Стандартное</string>
@@ -1417,12 +1417,12 @@
     <string name="tour_settings_title">Настройки</string>
     <string name="tour_settings_body">Всё остальное — в этой вкладке. Пройдёмся по ней.</string>
     <string name="admin_password_title">Пароль администратора</string>
-    <string name="admin_password_body">Режиму TUN и OpenConnect нужны права администратора. Введите пароль, который вы используете для sudo. Он запрашивается один раз за запуск ZedSecure, передаётся только sudo и не сохраняется.</string>
+    <string name="admin_password_body">Режиму TUN и OpenConnect нужны права администратора. Введите пароль, который вы используете для sudo. Он запрашивается один раз за запуск ZX VPN, передаётся только sudo и не сохраняется.</string>
     <string name="admin_password_label">Пароль</string>
     <string name="admin_password_wrong">Неверный пароль. Попробуйте ещё раз.</string>
     <string name="admin_password_remember">Больше не спрашивать на этом компьютере</string>
     <string name="settings_admin_remember_title">Запомнить права администратора</string>
-    <string name="settings_admin_remember_body">ZedSecure спрашивает пароль один раз за запуск. Включите, чтобы больше не спрашивать на этом компьютере. Права получает только помощник туннеля ZedSecure, а после обновления пароль спросят ещё один раз.</string>
+    <string name="settings_admin_remember_body">ZX VPN спрашивает пароль один раз за запуск. Включите, чтобы больше не спрашивать на этом компьютере. Права получает только помощник туннеля ZX VPN, а после обновления пароль спросят ещё один раз.</string>
     <string name="settings_admin_remember_failed">Не удалось изменить права администратора</string>
     <string name="title_pref_rendering">Отрисовка</string>
     <string name="rendering_auto">Автоматически</string>
@@ -1433,7 +1433,7 @@
     <string name="rendering_sub_auto_nvidia">Автоматически: программная отрисовка, потому что драйверы NVIDIA до 555 под Wayland искажают окна, которые рисует видеокарта. Изменения вступят в силу после перезапуска.</string>
     <string name="rendering_sub_manual">Изменения вступят в силу после перезапуска. Выберите «Программная», если окно мерцает, рябит или в нём нет текста. Приложение также можно запустить с --software-rendering или --gpu-rendering.</string>
     <string name="update_check_summary_github">Искать новую версию на GitHub</string>
-    <string name="rate_title_github">ZedSecure на GitHub</string>
+    <string name="rate_title_github">ZX VPN на GitHub</string>
     <string name="rate_summary_github">Открыть страницу проекта: поставить звезду, сообщить о проблеме или посмотреть код</string>
     <string name="settings_hero_tagline">Сделайте по-своему</string>
     <string name="settings_group_personal">Персонализация</string>
@@ -1443,7 +1443,7 @@
     <string name="settings_group_behaviour">Списки и уведомления</string>
     <string name="color_style_title">Цветовой стиль</string>
     <string name="color_style_sub">Полная палитра строится из акцентного цвета</string>
-    <string name="color_style_zedsecure">ZedSecure</string>
+    <string name="color_style_zedsecure">ZX VPN</string>
     <string name="color_style_tonal">Мягкий</string>
     <string name="color_style_vibrant">Яркий</string>
     <string name="color_style_expressive">Выразительный</string>
