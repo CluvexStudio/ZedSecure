@@ -60,8 +60,8 @@ APK for your device from [Releases](https://github.com/AMINOPY/ZX-VPN-/releases/
 (`arm64-v8a` for almost every phone, `armeabi-v7a` for older ones).
 
 **Linux:** `.deb`, `.rpm`, `.AppImage` or `.tar.gz` from Releases. On Arch Linux, the community
-package [`zx-vpn-bin`](https://aur.archlinux.org/packages/zx-vpn-bin) is in the AUR:
-`yay -S zx-vpn-bin`. On NixOS, `nix run github:CluvexStudio/ZedSecure`.
+package [`zedsecure-bin`](https://aur.archlinux.org/packages/zedsecure-bin) is in the AUR:
+`yay -S zedsecure-bin`. On NixOS, `nix run github:CluvexStudio/ZedSecure`.
 
 **Windows:** the `.msi` installer, or the portable `.zip`.
 
@@ -76,7 +76,7 @@ first time with right-click, then Open.
 ./gradlew :desktop:packageDeb    # or packageRpm, packageMsi, packageDmg
 ```
 
-Every engine is built in [ZX VPN-Cores](https://github.com/AMINOPY/ZX-VPN--Cores), one
+Every engine is built in [ZedSecure-Cores](https://github.com/CluvexStudio/ZedSecure-Cores), one
 workflow per engine, from the forks and exact commits in its `pins.txt`. [`tools/cores.txt`](tools/cores.txt)
 names the build each release takes. Pushing a `v*` tag builds Android and every desktop system in CI
 and puts them all in one release; Android and desktop share one version.
