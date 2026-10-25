@@ -928,7 +928,7 @@
     <string name="personalize_upload_tile_sub">Цвет прямоугольника за ними</string>
     <string name="subs_ua_preset">User-Agent</string>
     <string name="subs_ua_v2rayng">v2rayNG (рекомендуется)</string>
-    <string name="subs_ua_ZX VPN">ZX VPN</string>
+    <string name="subs_ua_zedsecure">ZX VPN</string>
     <string name="subs_ua_custom">Свой</string>
     <string name="subs_ua_hint">Многие провайдеры отдают свои JSON-конфигурации только User-Agent v2rayNG, а всем остальным — обычные ссылки.</string>
     <string name="subs_edit">Изменить подписку</string>
@@ -1443,7 +1443,7 @@
     <string name="settings_group_behaviour">Списки и уведомления</string>
     <string name="color_style_title">Цветовой стиль</string>
     <string name="color_style_sub">Полная палитра строится из акцентного цвета</string>
-    <string name="color_style_ZX VPN">ZX VPN</string>
+    <string name="color_style_zedsecure">ZX VPN</string>
     <string name="color_style_tonal">Мягкий</string>
     <string name="color_style_vibrant">Яркий</string>
     <string name="color_style_expressive">Выразительный</string>
