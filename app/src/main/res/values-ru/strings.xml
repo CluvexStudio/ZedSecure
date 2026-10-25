@@ -80,7 +80,7 @@
     <string name="core_start_failed_reason">Не удалось запустить ядро: %1$s</string>
     <string name="core_geo_code_missing">В данных маршрутизации нет «%1$s» в %2$s. Выберите другой источник или обновите файлы в «Настройки → Файлы данных».</string>
     <string name="core_geo_file_missing">Файл данных маршрутизации %1$s отсутствует. Загрузите его в «Настройки → Файлы данных».</string>
-    <string name="zsx_legacy">Эта закрытая конфигурация создана в старой версии ZedSecure. Попросите отправителя прислать новую копию.</string>
+    <string name="zsx_legacy">Эта закрытая конфигурация создана в старой версии ZX VPN. Попросите отправителя прислать новую копию.</string>
 
     <string name="notif_stage_preparing">Подготовка…</string>
     <string name="notif_stage_interface">Настройка интерфейса…</string>
@@ -91,7 +91,7 @@
     <string name="notif_chip_on">Вкл</string>
     <string name="notif_chip_off">Выкл</string>
     <string name="notif_title_disconnected">Туннель остановлен</string>
-    <string name="notif_kill_switch_body">Туннель разорван. Аварийный выключатель блокирует трафик, а ZedSecure переподключится, как только сеть вернётся.</string>
+    <string name="notif_kill_switch_body">Туннель разорван. Аварийный выключатель блокирует трафик, а ZX VPN переподключится, как только сеть вернётся.</string>
     <string name="widget_description">Подключение и отключение, статус и трафик сессии.</string>
     <string name="widget_no_server">Сервер не выбран</string>
     <string name="chain_member_missing">В цепочке отсутствуют: %1$s</string>
@@ -141,7 +141,7 @@
     <string name="snispoof_no_ack">Пограничный сервер не подтвердил поддельный пакет, и все соединения сбрасывались. Эта сеть или этот clean IP не подходят — попробуйте другой clean IP.</string>
     <string name="qr_scan_hint">Наведите камеру на QR-код</string>
     <string name="qr_scan_chunk_progress">Часть %1$d из %2$d — держите камеру ровно</string>
-    <string name="tile_label">ZedSecure VPN</string>
+    <string name="tile_label">ZX VPN VPN</string>
     <string name="switch_server_timeout">Не удалось сменить сервер — предыдущее подключение не остановилось.</string>
     <string name="engine_failed_with_reason">%1$s: %2$s</string>
     <string name="engine_failed_ssh">Не удалось подключиться по SSH</string>
@@ -157,8 +157,8 @@
     <string name="engine_invalid_config_dnstunnel">Неверная конфигурация DNS-туннеля</string>
     <string name="engine_invalid_config_masterdns">Неверная конфигурация MasterDNS</string>
     <string name="engine_invalid_config_openconnect">Неверная конфигурация OpenConnect</string>
-    <string name="deeplink_open_label">Импорт в ZedSecure</string>
-    <string name="engine_ikev2_needs_app">Профиль IKEv2 нельзя запустить через постоянный VPN. Откройте ZedSecure, чтобы подключиться.</string>
+    <string name="deeplink_open_label">Импорт в ZX VPN</string>
+    <string name="engine_ikev2_needs_app">Профиль IKEv2 нельзя запустить через постоянный VPN. Откройте ZX VPN, чтобы подключиться.</string>
     <string name="auto_notif_remark">Авто · %1$s</string>
     <string name="auto_no_members">В этой группе нет серверов, которые может использовать «Авто»</string>
     <string name="auto_group_all_short">Все серверы</string>
