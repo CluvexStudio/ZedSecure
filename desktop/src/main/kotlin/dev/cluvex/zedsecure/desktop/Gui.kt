@@ -86,7 +86,7 @@ import dev.cluvex.zedsecure.ui.MainScaffold
 import dev.cluvex.zedsecure.ui.platform.LocalPlatform
 import dev.cluvex.zedsecure.ui.theme.LocalMotionBudget
 import dev.cluvex.zedsecure.ui.theme.MotionBudget
-import dev.cluvex.zedsecure.ui.theme.ZX VPNTheme
+import dev.cluvex.zedsecure.ui.theme.ZedSecureTheme
 import androidx.compose.ui.platform.LocalWindowInfo
 import java.awt.GraphicsEnvironment
 
