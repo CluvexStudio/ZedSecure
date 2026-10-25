@@ -228,7 +228,7 @@
     <string name="zsx_wrong_password">رمز نادرست است</string>
     <string name="zsx_imported">کانفیگ قفل‌شده وارد شد</string>
     <string name="zsx_invalid">فایل ‎.zsx‎ معتبر نیست</string>
-    <string name="zsx_legacy">این کانفیگ قفل‌شده با نسخهٔ قدیمی‌تر ZedSecure ساخته شده است. از فرستنده بخواهید نسخهٔ تازه‌ای بفرستد.</string>
+    <string name="zsx_legacy">این کانفیگ قفل‌شده با نسخهٔ قدیمی‌تر ZX VPN ساخته شده است. از فرستنده بخواهید نسخهٔ تازه‌ای بفرستد.</string>
 
     <string name="cd_app_logo">نشان زدسکیور</string>
     <string name="cd_connection_status">وضعیت اتصال</string>
@@ -603,7 +603,7 @@
     <string name="notif_chip_on">روشن</string>
     <string name="notif_chip_off">خاموش</string>
     <string name="notif_title_disconnected">تونل متوقف شد</string>
-    <string name="notif_kill_switch_body">تونل قطع شد. کلید محافظ جلوی ترافیک را گرفته و ZedSecure به محض برگشتن شبکه دوباره وصل می‌شود.</string>
+    <string name="notif_kill_switch_body">تونل قطع شد. کلید محافظ جلوی ترافیک را گرفته و ZX VPN به محض برگشتن شبکه دوباره وصل می‌شود.</string>
     <string name="widget_description">اتصال یا قطع، همراه با وضعیت زنده و مصرف این جلسه.</string>
     <string name="widget_no_server">سروری انتخاب نشده</string>
     <string name="chain_member_missing">اعضای گم‌شدهٔ زنجیره: %1$s</string>
@@ -669,8 +669,8 @@
     <string name="engine_invalid_config_dnstunnel">پیکربندی تونل DNS نامعتبر است</string>
     <string name="engine_invalid_config_masterdns">پیکربندی MasterDNS نامعتبر است</string>
     <string name="engine_invalid_config_openconnect">پیکربندی OpenConnect نامعتبر است</string>
-    <string name="deeplink_open_label">وارد کردن در ZedSecure</string>
-    <string name="engine_ikev2_needs_app">پروفایل IKEv2 را VPN همیشه‌روشن نمی‌تواند راه بیندازد. برای اتصال، ZedSecure را باز کنید.</string>
+    <string name="deeplink_open_label">وارد کردن در ZX VPN</string>
+    <string name="engine_ikev2_needs_app">پروفایل IKEv2 را VPN همیشه‌روشن نمی‌تواند راه بیندازد. برای اتصال، ZX VPN را باز کنید.</string>
     <string name="auto_notif_remark">خودکار · %1$s</string>
     <string name="auto_no_members">هیچ سروری در این گروه برای حالت خودکار قابل استفاده نیست</string>
     <string name="auto_group_all_short">همهٔ سرورها</string>
