@@ -81,9 +81,6 @@ interface Platform {
 
     suspend fun pickFileBytes(): FilePick? = null
 
-    /** Unlocks passphrase-protected NPVS v5 locally when the platform has a decoder. */
-    suspend fun unlockNpvsV5(bytes: ByteArray, passphrase: String): String? = null
-
     val isIgnoringBatteryOptimizations: Boolean get() = true
 
     val supportsBatteryOptimization: Boolean get() = false
