@@ -109,7 +109,7 @@ private val telegramSources = listOf(
     FinderSource("Telegram · mitivpn", "https://t.me/s/mitivpn", category = "تلگرام"),
 )
 
-private val configLinkRegex = Regex("""(?i)(?:vless|vmess|trojan|ss|socks|http|hysteria2?|tuic|wireguard|awg|ssh|vpn)://[^\s"<>]+""")
+private val configLinkRegex = Regex("""(?i)(?:vless|vmess|trojan|ss|socks5?|http|hysteria2?|hy2|tuic|wireguard|awg|ssh|vpn)://[^\s"<>]+""")
 
 @Composable
 fun ConfigFinderSheet(
@@ -161,6 +161,7 @@ fun ConfigFinderSheet(
                     .map { duplicates ->
                         duplicates.first().copy(source = duplicates.map { it.source }.distinct().joinToString(" · "))
                     }
+                    .sortedWith(compareByDescending<FinderResult> { it.parserSupported }.thenBy { it.country }.thenBy { it.protocol })
                     .take(300)
                 status = if (results.isEmpty()) "نتیجه‌ای پیدا نشد؛ کشور یا دستهٔ دیگری را امتحان کن." else "تعداد گزینه‌ها: ${results.size} — حداکثر ۲ گزینه از هر فهرست؛ سالم‌بودن و سرعت واقعی هنوز با اتصال تست نشده است."
             }.onFailure {
@@ -230,6 +231,13 @@ fun ConfigFinderSheet(
                     "خلاصهٔ نتایج: $parserReady از ${results.size} گزینه قالب قابل‌شناسایی دارند · $protocolsFound نوع پروتکل",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
+                )
+                val sourceCount = results.flatMap { it.source.split(" · ") }.distinct().size
+                val countryCount = results.map { it.country }.filter { it != "نامشخص" }.distinct().size
+                Text(
+                    "پوشش جست‌وجو: $sourceCount منبع · $countryCount کشور · اولویت نمایش با قالب‌های قابل‌شناسایی است، نه ادعای سرعت",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth().height(360.dp)) {
@@ -302,9 +310,11 @@ private fun protocolLabel(link: String): String {
         "vmess" -> "VMess"
         "trojan" -> "Trojan"
         "ss" -> "Shadowsocks"
-        "hysteria", "hysteria2" -> "Hysteria2"
+        "hysteria", "hysteria2", "hy2" -> "Hysteria2"
         "tuic" -> "TUIC"
         "wireguard", "awg" -> "WireGuard"
+        "socks", "socks5" -> "SOCKS5"
+        "http" -> "HTTP Proxy"
         "ssh" -> "SSH"
         "vpn" -> "Amnezia"
         else -> scheme.uppercase().ifBlank { "نامشخص" }
