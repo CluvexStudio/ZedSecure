@@ -11,11 +11,11 @@ import kotlinx.serialization.json.jsonObject
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import java.security.GeneralSecurityException
-import javax.crypto.Cipher
 import javax.crypto.Mac
-import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
+import org.bouncycastle.crypto.engines.ChaCha20Poly1305
+import org.bouncycastle.crypto.params.AEADParameters
+import org.bouncycastle.crypto.params.KeyParameter
 
 /**
  * Local, passphrase-only reader for the NPVS v5 compact envelope.
@@ -192,12 +192,19 @@ internal object NpvsV5Decoder {
 
     private fun chachaOpen(key: ByteArray, nonce: ByteArray, ciphertext: ByteArray, aad: ByteArray): ByteArray {
         try {
-            val cipher = Cipher.getInstance("ChaCha20-Poly1305")
-            cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(key, "ChaCha20"), IvParameterSpec(nonce))
-            cipher.updateAAD(aad)
-            return cipher.doFinal(ciphertext)
-        } catch (e: GeneralSecurityException) {
-            throw IllegalArgumentException("NPVS decryption failed: wrong passphrase, damaged file, or ChaCha20-Poly1305 unavailable", e)
+            // Use Bouncy Castle's lightweight implementation so NPVS v5 import also works
+            // on Android API 24-27, where the platform ChaCha20-Poly1305 provider may be absent.
+            val cipher = ChaCha20Poly1305()
+            cipher.init(false, AEADParameters(KeyParameter(key), 128, nonce, aad))
+            val output = ByteArray(cipher.getOutputSize(ciphertext.size))
+            var written = cipher.processBytes(ciphertext, 0, ciphertext.size, output, 0)
+            written += cipher.doFinal(output, written)
+            return output.copyOf(written)
+        } catch (e: Exception) {
+            throw IllegalArgumentException(
+                "NPVS decryption failed: wrong passphrase, damaged file, or ChaCha20-Poly1305 unavailable",
+                e,
+            )
         }
     }
 
