@@ -11,11 +11,19 @@ ZX VPN's NPV adapter is content-first: the file extension is a hint, not proof o
 - Base64-wrapped NPV JSON / NPVT text: the existing import path tries decoded text and passes recognized NPV content to the same parser.
 - NPVS v5 binary envelopes: validate the header, version, unlock method, KDF iteration bounds, metadata bounds, and ciphertext length. A protected NPVS file is not mistaken for a text config.
 
-## Known limitation — NPVS unlock
+## NPVS v5 unlock support and limitations
 
-NPVS v5 supports different unlock methods (recipient key, creator passphrase, or app key). The current adapter validates the envelope and reports the declared unlock method, but it does **not** decrypt/import NPVS v5 payloads yet. A valid creator passphrase alone is not enough to safely implement this without a verified format specification or a known-good, synthetic test vector for the exact header/KDF/nonce/tag layout. Unsupported NPVS versions are rejected explicitly. Do not claim universal NPVS compatibility until an authorized unlock implementation and regression tests are available.
+The Android file importer now attempts local decryption for NPVS v5 envelopes protected by the creator passphrase. It validates the envelope lengths, derives the wrapping key with PBKDF2-HMAC-SHA256, authenticates the wrapped data key and metadata with ChaCha20-Poly1305, decrypts the profile fields, resolves the NPV sentinel table, and then routes the recovered profile JSON through the normal importer. The passphrase and file contents are processed locally; they are not sent to a server.
 
-The `.npv` extension is not treated as a unique binary format because public references do not establish one stable, universal `.npv` wire format. The importer recognizes its content when it is an NPV JSON export, NPVT1 text, or an existing supported share link.
+Compatibility remains intentionally partial:
+- Creator-passphrase NPVS v5: implemented, but still requires CI and real-format regression verification before being called production-complete.
+- Recipient-key envelopes: unsupported because the recipient private key is required.
+- App-key envelopes: unsupported because the app-key white-box derivation is not implemented.
+- Other NPVS versions and malformed files: rejected explicitly.
+
+A successful decrypt/parse means the profile was structurally imported; it does not guarantee that the remote server is reachable. Do not claim universal NPVS compatibility until CI passes and authorized synthetic fixtures cover the supported passphrase format.
+
+The `.npv` extension is not treated as a unique binary format because public references do not establish one stable, universal `.npv` wire format. The importer recognizes content when it is an NPV JSON export, NPVT1 text, or an existing supported share link.
 
 ## Reference and attribution
 
