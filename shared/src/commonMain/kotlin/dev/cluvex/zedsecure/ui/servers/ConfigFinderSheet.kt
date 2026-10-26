@@ -514,7 +514,7 @@ private suspend fun fetchSources(sources: List<FinderSource>): FetchSourcesResul
                     val body = response.body.take(512 * 1024)
                         .replace("&amp;", "&")
                         .replace("&#x2F;", "/")
-                        .replace("&quot;", "\\"")
+                        .replace("&quot;", "\"")
                     val links = configLinkRegex.findAll(body)
                         .map { it.value.trimEnd(',', ';', '.', ')', ']', '}') }
                         .toList()
