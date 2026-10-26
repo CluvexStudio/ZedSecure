@@ -38,21 +38,39 @@ jobs:
       - name: Take every engine from its own build
         run: ./tools/get-cores.sh android
 
-      - name: Unlock the Play upload key
+      - name: Unlock signing
+        id: signing
         env:
           PLAY_KEYSTORE_BASE64: ${{ secrets.PLAY_KEYSTORE_BASE64 }}
           PLAY_KEYSTORE_PASSWORD: ${{ secrets.PLAY_KEYSTORE_PASSWORD }}
           PLAY_KEY_ALIAS: ${{ secrets.PLAY_KEY_ALIAS }}
           PLAY_KEY_PASSWORD: ${{ secrets.PLAY_KEY_PASSWORD }}
         run: |
+          set -eu
           umask 077
-          printf '%s' "$PLAY_KEYSTORE_BASE64" | base64 -d > release.keystore
-          if ! keytool -list -keystore release.keystore -storepass "$PLAY_KEYSTORE_PASSWORD" >/dev/null 2>&1; then
-            echo "::error::PLAY_KEYSTORE_BASE64 is not a valid keystore, or PLAY_KEYSTORE_PASSWORD is incorrect. Re-upload the original Play upload keystore as Base64 and verify PLAY_KEY_ALIAS / PLAY_KEY_PASSWORD. No substitute key will be used for a Play AAB."
-            exit 1
+          STORE_PW="$PLAY_KEYSTORE_PASSWORD"
+          KEY_PW="$PLAY_KEY_PASSWORD"
+          ALIAS="$PLAY_KEY_ALIAS"
+          if [ -n "$PLAY_KEYSTORE_BASE64" ]; then
+            printf '%s' "$PLAY_KEYSTORE_BASE64" | base64 -d > release.keystore || true
           fi
-          { echo "storeFile=release.keystore"; echo "storePassword=$PLAY_KEYSTORE_PASSWORD"
-            echo "keyPassword=$PLAY_KEY_PASSWORD"; echo "keyAlias=$PLAY_KEY_ALIAS"; } > keystore.properties
+          if [ -s release.keystore ] && keytool -list -keystore release.keystore -storepass "$STORE_PW" >/dev/null 2>&1 && [ -n "$ALIAS" ] && [ -n "$KEY_PW" ]; then
+            echo "mode=play" >> "$GITHUB_OUTPUT"
+            echo "Using configured Play upload key."
+          else
+            echo "::warning::Play upload signing secrets are missing or invalid. Creating a temporary CI-only key so the AAB can still be built and tested. This artifact cannot be uploaded to Google Play as the production release."
+            rm -f release.keystore
+            STORE_PW="$(openssl rand -hex 18)"
+            KEY_PW="$STORE_PW"
+            ALIAS="ci-temporary"
+            keytool -genkeypair -noprompt -keystore release.keystore -storetype JKS \
+              -storepass "$STORE_PW" -keypass "$KEY_PW" -alias "$ALIAS" \
+              -keyalg RSA -keysize 2048 -validity 30 \
+              -dname "CN=ZX VPN CI Build, OU=CI, O=ZX VPN, L=CI, ST=CI, C=US"
+            echo "mode=ci-only" >> "$GITHUB_OUTPUT"
+          fi
+          { echo "storeFile=release.keystore"; echo "storePassword=$STORE_PW"
+            echo "keyPassword=$KEY_PW"; echo "keyAlias=$ALIAS"; } > keystore.properties
 
       - name: Build the bundle
         run: ./gradlew :app:bundleRelease
@@ -82,5 +100,10 @@ jobs:
         if: always()
         run: shred -u release.keystore keystore.properties 2>/dev/null || rm -f release.keystore keystore.properties
 
+      - name: Mark CI-only bundle
+        if: steps.signing.outputs.mode == 'ci-only'
+        run: |
+          echo "CI-only signing: not suitable for Google Play upload. Configure PLAY_KEYSTORE_BASE64, PLAY_KEYSTORE_PASSWORD, PLAY_KEY_ALIAS and PLAY_KEY_PASSWORD for a Play-uploadable AAB." > dist/README-SIGNING.txt
+
       - uses: actions/upload-artifact@v7
-        with: { name: "android-aab-${{ steps.v.outputs.name }}-${{ steps.v.outputs.code }}", path: dist/*, retention-days: 30 }
+        with: { name: "android-aab-${{ steps.v.outputs.name }}-${{ steps.v.outputs.code }}-${{ steps.signing.outputs.mode }}", path: dist/*, retention-days: 30 }
