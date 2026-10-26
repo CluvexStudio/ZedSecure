@@ -2,7 +2,7 @@ name: android-release
 
 on:
   push:
-    branches: [main]
+    branches: [main, liquid-theme]
     paths:
       - 'app/**'
       - 'shared/**'
