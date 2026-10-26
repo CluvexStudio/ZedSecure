@@ -7,7 +7,7 @@ internal object MacTunHelper {
     private const val LABEL = "tun"
     private const val PROMPT_WAIT_SEC = 180L
     private const val READY_WAIT_SEC = 45L
-    private const val STOP_WAIT_MS = 8_000L
+    private const val STOP_WAIT_MS = 20_000L
     private const val POLL_MS = 200L
     private const val LOG_TAIL = 40
 
@@ -49,9 +49,18 @@ internal object MacTunHelper {
     fun close() {
         val ctrl = control ?: return
         runCatching { File(ctrl, "exit").writeText("exit") }
-        process?.let { running ->
+        val running = process
+        if (running != null) {
             val deadline = System.currentTimeMillis() + STOP_WAIT_MS
             while (running.isAlive && System.currentTimeMillis() < deadline) Thread.sleep(POLL_MS)
+            if (running.isAlive) {
+                // It is still tearing down (e.g. many network services to restore DNS on).
+                // Deleting its control directory now would cut off the only channel we have
+                // to it (it is root; we cannot force-kill it), orphaning it forever as a
+                // zombie that keeps its tun interface and routes up until the next reboot.
+                println("[$LABEL] the privileged helper is still shutting down; leaving it to finish on its own")
+                return
+            }
         }
         process = null
         control = null
@@ -190,6 +199,19 @@ internal object MacTunHelper {
         |  dscacheutil -flushcache >/dev/null 2>&1
         |  killall -HUP mDNSResponder >/dev/null 2>&1
         |}
+        |reclaim_routes() {
+        |  # auto_route punches 0.0.0.0/1 + 128.0.0.0/1 (and the v6 equivalents) so the tunnel
+        |  # outranks the real default route. macOS does not retract these on its own when the
+        |  # tun goes away (or is killed before it retracts them itself), so every one of them
+        |  # left behind blackholes ALL traffic until a reboot clears the routing table. Always
+        |  # sweep them here instead of trusting the engine's own shutdown timing.
+        |  route -n delete -net 0.0.0.0/1 >/dev/null 2>&1
+        |  route -n delete -net 128.0.0.0/1 >/dev/null 2>&1
+        |  route -n delete -inet6 ::/1 >/dev/null 2>&1
+        |  route -n delete -inet6 8000::/1 >/dev/null 2>&1
+        |  stale=${'$'}(ifconfig 2>/dev/null | awk '/^utun[0-9]+:/{dev=substr(${'$'}1,1,length(${'$'}1)-1)} ${'$'}1=="inet" && ${'$'}2=="'"${ZeptunTun.TUN_V4}"'"{print dev}')
+        |  for u in ${'$'}stale; do ifconfig "${'$'}u" destroy >/dev/null 2>&1; done
+        |}
         |tun_down() {
         |  restore_dns "${'$'}BACKUP"
         |  rm -f "${'$'}PERSIST"
@@ -202,6 +224,7 @@ internal object MacTunHelper {
         |  fi
         |  ZP=
         |  rm -f "${'$'}CTRL/ready"
+        |  reclaim_routes
         |}
         |tun_up() {
         |  tun_down
@@ -237,6 +260,7 @@ internal object MacTunHelper {
         |trap cleanup EXIT
         |trap 'exit 0' INT TERM HUP
         |restore_dns "${'$'}PERSIST"
+        |reclaim_routes
         |echo "${'$'}${'$'}" >"${'$'}CTRL/helper"
         |while kill -0 "${'$'}APP_PID" 2>/dev/null && [ ! -e "${'$'}CTRL/exit" ]; do
         |  if [ -e "${'$'}CTRL/start" ]; then
