@@ -1222,7 +1222,7 @@ fun ServersScreen(
             },
             confirmButton = {
                 TextButton(onClick = importNpvs, enabled = npvsPassphrase.isNotEmpty()) {
-                    Text(stringResource(Res.string.action_import))
+                    Text(stringResource(Res.string.npvs_passphrase_import))
                 }
             },
             dismissButton = {
