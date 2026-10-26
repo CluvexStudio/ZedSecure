@@ -1,6 +1,6 @@
 # Config Finder — implementation specification
 
-Status: design/specification only. This document does not claim that the native Android UI, provider adapters, or live connectivity tests have been implemented.
+Status: initial native UI and allowlisted source fetching have been added on the feature branch. CI is still validating the shared module; do not treat the feature as release-ready until that run passes and device testing is completed.
 
 ## Goal
 
@@ -84,4 +84,4 @@ Provider adapters should return a common record with source ID, canonical source
 
 ## Current delivery boundary
 
-The companion Lovable prototype is a separate UI project. This spec is committed to the feature branch only; native Kotlin integration, live provider calls, connection tests, CI, and release are not complete until code changes and tests are added to ZX VPN itself.
+The Lovable prototype is a separate companion project and currently blocked by workspace credits. The feature branch now includes a native Compose entry under Servers → + → Add, direct reads from the user-provided public raw configuration lists, Telegram public-preview attempts for hddify/mitivpn, and a GitHub repository-tree scan for NPV-related paths. Real connection/throughput tests remain delegated to the existing native engine after import. CI and Android-device verification are still required; this branch has not been merged into main.
