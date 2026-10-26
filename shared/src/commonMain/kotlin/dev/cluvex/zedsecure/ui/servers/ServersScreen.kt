@@ -83,6 +83,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -192,6 +193,8 @@ fun ServersScreen(
     var obfuscateCandidates by remember { mutableStateOf<List<String>>(emptyList()) }
 
     var ovpnPrompt by remember { mutableStateOf<OvpnPrompt?>(null) }
+    var slipNetBundlePrompt by remember { mutableStateOf<String?>(null) }
+    var slipNetBundlePassword by remember { mutableStateOf("") }
 
     suspend fun offerObfuscationAfter(block: suspend () -> Unit) {
         val before = repository.profiles.value.map { it.id }.toSet()
@@ -242,6 +245,11 @@ fun ServersScreen(
             val text = picked.bytes.decodeToString()
             if (text.isBlank()) {
                 toastRes(Res.string.config_invalid)
+                return@launch
+            }
+            if (text.trimStart().startsWith("slipnet-bundle-enc://", ignoreCase = true)) {
+                slipNetBundlePrompt = text
+                slipNetBundlePassword = ""
                 return@launch
             }
             val fileName = picked.name.substringBeforeLast('.').takeIf { it.isNotBlank() }
@@ -1092,6 +1100,62 @@ fun ServersScreen(
                 }
             }
         }
+    }
+
+    slipNetBundlePrompt?.let { bundleText ->
+        val importBundle = {
+            val suppliedPassword = slipNetBundlePassword
+            slipNetBundlePrompt = null
+            slipNetBundlePassword = ""
+            scope.launch {
+                val result = withContext(kotlinx.coroutines.Dispatchers.Default) {
+                    repository.importText(bundleText, importPassword = suppliedPassword)
+                }
+                result.onSuccess { count ->
+                    if (count > 0) {
+                        platform.toast(getString(Res.string.servers_imported, count))
+                        onServerActivated()
+                    } else {
+                        toastRes(Res.string.config_invalid)
+                    }
+                }.onFailure { toastImportFailure(it) }
+            }
+            Unit
+        }
+        AlertDialog(
+            onDismissRequest = {
+                slipNetBundlePrompt = null
+                slipNetBundlePassword = ""
+            },
+            title = { Text("SlipNet bundle password") },
+            text = {
+                Column {
+                    Text("Enter the password used when this SlipNet bundle was exported. The file is decrypted locally.")
+                    Spacer(Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = slipNetBundlePassword,
+                        onValueChange = { slipNetBundlePassword = it },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        label = { Text("Password") },
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = { importBundle() }),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = importBundle, enabled = slipNetBundlePassword.isNotEmpty()) {
+                    Text("Import")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    slipNetBundlePrompt = null
+                    slipNetBundlePassword = ""
+                }) { Text(stringResource(Res.string.action_cancel)) }
+            },
+        )
     }
 
     ovpnPrompt?.let { prompt ->
