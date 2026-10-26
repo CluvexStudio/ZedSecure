@@ -32,6 +32,11 @@ kotlin {
                 implementation(libs.zxing.core)
             }
         }
+        getByName("commonTest") {
+            dependencies {
+                implementation(kotlin("test"))
+            }
+        }
         getByName("commonMain") {
             dependencies {
                 implementation(libs.compose.runtime)
