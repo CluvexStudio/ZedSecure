@@ -313,6 +313,7 @@ fun ServersScreen(
 
     var showAddSheet by remember { mutableStateOf(false) }
     var showManual by remember { mutableStateOf(false) }
+    var showConfigFinder by remember { mutableStateOf(false) }
 
     var fanOpen by remember { mutableStateOf(false) }
     var showSubs by remember { mutableStateOf(false) }
@@ -1218,6 +1219,25 @@ fun ServersScreen(
                 showAddSheet = false
                 showSubs = true
             },
+            onConfigFinder = {
+                showAddSheet = false
+                showConfigFinder = true
+            },
+        )
+    }
+
+    if (showConfigFinder) {
+        ConfigFinderSheet(
+            onDismiss = { showConfigFinder = false },
+            onImport = { text ->
+                showConfigFinder = false
+                repository.importText(text)
+                    .onSuccess { count ->
+                        if (count > 0) toastRes(Res.string.servers_imported, count)
+                        else toastRes(Res.string.config_invalid)
+                    }
+                    .onFailure { toastImportFailure(it) }
+            },
         )
     }
 
@@ -2073,6 +2093,7 @@ private fun AddServerSheet(
     onProxyChain: () -> Unit,
     onCrossChain: () -> Unit,
     onSubscription: () -> Unit,
+    onConfigFinder: () -> Unit,
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
@@ -2104,6 +2125,7 @@ private fun AddServerSheet(
             }
 
             OptionGroup(Res.string.add_group_import)
+            Option(Res.drawable.ic_search, Res.string.config_finder_title, onConfigFinder)
             Option(Res.drawable.ic_content_paste, Res.string.servers_add_clipboard, onPasteLink)
             Option(Res.drawable.ic_description, Res.string.servers_add_file, onImportFile)
 
