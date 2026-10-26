@@ -10,12 +10,17 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.weight
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
@@ -37,6 +42,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.cluvex.zedsecure.data.net.PingService
+import dev.cluvex.zedsecure.data.net.GeoLookup
 import dev.cluvex.zedsecure.domain.config.ConfigParser
 import dev.cluvex.zedsecure.domain.config.ProfileSource
 import dev.cluvex.zedsecure.domain.config.SingBoxJson
@@ -123,6 +129,7 @@ private val configLinkRegex = Regex("""(?i)(?:vless|vmess|trojan|ss|socks5?|http
 fun ConfigFinderSheet(
     onDismiss: () -> Unit,
     onImport: (String) -> Unit,
+    onConnect: (String) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
     var category by remember { mutableStateOf("همه منابع") }
@@ -136,6 +143,28 @@ fun ConfigFinderSheet(
     var results by remember { mutableStateOf<List<FinderResult>>(emptyList()) }
     var error by remember { mutableStateOf("") }
     var status by remember { mutableStateOf("منابع فقط هنگام جست‌وجوی شما خوانده می‌شوند؛ سرعت واقعی هنوز اندازه‌گیری نشده است.") }
+    var selectedResult by remember { mutableStateOf<FinderResult?>(null) }
+    var detectedCountry by remember { mutableStateOf<String?>(null) }
+    var geoLoading by remember { mutableStateOf(false) }
+    var selectedHost by remember { mutableStateOf<String?>(null) }
+    var selectedPort by remember { mutableStateOf<Int?>(null) }
+
+    fun openDetails(item: FinderResult) {
+        selectedResult = item
+        detectedCountry = null
+        selectedHost = null
+        selectedPort = null
+        geoLoading = true
+        scope.launch {
+            val profile = runCatching { profileForLatencyProbe(item) }.getOrNull()
+            selectedHost = profile?.address
+            selectedPort = profile?.port
+            detectedCountry = profile?.address?.let { host ->
+                runCatching { GeoLookup.countryOf(host) }.getOrNull()
+            }?.let(::countryNameFromCode)
+            geoLoading = false
+        }
+    }
 
     fun testLatency() {
         if (loading || testingLatency || results.isEmpty()) return
@@ -251,13 +280,20 @@ fun ConfigFinderSheet(
         }
     }
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true),
+    ) {
         Column(
-            Modifier.fillMaxWidth().padding(horizontal = 18.dp).padding(bottom = 28.dp),
+            Modifier.fillMaxWidth().fillMaxHeight(0.94f).padding(horizontal = 18.dp).padding(bottom = 12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
+            Column(
+                Modifier.fillMaxWidth().weight(1.15f).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
             Text("کانفینگ‌یاب", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            Text("جست‌وجوی منابع کشوری، فهرست‌های سرعتی و کانال‌های عمومی؛ از هر فهرست حداکثر دو گزینه با قالب سازگارتر نمایش داده می‌شود. این انتخاب، تست سرعت یا سلامت واقعی نیست؛ برای تشخیص بهترین اتصال باید نتیجهٔ موتور VPN روی اینترنت فعلی اندازه‌گیری شود.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("کانفیگ‌ها را پیدا کن، روی هر مورد بزن تا جزئیات و کشور واقعیِ تخمینی بر اساس IP را ببینی؛ بعد می‌توانی همان مورد را به فهرست اضافه و برای اتصال انتخاب کنی.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 listOf("همه منابع", "کشوری", "سرعتی", "تلگرام").forEach { item ->
                     FilterChip(selected = category == item, onClick = { category = item }, label = { Text(item) })
@@ -331,9 +367,19 @@ fun ConfigFinderSheet(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth().height(360.dp)) {
+            }
+            Text(
+                if (results.isEmpty()) "نتایج اینجا نمایش داده می‌شوند" else "نتایج (\${results.size}) · روی یک کارت بزن تا جزئیات را ببینی",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth().weight(1f),
+            ) {
                 items(results, key = { it.id }) { item ->
-                    Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.fillMaxWidth()) {
+                    Surface(onClick = { openDetails(item) }, shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                             Text(item.name, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
                             Text("${item.protocol} · ${item.country}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
@@ -353,19 +399,51 @@ fun ConfigFinderSheet(
                                 color = if (item.parserSupported) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                             if (item.note.isNotBlank()) Text(item.note, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                TextButton(onClick = { item.rawUrl?.let { url -> scope.launch { runCatching { withContext(Dispatchers.IO) { httpGetResponse(url, "ZX-VPN-ConfigFinder/1.0", connectTimeoutMs = 8000, readTimeoutMs = 12000) } }.onSuccess { res -> if (res.code in 200..299) onImport(res.body.take(1_048_576)) else error = "HTTP ${res.code} هنگام دریافت فایل" }.onFailure { error = it.message?.take(200) ?: "دریافت فایل ناموفق بود" } } } }, enabled = item.rawUrl != null) { Text("دریافت و افزودن") }
-                                TextButton(onClick = { item.payload?.let(onImport) }, enabled = item.payload != null) { Text("افزودن") }
-                            }
+                            Text("برای مشاهدهٔ IP، کشور و اقدام اتصال روی کارت بزن", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
             }
-            Text(
-                "پینگ TCP فقط دسترسی مستقیم به پورت سرور را می‌سنجد؛ تأخیر واقعی از مسیر موتور VPN معیار اصلی مرتب‌سازی است. این آزمایش، سرعت دانلود/آپلود هر کانفیگ را اندازه نمی‌گیرد و هیچ گزینه‌ای را خودکار ذخیره نمی‌کند. منابع ناشناس ممکن است ناامن یا غیرفعال باشند.",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+        }
+
+        selectedResult?.let { item ->
+            val profile = runCatching { profileForLatencyProbe(item) }.getOrNull()
+            AlertDialog(
+                onDismissRequest = { selectedResult = null },
+                title = { Text(item.name, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(item.protocol, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                        FinderInfoLine("میزبان", selectedHost ?: profile?.address ?: "قالب هنوز قابل‌تجزیه نیست")
+                        FinderInfoLine("پورت", (selectedPort ?: profile?.port)?.toString() ?: "نامشخص")
+                        FinderInfoLine("کشور در منبع", item.country)
+                        FinderInfoLine("کشور بر اساس IP", when {
+                            geoLoading -> "در حال بررسی IP…"
+                            detectedCountry != null -> detectedCountry!!
+                            else -> "قابل‌تشخیص نبود؛ کشور منبع ممکن است با موقعیت واقعی فرق داشته باشد"
+                        })
+                        FinderInfoLine("منبع", item.source)
+                        FinderInfoLine("سازگاری", if (item.parserSupported) "پارسر این قالب را می‌شناسد" else "قالب هنوز تأیید نشده")
+                        if (item.latencyTested) {
+                            FinderInfoLine("تأخیر واقعی", item.realDelayMs?.takeIf { it > 0L }?.let { "$it ms" } ?: "پاسخی ثبت نشد")
+                            FinderInfoLine("پینگ TCP", item.tcpPingMs?.takeIf { it > 0L }?.let { "$it ms" } ?: "ناموفق")
+                        }
+                        Text("کشور IP یک تخمین ژئولوکیشن است، نه تضمین محل فیزیکی سرور. افزودن کانفیگ ناشناس ریسک حریم خصوصی دارد.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                },
+                confirmButton = {
+                    Button(enabled = item.payload != null, onClick = { item.payload?.let { link -> selectedResult = null; onConnect(link) } }) {
+                        Text("افزودن و اتصال")
+                    }
+                },
+                dismissButton = {
+                    Row {
+                        TextButton(enabled = item.payload != null, onClick = { item.payload?.let { link -> selectedResult = null; onImport(link) } }) { Text("فقط افزودن") }
+                        TextButton(onClick = { selectedResult = null }) { Text("بستن") }
+                    }
+                },
             )
+        }
         }
     }
 }
@@ -451,4 +529,37 @@ private fun protocolLabel(link: String): String {
         "vpn" -> "Amnezia"
         else -> scheme.uppercase().ifBlank { "نامشخص" }
     }
+}
+
+@Composable
+private fun FinderInfoLine(label: String, value: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+    }
+}
+
+private fun countryNameFromCode(code: String): String = when (code.uppercase()) {
+    "US" -> "🇺🇸 آمریکا (US)"
+    "DE" -> "🇩🇪 آلمان (DE)"
+    "TR" -> "🇹🇷 ترکیه (TR)"
+    "KR" -> "🇰🇷 کره جنوبی (KR)"
+    "RU" -> "🇷🇺 روسیه (RU)"
+    "IR" -> "🇮🇷 ایران (IR)"
+    "GB" -> "🇬🇧 بریتانیا (GB)"
+    "FR" -> "🇫🇷 فرانسه (FR)"
+    "NL" -> "🇳🇱 هلند (NL)"
+    "JP" -> "🇯🇵 ژاپن (JP)"
+    "SG" -> "🇸🇬 سنگاپور (SG)"
+    "CA" -> "🇨🇦 کانادا (CA)"
+    "FI" -> "🇫🇮 فنلاند (FI)"
+    "PL" -> "🇵🇱 لهستان (PL)"
+    "SE" -> "🇸🇪 سوئد (SE)"
+    "CH" -> "🇨🇭 سوئیس (CH)"
+    "UA" -> "🇺🇦 اوکراین (UA)"
+    "AE" -> "🇦🇪 امارات (AE)"
+    "HK" -> "🇭🇰 هنگ‌کنگ (HK)"
+    "IN" -> "🇮🇳 هند (IN)"
+    "BR" -> "🇧🇷 برزیل (BR)"
+    else -> "$code (کشور)"
 }
