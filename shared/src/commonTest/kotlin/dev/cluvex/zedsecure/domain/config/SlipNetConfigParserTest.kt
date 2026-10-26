@@ -85,8 +85,8 @@ class SlipNetConfigParserTest {
         fields[42] = "cname"
         fields[43] = "96"
         fields[44] = "5"
-        fields[60] = "roundrobin"
-        fields[61] = "7"
+        fields[50] = "roundrobin"
+        fields[51] = "7"
         return fields.joinToString("|")
     }
 
