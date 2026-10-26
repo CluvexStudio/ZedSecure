@@ -137,6 +137,7 @@ fun ConfigFinderSheet(
     val scope = rememberCoroutineScope()
     var category by remember { mutableStateOf("کشوری") }
     var country by remember { mutableStateOf("همه کشورها") }
+    var protocolFilter by remember { mutableStateOf("همه پروتکل‌ها") }
     var query by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(false) }
     var results by remember { mutableStateOf<List<FinderResult>>(emptyList()) }
@@ -166,8 +167,13 @@ fun ConfigFinderSheet(
             outcome.onSuccess { found ->
                 val q = query.trim().lowercase()
                 results = found
+                    .filter { protocolFilter == "همه پروتکل‌ها" || it.protocol.contains(protocolFilter, ignoreCase = true) }
                     .filter { q.isEmpty() || listOf(it.name, it.protocol, it.country, it.source, it.note).any { s -> s.lowercase().contains(q) } }
-                    .distinctBy { (it.payload ?: it.rawUrl ?: it.id).trim().lowercase() }
+                    .groupBy { (it.payload ?: it.rawUrl ?: it.id).trim().lowercase() }
+                    .values
+                    .map { duplicates ->
+                        duplicates.first().copy(source = duplicates.map { it.source }.distinct().joinToString(" · "))
+                    }
                     .take(300)
                 status = if (results.isEmpty()) "نتیجه‌ای پیدا نشد؛ کشور یا دستهٔ دیگری را امتحان کن." else "تعداد نتیجه: ${results.size} — «قالب معتبر» به معنی امنیت یا اتصال موفق نیست."
             }.onFailure {
@@ -193,6 +199,18 @@ fun ConfigFinderSheet(
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     finderCountries.forEach { item ->
                         FilterChip(selected = country == item, onClick = { country = item }, label = { Text(item) })
+                    }
+                }
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf("همه پروتکل‌ها", "VLESS", "VMess", "Trojan").forEach { item ->
+                        FilterChip(selected = protocolFilter == item, onClick = { protocolFilter = item }, label = { Text(item) })
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf("Hysteria2", "Shadowsocks", "NPV").forEach { item ->
+                        FilterChip(selected = protocolFilter == item, onClick = { protocolFilter = item }, label = { Text(item) })
                     }
                 }
             }
@@ -266,6 +284,13 @@ private suspend fun fetchSources(sources: List<FinderSource>): List<FinderResult
                             country = source.country,
                             source = source.name,
                             payload = link,
+                            note = if (
+                                runCatching { ConfigParser.isSupportedLink(link) }.getOrDefault(false) ||
+                                link.startsWith("vpn://", ignoreCase = true) ||
+                                link.startsWith("npvt://", ignoreCase = true) ||
+                                link.startsWith("ssh://", ignoreCase = true)
+                            ) "شناسهٔ پروتکل شناخته شد؛ اتصال و سرعت هنوز تست نشده است."
+                            else "سازگاری نهایی هنگام افزودن توسط پارسر بومی بررسی می‌شود.",
                         )
                     }
                 }.getOrDefault(emptyList())
