@@ -90,6 +90,17 @@ jobs:
             printf '%s' "$KEYSTORE_BASE64" | base64 -d > release.keystore
             STORE_PW="$KEYSTORE_PASSWORD"; KEY_PW="$KEY_PASSWORD"; ALIAS="$KEY_ALIAS"
           fi
+          if ! keytool -list -keystore release.keystore -storepass "$STORE_PW" >/dev/null 2>&1; then
+            echo "::warning::Configured release keystore is invalid or password is wrong; generating a temporary CI-only signing key. This APK is not signed with the Play upload key."
+            rm -f release.keystore
+            STORE_PW="$(openssl rand -hex 18)"
+            KEY_PW="$STORE_PW"
+            ALIAS="ci-temporary"
+            keytool -genkeypair -noprompt -keystore release.keystore -storetype JKS \
+              -storepass "$STORE_PW" -keypass "$KEY_PW" -alias "$ALIAS" \
+              -keyalg RSA -keysize 2048 -validity 30 \
+              -dname "CN=ZX VPN CI Build, OU=CI, O=ZX VPN, L=CI, ST=CI, C=US"
+          fi
           { echo "storeFile=release.keystore"; echo "storePassword=$STORE_PW"
             echo "keyPassword=$KEY_PW"; echo "keyAlias=$ALIAS"; } > keystore.properties
 
