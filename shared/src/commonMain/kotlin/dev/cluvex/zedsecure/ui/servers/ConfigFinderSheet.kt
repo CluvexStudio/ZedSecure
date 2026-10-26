@@ -168,71 +168,90 @@ fun ConfigFinderSheet(
 
     fun testLatency() {
         if (loading || testingLatency || results.isEmpty()) return
-        val candidates = results.filter { it.parserSupported && it.payload != null }.take(MAX_LATENCY_CANDIDATES)
+        val candidates = results
+            .filter { it.parserSupported && it.payload != null }
+            .take(MAX_LATENCY_CANDIDATES)
         if (candidates.isEmpty()) {
             status = "گزینهٔ قابل‌آزمایشی پیدا نشد؛ ابتدا جست‌وجو کن یا فیلتر قالب را بررسی کن."
             return
         }
+
         testingLatency = true
         latencyProgress = 0
-        status = "در حال اندازه‌گیری پینگ TCP و تأخیر واقعی از مسیر موتور VPN برای ${candidates.size} گزینه؛ حداکثر $MAX_LATENCY_CANDIDATES گزینه بررسی می‌شوند."
+        status = "در حال آزمایش ${candidates.size} گزینه؛ برای هر گزینه ۳ بار اتصال TCP و ۳ بار تأخیر از مسیر موتور اندازه‌گیری می‌شود. زمان و شبکه روی نتیجه اثر دارند."
         scope.launch {
-            val measured = coroutineScope {
-                val permits = Semaphore(3)
-                candidates.map { candidate ->
-                    async {
-                        permits.withPermit {
-                            val result = runCatching {
-                                val profile = profileForLatencyProbe(candidate)
-                                    ?: return@runCatching candidate.copy(
+            try {
+                val measured = coroutineScope {
+                    val permits = Semaphore(3)
+                    candidates.map { candidate ->
+                        async {
+                            permits.withPermit {
+                                try {
+                                    val profile = profileForLatencyProbe(candidate)
+                                    if (profile == null) {
+                                        candidate.copy(
+                                            tcpPingMs = -1L,
+                                            realDelayMs = -1L,
+                                            latencyTested = true,
+                                            note = "پروفایل آزمایشی ساخته نشد؛ این گزینه سالم یا قابل‌اتصال فرض نمی‌شود.",
+                                        )
+                                    } else {
+                                        val tcp = medianOfSuccessfulSamples(LATENCY_SAMPLE_COUNT) {
+                                            PingService.tcpPing(profile.address, profile.port, timeoutMs = 1_800)
+                                        }
+                                        val real = medianOfSuccessfulSamples(LATENCY_SAMPLE_COUNT) {
+                                            kotlinx.coroutines.withTimeoutOrNull(10_000L) {
+                                                PingService.realDelay(profile)
+                                            } ?: -1L
+                                        }
+                                        candidate.copy(
+                                            tcpPingMs = tcp,
+                                            realDelayMs = real,
+                                            latencyTested = true,
+                                            note = when {
+                                                real > 0L -> "تأخیر واقعی: میانهٔ نمونه‌های موفق از مسیر موتور VPN؛ نتیجه فقط مربوط به همین شبکه و زمان آزمایش است."
+                                                tcp > 0L -> "پورت TCP پاسخ داد، اما تأخیر از مسیر موتور VPN اندازه‌گیری نشد؛ اتصال VPN سالم فرض نمی‌شود."
+                                                else -> "نمونهٔ موفقی ثبت نشد؛ سرور ممکن است خاموش، ناسازگار یا غیرقابل‌دسترسی باشد."
+                                            },
+                                        )
+                                    }
+                                } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                                    throw cancelled
+                                } catch (_: Exception) {
+                                    candidate.copy(
                                         tcpPingMs = -1L,
                                         realDelayMs = -1L,
                                         latencyTested = true,
-                                        note = "قالب شناسایی شد اما ساخت پروفایل آزمایشی ناموفق بود.",
+                                        note = "اندازه‌گیری با خطا روبه‌رو شد؛ نتیجه اتصال ناموفق در نظر گرفته می‌شود.",
                                     )
-                                val tcp = runCatching {
-                                    PingService.tcpPing(profile.address, profile.port, timeoutMs = 1_800)
-                                }.getOrDefault(-1L)
-                                val real = runCatching {
-                                    kotlinx.coroutines.withTimeoutOrNull(12_000L) {
-                                        PingService.realDelay(profile)
-                                    } ?: -1L
-                                }.getOrDefault(-1L)
-                                candidate.copy(
-                                    tcpPingMs = tcp,
-                                    realDelayMs = real,
-                                    latencyTested = true,
-                                    note = if (real > 0L) {
-                                        "تأخیر واقعی اندازه‌گیری شد؛ نتیجه مربوط به همین شبکه و زمان آزمایش است."
-                                    } else {
-                                        "تأخیر واقعی اندازه‌گیری نشد؛ ممکن است سرور خاموش، ناسازگار یا در دسترس نباشد."
-                                    },
-                                )
-                            }.getOrElse {
-                                candidate.copy(
-                                    tcpPingMs = -1L,
-                                    realDelayMs = -1L,
-                                    latencyTested = true,
-                                    note = "اندازه‌گیری ناموفق بود؛ اتصال سالم فرض نمی‌شود.",
-                                )
+                                } finally {
+                                    latencyProgress = (latencyProgress + 1).coerceAtMost(candidates.size)
+                                }
                             }
-                            latencyProgress += 1
-                            result
                         }
-                    }
-                }.awaitAll()
+                    }.awaitAll()
+                }
+
+                val measuredById = measured.associateBy { it.id }
+                results = results
+                    .map { measuredById[it.id] ?: it }
+                    .sortedWith(
+                        compareBy<FinderResult> { if ((it.realDelayMs ?: -1L) > 0L) 0 else 1 }
+                            .thenBy { it.realDelayMs?.takeIf { ms -> ms > 0L } ?: Long.MAX_VALUE }
+                            .thenBy { it.tcpPingMs?.takeIf { ms -> ms > 0L } ?: Long.MAX_VALUE }
+                            .thenByDescending { it.parserSupported }
+                    )
+                val successful = measured.count { (it.realDelayMs ?: -1L) > 0L }
+                val tcpReachable = measured.count { (it.tcpPingMs ?: -1L) > 0L }
+                status = "آزمایش تمام شد: تأخیر واقعی برای $successful از ${measured.size} گزینه اندازه‌گیری شد؛ اتصال TCP برای $tcpReachable گزینه پاسخ داد. ترتیب اصلی بر اساس میانهٔ تأخیر واقعی است و پینگ TCP فقط معیار ثانویه است؛ این عدد سرعت دانلود را نشان نمی‌دهد."
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                status = "آزمایش لغو شد؛ نتایج اندازه‌گیری‌نشده معتبر فرض نمی‌شوند."
+                throw cancelled
+            } catch (_: Exception) {
+                status = "آزمایش کامل نشد؛ دوباره تلاش کن. نتایج نامعتبر به‌عنوان تأخیر موفق نمایش داده نمی‌شوند."
+            } finally {
+                testingLatency = false
             }
-            val measuredIds = candidates.map { it.id }.toSet()
-            results = (results.filterNot { it.id in measuredIds } + measured)
-                .sortedWith(
-                    compareBy<FinderResult> { if (it.realDelayMs != null && it.realDelayMs > 0L) 0 else 1 }
-                        .thenBy { it.realDelayMs?.takeIf { ms -> ms > 0L } ?: Long.MAX_VALUE }
-                        .thenBy { if (it.tcpPingMs != null && it.tcpPingMs > 0L) it.tcpPingMs else Long.MAX_VALUE }
-                        .thenByDescending { it.parserSupported }
-                )
-            val successful = measured.count { (it.realDelayMs ?: -1L) > 0L }
-            status = "آزمایش تمام شد: ${successful} از ${measured.size} گزینه پاسخ واقعی دادند. ترتیب بر اساس تأخیر واقعی، سپس پینگ TCP است؛ این اعداد تضمین سرعت دانلود نیستند."
-            testingLatency = false
         }
     }
 
@@ -458,6 +477,29 @@ fun ConfigFinderSheet(
 }
 
 private const val MAX_LATENCY_CANDIDATES = 12
+private const val LATENCY_SAMPLE_COUNT = 3
+
+private suspend fun medianOfSuccessfulSamples(
+    sampleCount: Int,
+    measure: suspend () -> Long,
+): Long {
+    val successful = ArrayList<Long>(sampleCount)
+    repeat(sampleCount.coerceAtLeast(1)) {
+        val sample = try {
+            measure()
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            -1L
+        }
+        if (sample > 0L) successful += sample
+    }
+    if (successful.isEmpty()) return -1L
+    val sorted = successful.sorted()
+    val middle = sorted.size / 2
+    return if (sorted.size % 2 == 1) sorted[middle]
+    else sorted[middle - 1] / 2L + sorted[middle] / 2L
+}
 
 private fun profileForLatencyProbe(candidate: FinderResult): VpnProfile? {
     val link = candidate.payload?.trim()?.takeIf { it.isNotEmpty() } ?: return null
