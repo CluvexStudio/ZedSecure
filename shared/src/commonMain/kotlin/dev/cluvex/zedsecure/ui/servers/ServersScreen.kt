@@ -1839,10 +1839,15 @@ private fun ServerCard(
     modifier: Modifier = Modifier,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
+    val liquid = dev.cluvex.zedsecure.ui.theme.LocalAppDesign.current == dev.cluvex.zedsecure.domain.model.AppDesign.Liquid
     val container = if (active) {
-        personalization.serverActiveColor ?: MaterialTheme.colorScheme.primaryContainer
+        personalization.serverActiveColor
+            ?: if (liquid) dev.cluvex.zedsecure.ui.theme.liquidTint(MaterialTheme.colorScheme.primaryContainer)
+            else MaterialTheme.colorScheme.primaryContainer
     } else {
-        personalization.serverCardColor ?: MaterialTheme.colorScheme.surfaceContainerHigh
+        personalization.serverCardColor
+            ?: if (liquid) dev.cluvex.zedsecure.ui.theme.liquidFill()
+            else MaterialTheme.colorScheme.surfaceContainerHigh
     }
 
     val onContainer = when {
@@ -1859,6 +1864,8 @@ private fun ServerCard(
 
         border = if (selecting && isSelected) {
             androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+        } else if (liquid) {
+            dev.cluvex.zedsecure.ui.theme.liquidBorder()
         } else {
             null
         },

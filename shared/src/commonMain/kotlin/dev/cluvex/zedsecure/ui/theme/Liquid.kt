@@ -105,3 +105,8 @@ fun LiquidBackdrop(clock: State<Float>, modifier: Modifier = Modifier) {
         }
     }
 }
+
+/** A clock that never ticks: the backdrop sits still on screens that don't animate it. */
+val LiquidStaticClock: State<Float> = object : State<Float> {
+    override val value: Float = 0f
+}

@@ -10,6 +10,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -165,7 +166,13 @@ fun MainScaffold(
     }
 
     Box(Modifier.fillMaxSize()) {
+    val liquidDesign = settings.appDesign == dev.cluvex.zedsecure.domain.model.AppDesign.Liquid
+    if (liquidDesign) {
+        Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background))
+        dev.cluvex.zedsecure.ui.theme.LiquidBackdrop(dev.cluvex.zedsecure.ui.theme.LiquidStaticClock)
+    }
     Scaffold(
+        containerColor = if (liquidDesign) androidx.compose.ui.graphics.Color.Transparent else MaterialTheme.colorScheme.background,
         bottomBar = {
             dev.cluvex.zedsecure.ui.navigation.ZedNavBar(
                 style = settings.navBarStyle,
