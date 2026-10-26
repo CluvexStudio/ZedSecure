@@ -11,7 +11,7 @@
     <string name="servers_add_manual">افزودن دستی (Xray)</string>
     <string name="servers_add_custom">کانفیگ سفارشی (JSON)</string>
     <string name="servers_imported">%1$d سرور اضافه شد</string>
-    <string name="servers_add_file">از فایل (.npvt، .npvs، .json، .ovpn، .conf)</string>
+    <string name="servers_add_file">از فایل (.json، .ovpn، .conf)</string>
     <string name="ovpn_credentials_title">ورود OpenVPN</string>
     <string name="ovpn_credentials_body">%1$s نام کاربری و رمز عبور می‌خواهد.</string>
     <string name="ovpn_username">نام کاربری</string>
@@ -1458,9 +1458,4 @@
     <string name="home_design_pixel">پیکسل</string>
     <string name="pixel_tap_cancel">برای لغو لمس کنید</string>
     <string name="pixel_other_server">سرور دیگر</string>
-    <string name="npvs_passphrase_title">بازکردن فایل NPV Tunnel</string>
-    <string name="npvs_passphrase_body">گذرواژهٔ سازندهٔ فایل %1$s را وارد کنید. رمزگشایی و واردکردن فایل فقط روی همین دستگاه انجام می‌شود.</string>
-    <string name="npvs_passphrase_label">گذرواژهٔ سازنده</string>
-    <string name="npvs_passphrase_import">بازکردن و واردکردن</string>
-    <string name="npv_encrypted_file_needs_unlock">فایل NPVS نسخهٔ %1$d رمزگذاری شده است (%2$s). برای واردکردن این نسخه، پشتیبانی از روش بازگشایی مجاز آن لازم است.</string>
 </resources>
