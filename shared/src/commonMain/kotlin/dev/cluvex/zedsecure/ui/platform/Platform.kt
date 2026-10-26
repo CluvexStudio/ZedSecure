@@ -80,7 +80,7 @@ interface Platform {
     val geoAssets: GeoAssets? get() = null
 
     suspend fun pickFileBytes(): FilePick? = null
-
+\n    /** Unlocks passphrase-protected NPVS v5 locally when the platform has a decoder. */\n    suspend fun unlockNpvsV5(bytes: ByteArray, passphrase: String): String? = null\n
     val isIgnoringBatteryOptimizations: Boolean get() = true
 
     val supportsBatteryOptimization: Boolean get() = false
