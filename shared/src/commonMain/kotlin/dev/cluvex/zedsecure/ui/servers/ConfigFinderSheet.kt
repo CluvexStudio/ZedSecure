@@ -258,7 +258,7 @@ private suspend fun fetchSources(sources: List<FinderSource>): List<FinderResult
                     links.mapIndexed { index, link ->
                         FinderResult(
                             id = "${source.name}:${index}:${link.hashCode()}",
-                            name = link.substringAfter("://").substringBefore('@').substringBefore('?').take(64).ifBlank { "کانفیگ ${index + 1}" },
+                            name = "کانفیگ ${index + 1}",
                             protocol = protocolLabel(link),
                             country = source.country,
                             source = source.name,
@@ -272,8 +272,20 @@ private suspend fun fetchSources(sources: List<FinderSource>): List<FinderResult
 }
 
 private suspend fun scanNpvRepositories(): List<FinderResult> = coroutineScope {
+    val discovered = runCatching {
+        val response = httpGetResponse(
+            "https://api.github.com/search/repositories?q=NPV%20Tunnel&sort=updated&per_page=10",
+            "ZX-VPN-ConfigFinder/1.0",
+            connectTimeoutMs = 8000,
+            readTimeoutMs = 12000,
+        )
+        if (response.code !in 200..299) emptyList()
+        else finderJson.parseToJsonElement(response.body).jsonObject["items"]?.jsonArray.orEmpty()
+            .mapNotNull { it.jsonObject["full_name"]?.jsonPrimitive?.contentOrNull }
+    }.getOrDefault(emptyList())
+    val repositories = (finderRepositories + discovered).distinct().take(20)
     val semaphore = Semaphore(3)
-    finderRepositories.map { repo ->
+    repositories.map { repo ->
         async(Dispatchers.IO) {
             semaphore.withPermit {
                 runCatching {
@@ -310,7 +322,7 @@ private suspend fun scanNpvRepositories(): List<FinderResult> = coroutineScope {
 private fun protocolLabel(link: String): String {
     val scheme = link.substringBefore("://", "").lowercase()
     return when (scheme) {
-        "vless" -> "VLESS / Reality?"
+        "vless" -> if (link.contains("security=reality", ignoreCase = true)) "VLESS / Reality" else "VLESS"
         "vmess" -> "VMess"
         "trojan" -> "Trojan"
         "ss" -> "Shadowsocks"
