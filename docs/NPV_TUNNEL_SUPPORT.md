@@ -40,10 +40,10 @@ The test branch now recognizes SlipNet share URIs documented by [anonvector/Slip
 
 Currently importable and runnable through this app's existing DNS tunnel controller:
 - `slipnet://` plain exports for DNSTT and VayDNS modes;
-- `slipnet-enc://` single-profile exports using SlipNet's legacy encrypted profile envelope;
+- `slipnet-enc://` single-profile exports using SlipNet's legacy encrypted profile envelope, when the profile does not carry a profile-lock policy; locked profiles are rejected until that policy can be enforced;
 - `slipnet-bundle-enc://` password-protected bundles, with a local password prompt and retry after a wrong password;
 - optional SSH chaining fields when present in a supported DNSTT/VayDNS profile.
 
-The parser intentionally rejects Slipstream, NoizDNS, standalone SSH, NaiveProxy, Tor/Snowflake, and other modes that do not yet have a matching runnable engine in ZX-VPN. It must not silently convert these into DNSTT or VayDNS. A successful import means the profile has been stored, not that a remote server is reachable. Engine parity for those modes remains separate work.
+The parser intentionally rejects Slipstream, NoizDNS, standalone SSH, NaiveProxy, Tor/Snowflake, and other modes that do not yet have a matching runnable engine in ZX-VPN. It must not silently convert these into DNSTT or VayDNS. A successful import means the profile has been stored, not that a remote server is reachable. Per-resolver authoritative flags are not represented by the current `DnsTunnelProfile` model and may be normalized during import; profile-level lock policies are rejected rather than ignored. Engine parity for those modes remains separate work.
 
 Pantegnos is AGPL-3.0 in its current releases. This branch uses it as a reference for file-format behavior and does not vendor its source tree. ZX-VPN's repository is also AGPL-3.0; retain the applicable notices when distributing builds.
