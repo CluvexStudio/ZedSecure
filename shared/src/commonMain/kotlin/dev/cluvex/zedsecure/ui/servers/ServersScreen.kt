@@ -1289,6 +1289,24 @@ fun ServersScreen(
                     }
                     .onFailure { toastImportFailure(it) }
             },
+            onConnect = { text ->
+                val previousIds = repository.profiles.value.map { it.id }.toSet()
+                showConfigFinder = false
+                repository.importText(text)
+                    .onSuccess { count ->
+                        val addedProfile = repository.profiles.value.firstOrNull { it.id !in previousIds }
+                        if (count > 0 && addedProfile != null) {
+                            repository.setActive(addedProfile.id)
+                            onServerActivated()
+                            toastRes(Res.string.servers_imported, count)
+                        } else if (count > 0) {
+                            toastRes(Res.string.servers_imported, count)
+                        } else {
+                            toastRes(Res.string.config_invalid)
+                        }
+                    }
+                    .onFailure { toastImportFailure(it) }
+            },
         )
     }
 
