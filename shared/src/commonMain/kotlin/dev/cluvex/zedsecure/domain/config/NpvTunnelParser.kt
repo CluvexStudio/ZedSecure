@@ -215,29 +215,28 @@ object NpvTunnelParser {
         val header = p.string("headerType")
         val transport = TransportConfig(
             network = network,
-            headerType = header.ifBlank { null },
+            headerType = header.takeIf { it.isNotBlank() },
             host = host.ifBlank { null },
             path = path.ifBlank { null },
-            mode = p.string("mode").ifBlank { null },
-            serviceName = p.string("serviceName").ifBlank { null },
-            authority = p.string("authority").ifBlank { null },
-            xhttpExtra = p.string("xhttpExtra").ifBlank { null },
-            finalMask = p.string("finalMask").ifBlank { p.string("fm") }.ifBlank { null },
+            mode = p.string("mode").takeIf { it.isNotBlank() },
+            serviceName = p.string("serviceName").takeIf { it.isNotBlank() },
+            authority = p.string("authority").takeIf { it.isNotBlank() },
+            xhttpExtra = p.string("xhttpExtra").takeIf { it.isNotBlank() },
+            finalMask = p.string("finalMask").ifBlank { p.string("fm") }.takeIf { it.isNotBlank() },
         )
         val tls = SecurityConfig(
             security = security,
-            sni = sni.ifBlank { null },
-            fingerprint = fp.ifBlank { null },
-            alpn = alpn.ifBlank { null },
-            publicKey = p.string("publicKey").ifBlank { p.string("pbk") }.ifBlank { null },
-            shortId = p.string("shortId").ifBlank { p.string("sid") }.ifBlank { null },
-            spiderX = p.string("spiderX").ifBlank { p.string("spx") }.ifBlank { null },
+            sni = sni.takeIf { it.isNotBlank() },
+            fingerprint = fp.takeIf { it.isNotBlank() },
+            alpn = alpn.takeIf { it.isNotBlank() },
+            publicKey = p.string("publicKey").ifBlank { p.string("pbk") }.takeIf { it.isNotBlank() },
+            shortId = p.string("shortId").ifBlank { p.string("sid") }.takeIf { it.isNotBlank() },
+            spiderX = p.string("spiderX").ifBlank { p.string("spx") }.takeIf { it.isNotBlank() },
             allowInsecure = p.boolean("allowInsecure") || p.boolean("insecure"),
-            pinnedCertSha256 = null,
         )
         val cfg = when (protocol) {
             "vless" -> ServerConfig(Protocol.VLESS, name, server, port, userId = credential,
-                encryption = p.string("encryption").ifBlank { "none" }, flow = p.string("flow").ifBlank { null },
+                encryption = p.string("encryption").ifBlank { "none" }, flow = p.string("flow").takeIf { it.isNotBlank() },
                 transport = transport, tls = tls)
             "vmess" -> ServerConfig(Protocol.VMESS, name, server, port, userId = credential,
                 alterId = p.string("alterId").toIntOrNull() ?: p.string("aid").toIntOrNull() ?: 0,
