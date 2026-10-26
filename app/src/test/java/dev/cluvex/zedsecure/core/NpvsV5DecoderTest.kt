@@ -21,10 +21,10 @@ class NpvsV5DecoderTest {
         val result = NpvsV5Decoder.decrypt(bytes, "correct horse battery staple")
 
         assertEquals(1, result.count { it == '{' } - 1) // one profile object nested in the array
-        assert(result.contains("\"name\":\"Synthetic profile\""))
-        assert(result.contains("\"server\":\"example.test\""))
-        assert(result.contains("\"serverPort\":\"443\""))
-        assert(result.contains("\"password\":\"synthetic-credential\""))
+        assertTrue(result.contains("\"name\":\"Synthetic profile\""))
+        assertTrue(result.contains("\"server\":\"example.test\""))
+        assertTrue(result.contains("\"serverPort\":\"443\""))
+        assertTrue(result.contains("\"password\":\"synthetic-credential\""))
     }
 
     @Test
