@@ -32,3 +32,18 @@ Before calling this feature production-complete, add regression fixtures that co
 - successful Android APK and AAB builds on the final commit.
 
 Live server reachability is separate from file-format parsing and must be tested against an authorized server.
+
+
+## SlipNet import (experimental)
+
+The test branch now recognizes SlipNet share URIs documented by [anonvector/SlipNet](https://github.com/anonvector/SlipNet) and cross-checks the encrypted export envelope against [FrontierTM/Pantegnos](https://github.com/FrontierTM/Pantegnos). Processing is local; the importer does not send the selected file or password to a remote service.
+
+Currently importable and runnable through this app's existing DNS tunnel controller:
+- `slipnet://` plain exports for DNSTT and VayDNS modes;
+- `slipnet-enc://` single-profile exports using SlipNet's legacy encrypted profile envelope;
+- `slipnet-bundle-enc://` password-protected bundles, with a local password prompt and retry after a wrong password;
+- optional SSH chaining fields when present in a supported DNSTT/VayDNS profile.
+
+The parser intentionally rejects Slipstream, NoizDNS, standalone SSH, NaiveProxy, Tor/Snowflake, and other modes that do not yet have a matching runnable engine in ZX-VPN. It must not silently convert these into DNSTT or VayDNS. A successful import means the profile has been stored, not that a remote server is reachable. Engine parity for those modes remains separate work.
+
+Pantegnos is AGPL-3.0 in its current releases. This branch uses it as a reference for file-format behavior and does not vendor its source tree. ZX-VPN's repository is also AGPL-3.0; retain the applicable notices when distributing builds.
