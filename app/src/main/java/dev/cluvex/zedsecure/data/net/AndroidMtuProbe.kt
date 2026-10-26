@@ -3,6 +3,7 @@ package dev.cluvex.zedsecure.data.net
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.os.Build
 import dev.cluvex.zedsecure.data.net.MtuProbe
 import dev.cluvex.zedsecure.data.net.MtuVerdict
 import java.util.concurrent.TimeUnit
@@ -18,11 +19,15 @@ object AndroidMtuProbe {
     private fun cm(context: Context): ConnectivityManager? =
         context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
 
-    private fun linkMtu(context: Context): Int? = runCatching {
+    private fun linkMtu(context: Context): Int? {
+        // LinkProperties.mtu was added in API 29; keep API 24–28 devices safe.
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return null
+        return runCatching {
         val manager = cm(context) ?: return@runCatching null
         val network = manager.activeNetwork ?: return@runCatching null
         manager.getLinkProperties(network)?.mtu?.takeIf { it in 576..9000 }
-    }.getOrNull()
+        }.getOrNull()
+    }
 
     private fun vpnActive(context: Context): Boolean = runCatching {
         val manager = cm(context) ?: return@runCatching false
