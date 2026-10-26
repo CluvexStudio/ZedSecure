@@ -37,7 +37,7 @@ class NpvTunnelParserTest {
     @Test
     fun importsLegacyNpvSubscriptionContainer() {
         val profiles = "[${wrapperJson()}]"
-        val input = "NPVTSUB1\\n" + listOf("1", profiles, "{}")
+        val input = "NPVTSUB1\n" + listOf("1", profiles, "{}")
             .mapIndexed { i, value -> encryptChunk(value, i + 11) }
             .joinToString(",")
         val parsed = NpvTunnelParser.parse(input)
