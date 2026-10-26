@@ -62,6 +62,7 @@ private data class FinderResult(
     val source: String,
     val payload: String? = null,
     val rawUrl: String? = null,
+    val parserSupported: Boolean = false,
     val note: String = "",
 )
 
@@ -151,11 +152,7 @@ fun ConfigFinderSheet(
                     .groupBy { "${it.source}| ${it.country}" }
                     .values
                     .flatMap { sourceCandidates ->
-                        sourceCandidates.sortedByDescending { candidate ->
-                            candidate.payload?.let { link ->
-                                runCatching { ConfigParser.isSupportedLink(link) }.getOrDefault(false)
-                            } == true
-                        }.take(2)
+                        sourceCandidates.sortedByDescending { candidate -> candidate.parserSupported }.take(2)
                     }
                     .groupBy { (it.payload ?: it.rawUrl ?: it.id).trim().lowercase() }
                     .values
@@ -219,6 +216,15 @@ fun ConfigFinderSheet(
             if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error)
             Text(status, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (loading) Text("در حال بررسی منابع مجاز…", style = MaterialTheme.typography.bodyMedium)
+            if (results.isNotEmpty()) {
+                val parserReady = results.count { it.parserSupported }
+                val protocolsFound = results.map { it.protocol }.distinct().size
+                Text(
+                    "خلاصهٔ نتایج: $parserReady از ${results.size} گزینه قالب قابل‌شناسایی دارند · $protocolsFound نوع پروتکل",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth().height(360.dp)) {
                 items(results, key = { it.id }) { item ->
                     Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.fillMaxWidth()) {
@@ -226,6 +232,11 @@ fun ConfigFinderSheet(
                             Text(item.name, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
                             Text("${item.protocol} · ${item.country}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                             Text(item.source, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(
+                                if (item.parserSupported) "قالب: قابل‌شناسایی توسط پارسر" else "قالب: نیازمند بررسی هنگام افزودن",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (item.parserSupported) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                             if (item.note.isNotBlank()) Text(item.note, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                                 TextButton(onClick = { item.rawUrl?.let { url -> scope.launch { runCatching { withContext(Dispatchers.IO) { httpGetResponse(url, "ZX-VPN-ConfigFinder/1.0", connectTimeoutMs = 8000, readTimeoutMs = 12000) } }.onSuccess { res -> if (res.code in 200..299) onImport(res.body.take(1_048_576)) else error = "HTTP ${res.code} هنگام دریافت فایل" }.onFailure { error = it.message?.take(200) ?: "دریافت فایل ناموفق بود" } } } }, enabled = item.rawUrl != null) { Text("دریافت و افزودن") }
@@ -254,15 +265,17 @@ private suspend fun fetchSources(sources: List<FinderSource>): List<FinderResult
                         .replace("&quot;", "\"")
                     val links = configLinkRegex.findAll(body).map { it.value.trimEnd(',', ';', '.', ')', ']', '}') }.toList()
                     links.mapIndexed { index, link ->
+                        val parserSupported = runCatching { ConfigParser.isSupportedLink(link) }.getOrDefault(false)
                         FinderResult(
-                            id = "${source.name}:${index}:${link.hashCode()}",
+                            id = "${source.url.hashCode()}:${index}:${link.hashCode()}",
                             name = "کانفیگ ${index + 1}",
                             protocol = protocolLabel(link),
                             country = source.country,
                             source = source.name,
                             payload = link,
+                            parserSupported = parserSupported,
                             note = if (
-                                runCatching { ConfigParser.isSupportedLink(link) }.getOrDefault(false) ||
+                                parserSupported ||
                                 link.startsWith("vpn://", ignoreCase = true) ||
                                 link.startsWith("ssh://", ignoreCase = true)
                             ) "شناسهٔ پروتکل شناخته شد؛ اتصال و سرعت هنوز تست نشده است."
