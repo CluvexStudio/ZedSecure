@@ -5,6 +5,7 @@ package dev.cluvex.zedsecure.ui.settings
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
@@ -31,7 +32,7 @@ fun AboutSheet(onDismiss: () -> Unit) {
             MorphingBlob(
                 progress = 0.5f,
                 brush = ZedGradients.connected,
-                modifier = Modifier.padding(bottom = 12.dp),
+                modifier = Modifier.size(96.dp),
             ) {
                 Text(
                     "Z",
