@@ -47,6 +47,10 @@ jobs:
         run: |
           umask 077
           printf '%s' "$PLAY_KEYSTORE_BASE64" | base64 -d > release.keystore
+          if ! keytool -list -keystore release.keystore -storepass "$PLAY_KEYSTORE_PASSWORD" >/dev/null 2>&1; then
+            echo "::error::PLAY_KEYSTORE_BASE64 is not a valid keystore, or PLAY_KEYSTORE_PASSWORD is incorrect. Re-upload the original Play upload keystore as Base64 and verify PLAY_KEY_ALIAS / PLAY_KEY_PASSWORD. No substitute key will be used for a Play AAB."
+            exit 1
+          fi
           { echo "storeFile=release.keystore"; echo "storePassword=$PLAY_KEYSTORE_PASSWORD"
             echo "keyPassword=$PLAY_KEY_PASSWORD"; echo "keyAlias=$PLAY_KEY_ALIAS"; } > keystore.properties
 
