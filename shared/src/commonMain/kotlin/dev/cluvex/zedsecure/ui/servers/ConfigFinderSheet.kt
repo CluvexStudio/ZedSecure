@@ -252,7 +252,8 @@ fun ConfigFinderSheet(
                         }
                 fetchSources(sources)
             }
-            outcome.onSuccess { found ->
+            outcome.onSuccess { fetched ->
+                val found = fetched.results
                 val q = query.trim().lowercase()
                 results = found
                     .filter { protocolFilter == "همه پروتکل‌ها" || it.protocol.contains(protocolFilter, ignoreCase = true) }
@@ -272,7 +273,16 @@ fun ConfigFinderSheet(
                     }
                     .sortedWith(compareByDescending<FinderResult> { it.parserSupported }.thenBy { it.country }.thenBy { it.protocol })
                     .take(300)
-                status = if (results.isEmpty()) "نتیجه‌ای پیدا نشد؛ کشور یا دستهٔ دیگری را امتحان کن." else "تعداد گزینه‌ها: ${results.size} — حداکثر ۲ گزینه از هر فهرست؛ سالم‌بودن و سرعت واقعی هنوز با اتصال تست نشده است."
+                status = when {
+                    results.isEmpty() && fetched.failedSources == fetched.totalSources ->
+                        "هیچ‌کدام از منابع پاسخ ندادند؛ اتصال اینترنت را بررسی کن و دوباره جست‌وجو کن. (${fetched.failedSources}/${fetched.totalSources} منبع ناموفق)"
+                    results.isEmpty() ->
+                        "نتیجه‌ای پیدا نشد؛ کشور یا دستهٔ دیگری را امتحان کن. منابع ناموفق: ${fetched.failedSources} از ${fetched.totalSources}."
+                    fetched.failedSources > 0 ->
+                        "تعداد گزینه‌ها: ${results.size} — ${fetched.failedSources} از ${fetched.totalSources} منبع پاسخ نداد؛ نتیجه ناقص است. حداکثر ۲ گزینه از هر فهرست؛ سرعت واقعی تضمین نشده است."
+                    else ->
+                        "تعداد گزینه‌ها: ${results.size} — همهٔ ${fetched.totalSources} منبع پاسخ دادند؛ حداکثر ۲ گزینه از هر فهرست. سالم‌بودن و سرعت واقعی هنوز با اتصال تست نشده است."
+                }
             }.onFailure {
                 error = it.message?.take(240) ?: "خواندن منابع ناموفق بود."
             }
@@ -475,20 +485,40 @@ private fun profileForLatencyProbe(candidate: FinderResult): VpnProfile? {
     )
 }
 
-private suspend fun fetchSources(sources: List<FinderSource>): List<FinderResult> = coroutineScope {
+private data class SourceFetchResult(
+    val results: List<FinderResult>,
+    val failed: Boolean,
+)
+
+private data class FetchSourcesResult(
+    val results: List<FinderResult>,
+    val failedSources: Int,
+    val totalSources: Int,
+)
+
+private suspend fun fetchSources(sources: List<FinderSource>): FetchSourcesResult = coroutineScope {
     val semaphore = Semaphore(4)
-    sources.map { source ->
+    val outcomes = sources.map { source ->
         async(Dispatchers.IO) {
             semaphore.withPermit {
-                runCatching {
-                    val response = httpGetResponse(source.url, "ZX-VPN-ConfigFinder/1.0", connectTimeoutMs = 8000, readTimeoutMs = 12000)
-                    if (response.code !in 200..299) return@withPermit emptyList()
+                try {
+                    val response = httpGetResponse(
+                        source.url,
+                        "ZX-VPN-ConfigFinder/1.0",
+                        connectTimeoutMs = 8000,
+                        readTimeoutMs = 12000,
+                    )
+                    if (response.code !in 200..299) {
+                        return@withPermit SourceFetchResult(emptyList(), failed = true)
+                    }
                     val body = response.body.take(512 * 1024)
                         .replace("&amp;", "&")
                         .replace("&#x2F;", "/")
-                        .replace("&quot;", "\"")
-                    val links = configLinkRegex.findAll(body).map { it.value.trimEnd(',', ';', '.', ')', ']', '}') }.toList()
-                    links.mapIndexed { index, link ->
+                        .replace("&quot;", "\\"")
+                    val links = configLinkRegex.findAll(body)
+                        .map { it.value.trimEnd(',', ';', '.', ')', ']', '}') }
+                        .toList()
+                    val parsed = links.mapIndexed { index, link ->
                         val parserSupported = runCatching { ConfigParser.isSupportedLink(link) }.getOrDefault(false)
                         FinderResult(
                             id = "${source.url.hashCode()}:${index}:${link.hashCode()}",
@@ -506,10 +536,21 @@ private suspend fun fetchSources(sources: List<FinderSource>): List<FinderResult
                             else "سازگاری نهایی هنگام افزودن توسط پارسر بومی بررسی می‌شود.",
                         )
                     }
-                }.getOrDefault(emptyList())
+                    SourceFetchResult(parsed, failed = false)
+                } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                    throw cancelled
+                } catch (_: Exception) {
+                    SourceFetchResult(emptyList(), failed = true)
+                }
             }
         }
-    }.awaitAll().flatten()
+    }.awaitAll()
+
+    FetchSourcesResult(
+        results = outcomes.flatMap { it.results },
+        failedSources = outcomes.count { it.failed },
+        totalSources = sources.size,
+    )
 }
 
 private fun protocolLabel(link: String): String {
