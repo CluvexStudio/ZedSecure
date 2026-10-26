@@ -1295,6 +1295,7 @@ fun ServersScreen(
                 repository.importText(text)
                     .onSuccess { count ->
                         val addedProfile = repository.profiles.value.firstOrNull { it.id !in previousIds }
+                            ?: repository.profiles.value.firstOrNull { it.rawPayload() == text }
                         if (count > 0 && addedProfile != null) {
                             repository.setActive(addedProfile.id)
                             onServerActivated()
