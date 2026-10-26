@@ -21,7 +21,6 @@ import dev.cluvex.zedsecure.domain.config.RuleGroup
 import dev.cluvex.zedsecure.domain.config.SniSpoofLink
 import dev.cluvex.zedsecure.domain.config.ZedLink
 import dev.cluvex.zedsecure.domain.config.ConfigParser
-import dev.cluvex.zedsecure.domain.config.NpvTunnelParser
 import dev.cluvex.zedsecure.domain.config.SlipNetConfigParser
 import dev.cluvex.zedsecure.domain.config.AwgConfig
 import dev.cluvex.zedsecure.domain.config.ShareLink
@@ -96,25 +95,6 @@ class ConfigRepository(private val store: KeyValueStore) {
         if (slipNetProfiles != null) {
             slipNetProfiles.forEach { item -> addDnsTunnel(item.settings, item.name) }
             return@runCatching slipNetProfiles.size
-        }
-
-        val npvProfiles = NpvTunnelParser.parse(trimmed)
-        if (npvProfiles != null) {
-            var added = 0
-            var lastError: Throwable? = null
-            npvProfiles.forEach { item ->
-                runCatching {
-                    if (!item.rawJson.isNullOrBlank()) {
-                        addRawJson(item.rawJson, name = item.name, subscriptionId = subscriptionId).getOrThrow()
-                    } else {
-                        importText(item.link ?: throw IllegalArgumentException("NPV profile has no importable payload"), subscriptionId).getOrThrow()
-                    }
-                }.onSuccess { added++ }.onFailure { lastError = it }
-            }
-            if (added == 0) {
-                throw IllegalArgumentException(lastError?.message ?: "NPV Tunnel file contains no importable profiles")
-            }
-            return@runCatching added
         }
 
         val sshLines = trimmed.lines().map { it.trim() }.filter { SshLink.isSshLink(it) }
@@ -198,25 +178,6 @@ class ConfigRepository(private val store: KeyValueStore) {
                 ?.let { add(it) }
             add(trimmed)
         }.distinct()
-
-        bodies.forEach { body ->
-            if (NpvTunnelParser.isNpvText(body)) {
-                val profiles = NpvTunnelParser.parse(body) ?: return@forEach
-                var added = 0
-                var lastError: Throwable? = null
-                profiles.forEach { item ->
-                    runCatching {
-                        if (!item.rawJson.isNullOrBlank()) {
-                            addRawJson(item.rawJson, name = item.name, subscriptionId = subscriptionId).getOrThrow()
-                        } else {
-                            importText(item.link ?: throw IllegalArgumentException("NPV profile has no importable payload"), subscriptionId).getOrThrow()
-                        }
-                    }.onSuccess { added++ }.onFailure { lastError = it }
-                }
-                if (added > 0) return@runCatching added
-                throw IllegalArgumentException(lastError?.message ?: "NPV Tunnel file contains no importable profiles")
-            }
-        }
 
         bodies.forEach { body ->
 
