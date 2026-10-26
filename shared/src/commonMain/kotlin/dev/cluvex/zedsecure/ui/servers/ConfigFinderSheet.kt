@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -412,7 +413,7 @@ fun ConfigFinderSheet(
                 onDismissRequest = { selectedResult = null },
                 title = { Text(item.name, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis) },
                 text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(item.protocol, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
                         FinderInfoLine("میزبان", selectedHost ?: profile?.address ?: "قالب هنوز قابل‌تجزیه نیست")
                         FinderInfoLine("پورت", (selectedPort ?: profile?.port)?.toString() ?: "نامشخص")
