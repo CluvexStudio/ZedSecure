@@ -193,6 +193,25 @@ class ConfigRepository(private val store: KeyValueStore) {
         }.distinct()
 
         bodies.forEach { body ->
+            if (NpvTunnelParser.isNpvText(body)) {
+                val profiles = NpvTunnelParser.parse(body) ?: return@forEach
+                var added = 0
+                var lastError: Throwable? = null
+                profiles.forEach { item ->
+                    runCatching {
+                        if (!item.rawJson.isNullOrBlank()) {
+                            addRawJson(item.rawJson, name = item.name, subscriptionId = subscriptionId).getOrThrow()
+                        } else {
+                            importText(item.link ?: throw IllegalArgumentException("NPV profile has no importable payload"), subscriptionId).getOrThrow()
+                        }
+                    }.onSuccess { added++ }.onFailure { lastError = it }
+                }
+                if (added > 0) return@runCatching added
+                throw IllegalArgumentException(lastError?.message ?: "NPV Tunnel file contains no importable profiles")
+            }
+        }
+
+        bodies.forEach { body ->
 
             importSingBoxJson(body, subscriptionId)?.let { return@runCatching it }
         }
