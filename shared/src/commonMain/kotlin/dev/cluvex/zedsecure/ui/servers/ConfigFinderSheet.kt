@@ -120,6 +120,7 @@ fun ConfigFinderSheet(
     var category by remember { mutableStateOf("همه منابع") }
     var country by remember { mutableStateOf("همه کشورها") }
     var protocolFilter by remember { mutableStateOf("همه پروتکل‌ها") }
+    var onlyParserSupported by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(false) }
     var results by remember { mutableStateOf<List<FinderResult>>(emptyList()) }
@@ -146,6 +147,7 @@ fun ConfigFinderSheet(
                 val q = query.trim().lowercase()
                 results = found
                     .filter { protocolFilter == "همه پروتکل‌ها" || it.protocol.contains(protocolFilter, ignoreCase = true) }
+                    .filter { !onlyParserSupported || it.parserSupported }
                     .filter { q.isEmpty() || listOf(it.name, it.protocol, it.country, it.source, it.note).any { s -> s.lowercase().contains(q) } }
                     // Keep at most two parser-compatible candidates per individual source list.
                     // This is a syntax/compatibility preference, not a claim that latency or safety was measured.
@@ -199,6 +201,11 @@ fun ConfigFinderSheet(
                     }
                 }
             }
+            FilterChip(
+                selected = onlyParserSupported,
+                onClick = { onlyParserSupported = !onlyParserSupported },
+                label = { Text("فقط قالب‌های قابل‌شناسایی") },
+            )
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it },
