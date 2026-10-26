@@ -21,6 +21,7 @@ class SlipNetConfigParserTest {
         assertEquals("t.example.test", parsed.single().settings.domain)
         assertEquals("dns.example.test:53", parsed.single().settings.resolvers)
         assertEquals("pubkey-test", parsed.single().settings.publicKey)
+        assertTrue(parsed.single().settings.dnsttCompat)
     }
 
     @Test
@@ -33,6 +34,17 @@ class SlipNetConfigParserTest {
         assertEquals(96, settings.maxQnameLen)
         assertEquals(5.0, settings.rps)
         assertEquals(7, settings.rrSpreadCount)
+        assertTrue(settings.dnsttCompat)
+        assertEquals(90, settings.dnsPayloadSize)
+    }
+
+    @Test
+    fun rejectsLockedProfilesUntilTheirLockPolicyCanBeEnforced() {
+        val locked = profile(mode = "dnstt").split("|").toMutableList().also { it[31] = "1" }.joinToString("|")
+        val error = assertFailsWith<IllegalArgumentException> {
+            SlipNetConfigParser.parse("slipnet://${encode(locked)}")
+        }
+        assertTrue(error.message.orEmpty().contains("profile lock"))
     }
 
     @Test
@@ -58,7 +70,7 @@ class SlipNetConfigParserTest {
     }
 
     private fun profile(mode: String): String {
-        val fields = MutableList(78) { "" }
+        val fields = MutableList(80) { "" }
         fields[0] = "v28"
         fields[1] = mode
         fields[2] = "Test ${mode.uppercase()}"
@@ -68,13 +80,13 @@ class SlipNetConfigParserTest {
         fields[11] = "pubkey-test"
         fields[22] = "udp"
         fields[27] = "1"
-        fields[38] = "90"
-        fields[40] = "0"
-        fields[41] = "cname"
-        fields[42] = "96"
-        fields[43] = "5"
-        fields[59] = "roundrobin"
-        fields[60] = "7"
+        fields[39] = "90"
+        fields[41] = "1"
+        fields[42] = "cname"
+        fields[43] = "96"
+        fields[44] = "5"
+        fields[61] = "roundrobin"
+        fields[62] = "7"
         return fields.joinToString("|")
     }
 
