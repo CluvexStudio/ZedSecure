@@ -44,6 +44,9 @@ jobs:
         id: v
         run: echo "name=$(grep '^zedsecure.versionName=' gradle.properties | cut -d= -f2)" >> "$GITHUB_OUTPUT"
 
+      - name: Test shared configuration parsers
+        run: ./gradlew :shared:desktopTest
+
       - name: Take every engine from its own build
         run: ./tools/get-cores.sh android
 
