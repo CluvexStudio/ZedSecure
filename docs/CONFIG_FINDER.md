@@ -85,3 +85,15 @@ Provider adapters should return a common record with source ID, canonical source
 ## Current delivery boundary
 
 The Lovable prototype is a separate companion project and currently blocked by workspace credits. The feature branch now includes a native Compose entry under Servers → + → Add, direct reads from the user-provided public raw configuration lists, Telegram public-preview attempts for hddify/mitivpn, and a GitHub repository-tree scan for NPV-related paths. Real connection/throughput tests remain delegated to the existing native engine after import. CI and Android-device verification are still required; this branch has not been merged into main.
+
+## User-network-aware ranking (next required stage)
+
+The current Config Finder searches public source lists; it does **not** yet know which candidate is fastest on the user's current Wi-Fi/mobile network. Source labels such as "fast", "best", and "verified" must never be presented as measured results.
+
+To complete adaptive discovery safely:
+- Keep source discovery separate from network testing. First parse, validate, and deduplicate candidates.
+- Add an explicit "Test for my network" action that invokes the existing native VPN engine's supported connection/latency test for each selected candidate, with bounded concurrency, per-candidate timeout, cancellation, and a clear last-tested timestamp.
+- Rank only candidates with actual measured results for the current network session. Show latency and test status separately; do not equate latency with throughput or guarantee that a low-latency node has high download speed.
+- If a native throughput test is supported by the engine, make it opt-in and bounded; otherwise label throughput "not measured". Never measure the speed of a GitHub raw-file download and misrepresent it as VPN speed.
+- When the network changes (Wi-Fi/mobile), expire prior rankings and retest. If network type cannot be reliably read on a platform, say so and let the user start a fresh test manually.
+- Keep all testing opt-in, avoid logging config secrets, and never connect to a candidate without the user's explicit action.
