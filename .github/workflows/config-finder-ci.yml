@@ -1,10 +1,24 @@
 name: config-finder-check
 
 on:
-  push:
-    branches: [feat/config-finder-spec]
+  pull_request:
+    branches: [main]
     paths:
+      - 'app/**'
       - 'shared/**'
+      - 'desktop/**'
+      - 'gradle/**'
+      - 'gradlew'
+      - 'settings.gradle.kts'
+      - 'build.gradle.kts'
+      - 'gradle.properties'
+      - '.github/workflows/config-finder-ci.yml'
+  push:
+    branches: [feat/config-finder-spec, feat/config-finder-native]
+    paths:
+      - 'app/**'
+      - 'shared/**'
+      - 'desktop/**'
       - 'gradle/**'
       - 'gradlew'
       - 'settings.gradle.kts'
@@ -16,9 +30,9 @@ permissions:
   contents: read
 
 jobs:
-  shared-tests:
+  android-and-shared:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-java@v6
@@ -26,5 +40,7 @@ jobs:
           distribution: temurin
           java-version: "21"
       - uses: gradle/actions/setup-gradle@v5
+      - name: Compile Android debug APK
+        run: ./gradlew --no-daemon :app:assembleDebug
       - name: Compile shared code and run parser tests
         run: ./gradlew --no-daemon :shared:desktopTest
