@@ -1105,20 +1105,23 @@ fun ServersScreen(
     slipNetBundlePrompt?.let { bundleText ->
         val importBundle = {
             val suppliedPassword = slipNetBundlePassword
-            slipNetBundlePrompt = null
-            slipNetBundlePassword = ""
             scope.launch {
                 val result = withContext(kotlinx.coroutines.Dispatchers.Default) {
                     repository.importText(bundleText, importPassword = suppliedPassword)
                 }
                 result.onSuccess { count ->
+                    slipNetBundlePrompt = null
+                    slipNetBundlePassword = ""
                     if (count > 0) {
                         platform.toast(getString(Res.string.servers_imported, count))
                         onServerActivated()
                     } else {
                         toastRes(Res.string.config_invalid)
                     }
-                }.onFailure { toastImportFailure(it) }
+                }.onFailure { error ->
+                    // Keep the dialog open so the user can correct a mistyped password and retry.
+                    platform.toast(error.message ?: "Wrong password or invalid SlipNet bundle")
+                }
             }
             Unit
         }
