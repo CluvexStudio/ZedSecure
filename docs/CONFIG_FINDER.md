@@ -88,7 +88,7 @@ The Lovable prototype is a separate companion project and currently blocked by w
 
 ## User-network-aware ranking (next required stage)
 
-The current Config Finder searches public source lists; it does **not** yet know which candidate is fastest on the user's current Wi-Fi/mobile network. Source labels such as "fast", "best", and "verified" must never be presented as measured results.
+The current Config Finder searches public source lists and limits the visible results to at most two parser-compatible candidates per individual source list (after applying the user's filters). This is a format-compatibility preference only; it does **not** establish that a candidate is reachable, safe, or fastest on the user's current Wi-Fi/mobile network. Source labels such as "fast", "best", and "verified" must never be presented as measured results.
 
 To complete adaptive discovery safely:
 - Keep source discovery separate from network testing. First parse, validate, and deduplicate candidates.
@@ -103,3 +103,12 @@ To complete adaptive discovery safely:
 
 - NPV/NPVT support is not wanted and must remain excluded from Config Finder: no NPV category, protocol filter, URI matching, repository scan, parser integration, or import action.
 - Do not reintroduce NPV as part of future source-provider or adaptive-ranking work. Keep this feature limited to the other supported configuration formats.
+
+
+## Per-source candidate selection
+
+- The current UI is reachable from Servers → + → Add → کانفینگ‌یاب (Config Finder).
+- Preserve the user-provided country, Reality/Best/Iran, Hysteria2/Fast/Verified, Top5/Top5 Speed/Top100/Top500, and public Telegram source lists.
+- Show at most two candidates per source list, preferring links accepted by the existing ConfigParser. This is a preliminary syntax compatibility filter, not a health or speed test.
+- Never label a candidate as healthy/fastest until it has passed an explicit native-engine connection test; latency and throughput must remain separate measurements.
+- NPV/NPVT remains explicitly excluded from Config Finder.
