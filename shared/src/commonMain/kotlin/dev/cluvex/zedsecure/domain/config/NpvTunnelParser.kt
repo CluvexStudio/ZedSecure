@@ -37,6 +37,7 @@ object NpvTunnelParser {
     fun isNpvText(text: String): Boolean {
         val raw = text.trimStart().removePrefix("\uFEFF")
         return raw.startsWith("NPVT1", ignoreCase = true) ||
+            raw.startsWith("NPVTSUB1", ignoreCase = true) ||
             raw.startsWith("NPVO1", ignoreCase = true) ||
             raw.startsWith("npvt://", ignoreCase = true) ||
             looksLikeProfileJson(raw)
@@ -64,7 +65,10 @@ object NpvTunnelParser {
             require(profiles.isNotEmpty()) { "NPVO1 contains no supported NPV profiles" }
             return profiles
         }
-        if (raw.startsWith("NPVT1") || raw.startsWith("npvt://", ignoreCase = true)) {
+        if (raw.startsWith("NPVT1", ignoreCase = true) ||
+            raw.startsWith("NPVTSUB1", ignoreCase = true) ||
+            raw.startsWith("npvt://", ignoreCase = true)
+        ) {
             return parseNpvt(raw)
         }
 
@@ -115,6 +119,7 @@ object NpvTunnelParser {
 
     private fun parseNpvt(raw: String): List<Profile> {
         val body = raw.replaceFirst(Regex("^npvt://", RegexOption.IGNORE_CASE), "")
+            .replaceFirst(Regex("^NPVTSUB1\\s*[:=,\\-]?\\s*", RegexOption.IGNORE_CASE), "")
             .replaceFirst(Regex("^NPVT1\\s*[:=,\\-]?\\s*", RegexOption.IGNORE_CASE), "")
             .trim()
         require(body.isNotBlank()) { "NPVT1 container is empty" }
