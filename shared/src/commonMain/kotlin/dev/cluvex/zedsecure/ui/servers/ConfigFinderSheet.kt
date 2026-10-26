@@ -135,7 +135,7 @@ fun ConfigFinderSheet(
     onImport: (String) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
-    var category by remember { mutableStateOf("کشوری") }
+    var category by remember { mutableStateOf("همه منابع") }
     var country by remember { mutableStateOf("همه کشورها") }
     var protocolFilter by remember { mutableStateOf("همه پروتکل‌ها") }
     var query by remember { mutableStateOf("") }
@@ -158,6 +158,7 @@ fun ConfigFinderSheet(
                             "کشوری" -> countrySources.filter { country == "همه کشورها" || it.country == country }
                             "سرعتی" -> speedSources
                             "تلگرام" -> telegramSources
+                            "همه منابع" -> countrySources + speedSources + telegramSources
                             else -> countrySources + speedSources + telegramSources
                         }
                         fetchSources(sources)
@@ -189,9 +190,9 @@ fun ConfigFinderSheet(
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Text("کانفینگ‌یاب", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            Text("جست‌وجوی منابع عمومی؛ قبل از افزودن، هر کانفیگ را بررسی کن.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("جست‌وجوی هم‌زمان منابع کشوری، فهرست‌های سرعتی و کانال‌های عمومی. برچسب Fast/Best تضمین سرعت نیست؛ سرعت واقعی باید با موتور اتصال خود برنامه و روی اینترنت فعلی سنجیده شود.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                listOf("کشوری", "سرعتی", "تلگرام", "NPV / مخازن").forEach { item ->
+                listOf("همه منابع", "کشوری", "سرعتی", "تلگرام", "NPV / مخازن").forEach { item ->
                     FilterChip(selected = category == item, onClick = { category = item }, label = { Text(item) })
                 }
             }
@@ -223,7 +224,11 @@ fun ConfigFinderSheet(
             )
             Button(onClick = { search() }, enabled = !loading, modifier = Modifier.fillMaxWidth()) {
                 if (loading) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
-                else Text(if (category == "NPV / مخازن") "پیدا کردن فایل‌های NPV در GitHub" else "جست‌وجوی منابع")
+                else Text(when (category) {
+                    "NPV / مخازن" -> "پیدا کردن فایل‌های NPV در GitHub"
+                    "همه منابع" -> "جست‌وجوی هم‌زمان همه منابع"
+                    else -> "جست‌وجوی منابع"
+                })
             }
             if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error)
             Text(status, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
