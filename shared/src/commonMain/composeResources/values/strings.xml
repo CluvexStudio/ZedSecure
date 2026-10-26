@@ -6,6 +6,7 @@
     <string name="nav_servers">Servers</string>
 
     <string name="servers_count">%1$d servers</string>
+    <string name="config_finder_title">Config Finder</string>
     <string name="servers_add">Add server</string>
     <string name="servers_add_clipboard">Import from clipboard</string>
     <string name="servers_add_manual">Add manually (Xray)</string>
