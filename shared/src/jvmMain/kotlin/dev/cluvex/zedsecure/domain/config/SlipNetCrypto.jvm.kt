@@ -19,6 +19,7 @@ actual object SlipNetCrypto {
     actual fun decryptLegacy(payload: String): String {
         val data = decode(payload)
         require(data.size >= 1 + GCM_NONCE_BYTES + 16) { "Encrypted SlipNet profile is truncated" }
+        require(data[0].toInt() and 0xff == 1) { "Unsupported encrypted SlipNet profile version" }
         val nonce = data.copyOfRange(1, 1 + GCM_NONCE_BYTES)
         val ciphertext = data.copyOfRange(1 + GCM_NONCE_BYTES, data.size)
         return runCatching { aesGcm(legacyKey, nonce, ciphertext) }
