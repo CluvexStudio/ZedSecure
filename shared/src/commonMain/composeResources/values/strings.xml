@@ -1464,4 +1464,5 @@
     <string name="home_design_pixel">Pixel</string>
     <string name="pixel_tap_cancel">Tap to cancel</string>
     <string name="pixel_other_server">Other server</string>
+    <string name="npv_encrypted_file_needs_unlock">NPVS v%1$d is encrypted (%2$s). This variant needs its authorized unlock adapter before it can be imported.</string>
 </resources>
