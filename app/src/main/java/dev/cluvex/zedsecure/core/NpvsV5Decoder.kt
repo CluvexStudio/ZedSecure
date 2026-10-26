@@ -148,11 +148,46 @@ internal object NpvsV5Decoder {
 
     private fun fieldText(bytes: ByteArray): String {
         val raw = bytes.decodeToString(throwOnInvalidSequence = false).trim().trimEnd('\u0000')
-        if (raw.length >= 2 && raw.first() == '"' && raw.last() == '"') {
+        val unquoted = if (raw.length >= 2 && raw.first() == '"' && raw.last() == '"') {
             val parsed = runCatching { json.parseToJsonElement(raw) as? JsonPrimitive }.getOrNull()
-            if (parsed != null && parsed.isString) return parsed.content
+            if (parsed != null && parsed.isString) parsed.content else raw
+        } else raw
+        return decodeSentinels(unquoted)
+    }
+
+    private fun decodeSentinels(input: String): String {
+        val prefix = "npvs1:"
+        val alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=_-"
+        var remaining = input
+        val out = StringBuilder()
+        while (true) {
+            val marker = remaining.indexOf(prefix)
+            if (marker < 0) {
+                out.append(remaining)
+                return out.toString()
+            }
+            out.append(remaining.substring(0, marker))
+            remaining = remaining.substring(marker + prefix.length)
+            var tokenEnd = 0
+            while (tokenEnd < remaining.length && remaining[tokenEnd] in alphabet) tokenEnd++
+            if (tokenEnd == 0) {
+                out.append(prefix)
+                if (remaining.isNotEmpty()) {
+                    out.append(remaining[0])
+                    remaining = remaining.substring(1)
+                }
+                continue
+            }
+            val token = remaining.substring(0, tokenEnd)
+            remaining = remaining.substring(tokenEnd)
+            val decoded = runCatching {
+                val normalized = token.replace('-', '+').replace('_', '/')
+                val padded = normalized + "=".repeat((4 - normalized.length % 4) % 4)
+                java.util.Base64.getDecoder().decode(padded)
+            }.getOrNull()
+            if (decoded == null) out.append(prefix).append(token)
+            else out.append(decoded.decodeToString(throwOnInvalidSequence = false))
         }
-        return raw
     }
 
     private fun chachaOpen(key: ByteArray, nonce: ByteArray, ciphertext: ByteArray, aad: ByteArray): ByteArray {
