@@ -81,7 +81,10 @@ object SlipNetConfigParser {
         require(domain.isNotBlank()) { "SlipNet profile is missing its DNS tunnel domain" }
         require(publicKey.isNotBlank()) { "SlipNet profile is missing the DNSTT public key" }
 
-        val resolvers = value(4).split(',').map { raw ->
+        require(!flag(31)) { "This SlipNet profile has a profile lock; importing it without enforcing its lock would bypass its protection. Unlock/export it without a profile lock first." }
+
+        val resolverField = value(4).ifBlank { if (flag(36)) value(37) else "" }
+        val resolvers = resolverField.split(',').map { raw ->
             val item = raw.trim()
             if (item.isBlank()) return@map ""
             // SlipNet serializes resolver entries as host:port:authoritative.
@@ -106,24 +109,24 @@ object SlipNetConfigParser {
             engine = engine,
             domain = domain,
             publicKey = publicKey,
-            dnsttCompat = flag(40),
+            dnsttCompat = flag(41),
             dnsTransport = transport,
             resolvers = resolvers,
             dohUrl = value(21),
-            resolverMode = if (value(59).equals("roundrobin", true) || value(59) == "1") {
+            resolverMode = if (version >= 23 && (value(61).equals("roundrobin", true) || value(61) == "1")) {
                 DnsTunnelProfile.MODE_ROUND_ROBIN
             } else DnsTunnelProfile.MODE_FANOUT,
-            rrSpreadCount = number(60, 3),
+            rrSpreadCount = number(if (version >= 23) 62 else -1, 3),
             authoritative = flag(27),
-            dnsPayloadSize = number(38, 100),
-            recordType = value(41).ifBlank { "txt" }.lowercase(),
-            maxQnameLen = number(42, 101),
-            rps = decimal(43, 0.0),
-            idleTimeout = number(44, 0),
-            keepalive = number(45, 0),
-            udpTimeout = number(46, 0),
-            maxNumLabels = number(47, 0),
-            clientIdSize = number(48, 0),
+            dnsPayloadSize = number(39, 100),
+            recordType = value(42).ifBlank { "txt" }.lowercase(),
+            maxQnameLen = number(43, 101),
+            rps = decimal(44, 0.0),
+            idleTimeout = number(45, 0),
+            keepalive = number(46, 0),
+            udpTimeout = number(47, 0),
+            maxNumLabels = number(48, 0),
+            clientIdSize = number(49, 0),
             socksUser = value(12),
             socksPass = value(13),
             sshEnabled = flag(14) || mode.endsWith("_ssh"),
