@@ -1465,5 +1465,9 @@
     <string name="home_design_pixel">Pixel</string>
     <string name="pixel_tap_cancel">Tap to cancel</string>
     <string name="pixel_other_server">Other server</string>
+    <string name="npvs_passphrase_title">Unlock NPV Tunnel file</string>
+    <string name="npvs_passphrase_body">Enter the creator passphrase for %1$s. Decryption and import happen locally on this device.</string>
+    <string name="npvs_passphrase_label">Creator passphrase</string>
+    <string name="npvs_passphrase_import">Unlock and import</string>
     <string name="npv_encrypted_file_needs_unlock">NPVS v%1$d is encrypted (%2$s). This variant needs its authorized unlock adapter before it can be imported.</string>
 </resources>
