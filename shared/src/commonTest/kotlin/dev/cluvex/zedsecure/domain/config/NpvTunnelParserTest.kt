@@ -94,6 +94,49 @@ class NpvTunnelParserTest {
     }
 
     @Test
+    fun inspectsAppKeyNpvsEnvelopeWithoutClaimingDecryption() {
+        val headerLength = 169
+        val bodyOffset = 9 + headerLength
+        val bytes = ByteArray(bodyOffset + 16 + 32 + 64)
+        bytes[0] = 'N'.code.toByte()
+        bytes[1] = 'P'.code.toByte()
+        bytes[2] = 'V'.code.toByte()
+        bytes[3] = 'S'.code.toByte()
+        bytes[4] = 5
+        putUInt32(bytes, 5, headerLength)
+        bytes[9] = 1
+        bytes[59] = 2
+        putUInt32(bytes, 9 + 131, 16)
+        putUInt32(bytes, bodyOffset + 12, 32)
+
+        val info = NpvTunnelParser.inspectNpvs(bytes)
+        assertNotNull(info)
+        assertEquals(5, info.version)
+        assertEquals("app key", info.unlockMethod)
+    }
+
+    @Test
+    fun rejectsRecipientKeyNpvsEnvelopeWithoutRecipients() {
+        val headerLength = 169
+        val bodyOffset = 9 + headerLength
+        val bytes = ByteArray(bodyOffset + 16 + 32 + 64)
+        bytes[0] = 'N'.code.toByte()
+        bytes[1] = 'P'.code.toByte()
+        bytes[2] = 'V'.code.toByte()
+        bytes[3] = 'S'.code.toByte()
+        bytes[4] = 5
+        putUInt32(bytes, 5, headerLength)
+        bytes[9] = 1
+        bytes[59] = 0
+        putUInt32(bytes, 9 + 131, 16)
+        putUInt32(bytes, bodyOffset + 12, 32)
+
+        assertFailsWith<IllegalArgumentException> {
+            NpvTunnelParser.inspectNpvs(bytes)
+        }
+    }
+
+    @Test
     fun rejectsMalformedNpvtRatherThanTreatingItAsARegularLink() {
         assertFailsWith<IllegalArgumentException> {
             NpvTunnelParser.parse("NPVT1\nnot-a-valid-container")
