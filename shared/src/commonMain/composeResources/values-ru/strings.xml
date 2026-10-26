@@ -1465,4 +1465,5 @@
     <string name="home_design_pixel">Pixel</string>
     <string name="pixel_tap_cancel">Нажмите, чтобы отменить</string>
     <string name="pixel_other_server">Другой сервер</string>
+    <string name="npv_encrypted_file_needs_unlock">Файл NPVS версии %1$d зашифрован (%2$s). Для импорта этой версии нужна поддержка её разрешённого способа разблокировки.</string>
 </resources>
