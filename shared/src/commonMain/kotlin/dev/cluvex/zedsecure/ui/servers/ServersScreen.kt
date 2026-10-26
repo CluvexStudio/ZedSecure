@@ -195,8 +195,6 @@ fun ServersScreen(
     var ovpnPrompt by remember { mutableStateOf<OvpnPrompt?>(null) }
     var slipNetBundlePrompt by remember { mutableStateOf<String?>(null) }
     var slipNetBundlePassword by remember { mutableStateOf("") }
-    var npvsUnlockFile by remember { mutableStateOf<dev.cluvex.zedsecure.ui.platform.FilePick?>(null) }
-    var npvsPassphrase by remember { mutableStateOf("") }
 
     suspend fun offerObfuscationAfter(block: suspend () -> Unit) {
         val before = repository.profiles.value.map { it.id }.toSet()
@@ -228,27 +226,6 @@ fun ServersScreen(
     fun importFromFile() {
         scope.launch {
             val picked = platform.pickFileBytes() ?: return@launch
-            val npvsInfo = runCatching {
-                dev.cluvex.zedsecure.domain.config.NpvTunnelParser.inspectNpvs(picked.bytes)
-            }.getOrElse { e ->
-                platform.toast(e.message ?: getString(Res.string.config_invalid))
-                return@launch
-            }
-            if (npvsInfo != null) {
-                if (npvsInfo.unlockMethod.startsWith("creator passphrase", ignoreCase = true)) {
-                    npvsUnlockFile = picked
-                    npvsPassphrase = ""
-                } else {
-                    platform.toast(
-                        getString(
-                            Res.string.npv_encrypted_file_needs_unlock,
-                            npvsInfo.version,
-                            npvsInfo.unlockMethod,
-                        ),
-                    )
-                }
-                return@launch
-            }
             val text = picked.bytes.decodeToString()
             if (text.isBlank()) {
                 toastRes(Res.string.config_invalid)
@@ -1163,72 +1140,6 @@ fun ServersScreen(
                 TextButton(onClick = {
                     slipNetBundlePrompt = null
                     slipNetBundlePassword = ""
-                }) { Text(stringResource(Res.string.action_cancel)) }
-            },
-        )
-    }
-
-    npvsUnlockFile?.let { file ->
-        val importNpvs = {
-            val selected = file
-            val password = npvsPassphrase
-            scope.launch {
-                val decoded = runCatching {
-                    withContext(kotlinx.coroutines.Dispatchers.Default) {
-                        platform.unlockNpvsV5(selected.bytes, password)
-                    }
-                }
-                decoded.onFailure { platform.toast(it.message ?: "Unable to unlock this NPVS file") }
-                decoded.getOrNull()?.let { text ->
-                    withContext(kotlinx.coroutines.Dispatchers.Default) {
-                        repository.importPasted(text)
-                    }.onSuccess { result ->
-                        npvsUnlockFile = null
-                        npvsPassphrase = ""
-                        when {
-                            result.count > 0 -> {
-                                platform.toast(getString(Res.string.servers_imported, result.count))
-                                onServerActivated()
-                            }
-                            result.duplicates > 0 -> platform.toast(getString(Res.string.servers_already_added, result.duplicates))
-                            else -> toastRes(Res.string.config_invalid)
-                        }
-                    }.onFailure { platform.toast(it.message ?: getString(Res.string.config_invalid)) }
-                }
-            }
-            Unit
-        }
-        AlertDialog(
-            onDismissRequest = {
-                npvsUnlockFile = null
-                npvsPassphrase = ""
-            },
-            title = { Text(stringResource(Res.string.npvs_passphrase_title)) },
-            text = {
-                Column {
-                    Text(stringResource(Res.string.npvs_passphrase_body, file.name))
-                    Spacer(Modifier.height(12.dp))
-                    OutlinedTextField(
-                        value = npvsPassphrase,
-                        onValueChange = { npvsPassphrase = it },
-                        singleLine = true,
-                        visualTransformation = PasswordVisualTransformation(),
-                        label = { Text(stringResource(Res.string.npvs_passphrase_label)) },
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                        keyboardActions = KeyboardActions(onDone = { importNpvs() }),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = importNpvs, enabled = npvsPassphrase.isNotEmpty()) {
-                    Text(stringResource(Res.string.npvs_passphrase_import))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    npvsUnlockFile = null
-                    npvsPassphrase = ""
                 }) { Text(stringResource(Res.string.action_cancel)) }
             },
         )
