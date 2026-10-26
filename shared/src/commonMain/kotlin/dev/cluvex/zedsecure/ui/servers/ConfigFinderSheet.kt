@@ -36,7 +36,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import dev.cluvex.zedsecure.data.net.PingService
 import dev.cluvex.zedsecure.domain.config.ConfigParser
+import dev.cluvex.zedsecure.domain.config.ProfileSource
+import dev.cluvex.zedsecure.domain.config.SingBoxJson
+import dev.cluvex.zedsecure.domain.config.SingBoxLinks
+import dev.cluvex.zedsecure.domain.config.VpnProfile
 import dev.cluvex.zedsecure.platform.httpGetResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -63,6 +68,9 @@ private data class FinderResult(
     val payload: String? = null,
     val rawUrl: String? = null,
     val parserSupported: Boolean = false,
+    val tcpPingMs: Long? = null,
+    val realDelayMs: Long? = null,
+    val latencyTested: Boolean = false,
     val note: String = "",
 )
 
@@ -123,9 +131,81 @@ fun ConfigFinderSheet(
     var onlyParserSupported by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(false) }
+    var testingLatency by remember { mutableStateOf(false) }
+    var latencyProgress by remember { mutableStateOf(0) }
     var results by remember { mutableStateOf<List<FinderResult>>(emptyList()) }
     var error by remember { mutableStateOf("") }
     var status by remember { mutableStateOf("منابع فقط هنگام جست‌وجوی شما خوانده می‌شوند؛ سرعت واقعی هنوز اندازه‌گیری نشده است.") }
+
+    fun testLatency() {
+        if (loading || testingLatency || results.isEmpty()) return
+        val candidates = results.filter { it.parserSupported && it.payload != null }.take(MAX_LATENCY_CANDIDATES)
+        if (candidates.isEmpty()) {
+            status = "گزینهٔ قابل‌آزمایشی پیدا نشد؛ ابتدا جست‌وجو کن یا فیلتر قالب را بررسی کن."
+            return
+        }
+        testingLatency = true
+        latencyProgress = 0
+        status = "در حال اندازه‌گیری پینگ TCP و تأخیر واقعی از مسیر موتور VPN برای ${candidates.size} گزینه؛ حداکثر $MAX_LATENCY_CANDIDATES گزینه بررسی می‌شوند."
+        scope.launch {
+            val measured = coroutineScope {
+                val permits = Semaphore(3)
+                candidates.map { candidate ->
+                    async {
+                        permits.withPermit {
+                            val result = runCatching {
+                                val profile = profileForLatencyProbe(candidate)
+                                    ?: return@runCatching candidate.copy(
+                                        tcpPingMs = -1L,
+                                        realDelayMs = -1L,
+                                        latencyTested = true,
+                                        note = "قالب شناسایی شد اما ساخت پروفایل آزمایشی ناموفق بود.",
+                                    )
+                                val tcp = runCatching {
+                                    PingService.tcpPing(profile.address, profile.port, timeoutMs = 1_800)
+                                }.getOrDefault(-1L)
+                                val real = runCatching {
+                                    kotlinx.coroutines.withTimeoutOrNull(12_000L) {
+                                        PingService.realDelay(profile)
+                                    } ?: -1L
+                                }.getOrDefault(-1L)
+                                candidate.copy(
+                                    tcpPingMs = tcp,
+                                    realDelayMs = real,
+                                    latencyTested = true,
+                                    note = if (real > 0L) {
+                                        "تأخیر واقعی اندازه‌گیری شد؛ نتیجه مربوط به همین شبکه و زمان آزمایش است."
+                                    } else {
+                                        "تأخیر واقعی اندازه‌گیری نشد؛ ممکن است سرور خاموش، ناسازگار یا در دسترس نباشد."
+                                    },
+                                )
+                            }.getOrElse {
+                                candidate.copy(
+                                    tcpPingMs = -1L,
+                                    realDelayMs = -1L,
+                                    latencyTested = true,
+                                    note = "اندازه‌گیری ناموفق بود؛ اتصال سالم فرض نمی‌شود.",
+                                )
+                            }
+                            latencyProgress += 1
+                            result
+                        }
+                    }
+                }.awaitAll()
+            }
+            val measuredIds = candidates.map { it.id }.toSet()
+            results = (results.filterNot { it.id in measuredIds } + measured)
+                .sortedWith(
+                    compareBy<FinderResult> { if (it.realDelayMs != null && it.realDelayMs > 0L) 0 else 1 }
+                        .thenBy { it.realDelayMs?.takeIf { ms -> ms > 0L } ?: Long.MAX_VALUE }
+                        .thenBy { if (it.tcpPingMs != null && it.tcpPingMs > 0L) it.tcpPingMs else Long.MAX_VALUE }
+                        .thenByDescending { it.parserSupported }
+                )
+            val successful = measured.count { (it.realDelayMs ?: -1L) > 0L }
+            status = "آزمایش تمام شد: ${successful} از ${measured.size} گزینه پاسخ واقعی دادند. ترتیب بر اساس تأخیر واقعی، سپس پینگ TCP است؛ این اعداد تضمین سرعت دانلود نیستند."
+            testingLatency = false
+        }
+    }
 
     fun search() {
         if (loading) return
@@ -214,12 +294,23 @@ fun ConfigFinderSheet(
                 singleLine = true,
                 label = { Text("فیلتر نتایج (پروتکل، منبع یا کشور)") },
             )
-            Button(onClick = { search() }, enabled = !loading, modifier = Modifier.fillMaxWidth()) {
+            Button(onClick = { search() }, enabled = !loading && !testingLatency, modifier = Modifier.fillMaxWidth()) {
                 if (loading) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
                 else Text(when (category) {
                     "همه منابع" -> "جست‌وجوی هم‌زمان همه منابع"
                     else -> "جست‌وجوی منابع"
                 })
+            }
+            Button(
+                onClick = { testLatency() },
+                enabled = !loading && !testingLatency && results.any { it.parserSupported && it.payload != null },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                if (testingLatency) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                else Text("اندازه‌گیری پینگ و تأخیر واقعی")
+            }
+            if (testingLatency) {
+                Text("پیشرفت آزمایش: $latencyProgress از ${results.count { it.parserSupported && it.payload != null }.coerceAtMost(MAX_LATENCY_CANDIDATES)}", style = MaterialTheme.typography.bodySmall)
             }
             if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error)
             Text(status, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -247,6 +338,15 @@ fun ConfigFinderSheet(
                             Text(item.name, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
                             Text("${item.protocol} · ${item.country}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                             Text(item.source, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            if (item.latencyTested) {
+                                val realText = item.realDelayMs?.takeIf { it > 0L }?.let { "$it ms" } ?: "پاسخ نداد"
+                                val tcpText = item.tcpPingMs?.takeIf { it > 0L }?.let { "$it ms" } ?: "ناموفق"
+                                Text(
+                                    "تأخیر واقعی از مسیر VPN: $realText · پینگ TCP سرور: $tcpText",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = if ((item.realDelayMs ?: -1L) > 0L) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                                )
+                            }
                             Text(
                                 if (item.parserSupported) "قالب: قابل‌شناسایی توسط پارسر" else "قالب: نیازمند بررسی هنگام افزودن",
                                 style = MaterialTheme.typography.labelSmall,
@@ -261,9 +361,41 @@ fun ConfigFinderSheet(
                     }
                 }
             }
-            Text("از هر فهرست حداکثر دو گزینهٔ سازگارتر از نظر قالب انتخاب می‌شود؛ هیچ کانفیگی قبل از تست اتصال، سالم یا سریع فرض نمی‌شود. منابع ناشناس ممکن است ناامن یا غیرفعال باشند.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                "پینگ TCP فقط دسترسی مستقیم به پورت سرور را می‌سنجد؛ تأخیر واقعی از مسیر موتور VPN معیار اصلی مرتب‌سازی است. این آزمایش، سرعت دانلود/آپلود هر کانفیگ را اندازه نمی‌گیرد و هیچ گزینه‌ای را خودکار ذخیره نمی‌کند. منابع ناشناس ممکن است ناامن یا غیرفعال باشند.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
+}
+
+private const val MAX_LATENCY_CANDIDATES = 12
+
+private fun profileForLatencyProbe(candidate: FinderResult): VpnProfile? {
+    val link = candidate.payload?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+    if (SingBoxLinks.handles(link)) {
+        val parsed = SingBoxLinks.parse(link)
+        val server = SingBoxJson.servers(parsed.fragment).firstOrNull() ?: return null
+        return VpnProfile.fromSingBox(
+            server = server,
+            id = candidate.id,
+            addedAt = 0L,
+            name = candidate.name,
+            link = link,
+        )
+    }
+    val config = ConfigParser.parse(link)
+    return VpnProfile(
+        id = candidate.id,
+        name = candidate.name,
+        protocol = config.protocol.id.uppercase(),
+        address = config.address,
+        port = config.port,
+        transportLabel = config.transportLabel,
+        source = ProfileSource.Link(link),
+        addedAt = 0L,
+    )
 }
 
 private suspend fun fetchSources(sources: List<FinderSource>): List<FinderResult> = coroutineScope {
