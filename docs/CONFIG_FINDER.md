@@ -40,7 +40,7 @@ Provider adapters should return a common record with source ID, canonical source
 - Xray JSON and sing-box JSON.
 - OpenVPN .ovpn.
 - Amnezia vpn:// links.
-- NPV Tunnel or other unknown formats: classify as unknown and offer export/copy only until a dedicated, reviewed parser exists. Never claim compatibility based only on a file extension.
+- NPV/NPVT is explicitly out of scope for Config Finder: do not discover, parse, list, or import NPV files/links. Other unsupported formats must be classified as unknown and never silently imported.
 
 ## Search and ranking
 
@@ -84,7 +84,7 @@ Provider adapters should return a common record with source ID, canonical source
 
 ## Current delivery boundary
 
-The Lovable prototype is a separate companion project and currently blocked by workspace credits. The feature branch now includes a native Compose entry under Servers → + → Add, direct reads from the user-provided public raw configuration lists, Telegram public-preview attempts for hddify/mitivpn, and a GitHub repository-tree scan for NPV-related paths. Real connection/throughput tests remain delegated to the existing native engine after import. CI and Android-device verification are still required; this branch has not been merged into main.
+The Lovable prototype is a separate companion project and currently blocked by workspace credits. The feature branch now includes a native Compose entry under Servers → + → Add, direct reads from the user-provided public raw configuration lists and Telegram public-preview attempts for hddify/mitivpn. NPV discovery and import are intentionally excluded from Config Finder. Real connection/throughput tests remain delegated to the existing native engine after import. CI and Android-device verification are still required; this branch has not been merged into main.
 
 ## User-network-aware ranking (next required stage)
 
@@ -97,3 +97,9 @@ To complete adaptive discovery safely:
 - If a native throughput test is supported by the engine, make it opt-in and bounded; otherwise label throughput "not measured". Never measure the speed of a GitHub raw-file download and misrepresent it as VPN speed.
 - When the network changes (Wi-Fi/mobile), expire prior rankings and retest. If network type cannot be reliably read on a platform, say so and let the user start a fresh test manually.
 - Keep all testing opt-in, avoid logging config secrets, and never connect to a candidate without the user's explicit action.
+
+
+## Explicit exclusions
+
+- NPV/NPVT support is not wanted and must remain excluded from Config Finder: no NPV category, protocol filter, URI matching, repository scan, parser integration, or import action.
+- Do not reintroduce NPV as part of future source-provider or adaptive-ranking work. Keep this feature limited to the other supported configuration formats.
