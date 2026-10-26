@@ -13,7 +13,6 @@ import android.widget.Toast
 import androidx.core.graphics.drawable.toBitmap
 import android.graphics.Bitmap
 import dev.cluvex.zedsecure.core.platform.ZsxSharing
-import dev.cluvex.zedsecure.core.NpvsV5Decoder
 import dev.cluvex.zedsecure.data.assets.GeoAssets
 import dev.cluvex.zedsecure.data.update.Distribution
 import dev.cluvex.zedsecure.data.update.GitHubReleases
@@ -150,9 +149,6 @@ class AndroidPlatform(
             onResult(text)
         }
     }
-
-    override suspend fun unlockNpvsV5(bytes: ByteArray, passphrase: String): String =
-        NpvsV5Decoder.decrypt(bytes, passphrase)
 
     override val supportsDynamicColor: Boolean
         get() = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S
