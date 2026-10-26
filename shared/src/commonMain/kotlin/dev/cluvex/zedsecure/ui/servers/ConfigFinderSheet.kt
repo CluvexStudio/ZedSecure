@@ -37,7 +37,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.cluvex.zedsecure.domain.config.ConfigParser
-import dev.cluvex.zedsecure.domain.config.NpvTunnelParser
 import dev.cluvex.zedsecure.platform.httpGetResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -47,11 +46,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.contentOrNull
 
 private data class FinderSource(
     val name: String,
@@ -114,20 +108,7 @@ private val telegramSources = listOf(
     FinderSource("Telegram · mitivpn", "https://t.me/s/mitivpn", category = "تلگرام"),
 )
 
-private val finderRepositories = listOf(
-    "miladtahanian/V2RayScrapeByCountry",
-    "SoliSpirit/v2ray-configs",
-    "Delta-Kronecker/V2ray-Config",
-    "Danialsamadi/v2go",
-    "morpheusadam/v2ray-config",
-    "MatinGhanbari/v2ray-configs",
-    "0xRadikal/Free-v2ray-Configs",
-    "drmikecrypto/PulseConfigs",
-    "rtwo2/FastNodes",
-)
-
-private val finderJson = Json { ignoreUnknownKeys = true; isLenient = true }
-private val configLinkRegex = Regex("""(?i)(?:vless|vmess|trojan|ss|socks|http|hysteria2?|tuic|wireguard|awg|ssh|vpn|npvt)://[^\s"'<>]+""")
+private val configLinkRegex = Regex("""(?i)(?:vless|vmess|trojan|ss|socks|http|hysteria2?|tuic|wireguard|awg|ssh|vpn)://[^\s"<>]+""")
 
 @Composable
 fun ConfigFinderSheet(
@@ -151,19 +132,14 @@ fun ConfigFinderSheet(
         results = emptyList()
         scope.launch {
             val outcome = runCatching {
-                when (category) {
-                    "NPV / مخازن" -> scanNpvRepositories()
-                    else -> {
-                        val sources = when (category) {
+                val sources = when (category) {
                             "کشوری" -> countrySources.filter { country == "همه کشورها" || it.country == country }
                             "سرعتی" -> speedSources
                             "تلگرام" -> telegramSources
                             "همه منابع" -> countrySources + speedSources + telegramSources
                             else -> countrySources + speedSources + telegramSources
                         }
-                        fetchSources(sources)
-                    }
-                }
+                fetchSources(sources)
             }
             outcome.onSuccess { found ->
                 val q = query.trim().lowercase()
@@ -192,7 +168,7 @@ fun ConfigFinderSheet(
             Text("کانفینگ‌یاب", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             Text("جست‌وجوی هم‌زمان منابع کشوری، فهرست‌های سرعتی و کانال‌های عمومی. برچسب Fast/Best تضمین سرعت نیست؛ سرعت واقعی باید با موتور اتصال خود برنامه و روی اینترنت فعلی سنجیده شود.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                listOf("همه منابع", "کشوری", "سرعتی", "تلگرام", "NPV / مخازن").forEach { item ->
+                listOf("همه منابع", "کشوری", "سرعتی", "تلگرام").forEach { item ->
                     FilterChip(selected = category == item, onClick = { category = item }, label = { Text(item) })
                 }
             }
@@ -210,7 +186,7 @@ fun ConfigFinderSheet(
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    listOf("Hysteria2", "Shadowsocks", "NPV").forEach { item ->
+                    listOf("Hysteria2", "Shadowsocks").forEach { item ->
                         FilterChip(selected = protocolFilter == item, onClick = { protocolFilter = item }, label = { Text(item) })
                     }
                 }
@@ -225,7 +201,6 @@ fun ConfigFinderSheet(
             Button(onClick = { search() }, enabled = !loading, modifier = Modifier.fillMaxWidth()) {
                 if (loading) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
                 else Text(when (category) {
-                    "NPV / مخازن" -> "پیدا کردن فایل‌های NPV در GitHub"
                     "همه منابع" -> "جست‌وجوی هم‌زمان همه منابع"
                     else -> "جست‌وجوی منابع"
                 })
@@ -266,20 +241,6 @@ private suspend fun fetchSources(sources: List<FinderSource>): List<FinderResult
                         .replace("&amp;", "&")
                         .replace("&#x2F;", "/")
                         .replace("&quot;", "\"")
-                    val fullNpv = body.trim()
-                    if (source.category == "NPV" || NpvTunnelParser.isNpvText(fullNpv)) {
-                        if (runCatching { NpvTunnelParser.isNpvText(fullNpv) }.getOrDefault(false)) {
-                            return@withPermit listOf(FinderResult(
-                                id = "${source.name}:${source.url}",
-                                name = "NPV / کانفیگ بسته‌ای",
-                                protocol = "NPV",
-                                country = source.country,
-                                source = source.name,
-                                payload = fullNpv,
-                                note = "فقط قالب متنی شناخته‌شده؛ قالب رمزگذاری‌شده ممکن است به کلید نیاز داشته باشد.",
-                            ))
-                        }
-                    }
                     val links = configLinkRegex.findAll(body).map { it.value.trimEnd(',', ';', '.', ')', ']', '}') }.toList()
                     links.mapIndexed { index, link ->
                         FinderResult(
@@ -292,60 +253,11 @@ private suspend fun fetchSources(sources: List<FinderSource>): List<FinderResult
                             note = if (
                                 runCatching { ConfigParser.isSupportedLink(link) }.getOrDefault(false) ||
                                 link.startsWith("vpn://", ignoreCase = true) ||
-                                link.startsWith("npvt://", ignoreCase = true) ||
                                 link.startsWith("ssh://", ignoreCase = true)
                             ) "شناسهٔ پروتکل شناخته شد؛ اتصال و سرعت هنوز تست نشده است."
                             else "سازگاری نهایی هنگام افزودن توسط پارسر بومی بررسی می‌شود.",
                         )
                     }
-                }.getOrDefault(emptyList())
-            }
-        }
-    }.awaitAll().flatten()
-}
-
-private suspend fun scanNpvRepositories(): List<FinderResult> = coroutineScope {
-    val discovered = runCatching {
-        val response = httpGetResponse(
-            "https://api.github.com/search/repositories?q=NPV%20Tunnel&sort=updated&per_page=10",
-            "ZX-VPN-ConfigFinder/1.0",
-            connectTimeoutMs = 8000,
-            readTimeoutMs = 12000,
-        )
-        if (response.code !in 200..299) emptyList()
-        else finderJson.parseToJsonElement(response.body).jsonObject["items"]?.jsonArray.orEmpty()
-            .mapNotNull { it.jsonObject["full_name"]?.jsonPrimitive?.contentOrNull }
-    }.getOrDefault(emptyList())
-    val repositories = (finderRepositories + discovered).distinct().take(20)
-    val semaphore = Semaphore(3)
-    repositories.map { repo ->
-        async(Dispatchers.IO) {
-            semaphore.withPermit {
-                runCatching {
-                    val meta = httpGetResponse("https://api.github.com/repos/$repo", "ZX-VPN-ConfigFinder/1.0", connectTimeoutMs = 8000, readTimeoutMs = 12000)
-                    if (meta.code !in 200..299) return@withPermit emptyList()
-                    val branch = finderJson.parseToJsonElement(meta.body).jsonObject["default_branch"]?.jsonPrimitive?.contentOrNull ?: "main"
-                    val treeResponse = httpGetResponse("https://api.github.com/repos/$repo/git/trees/$branch?recursive=1", "ZX-VPN-ConfigFinder/1.0", connectTimeoutMs = 8000, readTimeoutMs = 15000)
-                    if (treeResponse.code !in 200..299) return@withPermit emptyList()
-                    val tree = finderJson.parseToJsonElement(treeResponse.body).jsonObject["tree"]?.jsonArray.orEmpty()
-                    tree.mapNotNull { node ->
-                        val path = node.jsonObject["path"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
-                        val lower = path.lowercase()
-                        val isNpv = lower.endsWith(".npv") || lower.endsWith(".npvt") ||
-                            lower.endsWith(".npvtsub") || lower.contains("npvt") ||
-                            (lower.contains("npv") && (lower.endsWith(".json") || lower.endsWith(".txt")))
-                        if (!isNpv || lower.endsWith(".npvs")) return@mapNotNull null
-                        val rawUrl = "https://raw.githubusercontent.com/$repo/$branch/$path"
-                        FinderResult(
-                            id = "$repo:$path",
-                            name = path,
-                            protocol = "NPV احتمالی",
-                            country = "نامشخص",
-                            source = repo,
-                            rawUrl = rawUrl,
-                            note = "مسیر از درخت مخزن پیدا شد؛ سازگاری پس از دریافت و تحلیل مشخص می‌شود.",
-                        )
-                    }.take(25)
                 }.getOrDefault(emptyList())
             }
         }
@@ -364,7 +276,6 @@ private fun protocolLabel(link: String): String {
         "wireguard", "awg" -> "WireGuard"
         "ssh" -> "SSH"
         "vpn" -> "Amnezia"
-        "npvt" -> "NPV Tunnel"
         else -> scheme.uppercase().ifBlank { "نامشخص" }
     }
 }
