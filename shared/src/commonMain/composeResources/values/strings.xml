@@ -12,7 +12,7 @@
     <string name="servers_add_manual">Add manually (Xray)</string>
     <string name="servers_add_custom">Custom config (JSON)</string>
     <string name="servers_imported">Imported %1$d server(s)</string>
-    <string name="servers_add_file">From a file (.ovpn, .conf, .json)</string>
+    <string name="servers_add_file">From a file (.npvt, .npvs, .json, .ovpn, .conf)</string>
     <string name="ovpn_credentials_title">OpenVPN sign-in</string>
     <string name="ovpn_credentials_body">%1$s asks for a username and password.</string>
     <string name="ovpn_username">Username</string>
