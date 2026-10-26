@@ -223,6 +223,22 @@ fun ServersScreen(
     fun importFromFile() {
         scope.launch {
             val picked = platform.pickFileBytes() ?: return@launch
+            val npvsInfo = runCatching {
+                dev.cluvex.zedsecure.domain.config.NpvTunnelParser.inspectNpvs(picked.bytes)
+            }.getOrElse { e ->
+                platform.toast(e.message ?: getString(Res.string.config_invalid))
+                return@launch
+            }
+            if (npvsInfo != null) {
+                platform.toast(
+                    getString(
+                        Res.string.npv_encrypted_file_needs_unlock,
+                        npvsInfo.version,
+                        npvsInfo.unlockMethod,
+                    ),
+                )
+                return@launch
+            }
             val text = picked.bytes.decodeToString()
             if (text.isBlank()) {
                 toastRes(Res.string.config_invalid)
