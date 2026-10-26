@@ -1462,7 +1462,7 @@
     <string name="home_design_portal">大门</string>
     <string name="home_design_old">旧版</string>
     <string name="home_design_old_note">按钮、流量卡片和配置卡片的样式属于旧版设计。选择“旧版”即可修改。</string>
-    <string name="home_design_pixel">Pixel</string>
+    <string name="home_design_liquid">Liquid</string>
     <string name="pixel_tap_cancel">轻触取消</string>
     <string name="pixel_other_server">换个服务器</string>
     <string name="npv_encrypted_file_needs_unlock">NPVS v%1$d 已加密（%2$s）。导入此版本需要支持其授权解锁方式。</string>

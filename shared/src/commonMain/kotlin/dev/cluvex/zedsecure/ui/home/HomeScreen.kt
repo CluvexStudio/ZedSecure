@@ -178,7 +178,7 @@ fun HomeScreen(
     personalization: Personalization = Personalization.Default,
 
     connectStyle: ConnectButtonStyle = ConnectButtonStyle.Pill,
-    design: AppDesign = AppDesign.Pixel,
+    design: AppDesign = AppDesign.Liquid,
     homeVm: HomeViewModel = viewModel { HomeViewModel() },
 ) {
     val ui by connectionVm.ui.collectAsStateWithLifecycle()
@@ -203,8 +203,8 @@ fun HomeScreen(
 
     if (design != AppDesign.Old) {
         Box(modifier.fillMaxSize()) {
-            if (design == AppDesign.Pixel) {
-                PixelHome(
+            if (design == AppDesign.Liquid) {
+                LiquidHome(
                     ui = ui,
                     info = info,
                     infoExpanded = infoExpanded,

@@ -62,21 +62,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.toPath
 import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
-import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -85,8 +79,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Matrix
-import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -109,8 +103,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.graphics.shapes.Morph
-import androidx.graphics.shapes.RoundedPolygon
 import dev.cluvex.zedsecure.core.ConnectionFault
 import dev.cluvex.zedsecure.data.net.NetworkInfo
 import dev.cluvex.zedsecure.domain.model.ConnectionState
@@ -125,8 +117,12 @@ import dev.cluvex.zedsecure.ui.format.formatRate
 import dev.cluvex.zedsecure.ui.format.ltrIsolate
 import dev.cluvex.zedsecure.ui.onboarding.TourTargets
 import dev.cluvex.zedsecure.ui.onboarding.tourTarget
+import dev.cluvex.zedsecure.ui.theme.LiquidBackdrop
 import dev.cluvex.zedsecure.ui.theme.LocalMotionBudget
 import dev.cluvex.zedsecure.ui.theme.MotionBudget
+import dev.cluvex.zedsecure.ui.theme.liquidBorder
+import dev.cluvex.zedsecure.ui.theme.liquidFill
+import dev.cluvex.zedsecure.ui.theme.liquidTint
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -135,7 +131,7 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 @Composable
-internal fun PixelHome(
+internal fun LiquidHome(
     ui: ConnectionUiState,
     info: NetworkInfo,
     infoExpanded: Boolean,
@@ -182,7 +178,9 @@ internal fun PixelHome(
         previous = ui.state
     }
 
+    val auroraClock = rememberPortalClock(!reduceMotion && budget == MotionBudget.Full)
     Box(modifier.fillMaxSize().background(cs.surface)) {
+        LiquidBackdrop(auroraClock)
         BoxWithConstraints(Modifier.fillMaxSize().padding(contentPadding)) {
             val compact = maxHeight < 640.dp
             Column(
@@ -210,14 +208,14 @@ internal fun PixelHome(
 
                         Box(Modifier.fillMaxWidth().layoutId(STAGE_ID).padding(horizontal = 16.dp, vertical = 8.dp)) {
                             if (ui.state == ConnectionState.Error) {
-                                PixelErrorCard(
+                                LiquidErrorCard(
                                     error = ui.error,
                                     onRetry = onToggleConnection,
                                     onOtherServer = onBrowseConfigs,
                                     onShowLogs = onShowLogs,
                                 )
                             } else {
-                                PixelHeroCard(
+                                LiquidHeroCard(
                                     ui = ui,
                                     info = info,
                                     showConnectionInfo = showConnectionInfo,
@@ -254,7 +252,8 @@ internal fun PixelHome(
                                         platform.toast(copied)
                                     },
                                     shape = CircleShape,
-                                    color = cs.surfaceContainerHigh,
+                                    color = liquidFill(),
+                                    border = liquidBorder(),
                                 ) {
                                     Text(
                                         text = stringResource(Res.string.home_local_proxy, localProxyAddress),
@@ -270,7 +269,8 @@ internal fun PixelHome(
                                 Spacer(Modifier.height(8.dp))
                                 Surface(
                                     shape = MaterialTheme.shapes.large,
-                                    color = cs.surfaceContainerHigh,
+                                    color = liquidFill(),
+                                    border = liquidBorder(),
                                     modifier = Modifier.fillMaxWidth(),
                                 ) {
                                     NoteText(
@@ -293,14 +293,14 @@ internal fun PixelHome(
                     Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(3.dp),
                 ) {
-                    PixelServerRow(
+                    LiquidServerRow(
                         name = activeConfigName,
                         detail = activeConfigDetail,
                         locked = activeLocked,
                         onClick = onBrowseConfigs,
                         modifier = Modifier.tourTarget(TourTargets.CONFIG_CARD),
                     )
-                    PixelStats(
+                    LiquidStats(
                         live = live,
                         downloadBps = ui.downloadBps,
                         uploadBps = ui.uploadBps,
@@ -316,7 +316,7 @@ internal fun PixelHome(
 }
 
 @Composable
-private fun PixelHeroCard(
+private fun LiquidHeroCard(
     ui: ConnectionUiState,
     info: NetworkInfo,
     showConnectionInfo: Boolean,
@@ -339,16 +339,21 @@ private fun PixelHeroCard(
     val live = state == ConnectionState.Connected
     val searching = state == ConnectionState.Connecting || state == ConnectionState.Reconnecting
     val effects = MaterialTheme.motionScheme.slowEffectsSpec<Color>()
-    val container by animateColorAsState(if (live) cs.primaryContainer else cs.surfaceContainer, effects, label = "pixel-card")
-    val ink by animateColorAsState(if (live) cs.onPrimaryContainer else cs.onSurface, effects, label = "pixel-ink")
-    val sub by animateColorAsState(if (live) cs.onPrimaryContainer.copy(alpha = 0.78f) else cs.onSurfaceVariant, effects, label = "pixel-sub")
+    val container by animateColorAsState(if (live) liquidTint(cs.primaryContainer) else liquidFill(), effects, label = "liquid-card")
+    val ink by animateColorAsState(if (live) cs.onPrimaryContainer else cs.onSurface, effects, label = "liquid-ink")
+    val sub by animateColorAsState(if (live) cs.onPrimaryContainer.copy(alpha = 0.78f) else cs.onSurfaceVariant, effects, label = "liquid-sub")
     val rise = MaterialTheme.motionScheme.defaultSpatialSpec<androidx.compose.ui.unit.IntOffset>()
-    Surface(shape = RoundedCornerShape(44.dp), color = container, modifier = Modifier.fillMaxSize()) {
+    Surface(
+        shape = RoundedCornerShape(48.dp),
+        color = container,
+        border = liquidBorder(),
+        modifier = Modifier.fillMaxSize(),
+    ) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
             val open = live && showConnectionInfo && details
             val full = minOf(maxWidth * 0.52f, maxHeight * 0.46f).coerceIn(116.dp, 208.dp)
             val small = minOf(maxWidth * 0.26f, maxHeight * 0.17f).coerceIn(64.dp, 100.dp)
-            val door by animateDpAsState(if (open) small else full, DoorSpring, label = "pixel-door-size")
+            val door by animateDpAsState(if (open) small else full, DoorSpring, label = "liquid-door-size")
             Column(
                 Modifier
                     .fillMaxWidth()
@@ -358,14 +363,14 @@ private fun PixelHeroCard(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
-                PixelDoor(state, ui.elapsedSeconds, door, clock, animate, celebrate, onTap, onLongPress)
+                LiquidOrb(state, ui.elapsedSeconds, door, clock, animate, celebrate, onTap, onLongPress)
                 Spacer(Modifier.height(if (compact || open) 10.dp else 16.dp))
                 AnimatedContent(
                     targetState = state,
                     transitionSpec = {
                         (fadeIn(tween(280)) + slideInVertically(rise) { it / 3 }) togetherWith fadeOut(tween(160))
                     },
-                    label = "pixel-state",
+                    label = "liquid-state",
                 ) { s ->
                     Text(
                         text = stringResource(s.labelRes()),
@@ -412,12 +417,12 @@ private fun PixelHeroCard(
                                     SizeTransform(clip = false) { _, _ -> PanelSizeSpring }
                             },
                             contentAlignment = Alignment.TopCenter,
-                            label = "pixel-facts",
+                            label = "liquid-facts",
                         ) { expanded ->
                             if (expanded) {
                                 Column {
                                     Spacer(Modifier.height(8.dp))
-                                    PixelDetailsPanel(
+                                    LiquidDetailsPanel(
                                         info = info,
                                         onClose = onCloseInfo,
                                         onRefreshPing = onRefreshPing,
@@ -426,7 +431,7 @@ private fun PixelHeroCard(
                                     )
                                 }
                             } else {
-                                PixelFacts(info, onOpenInfo)
+                                LiquidFacts(info, onOpenInfo)
                             }
                         }
                     }
@@ -437,7 +442,7 @@ private fun PixelHeroCard(
 }
 
 @Composable
-private fun PixelDoor(
+private fun LiquidOrb(
     state: ConnectionState,
     elapsed: Int,
     doorSize: Dp,
@@ -450,44 +455,27 @@ private fun PixelDoor(
     val cs = MaterialTheme.colorScheme
     val searching = state == ConnectionState.Connecting || state == ConnectionState.Reconnecting
     val live = state == ConnectionState.Connected
-    var step by remember { mutableIntStateOf(0) }
-    LaunchedEffect(searching, animate) {
-        if (!searching || !animate) return@LaunchedEffect
-        snapshotFlow { (clock.value / SEARCH_STEP_SECONDS).toInt() }.collect { step = it }
-    }
-    val target: RoundedPolygon = when {
-        live -> MaterialShapes.SoftBurst
-        searching -> SearchShapes[step.mod(SearchShapes.size)]
-        else -> MaterialShapes.Cookie12Sided
-    }
-    var from by remember { mutableStateOf(MaterialShapes.Cookie12Sided) }
-    var to by remember { mutableStateOf(MaterialShapes.Cookie12Sided) }
-    var progress by remember { mutableFloatStateOf(1f) }
-    LaunchedEffect(target) {
-        if (target === to) return@LaunchedEffect
-        Snapshot.withMutableSnapshot {
-            from = if (progress >= 0.5f) to else from
-            to = target
-            progress = 0f
-        }
-        animate(0f, 1f, animationSpec = spring(dampingRatio = 0.6f, stiffness = 260f)) { value, _ -> progress = value }
-    }
-    val morph = remember(from, to) { Morph(from, to) }
+    val disconnecting = state == ConnectionState.Disconnecting
 
     val source = remember { MutableInteractionSource() }
     val pressed by source.collectIsPressedAsState()
-    val squash by animateFloatAsState(if (pressed) 0.9f else 1f, MaterialTheme.motionScheme.fastSpatialSpec(), label = "pixel-door-squash")
+    val squash by animateFloatAsState(
+        if (pressed) 0.9f else 1f,
+        spring(dampingRatio = 0.45f, stiffness = Spring.StiffnessMedium),
+        label = "liquid-orb-squash",
+    )
     val effects = MaterialTheme.motionScheme.defaultEffectsSpec<Color>()
-    val start by animateColorAsState(if (state == ConnectionState.Disconnecting) cs.primary.copy(alpha = 0.55f) else cs.primary, effects, label = "pixel-door-a")
+    val start by animateColorAsState(if (disconnecting) cs.primary.copy(alpha = 0.55f) else cs.primary, effects, label = "liquid-orb-a")
     val end by animateColorAsState(
         when {
             live || searching -> cs.tertiary
-            state == ConnectionState.Disconnecting -> cs.primary.copy(alpha = 0.55f)
-            else -> cs.primary
+            disconnecting -> cs.primary.copy(alpha = 0.55f)
+            else -> cs.secondary
         },
         effects,
-        label = "pixel-door-b",
+        label = "liquid-orb-b",
     )
+    val glow by animateFloatAsState(if (live) 1f else if (searching) 0.7f else 0.35f, MaterialTheme.motionScheme.slowEffectsSpec(), label = "liquid-orb-glow")
     val actionLabel = stringResource(
         when {
             state == ConnectionState.Disconnecting -> Res.string.state_disconnecting
@@ -496,7 +484,6 @@ private fun PixelDoor(
             else -> Res.string.action_connect
         },
     )
-    val work = remember { Path() }
     val density = LocalDensity.current
 
     Box(
@@ -504,8 +491,9 @@ private fun PixelDoor(
             .size(doorSize)
             .tourTarget(TourTargets.CORE)
             .graphicsLayer {
-                scaleX = squash
-                scaleY = squash
+                val breathe = if (live && animate) 1f + 0.018f * sin(clock.value * 1.6f) else 1f
+                scaleX = squash * breathe
+                scaleY = squash * breathe
             }
             .semantics { contentDescription = actionLabel }
             .combinedClickable(
@@ -518,35 +506,122 @@ private fun PixelDoor(
         contentAlignment = Alignment.Center,
     ) {
         Canvas(Modifier.matchParentSize()) {
-            work.rewind()
-            morph.toPath(progress.coerceIn(0f, 1f), work)
-            work.transform(Matrix().apply { scale(size.width, size.height) })
-            val bounds = work.getBounds()
-            work.translate(center - bounds.center)
-            val turn = when {
-                searching && animate -> clock.value * 150f
-                live && animate -> clock.value * 9f
-                else -> 0f
+            val t = clock.value
+            val c = center
+            val r = size.minDimension * 0.34f
+
+            // Soft halo that breathes with the connection state.
+            drawCircle(
+                Brush.radialGradient(
+                    listOf(start.copy(alpha = 0.55f * glow), end.copy(alpha = 0.18f * glow), Color.Transparent),
+                    c,
+                    r * 1.75f,
+                ),
+                r * 1.75f,
+                c,
+            )
+
+            // Ripples travelling outwards while live or searching.
+            if (animate && (live || searching)) {
+                for (i in 0 until 3) {
+                    val phase = ((t * if (searching) 0.9f else 0.35f) + i / 3f) % 1f
+                    drawCircle(
+                        start.copy(alpha = (1f - phase) * 0.38f),
+                        r * (1.05f + 0.55f * phase),
+                        c,
+                        style = Stroke(width = 2.dp.toPx() * (1f - phase * 0.6f)),
+                    )
+                }
             }
-            val brush = if (searching) {
-                Brush.sweepGradient(listOf(start, end, start), center)
-            } else {
-                Brush.linearGradient(listOf(start, end), Offset.Zero, Offset(size.width, size.height))
+
+            // Glass body: bright core up-left, deep colour down-right.
+            val hi = Offset(c.x - r * 0.32f, c.y - r * 0.38f)
+            drawCircle(
+                Brush.radialGradient(
+                    listOf(Color.White.copy(alpha = 0.92f).compositeOver(start), start, end),
+                    hi,
+                    r * 1.7f,
+                ),
+                r,
+                c,
+            )
+
+            // Inner shade ring for depth.
+            drawCircle(
+                Brush.radialGradient(
+                    0.72f to Color.Transparent,
+                    1f to Color.Black.copy(alpha = 0.22f),
+                    center = c,
+                    radius = r,
+                ),
+                r,
+                c,
+            )
+
+            // Rim light.
+            drawCircle(
+                Brush.sweepGradient(
+                    listOf(
+                        Color.White.copy(alpha = 0.85f),
+                        Color.White.copy(alpha = 0.08f),
+                        Color.White.copy(alpha = 0.45f),
+                        Color.White.copy(alpha = 0.08f),
+                        Color.White.copy(alpha = 0.85f),
+                    ),
+                    c,
+                ),
+                r - 0.75.dp.toPx(),
+                c,
+                style = Stroke(1.5.dp.toPx()),
+            )
+
+            // Specular highlight that slowly wanders while connected.
+            val sway = if (animate && live) sin(t * 0.7f) * 0.06f * r else 0f
+            rotate(-18f, c) {
+                drawOval(
+                    Brush.verticalGradient(
+                        listOf(Color.White.copy(alpha = 0.7f), Color.White.copy(alpha = 0f)),
+                        startY = c.y - r * 0.92f,
+                        endY = c.y - r * 0.2f,
+                    ),
+                    topLeft = Offset(c.x - r * 0.62f + sway, c.y - r * 0.92f),
+                    size = Size(r * 1.0f, r * 0.62f),
+                )
             }
-            rotate(turn) { drawPath(work, brush) }
+
+            // Searching: a bright arc orbits the orb.
+            if (searching) {
+                val sweep = Brush.sweepGradient(
+                    0f to Color.Transparent,
+                    0.7f to end.copy(alpha = 0.2f),
+                    1f to Color.White.copy(alpha = 0.95f),
+                    center = c,
+                )
+                rotate(if (animate) t * 260f else 0f, c) {
+                    drawArc(
+                        sweep,
+                        startAngle = 0f,
+                        sweepAngle = 360f,
+                        useCenter = false,
+                        topLeft = Offset(c.x - r * 1.22f, c.y - r * 1.22f),
+                        size = Size(r * 2.44f, r * 2.44f),
+                        style = Stroke(4.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round),
+                    )
+                }
+            }
         }
         AnimatedContent(
             targetState = live,
-            transitionSpec = { fadeIn(tween(260)) togetherWith fadeOut(tween(200)) },
-            label = "pixel-door-center",
+            transitionSpec = { (fadeIn(tween(260)) + scaleIn(tween(260), 0.8f)) togetherWith (fadeOut(tween(160)) + scaleOut(tween(160), 0.8f)) },
+            label = "liquid-orb-center",
         ) { open ->
             if (open) {
                 Text(
                     text = tabularDigits(formatElapsed(elapsed)),
                     style = MaterialTheme.typography.headlineSmallEmphasized.copy(
-                        fontSize = with(density) { (doorSize * 0.14f).toSp() },
+                        fontSize = with(density) { (doorSize * 0.11f).toSp() },
                     ),
-                    color = cs.onPrimary,
+                    color = Color.White,
                     maxLines = 1,
                     softWrap = false,
                 )
@@ -554,8 +629,8 @@ private fun PixelDoor(
                 Icon(
                     painterResource(Res.drawable.ic_fill_power),
                     contentDescription = null,
-                    tint = cs.onPrimary,
-                    modifier = Modifier.size(doorSize * 0.32f),
+                    tint = Color.White,
+                    modifier = Modifier.size(doorSize * 0.22f),
                 )
             }
         }
@@ -596,7 +671,7 @@ private fun CelebrationBurst(trigger: Int, modifier: Modifier) {
 }
 
 @Composable
-private fun PixelFacts(info: NetworkInfo, onOpen: (InfoFocus) -> Unit) {
+private fun LiquidFacts(info: NetworkInfo, onOpen: (InfoFocus) -> Unit) {
     val place = listOfNotNull(info.city, localCountry(info.countryCode) ?: info.country).joinToString(", ")
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
@@ -639,7 +714,7 @@ private fun FactChip(onClick: () -> Unit, content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun PixelErrorCard(
+private fun LiquidErrorCard(
     error: String?,
     onRetry: () -> Unit,
     onOtherServer: () -> Unit,
@@ -655,9 +730,10 @@ private fun PixelErrorCard(
     }
     val density = LocalDensity.current
     Surface(
-        shape = RoundedCornerShape(44.dp),
-        color = cs.errorContainer,
+        shape = RoundedCornerShape(48.dp),
+        color = liquidTint(cs.errorContainer, 1.25f),
         contentColor = cs.onErrorContainer,
+        border = liquidBorder(),
         modifier = Modifier.fillMaxSize().graphicsLayer { translationX = shake.value * density.density },
     ) {
         Column(
@@ -709,7 +785,7 @@ private fun PixelErrorCard(
 }
 
 @Composable
-private fun PixelServerRow(
+private fun LiquidServerRow(
     name: String?,
     detail: String?,
     locked: Boolean,
@@ -719,14 +795,15 @@ private fun PixelServerRow(
     val cs = MaterialTheme.colorScheme
     val source = remember { MutableInteractionSource() }
     val pressed by source.collectIsPressedAsState()
-    val top by animateDpAsState(if (pressed) 18.dp else 28.dp, MaterialTheme.motionScheme.fastSpatialSpec(), label = "pixel-row-top")
-    val bottom by animateDpAsState(if (pressed) 14.dp else 6.dp, MaterialTheme.motionScheme.fastSpatialSpec(), label = "pixel-row-bottom")
-    val turn by animateFloatAsState(if (pressed) 45f else 0f, MaterialTheme.motionScheme.fastSpatialSpec(), label = "pixel-row-turn")
+    val top by animateDpAsState(if (pressed) 18.dp else 28.dp, MaterialTheme.motionScheme.fastSpatialSpec(), label = "liquid-row-top")
+    val bottom by animateDpAsState(if (pressed) 14.dp else 6.dp, MaterialTheme.motionScheme.fastSpatialSpec(), label = "liquid-row-bottom")
+    val turn by animateFloatAsState(if (pressed) 45f else 0f, MaterialTheme.motionScheme.fastSpatialSpec(), label = "liquid-row-turn")
     Surface(
         onClick = onClick,
         interactionSource = source,
         shape = RoundedCornerShape(topStart = top, topEnd = top, bottomStart = bottom, bottomEnd = bottom),
-        color = cs.surfaceContainerHigh,
+        color = liquidFill(),
+        border = liquidBorder(),
         modifier = modifier.fillMaxWidth(),
     ) {
         Row(
@@ -738,8 +815,8 @@ private fun PixelServerRow(
                     Modifier
                         .matchParentSize()
                         .graphicsLayer { rotationZ = turn }
-                        .clip(MaterialShapes.Cookie4Sided.toShape())
-                        .background(cs.primary),
+                        .clip(CircleShape)
+                        .background(Brush.linearGradient(listOf(cs.primary, cs.tertiary))),
                 )
                 Icon(
                     painterResource(if (locked) Res.drawable.ic_encrypted else Res.drawable.ic_public),
@@ -789,7 +866,7 @@ private fun PixelServerRow(
 }
 
 @Composable
-private fun PixelStats(
+private fun LiquidStats(
     live: Boolean,
     downloadBps: Long,
     uploadBps: Long,
@@ -802,7 +879,7 @@ private fun PixelStats(
         modifier.fillMaxWidth().height(IntrinsicSize.Min),
         horizontalArrangement = Arrangement.spacedBy(3.dp),
     ) {
-        PixelStat(
+        LiquidStat(
             icon = Res.drawable.ic_download,
             label = stringResource(Res.string.home_download),
             bps = downloadBps,
@@ -813,7 +890,7 @@ private fun PixelStats(
             shape = RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp, bottomEnd = 6.dp, bottomStart = 28.dp),
             modifier = Modifier.weight(1f).fillMaxHeight(),
         )
-        PixelStat(
+        LiquidStat(
             icon = Res.drawable.ic_upload,
             label = stringResource(Res.string.home_upload),
             bps = uploadBps,
@@ -828,7 +905,7 @@ private fun PixelStats(
 }
 
 @Composable
-private fun PixelStat(
+private fun LiquidStat(
     icon: DrawableResource,
     label: String,
     bps: Long,
@@ -842,16 +919,16 @@ private fun PixelStat(
     val cs = MaterialTheme.colorScheme
     val (value, unit) = formatRate(if (live) bps else 0L)
     val busy = live && bps > 0L
-    val turn by animateFloatAsState(if (busy) 45f else 0f, MaterialTheme.motionScheme.defaultSpatialSpec(), label = "pixel-stat-turn")
-    Surface(shape = shape, color = cs.surfaceContainerHigh, modifier = modifier) {
+    val turn by animateFloatAsState(if (busy) 45f else 0f, MaterialTheme.motionScheme.defaultSpatialSpec(), label = "liquid-stat-turn")
+    Surface(shape = shape, color = liquidFill(), border = liquidBorder(), modifier = modifier) {
         Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(36.dp), contentAlignment = Alignment.Center) {
                 Box(
                     Modifier
                         .matchParentSize()
                         .graphicsLayer { rotationZ = turn }
-                        .clip(MaterialShapes.Cookie4Sided.toShape())
-                        .background(badge),
+                        .clip(CircleShape)
+                        .background(Brush.linearGradient(listOf(badge, badge.copy(alpha = 0.55f)))),
                 )
                 Icon(painterResource(icon), contentDescription = null, tint = onBadge, modifier = Modifier.size(18.dp))
             }

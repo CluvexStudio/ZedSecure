@@ -141,7 +141,7 @@ fun ServersScreen(
     val platform = LocalPlatform.current
     val scope = rememberCoroutineScope()
     val entranceStart = remember { System.currentTimeMillis() }
-    val springIn = !reduceMotion && dev.cluvex.zedsecure.ui.theme.LocalAppDesign.current == dev.cluvex.zedsecure.domain.model.AppDesign.Pixel
+    val springIn = !reduceMotion && dev.cluvex.zedsecure.ui.theme.LocalAppDesign.current == dev.cluvex.zedsecure.domain.model.AppDesign.Liquid
     val lockedCannotShare = stringResource(Res.string.locked_cannot_share)
 
     fun toastImportFailure(e: Throwable) {

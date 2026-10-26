@@ -319,7 +319,7 @@ fun MainScaffold(
         val detailsOpen by homeVm.expanded.collectAsStateWithLifecycle()
         HomeFabCluster(
             visible = current == TopDestination.Home &&
-                !(detailsOpen && settings.appDesign == dev.cluvex.zedsecure.domain.model.AppDesign.Pixel),
+                !(detailsOpen && settings.appDesign == dev.cluvex.zedsecure.domain.model.AppDesign.Liquid),
             showSpeedTest = vpnStatus.state == dev.cluvex.zedsecure.domain.model.ConnectionState.Connected &&
                 activeProfile?.isDnsBasedTunnel != true,
             reduceMotion = settings.reduceMotion,
