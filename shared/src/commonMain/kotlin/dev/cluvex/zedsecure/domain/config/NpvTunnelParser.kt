@@ -94,6 +94,7 @@ object NpvTunnelParser {
         val method = header[50].toInt() and 0xff
         val recipients = ((header[51].toInt() and 0xff) shl 8) or (header[52].toInt() and 0xff)
         require(method in 0..2) { "Unknown NPVS unlock method" }
+        require(method != 0 || recipients > 0) { "NPVS recipient-key envelope has no recipients" }
         val keyEnd = 53L + recipients.toLong() * 125L
         val methodLength = when (method) { 1 -> 80L; 2 -> 78L; else -> 0L }
         val metaOffset = keyEnd + methodLength
