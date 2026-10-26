@@ -27,6 +27,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 
+## NPVS v5 format compatibility
+
+The Android passphrase-only NPVS v5 decoder was independently implemented against the public format behavior and interoperability tests documented by [FrontierTM/Pantegnos](https://github.com/FrontierTM/Pantegnos). No Pantegnos source files or white-box table assets are vendored by this decoder. Pantegnos is licensed under AGPL-3.0; ZX-VPN is also distributed under AGPL-3.0. This is a compatibility implementation, not an affiliation or endorsement.
+
 ## SlipNet format compatibility
 
 The SlipNet profile import and decryption compatibility layer was implemented with reference to the public export format and behavior described by [anonvector/SlipNet](https://github.com/anonvector/SlipNet) and [FrontierTM/Pantegnos](https://github.com/FrontierTM/Pantegnos). Pantegnos current releases are licensed under AGPL-3.0; its source files are not vendored into this repository. This compatibility layer is part of the AGPL-3.0 ZX-VPN project. These projects are independent and there is no affiliation or endorsement implied.
