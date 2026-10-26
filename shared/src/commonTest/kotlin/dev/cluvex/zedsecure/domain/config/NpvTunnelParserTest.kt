@@ -35,6 +35,18 @@ class NpvTunnelParserTest {
     }
 
     @Test
+    fun importsLegacyNpvSubscriptionContainer() {
+        val profiles = "[${wrapperJson()}]"
+        val input = "NPVTSUB1\\n" + listOf("1", profiles, "{}")
+            .mapIndexed { i, value -> encryptChunk(value, i + 11) }
+            .joinToString(",")
+        val parsed = NpvTunnelParser.parse(input)
+        assertNotNull(parsed)
+        assertEquals(1, parsed.size)
+        assertTrue(parsed.single().link.orEmpty().startsWith("vless://"))
+    }
+
+    @Test
     fun inspectsPasswordProtectedNpvsEnvelopeWithoutClaimingItWasDecrypted() {
         val headerLength = 169
         val bodyOffset = 9 + headerLength
