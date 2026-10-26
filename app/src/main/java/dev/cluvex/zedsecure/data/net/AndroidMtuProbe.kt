@@ -23,9 +23,9 @@ object AndroidMtuProbe {
         // LinkProperties.mtu was added in API 29; keep API 24–28 devices safe.
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return null
         return runCatching {
-        val manager = cm(context) ?: return@runCatching null
-        val network = manager.activeNetwork ?: return@runCatching null
-        manager.getLinkProperties(network)?.mtu?.takeIf { it in 576..9000 }
+            val manager = cm(context) ?: return@runCatching null
+            val network = manager.activeNetwork ?: return@runCatching null
+            manager.getLinkProperties(network)?.mtu?.takeIf { it in 576..9000 }
         }.getOrNull()
     }
 
@@ -50,12 +50,14 @@ object AndroidMtuProbe {
         }.getOrNull() ?: return MtuVerdict.Unavailable
 
         val output = runCatching {
-            val text = process.inputStream.bufferedReader().use { it.readText() }
-
-            if (!process.waitFor(seconds + 2L, TimeUnit.SECONDS)) process.destroy()
-            text
+            // Bound process lifetime before reading output so a stuck ping cannot stall the caller.
+            if (!process.waitFor(seconds + 2L, TimeUnit.SECONDS)) {
+                process.destroyForcibly()
+                process.waitFor(250, TimeUnit.MILLISECONDS)
+            }
+            process.inputStream.bufferedReader().use { it.readText() }
         }.getOrElse {
-            runCatching { process.destroy() }
+            runCatching { process.destroyForcibly() }
             return MtuVerdict.Unavailable
         }
 
