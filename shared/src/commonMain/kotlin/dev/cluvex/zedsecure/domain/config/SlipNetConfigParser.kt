@@ -62,6 +62,20 @@ object SlipNetConfigParser {
         require(version in setOf(20, 21, 22, 23, 24, 25, 26, 27, 28)) {
             "SlipNet profile v$version does not include the required tunnel key fields"
         }
+        // SlipNet adds fields by schema version. Allow the final optional field to
+        // be empty (the exporter may end the line with a delimiter), but reject
+        // truncated payloads before reading defaults from unrelated positions.
+        val minimumFields = when (version) {
+            20 -> 50
+            21 -> 59
+            22 -> 60
+            23, 24 -> 63
+            25 -> 72
+            26, 27 -> 78
+            28 -> 79
+            else -> error("Unsupported SlipNet schema")
+        }
+        require(fields.size >= minimumFields) { "SlipNet profile v$version is truncated" }
 
         fun value(index: Int): String = fields.getOrNull(index).orEmpty().trim()
         fun flag(index: Int): Boolean = value(index) == "1" || value(index).equals("true", true)
