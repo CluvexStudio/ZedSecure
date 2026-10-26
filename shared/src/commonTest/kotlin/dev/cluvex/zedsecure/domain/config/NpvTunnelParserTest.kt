@@ -20,6 +20,31 @@ class NpvTunnelParserTest {
     }
 
     @Test
+    fun mapsSupportedNpvProtocolFamiliesToImportableLinks() {
+        val cases = listOf(1 to "vmess", 3 to "ss", 5 to "vless", 6 to "trojan", 7 to "socks")
+        cases.forEach { (configType, expectedScheme) ->
+            val parsed = NpvTunnelParser.parse("""{"configs":[${wrapperJson(configType)}]}""")
+            assertNotNull(parsed, "configType=$configType should be recognized")
+            assertEquals(1, parsed.size, "configType=$configType should produce one profile")
+            assertTrue(
+                parsed.single().link.orEmpty().startsWith("$expectedScheme://"),
+                "configType=$configType should map to $expectedScheme",
+            )
+        }
+    }
+
+    @Test
+    fun preservesEmbeddedXrayJsonInsteadOfDowngradingItsFields() {
+        val xray = """{"outbounds":[{"protocol":"vless","settings":{"vnext":[{"address":"example.test","port":443,"users":[{"id":"00000000-0000-4000-8000-000000000000"}]}]},"streamSettings":{"network":"grpc","security":"tls"}}]}"""
+        val wrapper = """{"name":"Embedded Xray","v2rayProfile":{"configType":5,"server":"example.test","serverPort":"443","password":"00000000-0000-4000-8000-000000000000","v2rayJson":${kotlinx.serialization.json.JsonPrimitive(xray)}}}"""
+        val parsed = NpvTunnelParser.parse(wrapper)
+        assertNotNull(parsed)
+        assertEquals(1, parsed.size)
+        assertTrue(parsed.single().rawJson.orEmpty().contains("\"grpc\""))
+        assertTrue(parsed.single().rawJson.orEmpty().contains("\"outbounds\""))
+    }
+
+    @Test
     fun decryptsLegacyNpvtChunksAndImportsProfile() {
         val profiles = "[${wrapperJson()}]"
         val input = "NPVT1\n" + listOf("1", profiles, "{}")
@@ -57,10 +82,10 @@ class NpvTunnelParserTest {
         bytes[3] = 'S'.code.toByte()
         bytes[4] = 5
         putUInt32(bytes, 5, headerLength)
-        bytes[9] = 1 // header revision
-        bytes[59] = 1 // creator-passphrase unlock method
+        bytes[9] = 1
+        bytes[59] = 1
         putUInt32(bytes, 9 + 53, 600_000)
-        putUInt32(bytes, 9 + 133, 16) // encrypted metadata length
+        putUInt32(bytes, 9 + 133, 16)
         putUInt32(bytes, bodyOffset + 12, 32)
         val info = NpvTunnelParser.inspectNpvs(bytes)
         assertNotNull(info)
@@ -75,17 +100,18 @@ class NpvTunnelParserTest {
         }
     }
 
-    private fun wrapperJson(): String = """
+    private fun wrapperJson(configType: Int = 5): String = """
         {
           "name": "Synthetic NPV profile",
           "address": "example.test:443",
           "type": "V2RAY",
           "v2rayProfile": {
-            "configType": 5,
+            "configType": ${configType},
             "remarks": "Synthetic NPV profile",
             "server": "example.test",
             "serverPort": "443",
             "password": "00000000-0000-4000-8000-000000000000",
+            "method": "aes-256-gcm",
             "network": "ws",
             "security": "tls",
             "host": "cdn.example.test",
