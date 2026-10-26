@@ -70,6 +70,7 @@ jobs:
           done
           find app/src/main/jniLibs -name '*.so' | sort
 
+      # Test APKs can be built without a Play upload key; invalid/missing signing secrets fall back to a temporary CI-only key.
       - name: Unlock signing
         env:
           USE_PLAY: ${{ inputs.signing_key != 'upload' }}
