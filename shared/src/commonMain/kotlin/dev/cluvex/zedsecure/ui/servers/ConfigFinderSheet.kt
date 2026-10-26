@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.padding
@@ -370,7 +369,7 @@ fun ConfigFinderSheet(
             }
             }
             Text(
-                if (results.isEmpty()) "نتایج اینجا نمایش داده می‌شوند" else "نتایج (\${results.size}) · روی یک کارت بزن تا جزئیات را ببینی",
+                if (results.isEmpty()) "نتایج اینجا نمایش داده می‌شوند" else "نتایج (${results.size}) · روی یک کارت بزن تا جزئیات را ببینی",
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary,
@@ -444,7 +443,6 @@ fun ConfigFinderSheet(
                     }
                 },
             )
-        }
         }
     }
 }
