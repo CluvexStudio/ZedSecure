@@ -40,6 +40,8 @@ jobs:
           distribution: temurin
           java-version: "21"
       - uses: gradle/actions/setup-gradle@v5
+      - name: Fetch native engine artifacts
+        run: ./tools/get-cores.sh android
       - name: Compile Android debug APK
         run: ./gradlew --no-daemon :app:assembleDebug
       - name: Compile shared code and run parser tests
