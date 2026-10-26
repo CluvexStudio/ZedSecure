@@ -14,7 +14,7 @@ on:
       - 'gradle.properties'
       - '.github/workflows/config-finder-ci.yml'
   push:
-    branches: [feat/config-finder-spec, feat/config-finder-native]
+    branches: [feat/config-finder-spec, feat/config-finder-native, test/npv-tunnel-support]
     paths:
       - 'app/**'
       - 'shared/**'
@@ -46,3 +46,10 @@ jobs:
         run: ./gradlew --no-daemon :app:assembleDebug
       - name: Compile shared code and run parser tests
         run: ./gradlew --no-daemon :shared:desktopTest
+      - name: Upload test APKs
+        uses: actions/upload-artifact@v6
+        with:
+          name: zxvpn-npv-test-apk
+          path: app/build/outputs/apk/debug/**/*.apk
+          if-no-files-found: error
+          retention-days: 14
