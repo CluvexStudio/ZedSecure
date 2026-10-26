@@ -112,10 +112,10 @@ object SlipNetConfigParser {
             dnsTransport = transport,
             resolvers = resolvers,
             dohUrl = value(21),
-            resolverMode = if (version >= 23 && (value(61).equals("roundrobin", true) || value(61) == "1")) {
+            resolverMode = if (version >= 23 && (value(60).equals("roundrobin", true) || value(60) == "1")) {
                 DnsTunnelProfile.MODE_ROUND_ROBIN
             } else DnsTunnelProfile.MODE_FANOUT,
-            rrSpreadCount = number(if (version >= 23) 62 else -1, 3),
+            rrSpreadCount = number(if (version >= 23) 61 else -1, 3),
             authoritative = flag(27),
             dnsPayloadSize = number(39, 100),
             recordType = value(42).ifBlank { "txt" }.lowercase(),
