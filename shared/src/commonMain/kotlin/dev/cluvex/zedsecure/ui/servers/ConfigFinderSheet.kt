@@ -146,13 +146,24 @@ fun ConfigFinderSheet(
                 results = found
                     .filter { protocolFilter == "همه پروتکل‌ها" || it.protocol.contains(protocolFilter, ignoreCase = true) }
                     .filter { q.isEmpty() || listOf(it.name, it.protocol, it.country, it.source, it.note).any { s -> s.lowercase().contains(q) } }
+                    // Keep at most two parser-compatible candidates per individual source list.
+                    // This is a syntax/compatibility preference, not a claim that latency or safety was measured.
+                    .groupBy { "${it.source}| ${it.country}" }
+                    .values
+                    .flatMap { sourceCandidates ->
+                        sourceCandidates.sortedByDescending { candidate ->
+                            candidate.payload?.let { link ->
+                                runCatching { ConfigParser.isSupportedLink(link) }.getOrDefault(false)
+                            } == true
+                        }.take(2)
+                    }
                     .groupBy { (it.payload ?: it.rawUrl ?: it.id).trim().lowercase() }
                     .values
                     .map { duplicates ->
                         duplicates.first().copy(source = duplicates.map { it.source }.distinct().joinToString(" · "))
                     }
                     .take(300)
-                status = if (results.isEmpty()) "نتیجه‌ای پیدا نشد؛ کشور یا دستهٔ دیگری را امتحان کن." else "تعداد نتیجه: ${results.size} — «قالب معتبر» به معنی امنیت یا اتصال موفق نیست."
+                status = if (results.isEmpty()) "نتیجه‌ای پیدا نشد؛ کشور یا دستهٔ دیگری را امتحان کن." else "تعداد گزینه‌ها: ${results.size} — حداکثر ۲ گزینه از هر فهرست؛ سالم‌بودن و سرعت واقعی هنوز با اتصال تست نشده است."
             }.onFailure {
                 error = it.message?.take(240) ?: "خواندن منابع ناموفق بود."
             }
@@ -166,7 +177,7 @@ fun ConfigFinderSheet(
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Text("کانفینگ‌یاب", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            Text("جست‌وجوی هم‌زمان منابع کشوری، فهرست‌های سرعتی و کانال‌های عمومی. برچسب Fast/Best تضمین سرعت نیست؛ سرعت واقعی باید با موتور اتصال خود برنامه و روی اینترنت فعلی سنجیده شود.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("جست‌وجوی منابع کشوری، فهرست‌های سرعتی و کانال‌های عمومی؛ از هر فهرست حداکثر دو گزینه با قالب سازگارتر نمایش داده می‌شود. این انتخاب، تست سرعت یا سلامت واقعی نیست؛ برای تشخیص بهترین اتصال باید نتیجهٔ موتور VPN روی اینترنت فعلی اندازه‌گیری شود.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 listOf("همه منابع", "کشوری", "سرعتی", "تلگرام").forEach { item ->
                     FilterChip(selected = category == item, onClick = { category = item }, label = { Text(item) })
@@ -224,7 +235,7 @@ fun ConfigFinderSheet(
                     }
                 }
             }
-            Text("منابع ناشناس ممکن است ناامن یا غیرفعال باشند. تست سرعت/اتصال فقط پس از افزودن و با موتور بومی انجام می‌شود.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("از هر فهرست حداکثر دو گزینهٔ سازگارتر از نظر قالب انتخاب می‌شود؛ هیچ کانفیگی قبل از تست اتصال، سالم یا سریع فرض نمی‌شود. منابع ناشناس ممکن است ناامن یا غیرفعال باشند.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
