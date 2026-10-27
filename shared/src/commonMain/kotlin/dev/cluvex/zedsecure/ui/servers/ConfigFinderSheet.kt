@@ -166,6 +166,10 @@ fun ConfigFinderSheet(
                     .any { value -> value.lowercase().contains(q) })
         }
         when (sortMode) {
+            "کیفیت فنی" -> filtered.sortedWith(
+                compareByDescending<FinderResult> { finderQualityScore(it) }
+                    .thenBy { it.realDelayMs?.takeIf { ms -> ms > 0L } ?: Long.MAX_VALUE }
+            )
             "کمترین تأخیر" -> filtered.sortedWith(
                 compareBy<FinderResult> { if ((it.realDelayMs ?: -1L) > 0L) 0 else 1 }
                     .thenBy { it.realDelayMs?.takeIf { ms -> ms > 0L } ?: Long.MAX_VALUE }
@@ -383,7 +387,7 @@ fun ConfigFinderSheet(
             Text("فیلترها روی نتایج فعلی و بدون دریافت دوبارهٔ منابع اعمال می‌شوند.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text("مرتب‌سازی نتایج", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                listOf("پیشنهادی", "کمترین تأخیر", "کشور").forEach { mode ->
+                listOf("پیشنهادی", "کیفیت فنی", "کمترین تأخیر", "کشور").forEach { mode ->
                     FilterChip(selected = sortMode == mode, onClick = { sortMode = mode }, label = { Text(mode) })
                 }
             }
@@ -451,6 +455,10 @@ fun ConfigFinderSheet(
                             Text(item.name, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
                             Text("${item.protocol} · ${item.country}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                             Text(item.source, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Text("امتیاز فنی: ${finderQualityScore(item)}/100", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                                Text("${item.source.split(" · ").distinct().size} منبع", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                             if (item.latencyTested) {
                                 val realText = item.realDelayMs?.takeIf { it > 0L }?.let { "$it ms" } ?: "پاسخ نداد"
                                 val tcpText = item.tcpPingMs?.takeIf { it > 0L }?.let { "$it ms" } ?: "ناموفق"
@@ -512,6 +520,30 @@ fun ConfigFinderSheet(
             )
         }
     }
+}
+
+private fun finderQualityScore(item: FinderResult): Int {
+    // Heuristic for triage only; this is not a safety, anonymity, or throughput guarantee.
+    var score = 0
+    if (item.parserSupported) score += 25
+    if (item.latencyTested) score += 10
+    if ((item.realDelayMs ?: -1L) > 0L) {
+        score += when (item.realDelayMs!!) {
+            in 1L..100L -> 40
+            in 101L..200L -> 32
+            in 201L..400L -> 22
+            in 401L..800L -> 12
+            else -> 5
+        }
+    }
+    if ((item.tcpPingMs ?: -1L) > 0L) score += 10
+    val sources = item.source.split(" · ").distinct().size
+    score += when {
+        sources >= 3 -> 15
+        sources == 2 -> 10
+        else -> 0
+    }
+    return score.coerceIn(0, 100)
 }
 
 private const val MAX_LATENCY_CANDIDATES = 12
