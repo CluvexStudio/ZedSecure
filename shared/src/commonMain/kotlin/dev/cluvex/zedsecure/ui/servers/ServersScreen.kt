@@ -141,7 +141,7 @@ fun ServersScreen(
     val platform = LocalPlatform.current
     val scope = rememberCoroutineScope()
     val entranceStart = remember { System.currentTimeMillis() }
-    val springIn = !reduceMotion && dev.cluvex.zedsecure.ui.theme.LocalAppDesign.current == dev.cluvex.zedsecure.domain.model.AppDesign.Pixel
+    val springIn = !reduceMotion && dev.cluvex.zedsecure.ui.theme.LocalAppDesign.current == dev.cluvex.zedsecure.domain.model.AppDesign.Liquid
     val lockedCannotShare = stringResource(Res.string.locked_cannot_share)
 
     fun toastImportFailure(e: Throwable) {
@@ -223,6 +223,22 @@ fun ServersScreen(
     fun importFromFile() {
         scope.launch {
             val picked = platform.pickFileBytes() ?: return@launch
+            val npvsInfo = runCatching {
+                dev.cluvex.zedsecure.domain.config.NpvTunnelParser.inspectNpvs(picked.bytes)
+            }.getOrElse { e ->
+                platform.toast(e.message ?: getString(Res.string.config_invalid))
+                return@launch
+            }
+            if (npvsInfo != null) {
+                platform.toast(
+                    getString(
+                        Res.string.npv_encrypted_file_needs_unlock,
+                        npvsInfo.version,
+                        npvsInfo.unlockMethod,
+                    ),
+                )
+                return@launch
+            }
             val text = picked.bytes.decodeToString()
             if (text.isBlank()) {
                 toastRes(Res.string.config_invalid)
@@ -1823,10 +1839,15 @@ private fun ServerCard(
     modifier: Modifier = Modifier,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
+    val liquid = dev.cluvex.zedsecure.ui.theme.LocalAppDesign.current == dev.cluvex.zedsecure.domain.model.AppDesign.Liquid
     val container = if (active) {
-        personalization.serverActiveColor ?: MaterialTheme.colorScheme.primaryContainer
+        personalization.serverActiveColor
+            ?: if (liquid) dev.cluvex.zedsecure.ui.theme.liquidTint(MaterialTheme.colorScheme.primaryContainer)
+            else MaterialTheme.colorScheme.primaryContainer
     } else {
-        personalization.serverCardColor ?: MaterialTheme.colorScheme.surfaceContainerHigh
+        personalization.serverCardColor
+            ?: if (liquid) dev.cluvex.zedsecure.ui.theme.liquidFill()
+            else MaterialTheme.colorScheme.surfaceContainerHigh
     }
 
     val onContainer = when {
@@ -1843,6 +1864,8 @@ private fun ServerCard(
 
         border = if (selecting && isSelected) {
             androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+        } else if (liquid) {
+            dev.cluvex.zedsecure.ui.theme.liquidBorder()
         } else {
             null
         },

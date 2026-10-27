@@ -95,7 +95,7 @@ private const val SLOW_PING_MS = 250
 private class TileCorners(val topStart: Boolean, val topEnd: Boolean, val bottomEnd: Boolean, val bottomStart: Boolean)
 
 @Composable
-internal fun PixelDetailsPanel(
+internal fun LiquidDetailsPanel(
     info: NetworkInfo,
     onClose: () -> Unit,
     onRefreshPing: () -> Unit,

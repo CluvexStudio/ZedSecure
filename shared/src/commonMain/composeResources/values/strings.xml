@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">ZedSecure</string>
+    <string name="app_name">ZX VPN</string>
     <string name="brand_tagline">Private. Fast. Yours.</string>
 
     <string name="nav_home">Home</string>
@@ -128,7 +128,7 @@
 
     <string name="vault_title">Vault</string>
     <string name="vault_intro_title">Locked configs</string>
-    <string name="vault_intro_body">Share a server as a .zsx file. The app connects without showing the config, but ZedSecure is open source, so this keeps it out of sight rather than secret. A password decides who can import it.</string>
+    <string name="vault_intro_body">Share a server as a .zsx file. The app connects without showing the config, but ZX VPN is open source, so this keeps it out of sight rather than secret. A password decides who can import it.</string>
     <string name="vault_create">Create locked config</string>
     <string name="vault_import">Import .zsx file</string>
     <string name="vault_empty_title">Your vault is empty</string>
@@ -267,9 +267,9 @@
     <string name="zsx_wrong_password">Incorrect password</string>
     <string name="zsx_imported">Locked config imported</string>
     <string name="zsx_invalid">Not a valid .zsx file</string>
-    <string name="zsx_legacy">This locked config was made by an older version of ZedSecure. Ask whoever shared it for a new copy.</string>
+    <string name="zsx_legacy">This locked config was made by an older version of ZX VPN. Ask whoever shared it for a new copy.</string>
 
-    <string name="cd_app_logo">ZedSecure logo</string>
+    <string name="cd_app_logo">ZX VPN logo</string>
     <string name="cd_connection_status">Connection status</string>
     <string name="cd_settings">Open settings</string>
 
@@ -303,7 +303,7 @@
     <string name="mode_socks">SOCKS only</string>
     <string name="mode_socks_body">Only opens a local SOCKS and HTTP proxy on 127.0.0.1 and changes nothing else. Point each app at it yourself.</string>
     <string name="mode_tun">TUN (VPN)</string>
-    <string name="mode_tun_body">Sends every app through a virtual network adapter, including apps that ignore the system proxy. Asks for administrator rights once each time ZedSecure runs. On Windows and macOS, Tor and Psiphon, and chains that start with them, keep using the system proxy.</string>
+    <string name="mode_tun_body">Sends every app through a virtual network adapter, including apps that ignore the system proxy. Asks for administrator rights once each time ZX VPN runs. On Windows and macOS, Tor and Psiphon, and chains that start with them, keep using the system proxy.</string>
     <string name="mode_tun_system_proxy">Also set the system proxy</string>
     <string name="mode_tun_system_proxy_sum">Apps that read the system proxy, such as Chrome, use the same connection while the tunnel is up. It is cleared when you disconnect.</string>
     <string name="tray_server">Server</string>
@@ -312,7 +312,7 @@
     <string name="tray_copy_proxy">Copy proxy address</string>
     <string name="tray_show">Show window</string>
     <string name="tray_hide">Hide window</string>
-    <string name="tray_quit">Quit ZedSecure</string>
+    <string name="tray_quit">Quit ZX VPN</string>
     <string name="group_all">All</string>
     <string name="group_manual">Manual</string>
 
@@ -328,7 +328,7 @@
     <string name="routing_title">Routing</string>
     <string name="routing_subtitle">Choose which traffic goes through the tunnel</string>
     <string name="routing_geo_missing_title">Geo files are missing</string>
-    <string name="routing_geo_missing_body">Rules that use geosite or geoip are off until these files are downloaded. ZedSecure fetches them on its own once it can.</string>
+    <string name="routing_geo_missing_body">Rules that use geosite or geoip are off until these files are downloaded. ZX VPN fetches them on its own once it can.</string>
     <string name="routing_geo_failed">The download failed. Connect and try again, or add the files in Settings › Asset files.</string>
     <string name="routing_geo_download">Download</string>
     <string name="routing_geo_downloading">Downloading…</string>
@@ -515,7 +515,7 @@
     <string name="title_pref_enable_local_proxy">Enable local proxy</string>
     <string name="summary_pref_enable_local_proxy">Without it there is no SOCKS inbound, so subscription updates cannot be proxied</string>
     <string name="title_pref_local_proxy_port">Local proxy port</string>
-    <string name="toast_local_proxy_port_invalid">Use a port from 1024 to 65534 that ZedSecure and LAN sharing do not use</string>
+    <string name="toast_local_proxy_port_invalid">Use a port from 1024 to 65534 that ZX VPN and LAN sharing do not use</string>
     <string name="title_pref_proxy_sharing_enabled">Allow connections from the LAN</string>
     <string name="summary_pref_proxy_sharing_enabled">Other devices on this network can use the proxy with the username and password below</string>
     <string name="title_pref_dynamic_socks_port">Random local proxy port</string>
@@ -565,9 +565,9 @@
     <string name="settings_export">Export settings</string>
     <string name="settings_export_sum">Saves every setting to a file for another device. The file includes the LAN sharing password.</string>
     <string name="settings_import">Import settings</string>
-    <string name="settings_import_sum">Loads a settings file exported from ZedSecure. Configs and subscriptions are not changed.</string>
+    <string name="settings_import_sum">Loads a settings file exported from ZX VPN. Configs and subscriptions are not changed.</string>
     <string name="settings_imported">Settings imported</string>
-    <string name="settings_import_invalid">This file is not a ZedSecure settings backup</string>
+    <string name="settings_import_invalid">This file is not a ZX VPN settings backup</string>
     <string name="subs_user_agent">User-Agent (optional)</string>
     <string name="vault_no_password_needed">This file has no password. Import it?</string>
     <string name="zsx_import_action">Import</string>
@@ -914,9 +914,9 @@
     <string name="update_checking">Checking…</string>
     <string name="update_up_to_date">You're on the latest version</string>
     <string name="update_check_failed">Couldn't check for updates</string>
-    <string name="rate_title">Rate ZedSecure</string>
+    <string name="rate_title">Rate ZX VPN</string>
     <string name="rate_summary">Leave a rating and review on Google Play</string>
-    <string name="rate_prompt_title">Enjoying ZedSecure?</string>
+    <string name="rate_prompt_title">Enjoying ZX VPN?</string>
     <string name="rate_prompt_body">A rating on Google Play helps other people find the app. It only takes a moment.</string>
     <string name="rate_action_rate">Rate</string>
     <string name="rate_action_later">Not now</string>
@@ -927,7 +927,7 @@
     <string name="personalize_upload_tile_sub">Colours the rectangle behind them</string>
     <string name="subs_ua_preset">User-Agent</string>
     <string name="subs_ua_v2rayng">v2rayNG (recommended)</string>
-    <string name="subs_ua_zedsecure">ZedSecure</string>
+    <string name="subs_ua_zedsecure">ZX VPN</string>
     <string name="subs_ua_custom">Custom</string>
     <string name="subs_ua_hint">Many providers only send their JSON custom configs to the v2rayNG User-Agent, and send plain links to anything else.</string>
     <string name="subs_edit">Edit subscription</string>
@@ -987,8 +987,8 @@
     <string name="add_group_subscription">Subscription</string>
 
     <string name="battery_opt_title">Battery optimisation</string>
-    <string name="battery_opt_on">Battery optimisation is on for ZedSecure and can drop the tunnel in the background. Tap to open the system list and choose Don’t optimise.</string>
-    <string name="battery_opt_off">ZedSecure is exempt. The tunnel will not be paused to save battery.</string>
+    <string name="battery_opt_on">Battery optimisation is on for ZX VPN and can drop the tunnel in the background. Tap to open the system list and choose Don’t optimise.</string>
+    <string name="battery_opt_off">ZX VPN is exempt. The tunnel will not be paused to save battery.</string>
     <string name="chain_search">Search servers</string>
     <string name="chain_search_clear">Clear search</string>
     <string name="chain_group_xray">Xray servers</string>
@@ -1062,7 +1062,7 @@
     <string name="privacy_subtitle">A short, accurate summary — the full document is online</string>
     <string name="privacy_headline">No account. No backend of ours. No analytics.</string>
     <string name="privacy_client_title">A client, not a VPN service</string>
-    <string name="privacy_client_body">ZedSecure connects to servers, subscriptions and networks that you add. We operate none of them, and your traffic never reaches us.</string>
+    <string name="privacy_client_body">ZX VPN connects to servers, subscriptions and networks that you add. We operate none of them, and your traffic never reaches us.</string>
     <string name="privacy_device_title">Stays on your device</string>
     <string name="privacy_device_body">Configurations, credentials, settings, statistics and logs live in the app's private storage and are removed when you uninstall. Vault configurations are encrypted with AES-256-GCM.</string>
     <string name="privacy_nocollect_title">Not collected</string>
@@ -1171,7 +1171,7 @@
     <string name="fault_transport_hint">The server answered, but not with the transport this config expects. The path, host header or service name is likely wrong.</string>
     <string name="fault_unknown">Connection failed</string>
     <string name="fault_port_busy">Port already in use</string>
-    <string name="fault_port_busy_hint">Another app, or another copy of ZedSecure, is already using the local proxy port. Disconnect it, then try again.</string>
+    <string name="fault_port_busy_hint">Another app, or another copy of ZX VPN, is already using the local proxy port. Disconnect it, then try again.</string>
     <string name="fault_config">The config could not be read</string>
     <string name="fault_config_hint">The core stopped at a setting in this config before connecting. The details below show which one. Import the config again or update its subscription.</string>
     <string name="lan_share_connect_title">Connect other devices to</string>
@@ -1183,7 +1183,7 @@
     <string name="title_pref_lan_auth">Require a username and password</string>
     <string name="summary_pref_lan_auth">When this is off, anyone on the same network can use the shared proxy.</string>
     <string name="lan_share_no_auth">No username or password</string>
-    <string name="toast_lan_port_invalid">Use a port from 1024 to 65534 that ZedSecure does not use itself</string>
+    <string name="toast_lan_port_invalid">Use a port from 1024 to 65534 that ZX VPN does not use itself</string>
     <string name="toast_lan_credential_required">LAN sharing needs both a username and a password</string>
     <string name="dns_prevent_fallback_always">Always on. Every resolver a DNS-based tunnel uses is routed into the tunnel, so a query can never fall back to your normal network.</string>
     <string name="settings_sub_interval_hour">Every hour</string>
@@ -1237,7 +1237,7 @@
     <string name="auto_members">Servers</string>
     <string name="auto_history">Recent switches</string>
     <string name="auto_how_title">How Auto works</string>
-    <string name="auto_how_body">The fastest server in the group carries new connections. If it stops answering, the connections that hit it continue on the next server within a second or two, and Auto stays there until a clearly faster server turns up — so your address does not keep changing. Auto uses ZedSecure’s own routing and DNS settings, also for custom configs.</string>
+    <string name="auto_how_body">The fastest server in the group carries new connections. If it stops answering, the connections that hit it continue on the next server within a second or two, and Auto stays there until a clearly faster server turns up — so your address does not keep changing. Auto uses ZX VPN’s own routing and DNS settings, also for custom configs.</string>
     <string name="auto_ago_now">just now</string>
     <string name="auto_ago_minutes">%1$s min ago</string>
     <string name="auto_ago_hours">%1$s h ago</string>
@@ -1285,7 +1285,7 @@
     <string name="onb_next">Next</string>
     <string name="onb_back">Back</string>
     <string name="onb_theme_title">Light or dark?</string>
-    <string name="onb_theme_body">Pick how ZedSecure should look. You can change it any time in Settings.</string>
+    <string name="onb_theme_body">Pick how ZX VPN should look. You can change it any time in Settings.</string>
     <string name="onb_preset_title">Choose a look</string>
     <string name="onb_preset_body">A ready-made colour set. Every colour stays editable afterwards.</string>
     <string name="onb_preset_stock">Stock</string>
@@ -1416,12 +1416,12 @@
     <string name="tour_settings_title">Settings</string>
     <string name="tour_settings_body">Everything else lives in this tab. Let us go through it.</string>
     <string name="admin_password_title">Administrator password</string>
-    <string name="admin_password_body">ZedSecure needs administrator rights for TUN mode and OpenConnect. Enter the password you use with sudo. You are asked once each time ZedSecure runs; the password goes only to sudo and is never saved.</string>
+    <string name="admin_password_body">ZX VPN needs administrator rights for TUN mode and OpenConnect. Enter the password you use with sudo. You are asked once each time ZX VPN runs; the password goes only to sudo and is never saved.</string>
     <string name="admin_password_label">Password</string>
     <string name="admin_password_wrong">Wrong password. Try again.</string>
     <string name="admin_password_remember">Don't ask again on this computer</string>
     <string name="settings_admin_remember_title">Remember administrator access</string>
-    <string name="settings_admin_remember_body">ZedSecure asks for your password once each time it runs. Turn this on to stop asking on this computer. Only ZedSecure's tunnel helper gets the rights, and you are asked once more after an update.</string>
+    <string name="settings_admin_remember_body">ZX VPN asks for your password once each time it runs. Turn this on to stop asking on this computer. Only ZX VPN's tunnel helper gets the rights, and you are asked once more after an update.</string>
     <string name="settings_admin_remember_failed">Could not change administrator access</string>
     <string name="title_pref_rendering">Rendering</string>
     <string name="rendering_auto">Automatic</string>
@@ -1432,7 +1432,7 @@
     <string name="rendering_sub_auto_nvidia">Automatic: software rendering, because NVIDIA drivers before 555 garble windows drawn by the graphics card under Wayland. Changes apply after a restart.</string>
     <string name="rendering_sub_manual">Changes apply after a restart. Choose Software if the window flickers, shows static or has no text. You can also start the app with --software-rendering or --gpu-rendering.</string>
     <string name="update_check_summary_github">Look for a newer version on GitHub</string>
-    <string name="rate_title_github">ZedSecure on GitHub</string>
+    <string name="rate_title_github">ZX VPN on GitHub</string>
     <string name="rate_summary_github">Open the project page to star it, report a problem or read the code</string>
     <string name="settings_hero_tagline">Make it yours</string>
     <string name="settings_group_personal">Personalize</string>
@@ -1442,7 +1442,7 @@
     <string name="settings_group_behaviour">Lists and notifications</string>
     <string name="color_style_title">Color style</string>
     <string name="color_style_sub">A full palette is generated from your accent color</string>
-    <string name="color_style_zedsecure">ZedSecure</string>
+    <string name="color_style_zedsecure">ZX VPN</string>
     <string name="color_style_tonal">Tonal</string>
     <string name="color_style_vibrant">Vibrant</string>
     <string name="color_style_expressive">Expressive</string>
@@ -1461,7 +1461,8 @@
     <string name="home_design_portal">Portal</string>
     <string name="home_design_old">Old</string>
     <string name="home_design_old_note">Button, tile and card styles belong to the Old design. Pick Old to change them.</string>
-    <string name="home_design_pixel">Pixel</string>
+    <string name="home_design_liquid">Liquid</string>
     <string name="pixel_tap_cancel">Tap to cancel</string>
     <string name="pixel_other_server">Other server</string>
+    <string name="npv_encrypted_file_needs_unlock">NPVS v%1$d is encrypted (%2$s). This variant needs its authorized unlock adapter before it can be imported.</string>
 </resources>

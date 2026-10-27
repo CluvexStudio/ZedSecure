@@ -35,7 +35,7 @@ fun ZedSecureTheme(
     colorContrast: ColorContrast = ColorContrast.Standard,
     animateColors: Boolean = true,
 
-    design: AppDesign = AppDesign.Pixel,
+    design: AppDesign = AppDesign.Liquid,
 
     languageTag: String = "en",
 
@@ -58,7 +58,7 @@ fun ZedSecureTheme(
     MaterialExpressiveTheme(
         colorScheme = colorScheme,
         motionScheme = MotionScheme.expressive(),
-        shapes = ZedShapes,
+        shapes = if (design == AppDesign.Liquid) LiquidShapes else ZedShapes,
         typography = typographyFor(languageTag, design),
     ) {
         CompositionLocalProvider(LocalDensity provides scaled, LocalAppDesign provides design, content = content)
@@ -111,7 +111,7 @@ val ColorStyle.palette: PaletteStyle
         ColorStyle.Monochrome -> PaletteStyle.Monochrome
     }
 
-val LocalAppDesign = staticCompositionLocalOf { AppDesign.Pixel }
+val LocalAppDesign = staticCompositionLocalOf { AppDesign.Liquid }
 
 @Composable
 expect fun dynamicColorSchemeOrNull(darkTheme: Boolean): ColorScheme?

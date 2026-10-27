@@ -8,7 +8,7 @@ enum class ColorStyle { ZedSecure, TonalSpot, Vibrant, Expressive, Rainbow, Frui
 
 enum class ColorContrast(val level: Double) { Standard(0.0), Medium(0.5), High(1.0) }
 
-enum class AppDesign { Pixel, Portal, Old }
+enum class AppDesign { Liquid, Portal, Old }
 
 enum class ScreenTransition {
     Fade,
@@ -234,7 +234,7 @@ data class AppSettings(
     val customConfigCardColor: Long? = null,
     val customConfigCardTextColor: Long? = null,
 
-    val appDesign: AppDesign = AppDesign.Pixel,
+    val appDesign: AppDesign = AppDesign.Liquid,
 
     val connectButtonStyle: ConnectButtonStyle = ConnectButtonStyle.Hero,
 

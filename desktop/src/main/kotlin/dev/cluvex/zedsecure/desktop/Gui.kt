@@ -112,11 +112,11 @@ fun main(args: Array<String>) {
         return
     }
     if (args.firstOrNull() == "--version") {
-        println("ZedSecure $BUILD_VERSION")
+        println("ZX VPN $BUILD_VERSION")
         return
     }
     if (!SingleInstance.claim()) {
-        println("ZedSecure is already running; its window was brought to the front")
+        println("ZX VPN is already running; its window was brought to the front")
         return
     }
     AppInfo.versionName = BUILD_VERSION
@@ -226,15 +226,15 @@ fun main(args: Array<String>) {
                 previous = status.state
                 val notice = when {
                     status.state == ConnectionState.Connected && was != ConnectionState.Connected ->
-                        Notification("ZedSecure", "Connected · ${status.serverName ?: "tunnel up"}", Notification.Type.Info)
+                        Notification("ZX VPN", "Connected · ${status.serverName ?: "tunnel up"}", Notification.Type.Info)
                     status.state == ConnectionState.Error ->
                         Notification(
-                            "ZedSecure",
+                            "ZX VPN",
                             "Could not connect" + (status.error?.takeIf { it.isNotBlank() }?.let { ": ${it.take(140)}" } ?: ""),
                             Notification.Type.Error,
                         )
                     status.state == ConnectionState.Idle && was == ConnectionState.Disconnecting ->
-                        Notification("ZedSecure", "Disconnected", Notification.Type.None)
+                        Notification("ZX VPN", "Disconnected", Notification.Type.None)
                     else -> null
                 }
                 notice?.let {
@@ -271,7 +271,7 @@ fun main(args: Array<String>) {
             }
             val speeds = "↓ ${humanBps(status.downloadBps)}   ↑ ${humanBps(status.uploadBps)}"
             val tip = buildString {
-                append("ZedSecure · ").append(statusLine)
+                append("ZX VPN · ").append(statusLine)
                 if (connected) append("\n").append(speeds)
             }
             val active = profiles.firstOrNull { it.id == activeId }
@@ -372,7 +372,7 @@ fun main(args: Array<String>) {
         Window(
             onCloseRequest = { if (trayAvailable) windowVisible = false else { DesktopVpn.shutdown(); exitApplication() } },
             visible = windowVisible,
-            title = "ZedSecure",
+            title = "ZX VPN",
             icon = painterResource(Res.drawable.ic_zed_mark),
             resizable = false,
             state = windowState,
