@@ -78,6 +78,7 @@ private data class FinderResult(
     val tcpPingMs: Long? = null,
     val realDelayMs: Long? = null,
     val latencyTested: Boolean = false,
+    val latencyError: String? = null,
     val note: String = "",
 )
 
@@ -226,6 +227,7 @@ fun ConfigFinderSheet(
                                             tcpPingMs = -1L,
                                             realDelayMs = -1L,
                                             latencyTested = true,
+                                            latencyError = "پروفایل آزمایشی ساخته نشد",
                                             note = "پروفایل آزمایشی ساخته نشد؛ این گزینه سالم یا قابل‌اتصال فرض نمی‌شود.",
                                         )
                                     } else {
@@ -241,6 +243,7 @@ fun ConfigFinderSheet(
                                             tcpPingMs = tcp,
                                             realDelayMs = real,
                                             latencyTested = true,
+                                            latencyError = null,
                                             note = when {
                                                 real > 0L -> "تأخیر واقعی: میانهٔ نمونه‌های موفق از مسیر موتور VPN؛ نتیجه فقط مربوط به همین شبکه و زمان آزمایش است."
                                                 tcp > 0L -> "پورت TCP پاسخ داد، اما تأخیر از مسیر موتور VPN اندازه‌گیری نشد؛ اتصال VPN سالم فرض نمی‌شود."
@@ -255,6 +258,7 @@ fun ConfigFinderSheet(
                                         tcpPingMs = -1L,
                                         realDelayMs = -1L,
                                         latencyTested = true,
+                                        latencyError = "خطای اندازه‌گیری",
                                         note = "اندازه‌گیری با خطا روبه‌رو شد؛ نتیجه اتصال ناموفق در نظر گرفته می‌شود.",
                                     )
                                 } finally {
@@ -456,20 +460,21 @@ fun ConfigFinderSheet(
                             Text("${item.protocol} · ${item.country}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                             Text(item.source, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Text("امتیاز فنی: ${finderQualityScore(item)}/100", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                                Text("شاخص غربالگری: ${finderQualityScore(item)}/100", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                                 Text("${item.source.split(" · ").distinct().size} منبع", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             if (item.latencyTested) {
-                                val realText = item.realDelayMs?.takeIf { it > 0L }?.let { "$it ms" } ?: "پاسخ نداد"
+                                val realText = item.realDelayMs?.takeIf { it > 0L }?.let { "$it ms" }
+                                    ?: if (item.latencyError != null) "خطای تست" else "اندازه‌گیری موفق نشد"
                                 val tcpText = item.tcpPingMs?.takeIf { it > 0L }?.let { "$it ms" } ?: "ناموفق"
                                 Text(
-                                    "تأخیر واقعی از مسیر VPN: $realText · پینگ TCP سرور: $tcpText",
+                                    "تأخیر مسیر موتور VPN: $realText · پینگ TCP: $tcpText",
                                     style = MaterialTheme.typography.labelMedium,
                                     color = if ((item.realDelayMs ?: -1L) > 0L) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
                                 )
                             }
                             Text(
-                                if (item.parserSupported) "قالب: قابل‌شناسایی توسط پارسر" else "قالب: نیازمند بررسی هنگام افزودن",
+                                if (item.parserSupported) "قالب: پارسر آن را می‌شناسد؛ اتصال هنوز تضمین نیست" else "قالب: با پارسرهای فعلی تأیید نشده؛ افزودن/اتصال غیرفعال است",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = if (item.parserSupported) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -500,20 +505,29 @@ fun ConfigFinderSheet(
                         FinderInfoLine("منبع", item.source)
                         FinderInfoLine("سازگاری", if (item.parserSupported) "پارسر این قالب را می‌شناسد" else "قالب هنوز تأیید نشده")
                         if (item.latencyTested) {
-                            FinderInfoLine("تأخیر واقعی", item.realDelayMs?.takeIf { it > 0L }?.let { "$it ms" } ?: "پاسخی ثبت نشد")
+                            FinderInfoLine(
+                                "نتیجهٔ تست",
+                                when {
+                                    item.latencyError != null -> "خطا: ${item.latencyError}"
+                                    (item.realDelayMs ?: -1L) > 0L -> "تأخیر از مسیر موتور VPN اندازه‌گیری شد"
+                                    (item.tcpPingMs ?: -1L) > 0L -> "فقط پورت TCP پاسخ داد؛ اتصال VPN تأیید نشد"
+                                    else -> "نمونهٔ موفقی ثبت نشد"
+                                },
+                            )
+                            FinderInfoLine("تأخیر مسیر موتور VPN", item.realDelayMs?.takeIf { it > 0L }?.let { "$it ms" } ?: "اندازه‌گیری موفق نشد")
                             FinderInfoLine("پینگ TCP", item.tcpPingMs?.takeIf { it > 0L }?.let { "$it ms" } ?: "ناموفق")
                         }
-                        Text("کشور IP یک تخمین ژئولوکیشن است، نه تضمین محل فیزیکی سرور. افزودن کانفیگ ناشناس ریسک حریم خصوصی دارد.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("شاخص غربالگری فقط برای مرتب‌سازی است؛ تضمین سرعت، اتصال، امنیت یا ناشناس‌ماندن نیست. کشور IP هم تخمین ژئولوکیشن است. کانفیگ ناشناس می‌تواند ریسک حریم خصوصی داشته باشد.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 },
                 confirmButton = {
-                    Button(enabled = item.payload != null, onClick = { item.payload?.let { link -> selectedResult = null; onConnect(link) } }) {
+                    Button(enabled = item.parserSupported && item.payload != null, onClick = { item.payload?.takeIf { item.parserSupported }?.let { link -> selectedResult = null; onConnect(link) } }) {
                         Text("افزودن و اتصال")
                     }
                 },
                 dismissButton = {
                     Row {
-                        TextButton(enabled = item.payload != null, onClick = { item.payload?.let { link -> selectedResult = null; onImport(link) } }) { Text("فقط افزودن") }
+                        TextButton(enabled = item.parserSupported && item.payload != null, onClick = { item.payload?.takeIf { item.parserSupported }?.let { link -> selectedResult = null; onImport(link) } }) { Text("فقط افزودن") }
                         TextButton(onClick = { selectedResult = null }) { Text("بستن") }
                     }
                 },
@@ -523,7 +537,7 @@ fun ConfigFinderSheet(
 }
 
 private fun finderQualityScore(item: FinderResult): Int {
-    // Heuristic for triage only; this is not a safety, anonymity, or throughput guarantee.
+    // Heuristic for screening only; this is not a safety, anonymity, connectivity, or throughput guarantee.
     var score = 0
     if (item.parserSupported) score += 25
     if (item.latencyTested) score += 10
@@ -631,7 +645,9 @@ private suspend fun fetchSources(sources: List<FinderSource>): FetchSourcesResul
                         .map { it.value.trimEnd(',', ';', '.', ')', ']', '}') }
                         .toList()
                     val parsed = links.mapIndexed { index, link ->
-                        val parserSupported = runCatching { ConfigParser.isSupportedLink(link) }.getOrDefault(false)
+                        val parserSupported = runCatching {
+                            ConfigParser.isSupportedLink(link) || SingBoxLinks.handles(link)
+                        }.getOrDefault(false)
                         FinderResult(
                             id = "${source.url.hashCode()}:${index}:${link.hashCode()}",
                             name = "کانفیگ ${index + 1}",
