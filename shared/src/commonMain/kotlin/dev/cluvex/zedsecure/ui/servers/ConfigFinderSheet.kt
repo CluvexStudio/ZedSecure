@@ -171,11 +171,13 @@ fun ConfigFinderSheet(
     var selectedPort by remember { mutableStateOf<Int?>(null) }
 
     val displayedResults = remember(
-        results, sortMode, protocolFilter, onlyParserSupported, onlyTested, onlyRealDelaySuccess, query,
+        results, sortMode, protocolFilter, onlyParserSupported, onlyTested, onlyRealDelaySuccess, query, country, category,
     ) {
         val q = query.trim().lowercase()
+        val applyCountryFilter = category == "کشوری" || category == "همه منابع"
         val filtered = results.filter { item ->
-            (protocolFilter == "همه پروتکل‌ها" || item.protocol.contains(protocolFilter, ignoreCase = true)) &&
+            (!applyCountryFilter || country == "همه کشورها" || item.country == country || item.country == "نامشخص") &&
+                (protocolFilter == "همه پروتکل‌ها" || item.protocol.contains(protocolFilter, ignoreCase = true)) &&
                 (!onlyParserSupported || item.parserSupported) &&
                 (!onlyTested || item.latencyTested) &&
                 (!onlyRealDelaySuccess || (item.realDelayMs ?: -1L) > 0L) &&
@@ -406,7 +408,15 @@ fun ConfigFinderSheet(
                 FilterChip(selected = onlyTested, onClick = { onlyTested = !onlyTested }, label = { Text("فقط آزمایش‌شده‌ها") })
                 FilterChip(selected = onlyRealDelaySuccess, onClick = { onlyRealDelaySuccess = !onlyRealDelaySuccess }, label = { Text("تأخیر واقعی موفق") })
             }
-            Text("فیلترها روی نتایج فعلی و بدون دریافت دوبارهٔ منابع اعمال می‌شوند.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                if (category == "کشوری" || category == "همه منابع") {
+                    "فیلتر کشور هم زنده روی نتایج اعمال می‌شود؛ برای دیدن همه کشورها، «همه کشورها» را انتخاب کن."
+                } else {
+                    "فیلترها روی نتایج فعلی و بدون دریافت دوبارهٔ منابع اعمال می‌شوند."
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             Text("مرتب‌سازی نتایج", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 listOf("پیشنهادی", "کیفیت فنی", "کمترین تأخیر", "کشور").forEach { mode ->
