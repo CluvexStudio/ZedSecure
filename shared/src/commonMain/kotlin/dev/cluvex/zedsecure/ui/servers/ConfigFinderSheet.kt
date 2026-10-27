@@ -82,7 +82,7 @@ private data class FinderResult(
     val note: String = "",
 )
 
-private val finderCountries = listOf("همه کشورها", "آمریکا", "آلمان", "ترکیه", "کره جنوبی", "روسیه")
+private val finderCountries = listOf("همه کشورها", "آمریکا", "آلمان", "ترکیه", "کره جنوبی", "روسیه", "فرانسه", "هلند", "ژاپن", "سنگاپور")
 
 private val countrySources = listOf(
     FinderSource("V2RayScrapeByCountry", "https://raw.githubusercontent.com/miladtahanian/V2RayScrapeByCountry/refs/heads/main/Countries/United_States.txt", "آمریکا"),
@@ -105,6 +105,22 @@ private val countrySources = listOf(
     FinderSource("Danialsamadi/v2go", "https://raw.githubusercontent.com/Danialsamadi/v2go/main/Splitted-By-Country/TR.txt", "ترکیه"),
     FinderSource("Danialsamadi/v2go", "https://raw.githubusercontent.com/Danialsamadi/v2go/main/Splitted-By-Country/KR.txt", "کره جنوبی"),
     FinderSource("Danialsamadi/v2go", "https://raw.githubusercontent.com/Danialsamadi/v2go/main/Splitted-By-Country/RU.txt", "روسیه"),
+    FinderSource("V2RayScrapeByCountry", "https://raw.githubusercontent.com/miladtahanian/V2RayScrapeByCountry/refs/heads/main/Countries/France.txt", "فرانسه"),
+    FinderSource("V2RayScrapeByCountry", "https://raw.githubusercontent.com/miladtahanian/V2RayScrapeByCountry/refs/heads/main/Countries/Netherlands.txt", "هلند"),
+    FinderSource("V2RayScrapeByCountry", "https://raw.githubusercontent.com/miladtahanian/V2RayScrapeByCountry/refs/heads/main/Countries/Japan.txt", "ژاپن"),
+    FinderSource("V2RayScrapeByCountry", "https://raw.githubusercontent.com/miladtahanian/V2RayScrapeByCountry/refs/heads/main/Countries/Singapore.txt", "سنگاپور"),
+    FinderSource("SoliSpirit/v2ray-configs", "https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/Countries/France.txt", "فرانسه"),
+    FinderSource("SoliSpirit/v2ray-configs", "https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/Countries/Netherlands.txt", "هلند"),
+    FinderSource("SoliSpirit/v2ray-configs", "https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/Countries/Japan.txt", "ژاپن"),
+    FinderSource("SoliSpirit/v2ray-configs", "https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/Countries/Singapore.txt", "سنگاپور"),
+    FinderSource("Delta-Kronecker/V2ray-Config", "https://raw.githubusercontent.com/Delta-Kronecker/V2ray-Config/main/config/countries/fr.txt", "فرانسه"),
+    FinderSource("Delta-Kronecker/V2ray-Config", "https://raw.githubusercontent.com/Delta-Kronecker/V2ray-Config/main/config/countries/nl.txt", "هلند"),
+    FinderSource("Delta-Kronecker/V2ray-Config", "https://raw.githubusercontent.com/Delta-Kronecker/V2ray-Config/main/config/countries/jp.txt", "ژاپن"),
+    FinderSource("Delta-Kronecker/V2ray-Config", "https://raw.githubusercontent.com/Delta-Kronecker/V2ray-Config/main/config/countries/sg.txt", "سنگاپور"),
+    FinderSource("Danialsamadi/v2go", "https://raw.githubusercontent.com/Danialsamadi/v2go/main/Splitted-By-Country/FR.txt", "فرانسه"),
+    FinderSource("Danialsamadi/v2go", "https://raw.githubusercontent.com/Danialsamadi/v2go/main/Splitted-By-Country/NL.txt", "هلند"),
+    FinderSource("Danialsamadi/v2go", "https://raw.githubusercontent.com/Danialsamadi/v2go/main/Splitted-By-Country/JP.txt", "ژاپن"),
+    FinderSource("Danialsamadi/v2go", "https://raw.githubusercontent.com/Danialsamadi/v2go/main/Splitted-By-Country/SG.txt", "سنگاپور"),
 )
 
 private val speedSources = listOf(
