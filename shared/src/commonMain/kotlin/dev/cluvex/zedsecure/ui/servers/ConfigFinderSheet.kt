@@ -294,7 +294,7 @@ fun ConfigFinderSheet(
                     .filter { protocolFilter == "همه پروتکل‌ها" || it.protocol.contains(protocolFilter, ignoreCase = true) }
                     .filter { !onlyParserSupported || it.parserSupported }
                     .filter { q.isEmpty() || listOf(it.name, it.protocol, it.country, it.source, it.note).any { s -> s.lowercase().contains(q) } }
-                    // Keep at most two parser-compatible candidates per individual source list.
+                    // Keep at most eight parser-compatible candidates per individual source list.
                     // This is a syntax/compatibility preference, not a claim that latency or safety was measured.
                     .groupBy { "${it.source}| ${it.country}" }
                     .values
@@ -315,9 +315,9 @@ fun ConfigFinderSheet(
                     results.isEmpty() ->
                         "نتیجه‌ای پیدا نشد؛ کشور یا دستهٔ دیگری را امتحان کن. منابع ناموفق: ${fetched.failedSources} از ${fetched.totalSources}."
                     fetched.failedSources > 0 ->
-                        "تعداد گزینه‌ها: ${results.size} — ${fetched.failedSources} از ${fetched.totalSources} منبع پاسخ نداد؛ نتیجه ناقص است. حداکثر ۲ گزینه از هر فهرست؛ سرعت واقعی تضمین نشده است."
+                        "تعداد گزینه‌ها: ${results.size} — ${fetched.failedSources} از ${fetched.totalSources} منبع پاسخ نداد؛ نتیجه ناقص است. حداکثر ۸ گزینه از هر فهرست؛ سرعت واقعی تضمین نشده است."
                     else ->
-                        "تعداد گزینه‌ها: ${results.size} — همهٔ ${fetched.totalSources} منبع پاسخ دادند؛ حداکثر ۲ گزینه از هر فهرست. سالم‌بودن و سرعت واقعی هنوز با اتصال تست نشده است."
+                        "تعداد گزینه‌ها: ${results.size} — همهٔ ${fetched.totalSources} منبع پاسخ دادند؛ حداکثر ۸ گزینه از هر فهرست. سالم‌بودن و سرعت واقعی هنوز با اتصال تست نشده است."
                 }
             }.onFailure {
                 error = it.message?.take(240) ?: "خواندن منابع ناموفق بود."
