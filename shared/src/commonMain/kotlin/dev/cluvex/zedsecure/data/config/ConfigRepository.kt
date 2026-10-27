@@ -21,6 +21,7 @@ import dev.cluvex.zedsecure.domain.config.RuleGroup
 import dev.cluvex.zedsecure.domain.config.SniSpoofLink
 import dev.cluvex.zedsecure.domain.config.ZedLink
 import dev.cluvex.zedsecure.domain.config.ConfigParser
+import dev.cluvex.zedsecure.domain.config.SlipNetConfigParser
 import dev.cluvex.zedsecure.domain.config.AwgConfig
 import dev.cluvex.zedsecure.domain.config.ShareLink
 import dev.cluvex.zedsecure.domain.config.CustomConfig
@@ -86,9 +87,15 @@ class ConfigRepository(private val store: KeyValueStore) {
 
     private fun activeExists(): Boolean = _activeId.value?.let { profile(it) } != null
 
-    fun importText(text: String, subscriptionId: String = ""): Result<Int> = runCatching {
+    fun importText(text: String, subscriptionId: String = "", importPassword: String? = null): Result<Int> = runCatching {
         val trimmed = text.trim()
         require(trimmed.isNotEmpty()) { "empty" }
+
+        val slipNetProfiles = SlipNetConfigParser.parse(trimmed, importPassword)
+        if (slipNetProfiles != null) {
+            slipNetProfiles.forEach { item -> addDnsTunnel(item.settings, item.name) }
+            return@runCatching slipNetProfiles.size
+        }
 
         val sshLines = trimmed.lines().map { it.trim() }.filter { SshLink.isSshLink(it) }
         if (sshLines.isNotEmpty()) {

@@ -64,7 +64,7 @@ private fun hostPort(args: Array<String>): Pair<String, Int>? {
 private fun usage() {
     println(
         """
-        ZedSecure desktop core (${Os.current})
+        ZX VPN desktop core (${Os.current})
           run <config.json> <socksPort> [system|tun]  run our xray core + route (self-contained)
           system <host> <port>   set system SOCKS proxy (no admin)
           tun    <host> <port>   TUN mode via hev (asks for admin)

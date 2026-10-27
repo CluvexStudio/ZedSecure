@@ -78,7 +78,7 @@ import dev.cluvex.zedsecure.platform.secureRandomToken
 
 enum class SettingsPage {
     Root, Ui, Vpn, Core, Routing, PerApp, Mux, Fragment, Observatory, Advanced, Mode, Assets, SingBox,
-    DnsProtocols, Tor, TorBridges, Ssh, Support, SpeedTest, Map, Privacy, Monitor, Ai, AiChat,
+    DnsProtocols, Tor, TorBridges, Ssh, SpeedTest, Map, Privacy, Monitor, Ai, AiChat,
 }
 
 @Composable
@@ -198,7 +198,6 @@ fun SettingsScreen(
             SettingsPage.Tor -> TorPage(settings, contentPadding, modifier, onUpdate) { page = it }
             SettingsPage.TorBridges -> TorBridgesScreen(settings, contentPadding, modifier, onUpdate)
             SettingsPage.Ssh -> SshPage(settings, contentPadding, modifier, onUpdate)
-            SettingsPage.Support -> SupportPage(contentPadding, modifier)
             SettingsPage.Privacy -> PrivacyPage(contentPadding, modifier)
             SettingsPage.Monitor -> LiveMonitorPage(contentPadding, modifier)
             SettingsPage.Ai -> ai?.let {
@@ -308,14 +307,6 @@ private fun RootPage(
             tagline = stringResource(Res.string.settings_hero_tagline),
             reduceMotion = settings.reduceMotion,
         )
-
-        SettingsGroup(modifier = Modifier.tourTargetInPage(TourTargets.SETTINGS_SUPPORT)) {
-            SettingsBannerRow(
-                stringResource(Res.string.support_title),
-                stringResource(Res.string.support_subtitle),
-                art = SettingsArts.Support,
-            ) { onOpen(SettingsPage.Support) }
-        }
 
         SettingsGroup(
             stringResource(Res.string.settings_group_personal),
