@@ -5,6 +5,7 @@
 
 package dev.cluvex.zedsecure.ui.servers
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -137,6 +138,7 @@ fun ConfigFinderSheet(
     var protocolFilter by remember { mutableStateOf("همه پروتکل‌ها") }
     var onlyParserSupported by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
+    var sortMode by remember { mutableStateOf("پیشنهادی") }
     var loading by remember { mutableStateOf(false) }
     var testingLatency by remember { mutableStateOf(false) }
     var latencyProgress by remember { mutableStateOf(0) }
@@ -148,6 +150,20 @@ fun ConfigFinderSheet(
     var geoLoading by remember { mutableStateOf(false) }
     var selectedHost by remember { mutableStateOf<String?>(null) }
     var selectedPort by remember { mutableStateOf<Int?>(null) }
+
+    val displayedResults = remember(results, sortMode) {
+        when (sortMode) {
+            "کمترین تأخیر" -> results.sortedWith(
+                compareBy<FinderResult> { if ((it.realDelayMs ?: -1L) > 0L) 0 else 1 }
+                    .thenBy { it.realDelayMs?.takeIf { ms -> ms > 0L } ?: Long.MAX_VALUE }
+                    .thenByDescending { it.parserSupported }
+            )
+            "کشور" -> results.sortedWith(compareBy<FinderResult> { it.country }.thenByDescending { it.parserSupported })
+            else -> results.sortedWith(compareByDescending<FinderResult> { it.parserSupported }
+                .thenBy { if (it.latencyTested && (it.realDelayMs ?: -1L) <= 0L) 1 else 0 }
+                .thenBy { it.country })
+        }
+    }
 
     fun openDetails(item: FinderResult) {
         selectedResult = item
@@ -283,7 +299,8 @@ fun ConfigFinderSheet(
                     .groupBy { "${it.source}| ${it.country}" }
                     .values
                     .flatMap { sourceCandidates ->
-                        sourceCandidates.sortedByDescending { candidate -> candidate.parserSupported }.take(2)
+                        sourceCandidates.sortedWith(compareByDescending<FinderResult> { candidate -> candidate.parserSupported }
+                            .thenBy { candidate -> candidate.name }).take(8)
                     }
                     .groupBy { (it.payload ?: it.rawUrl ?: it.id).trim().lowercase() }
                     .values
@@ -323,25 +340,25 @@ fun ConfigFinderSheet(
             ) {
             Text("کانفینگ‌یاب", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             Text("کانفیگ‌ها را پیدا کن، روی هر مورد بزن تا جزئیات و کشور واقعیِ تخمینی بر اساس IP را ببینی؛ بعد می‌توانی همان مورد را به فهرست اضافه و برای اتصال انتخاب کنی.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 listOf("همه منابع", "کشوری", "سرعتی", "تلگرام").forEach { item ->
                     FilterChip(selected = category == item, onClick = { category = item }, label = { Text(item) })
                 }
             }
             if (category == "کشوری") {
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     finderCountries.forEach { item ->
                         FilterChip(selected = country == item, onClick = { country = item }, label = { Text(item) })
                     }
                 }
             }
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf("همه پروتکل‌ها", "VLESS", "VMess", "Trojan").forEach { item ->
                         FilterChip(selected = protocolFilter == item, onClick = { protocolFilter = item }, label = { Text(item) })
                     }
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf("Hysteria2", "Shadowsocks").forEach { item ->
                         FilterChip(selected = protocolFilter == item, onClick = { protocolFilter = item }, label = { Text(item) })
                     }
@@ -352,6 +369,12 @@ fun ConfigFinderSheet(
                 onClick = { onlyParserSupported = !onlyParserSupported },
                 label = { Text("فقط قالب‌های قابل‌شناسایی") },
             )
+            Text("مرتب‌سازی نتایج", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                listOf("پیشنهادی", "کمترین تأخیر", "کشور").forEach { mode ->
+                    FilterChip(selected = sortMode == mode, onClick = { sortMode = mode }, label = { Text(mode) })
+                }
+            }
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it },
@@ -379,6 +402,9 @@ fun ConfigFinderSheet(
             }
             if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error)
             Text(status, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (results.isNotEmpty() && sortMode == "کمترین تأخیر" && results.none { (it.realDelayMs ?: -1L) > 0L }) {
+                Text("هنوز تأخیر واقعی موفقی اندازه‌گیری نشده؛ برای رتبه‌بندی بر اساس شبکهٔ خودت، آزمایش تأخیر را اجرا کن.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary)
+            }
             if (loading) Text("در حال بررسی منابع مجاز…", style = MaterialTheme.typography.bodyMedium)
             if (results.isNotEmpty()) {
                 val parserReady = results.count { it.parserSupported }
@@ -407,7 +433,7 @@ fun ConfigFinderSheet(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth().weight(1f),
             ) {
-                items(results, key = { it.id }) { item ->
+                items(displayedResults, key = { it.id }) { item ->
                     Surface(onClick = { openDetails(item) }, shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                             Text(item.name, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
