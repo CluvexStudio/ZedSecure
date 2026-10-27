@@ -386,16 +386,28 @@ fun MainScaffold(
                         configRepository.importPasted(link)
                     }
                     imported.onSuccess { result ->
-                        val addedProfile = configRepository.profiles.value.lastOrNull { it.id !in previousIds }
-                        if (result.count > 0 && addedProfile != null) {
-                            configRepository.setActive(addedProfile.id)
+                        val profilesNow = configRepository.profiles.value
+                        val addedProfile = profilesNow.lastOrNull { it.id !in previousIds }
+                        // Import can legitimately report a duplicate. Reuse that exact saved profile
+                        // instead of making the "افزودن و اتصال" action silently fail.
+                        val existingProfile = if (result.duplicates > 0) {
+                            profilesNow.firstOrNull { it.rawPayload()?.trim() == link.trim() }
+                        } else {
+                            null
+                        }
+                        val targetProfile = addedProfile ?: existingProfile
+                        if ((result.count > 0 || result.duplicates > 0) && targetProfile != null) {
+                            configRepository.setActive(targetProfile.id)
                             current = TopDestination.Servers
                             onActiveServerChanged()
                             kotlinx.coroutines.delay(250)
+                            if (result.duplicates > 0 && addedProfile == null) {
+                                platform.toast("این کانفیگ از قبل وجود داشت؛ اتصال آن انتخاب شد")
+                            }
                             onToggleConnection()
                         } else {
                             platform.toast(
-                                if (result.duplicates > 0) "این کانفیگ از قبل وجود دارد؛ برای اتصال آن را از فهرست سرورها انتخاب کن"
+                                if (result.duplicates > 0) "کانفیگ تکراری است اما نسخهٔ ذخیره‌شده پیدا نشد؛ اتصال انجام نشد"
                                 else "کانفیگ واردشدنی نبود؛ اتصال انجام نشد",
                             )
                             current = TopDestination.Servers
