@@ -160,6 +160,7 @@ internal fun LiquidHome(
     contentPadding: PaddingValues,
     onToggleConnection: () -> Unit,
     onBrowseConfigs: () -> Unit,
+    onOpenConfigFinder: () -> Unit,
     onSecretUnlocked: () -> Unit,
     onShowLogs: () -> Unit,
     onBurst: () -> Unit,
@@ -328,7 +329,15 @@ internal fun LiquidHome(
         if (quickHubOpen) {
             LiquidQuickHubOverlay(
                 page = quickHubPage,
-                onOpenPage = { quickHubPage = it },
+                onOpenPage = { page ->
+                    if (page == LiquidQuickHubPage.Config) {
+                        quickHubOpen = false
+                        quickHubPage = null
+                        onOpenConfigFinder()
+                    } else {
+                        quickHubPage = page
+                    }
+                },
                 onBack = { quickHubPage = null },
                 onClose = {
                     quickHubOpen = false
