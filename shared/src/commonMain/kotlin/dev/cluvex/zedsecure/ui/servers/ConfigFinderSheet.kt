@@ -328,13 +328,15 @@ fun ConfigFinderSheet(
                     }
                     .sortedWith(compareByDescending<FinderResult> { it.parserSupported }.thenBy { it.country }.thenBy { it.protocol })
                     .take(300)
+                val failedSourceSummary = fetched.failedSourceNames.take(4).joinToString("، ")
+                    .let { names -> if (names.isBlank()) "" else " منابع ناموفق: $names" }
                 status = when {
                     results.isEmpty() && fetched.failedSources == fetched.totalSources ->
-                        "هیچ‌کدام از منابع پاسخ ندادند؛ اتصال اینترنت را بررسی کن و دوباره جست‌وجو کن. (${fetched.failedSources}/${fetched.totalSources} منبع ناموفق)"
+                        "هیچ‌کدام از منابع پاسخ ندادند؛ اتصال اینترنت را بررسی کن و دوباره جست‌وجو کن. (${fetched.failedSources}/${fetched.totalSources} منبع ناموفق)$failedSourceSummary"
                     results.isEmpty() ->
-                        "نتیجه‌ای پیدا نشد؛ کشور یا دستهٔ دیگری را امتحان کن. منابع ناموفق: ${fetched.failedSources} از ${fetched.totalSources}."
+                        "نتیجه‌ای پیدا نشد؛ کشور یا دستهٔ دیگری را امتحان کن. منابع ناموفق: ${fetched.failedSources} از ${fetched.totalSources}.$failedSourceSummary"
                     fetched.failedSources > 0 ->
-                        "تعداد گزینه‌ها: ${results.size} — ${fetched.failedSources} از ${fetched.totalSources} منبع پاسخ نداد؛ نتیجه ناقص است. حداکثر ۸ گزینه از هر فهرست؛ سرعت واقعی تضمین نشده است."
+                        "تعداد گزینه‌ها: ${results.size} — ${fetched.failedSources} از ${fetched.totalSources} منبع پاسخ نداد؛ نتیجه ناقص است. حداکثر ۸ گزینه از هر فهرست؛ سرعت واقعی تضمین نشده است.$failedSourceSummary"
                     else ->
                         "تعداد گزینه‌ها: ${results.size} — همهٔ ${fetched.totalSources} منبع پاسخ دادند؛ حداکثر ۸ گزینه از هر فهرست. سالم‌بودن و سرعت واقعی هنوز با اتصال تست نشده است."
                 }
@@ -620,6 +622,7 @@ private data class FetchSourcesResult(
     val results: List<FinderResult>,
     val failedSources: Int,
     val totalSources: Int,
+    val failedSourceNames: List<String>,
 )
 
 private suspend fun fetchSources(sources: List<FinderSource>): FetchSourcesResult = coroutineScope {
@@ -678,6 +681,9 @@ private suspend fun fetchSources(sources: List<FinderSource>): FetchSourcesResul
         results = outcomes.flatMap { it.results },
         failedSources = outcomes.count { it.failed },
         totalSources = sources.size,
+        failedSourceNames = outcomes.mapIndexedNotNull { index, outcome ->
+            sources.getOrNull(index)?.name?.takeIf { outcome.failed }
+        }.distinct(),
     )
 }
 
