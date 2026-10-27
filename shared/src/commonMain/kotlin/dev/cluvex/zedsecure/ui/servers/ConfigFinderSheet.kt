@@ -176,7 +176,7 @@ fun ConfigFinderSheet(
         val q = query.trim().lowercase()
         val applyCountryFilter = category == "کشوری" || category == "همه منابع"
         val filtered = results.filter { item ->
-            (!applyCountryFilter || country == "همه کشورها" || item.country == country || item.country == "نامشخص") &&
+            (!applyCountryFilter || country == "همه کشورها" || item.country == country) &&
                 (protocolFilter == "همه پروتکل‌ها" || item.protocol.contains(protocolFilter, ignoreCase = true)) &&
                 (!onlyParserSupported || item.parserSupported) &&
                 (!onlyTested || item.latencyTested) &&
@@ -384,7 +384,7 @@ fun ConfigFinderSheet(
                     FilterChip(selected = category == item, onClick = { category = item }, label = { Text(item) })
                 }
             }
-            if (category == "کشوری") {
+            if (category == "کشوری" || category == "همه منابع") {
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     finderCountries.forEach { item ->
                         FilterChip(selected = country == item, onClick = { country = item }, label = { Text(item) })
