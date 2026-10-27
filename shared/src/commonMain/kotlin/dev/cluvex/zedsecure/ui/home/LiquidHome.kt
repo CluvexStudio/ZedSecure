@@ -28,6 +28,13 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
+import androidx.compose.ui.input.pointer.pointerInput
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -169,6 +176,8 @@ internal fun LiquidHome(
     }
     val clock = rememberPortalClock(animate && (live || searching))
     val haptics = LocalHapticFeedback.current
+    var quickHubOpen by remember { mutableStateOf(false) }
+    var quickHubPage by remember { mutableStateOf<LiquidQuickHubPage?>(null) }
 
     var celebrate by remember { mutableIntStateOf(0) }
     var previous by remember { mutableStateOf(ui.state) }
@@ -232,6 +241,7 @@ internal fun LiquidHome(
                                         }
                                     },
                                     onLongPress = onBurst,
+                                    onOpenQuickHub = { quickHubOpen = true },
                                     onStatusTap = onStatusTap,
                                     details = infoExpanded,
                                     onOpenInfo = onOpenInfo,
@@ -314,6 +324,223 @@ internal fun LiquidHome(
                 Spacer(Modifier.height(12.dp))
             }
         }
+        if (quickHubOpen) {
+            LiquidQuickHubOverlay(
+                page = quickHubPage,
+                onOpenPage = { quickHubPage = it },
+                onBack = { quickHubPage = null },
+                onClose = {
+                    quickHubOpen = false
+                    quickHubPage = null
+                },
+            )
+        }
+    }
+}
+
+private enum class LiquidQuickHubPage(
+    val title: String,
+    val icon: String,
+    val description: String,
+) {
+    Proxy("پروکسی‌یاب", "🛰️", "پیدا کردن و بررسی مسیرهای پراکسی"),
+    Config("کانفیگ‌یاب", "✦", "کشف و بررسی کانفیگ‌های قابل استفاده"),
+    Ip("IP‌یاب", "🌐", "نمایش و بررسی اطلاعات اتصال و IP"),
+}
+
+@Composable
+private fun LiquidQuickHubOverlay(
+    page: LiquidQuickHubPage?,
+    onOpenPage: (LiquidQuickHubPage) -> Unit,
+    onBack: () -> Unit,
+    onClose: () -> Unit,
+) {
+    val cs = MaterialTheme.colorScheme
+    Box(
+        Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.66f)),
+        contentAlignment = Alignment.Center,
+    ) {
+        // A softly animated liquid ring stays behind the three exclusive shortcuts.
+        Canvas(Modifier.fillMaxSize()) {
+            val c = Offset(size.width / 2f, size.height / 2f)
+            val radius = size.minDimension * 0.29f
+            drawCircle(
+                brush = Brush.radialGradient(
+                    listOf(cs.primary.copy(alpha = 0.24f), cs.tertiary.copy(alpha = 0.12f), Color.Transparent),
+                    center = c,
+                    radius = radius * 1.6f,
+                ),
+                radius = radius * 1.6f,
+                center = c,
+            )
+            drawCircle(
+                color = cs.primary.copy(alpha = 0.32f),
+                radius = radius,
+                center = c,
+                style = Stroke(width = 1.5.dp.toPx()),
+            )
+            drawCircle(
+                color = cs.tertiary.copy(alpha = 0.25f),
+                radius = radius * 0.76f,
+                center = c,
+                style = Stroke(width = 1.dp.toPx()),
+            )
+        }
+
+        if (page == null) {
+            BoxWithConstraints(Modifier.fillMaxSize()) {
+                val bubbleSize = minOf(maxWidth * 0.25f, 104.dp).coerceAtLeast(76.dp)
+                // Orbit positions create a three-point radial launcher around the liquid core.
+                LiquidQuickHubBubble(
+                    icon = LiquidQuickHubPage.Proxy.icon,
+                    title = LiquidQuickHubPage.Proxy.title,
+                    tint = cs.primary,
+                    modifier = Modifier.align(Alignment.Center).offset(y = -maxHeight * 0.235f).size(bubbleSize),
+                    onClick = { onOpenPage(LiquidQuickHubPage.Proxy) },
+                )
+                LiquidQuickHubBubble(
+                    icon = LiquidQuickHubPage.Config.icon,
+                    title = LiquidQuickHubPage.Config.title,
+                    tint = cs.tertiary,
+                    modifier = Modifier.align(Alignment.Center).offset(x = -maxWidth * 0.245f, y = maxHeight * 0.105f).size(bubbleSize),
+                    onClick = { onOpenPage(LiquidQuickHubPage.Config) },
+                )
+                LiquidQuickHubBubble(
+                    icon = LiquidQuickHubPage.Ip.icon,
+                    title = LiquidQuickHubPage.Ip.title,
+                    tint = cs.secondary,
+                    modifier = Modifier.align(Alignment.Center).offset(x = maxWidth * 0.245f, y = maxHeight * 0.105f).size(bubbleSize),
+                    onClick = { onOpenPage(LiquidQuickHubPage.Ip) },
+                )
+                Surface(
+                    shape = CircleShape,
+                    color = liquidFill(),
+                    border = liquidBorder(),
+                    modifier = Modifier.align(Alignment.Center).size(94.dp),
+                ) {
+                    Column(
+                        Modifier.fillMaxSize().padding(8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        Text("LIQUID", style = MaterialTheme.typography.labelMedium, color = cs.primary, fontWeight = FontWeight.Black)
+                        Text("HUB", style = MaterialTheme.typography.headlineSmallEmphasized, color = cs.onSurface)
+                    }
+                }
+                Text(
+                    "۱۵ ثانیه نگه داشتی؛ میان‌برهای مخفی باز شدند",
+                    modifier = Modifier.align(Alignment.Center).offset(y = maxHeight * 0.285f).padding(horizontal = 28.dp),
+                    color = Color.White.copy(alpha = 0.86f),
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center,
+                )
+                Surface(
+                    onClick = onClose,
+                    shape = CircleShape,
+                    color = Color.White.copy(alpha = 0.12f),
+                    modifier = Modifier.align(Alignment.TopEnd).padding(20.dp).size(44.dp),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text("×", color = Color.White, style = MaterialTheme.typography.headlineMedium)
+                    }
+                }
+            }
+        } else {
+            Surface(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 22.dp).heightIn(min = 360.dp, max = 520.dp),
+                shape = RoundedCornerShape(36.dp),
+                color = liquidFill(),
+                border = liquidBorder(),
+            ) {
+                Column(
+                    Modifier.fillMaxWidth().padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Surface(
+                            onClick = onBack,
+                            shape = CircleShape,
+                            color = cs.surface.copy(alpha = 0.72f),
+                            modifier = Modifier.size(44.dp),
+                        ) { Box(contentAlignment = Alignment.Center) { Text("‹", color = cs.onSurface, style = MaterialTheme.typography.headlineLarge) } }
+                        Spacer(Modifier.weight(1f))
+                        Text("LIQUID EXCLUSIVE", color = cs.primary, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.weight(1f))
+                        Surface(
+                            onClick = onClose,
+                            shape = CircleShape,
+                            color = cs.surface.copy(alpha = 0.72f),
+                            modifier = Modifier.size(44.dp),
+                        ) { Box(contentAlignment = Alignment.Center) { Text("×", color = cs.onSurface, style = MaterialTheme.typography.headlineMedium) } }
+                    }
+                    Spacer(Modifier.height(32.dp))
+                    Box(
+                        Modifier.size(112.dp).clip(CircleShape)
+                            .background(Brush.linearGradient(listOf(cs.primary, cs.tertiary, cs.secondary))),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(page.icon, style = MaterialTheme.typography.displaySmall, color = Color.White)
+                    }
+                    Spacer(Modifier.height(24.dp))
+                    Text(page.title, style = MaterialTheme.typography.headlineMediumEmphasized, color = cs.onSurface)
+                    Spacer(Modifier.height(10.dp))
+                    Text(page.description, style = MaterialTheme.typography.bodyLarge, color = cs.onSurfaceVariant, textAlign = TextAlign.Center)
+                    Spacer(Modifier.height(24.dp))
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = cs.surface.copy(alpha = 0.65f),
+                        border = liquidBorder(),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            "این صفحه به‌صورت اختصاصی برای Liquid Theme ساخته شده است. مرحلهٔ بعد، اتصال ابزار واقعی همین بخش خواهد بود.",
+                            Modifier.padding(16.dp),
+                            color = cs.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodyMedium,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
+                    Spacer(Modifier.height(28.dp))
+                    FilledTonalButton(onClick = onBack, shapes = ButtonDefaults.shapes()) {
+                        Text("بازگشت به حلقهٔ میان‌برها")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LiquidQuickHubBubble(
+    icon: String,
+    title: String,
+    tint: Color,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    val cs = MaterialTheme.colorScheme
+    Surface(
+        onClick = onClick,
+        shape = CircleShape,
+        color = tint.copy(alpha = 0.22f),
+        border = androidx.compose.foundation.BorderStroke(1.5.dp, tint.copy(alpha = 0.8f)),
+        modifier = modifier,
+    ) {
+        Column(
+            Modifier.fillMaxSize().padding(5.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Box(
+                Modifier.size(40.dp).clip(CircleShape).background(Brush.linearGradient(listOf(tint, tint.copy(alpha = 0.62f)))),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(icon, color = Color.White, style = MaterialTheme.typography.titleLarge)
+            }
+            Spacer(Modifier.height(5.dp))
+            Text(title, color = Color.White, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, maxLines = 1)
+        }
     }
 }
 
@@ -365,7 +592,7 @@ private fun LiquidHeroCard(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
-                LiquidOrb(state, ui.elapsedSeconds, door, clock, animate, celebrate, onTap, onLongPress)
+                LiquidOrb(state, ui.elapsedSeconds, door, clock, animate, celebrate, onTap, onLongPress, onOpenQuickHub)
                 Spacer(Modifier.height(if (compact || open) 10.dp else 16.dp))
                 AnimatedContent(
                     targetState = state,
@@ -453,6 +680,7 @@ private fun LiquidOrb(
     celebrate: Int,
     onTap: () -> Unit,
     onLongPress: () -> Unit,
+    onOpenQuickHub: () -> Unit,
 ) {
     val cs = MaterialTheme.colorScheme
     val searching = state == ConnectionState.Connecting || state == ConnectionState.Reconnecting
@@ -498,13 +726,28 @@ private fun LiquidOrb(
                 scaleY = squash * breathe
             }
             .semantics { contentDescription = actionLabel }
-            .combinedClickable(
-                interactionSource = source,
-                indication = null,
-                role = Role.Button,
-                onLongClick = onLongPress,
-                onClick = onTap,
-            ),
+            .pointerInput(onTap, onLongPress, onOpenQuickHub) {
+                awaitEachGesture {
+                    awaitFirstDown(requireUnconsumed = false)
+                    var longTriggered = false
+                    coroutineScope {
+                        val burstJob = launch {
+                            delay(600L)
+                            longTriggered = true
+                            onLongPress()
+                        }
+                        val hubJob = launch {
+                            delay(15_000L)
+                            longTriggered = true
+                            onOpenQuickHub()
+                        }
+                        waitForUpOrCancellation()
+                        burstJob.cancel()
+                        hubJob.cancel()
+                    }
+                    if (!longTriggered) onTap()
+                }
+            },
         contentAlignment = Alignment.Center,
     ) {
         Canvas(Modifier.matchParentSize()) {
