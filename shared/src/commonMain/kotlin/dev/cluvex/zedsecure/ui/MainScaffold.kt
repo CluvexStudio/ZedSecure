@@ -31,6 +31,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import org.jetbrains.compose.resources.painterResource
@@ -77,6 +81,8 @@ fun MainScaffold(
 ) {
     val platform = dev.cluvex.zedsecure.ui.platform.LocalPlatform.current
     var current by rememberSaveable { mutableStateOf(TopDestination.Home) }
+    var showConfigFinder by rememberSaveable { mutableStateOf(false) }
+    val configFinderScope = rememberCoroutineScope()
 
     var setupDone by rememberSaveable {
         mutableStateOf(settings.onboardingVersion >= dev.cluvex.zedsecure.ui.onboarding.ONBOARDING_VERSION)
@@ -245,6 +251,7 @@ fun MainScaffold(
                         current = if (activeProfile?.isLocked == true) TopDestination.Vault
                         else TopDestination.Servers
                     },
+                    onOpenConfigFinder = { showConfigFinder = true },
                     onSecretUnlocked = { spaceUnlocked = true },
                 )
                 TopDestination.Servers -> ServersScreen(
@@ -346,6 +353,59 @@ fun MainScaffold(
             modifier = Modifier.padding(innerPadding),
         )
       }
+    }
+
+    if (showConfigFinder) {
+        dev.cluvex.zedsecure.ui.servers.ConfigFinderSheet(
+            onDismiss = { showConfigFinder = false },
+            onImport = { link ->
+                showConfigFinder = false
+                configFinderScope.launch {
+                    val imported = withContext(Dispatchers.Default) {
+                        configRepository.importPasted(link)
+                    }
+                    imported.onSuccess { result ->
+                        platform.toast(
+                            when {
+                                result.count > 0 -> "کانفیگ با موفقیت افزوده شد"
+                                result.duplicates > 0 -> "این کانفیگ از قبل وجود دارد"
+                                else -> "کانفیگی افزوده نشد"
+                            },
+                        )
+                        if (result.count > 0) current = TopDestination.Servers
+                    }.onFailure {
+                        platform.toast("افزودن کانفیگ ناموفق بود")
+                    }
+                }
+            },
+            onConnect = { link ->
+                showConfigFinder = false
+                configFinderScope.launch {
+                    val previousIds = configRepository.profiles.value.map { it.id }.toSet()
+                    val imported = withContext(Dispatchers.Default) {
+                        configRepository.importPasted(link)
+                    }
+                    imported.onSuccess { result ->
+                        val addedProfile = configRepository.profiles.value.lastOrNull { it.id !in previousIds }
+                        if (result.count > 0 && addedProfile != null) {
+                            configRepository.setActive(addedProfile.id)
+                            current = TopDestination.Servers
+                            onActiveServerChanged()
+                            kotlinx.coroutines.delay(250)
+                            onToggleConnection()
+                        } else {
+                            platform.toast(
+                                if (result.duplicates > 0) "این کانفیگ از قبل وجود دارد؛ برای اتصال آن را از فهرست سرورها انتخاب کن"
+                                else "کانفیگ واردشدنی نبود؛ اتصال انجام نشد",
+                            )
+                            current = TopDestination.Servers
+                        }
+                    }.onFailure {
+                        platform.toast("افزودن کانفیگ ناموفق بود؛ اتصال انجام نشد")
+                    }
+                }
+            },
+        )
     }
 
     val tourSteps = dev.cluvex.zedsecure.ui.onboarding.rememberTourSteps()
