@@ -116,8 +116,8 @@ private val speedSources = listOf(
     FinderSource("Verified · 0xRadikal", "https://raw.githubusercontent.com/0xRadikal/Free-v2ray-Configs/main/verified/configs.txt", category = "سرعتی"),
     FinderSource("Top5 · PulseConfigs", "https://raw.githubusercontent.com/drmikecrypto/PulseConfigs/main/top5.txt", category = "سرعتی"),
     FinderSource("Top5 Speed · PulseConfigs", "https://raw.githubusercontent.com/drmikecrypto/PulseConfigs/main/top5_speed.txt", category = "سرعتی"),
-    FinderSource("Top100 · FastNodes", "https://raw.githubusercontent.com/rtwo2/FastNodes/main/sub/Best-Results/top100.txt", category = "سرعتی"),
-    FinderSource("Top500 · FastNodes", "https://raw.githubusercontent.com/rtwo2/FastNodes/main/sub/Best-Results/top500.txt", category = "سرعتی"),
+    FinderSource("Top · FastNodes", "https://raw.githubusercontent.com/rtwo2/FastNodes/main/sub/top.txt", category = "سرعتی"),
+    FinderSource("Verified · FastNodes", "https://raw.githubusercontent.com/rtwo2/FastNodes/main/sub/verified.txt", category = "سرعتی"),
 )
 
 private val telegramSources = listOf(
