@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
+import android.os.SystemClock
 import dev.cluvex.zedsecure.data.net.MtuProbe
 import dev.cluvex.zedsecure.data.net.MtuVerdict
 import java.util.concurrent.TimeUnit
@@ -49,19 +50,49 @@ object AndroidMtuProbe {
             ).redirectErrorStream(true).start()
         }.getOrNull() ?: return MtuVerdict.Unavailable
 
+        val finished = runCatching {
+            waitForProcess(process, (seconds + 2L) * 1000L)
+        }.getOrDefault(false)
+
+        if (!finished) {
+            // Process.destroy() is available on the app's full supported API range.
+            runCatching { process.destroy() }
+            return MtuVerdict.Unavailable
+        }
+
         val output = runCatching {
-            // Bound process lifetime before reading output so a stuck ping cannot stall the caller.
-            if (!process.waitFor(seconds + 2L, TimeUnit.SECONDS)) {
-                process.destroyForcibly()
-                process.waitFor(250, TimeUnit.MILLISECONDS)
-            }
             process.inputStream.bufferedReader().use { it.readText() }
         }.getOrElse {
-            runCatching { process.destroyForcibly() }
+            runCatching { process.destroy() }
             return MtuVerdict.Unavailable
         }
 
         return classify(output)
+    }
+
+    private fun waitForProcess(process: Process, timeoutMs: Long): Boolean {
+        // The timed Process.waitFor overload is API 26+. Use a portable polling
+        // fallback on API 24–25 rather than invoking a newer API on older devices.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            return process.waitFor(timeoutMs, TimeUnit.MILLISECONDS)
+        }
+
+        val deadline = SystemClock.elapsedRealtime() + timeoutMs
+        while (SystemClock.elapsedRealtime() < deadline) {
+            try {
+                process.exitValue()
+                return true
+            } catch (_: IllegalThreadStateException) {
+                SystemClock.sleep(50L)
+            }
+        }
+
+        return try {
+            process.exitValue()
+            true
+        } catch (_: IllegalThreadStateException) {
+            false
+        }
     }
 
     internal fun classify(output: String): MtuVerdict {
