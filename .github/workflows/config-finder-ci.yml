@@ -1,0 +1,55 @@
+name: config-finder-check
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - 'shared/**'
+      - 'desktop/**'
+      - 'gradle/**'
+      - 'gradlew'
+      - 'settings.gradle.kts'
+      - 'build.gradle.kts'
+      - 'gradle.properties'
+      - '.github/workflows/config-finder-ci.yml'
+  push:
+    branches: [feat/config-finder-spec, feat/config-finder-native, test/npv-tunnel-support, config-finder-liquid-integration]
+    paths:
+      - 'app/**'
+      - 'shared/**'
+      - 'desktop/**'
+      - 'gradle/**'
+      - 'gradlew'
+      - 'settings.gradle.kts'
+      - 'build.gradle.kts'
+      - 'gradle.properties'
+      - '.github/workflows/config-finder-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  android-and-shared:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v5
+      - name: Fetch native engine artifacts
+        run: ./tools/get-cores.sh android
+      - name: Compile Android debug APK
+        run: ./gradlew --no-daemon :app:assembleDebug
+      - name: Compile shared code and run parser tests
+        run: ./gradlew --no-daemon :shared:desktopTest
+      - name: Upload test APKs
+        uses: actions/upload-artifact@v6
+        with:
+          name: zxvpn-npv-test-apk
+          path: app/build/outputs/apk/debug/**/*.apk
+          if-no-files-found: error
+          retention-days: 14
