@@ -32,6 +32,7 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.ui.input.pointer.pointerInput
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -728,24 +729,26 @@ private fun LiquidOrb(
             }
             .semantics { contentDescription = actionLabel }
             .pointerInput(onTap, onLongPress, onOpenQuickHub) {
-                val gestureScope = this
-                awaitEachGesture {
-                    awaitFirstDown(requireUnconsumed = false)
-                    var longTriggered = false
-                    val burstJob = gestureScope.launch {
-                        delay(600L)
-                        longTriggered = true
-                        onLongPress()
+                coroutineScope {
+                    val gestureScope = this
+                    awaitEachGesture {
+                        awaitFirstDown(requireUnconsumed = false)
+                        var longTriggered = false
+                        val burstJob = gestureScope.launch {
+                            delay(600L)
+                            longTriggered = true
+                            onLongPress()
+                        }
+                        val hubJob = gestureScope.launch {
+                            delay(15_000L)
+                            longTriggered = true
+                            onOpenQuickHub()
+                        }
+                        waitForUpOrCancellation()
+                        burstJob.cancel()
+                        hubJob.cancel()
+                        if (!longTriggered) onTap()
                     }
-                    val hubJob = gestureScope.launch {
-                        delay(15_000L)
-                        longTriggered = true
-                        onOpenQuickHub()
-                    }
-                    waitForUpOrCancellation()
-                    burstJob.cancel()
-                    hubJob.cancel()
-                    if (!longTriggered) onTap()
                 }
             },
         contentAlignment = Alignment.Center,
