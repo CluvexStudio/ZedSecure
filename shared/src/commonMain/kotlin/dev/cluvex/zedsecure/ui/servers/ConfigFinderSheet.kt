@@ -137,6 +137,8 @@ fun ConfigFinderSheet(
     var country by remember { mutableStateOf("همه کشورها") }
     var protocolFilter by remember { mutableStateOf("همه پروتکل‌ها") }
     var onlyParserSupported by remember { mutableStateOf(false) }
+    var onlyTested by remember { mutableStateOf(false) }
+    var onlyRealDelaySuccess by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
     var sortMode by remember { mutableStateOf("پیشنهادی") }
     var loading by remember { mutableStateOf(false) }
@@ -151,15 +153,26 @@ fun ConfigFinderSheet(
     var selectedHost by remember { mutableStateOf<String?>(null) }
     var selectedPort by remember { mutableStateOf<Int?>(null) }
 
-    val displayedResults = remember(results, sortMode) {
+    val displayedResults = remember(
+        results, sortMode, protocolFilter, onlyParserSupported, onlyTested, onlyRealDelaySuccess, query,
+    ) {
+        val q = query.trim().lowercase()
+        val filtered = results.filter { item ->
+            (protocolFilter == "همه پروتکل‌ها" || item.protocol.contains(protocolFilter, ignoreCase = true)) &&
+                (!onlyParserSupported || item.parserSupported) &&
+                (!onlyTested || item.latencyTested) &&
+                (!onlyRealDelaySuccess || (item.realDelayMs ?: -1L) > 0L) &&
+                (q.isEmpty() || listOf(item.name, item.protocol, item.country, item.source, item.note)
+                    .any { value -> value.lowercase().contains(q) })
+        }
         when (sortMode) {
-            "کمترین تأخیر" -> results.sortedWith(
+            "کمترین تأخیر" -> filtered.sortedWith(
                 compareBy<FinderResult> { if ((it.realDelayMs ?: -1L) > 0L) 0 else 1 }
                     .thenBy { it.realDelayMs?.takeIf { ms -> ms > 0L } ?: Long.MAX_VALUE }
                     .thenByDescending { it.parserSupported }
             )
-            "کشور" -> results.sortedWith(compareBy<FinderResult> { it.country }.thenByDescending { it.parserSupported })
-            else -> results.sortedWith(compareByDescending<FinderResult> { it.parserSupported }
+            "کشور" -> filtered.sortedWith(compareBy<FinderResult> { it.country }.thenByDescending { it.parserSupported })
+            else -> filtered.sortedWith(compareByDescending<FinderResult> { it.parserSupported }
                 .thenBy { if (it.latencyTested && (it.realDelayMs ?: -1L) <= 0L) 1 else 0 }
                 .thenBy { it.country })
         }
@@ -184,7 +197,7 @@ fun ConfigFinderSheet(
 
     fun testLatency() {
         if (loading || testingLatency || results.isEmpty()) return
-        val candidates = results
+        val candidates = displayedResults
             .filter { it.parserSupported && it.payload != null }
             .take(MAX_LATENCY_CANDIDATES)
         if (candidates.isEmpty()) {
@@ -291,9 +304,7 @@ fun ConfigFinderSheet(
                 val found = fetched.results
                 val q = query.trim().lowercase()
                 results = found
-                    .filter { protocolFilter == "همه پروتکل‌ها" || it.protocol.contains(protocolFilter, ignoreCase = true) }
-                    .filter { !onlyParserSupported || it.parserSupported }
-                    .filter { q.isEmpty() || listOf(it.name, it.protocol, it.country, it.source, it.note).any { s -> s.lowercase().contains(q) } }
+                    // Filters stay live in displayedResults so changing search text or chips never needs another network fetch.
                     // Keep at most eight parser-compatible candidates per individual source list.
                     // This is a syntax/compatibility preference, not a claim that latency or safety was measured.
                     .groupBy { "${it.source}| ${it.country}" }
@@ -364,11 +375,12 @@ fun ConfigFinderSheet(
                     }
                 }
             }
-            FilterChip(
-                selected = onlyParserSupported,
-                onClick = { onlyParserSupported = !onlyParserSupported },
-                label = { Text("فقط قالب‌های قابل‌شناسایی") },
-            )
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                FilterChip(selected = onlyParserSupported, onClick = { onlyParserSupported = !onlyParserSupported }, label = { Text("قالب‌های سازگار") })
+                FilterChip(selected = onlyTested, onClick = { onlyTested = !onlyTested }, label = { Text("فقط آزمایش‌شده‌ها") })
+                FilterChip(selected = onlyRealDelaySuccess, onClick = { onlyRealDelaySuccess = !onlyRealDelaySuccess }, label = { Text("تأخیر واقعی موفق") })
+            }
+            Text("فیلترها روی نتایج فعلی و بدون دریافت دوبارهٔ منابع اعمال می‌شوند.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text("مرتب‌سازی نتایج", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 listOf("پیشنهادی", "کمترین تأخیر", "کشور").forEach { mode ->
@@ -391,18 +403,18 @@ fun ConfigFinderSheet(
             }
             Button(
                 onClick = { testLatency() },
-                enabled = !loading && !testingLatency && results.any { it.parserSupported && it.payload != null },
+                enabled = !loading && !testingLatency && displayedResults.any { it.parserSupported && it.payload != null },
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 if (testingLatency) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
                 else Text("اندازه‌گیری پینگ و تأخیر واقعی")
             }
             if (testingLatency) {
-                Text("پیشرفت آزمایش: $latencyProgress از ${results.count { it.parserSupported && it.payload != null }.coerceAtMost(MAX_LATENCY_CANDIDATES)}", style = MaterialTheme.typography.bodySmall)
+                Text("پیشرفت آزمایش: $latencyProgress از ${displayedResults.count { it.parserSupported && it.payload != null }.coerceAtMost(MAX_LATENCY_CANDIDATES)}", style = MaterialTheme.typography.bodySmall)
             }
             if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error)
             Text(status, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (results.isNotEmpty() && sortMode == "کمترین تأخیر" && results.none { (it.realDelayMs ?: -1L) > 0L }) {
+            if (displayedResults.isNotEmpty() && sortMode == "کمترین تأخیر" && displayedResults.none { (it.realDelayMs ?: -1L) > 0L }) {
                 Text("هنوز تأخیر واقعی موفقی اندازه‌گیری نشده؛ برای رتبه‌بندی بر اساس شبکهٔ خودت، آزمایش تأخیر را اجرا کن.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary)
             }
             if (loading) Text("در حال بررسی منابع مجاز…", style = MaterialTheme.typography.bodyMedium)
@@ -424,7 +436,7 @@ fun ConfigFinderSheet(
             }
             }
             Text(
-                if (results.isEmpty()) "نتایج اینجا نمایش داده می‌شوند" else "نتایج (${results.size}) · روی یک کارت بزن تا جزئیات را ببینی",
+                if (displayedResults.isEmpty()) "نتیجه‌ای با این فیلترها پیدا نشد" else "نتایج فیلترشده (${displayedResults.size} از ${results.size}) · روی کارت بزن تا جزئیات را ببینی",
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary,
