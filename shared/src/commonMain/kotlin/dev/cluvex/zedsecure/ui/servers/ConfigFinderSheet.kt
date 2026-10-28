@@ -332,21 +332,21 @@ fun ConfigFinderSheet(
                 val q = query.trim().lowercase()
                 results = found
                     // Filters stay live in displayedResults so changing search text or chips never needs another network fetch.
-                    // Keep at most eight parser-compatible candidates per individual source list.
+                    // Keep a bounded set of parser-compatible candidates per source to balance coverage and UI/network cost.
                     // This is a syntax/compatibility preference, not a claim that latency or safety was measured.
                     .groupBy { "${it.source}| ${it.country}" }
                     .values
                     .flatMap { sourceCandidates ->
                         sourceCandidates.sortedWith(compareByDescending<FinderResult> { candidate -> candidate.parserSupported }
-                            .thenBy { candidate -> candidate.name }).take(8)
+                            .thenBy { candidate -> candidate.name }).take(20)
                     }
-                    .groupBy { (it.payload ?: it.rawUrl ?: it.id).trim().lowercase() }
+                    .groupBy { (it.payload ?: it.rawUrl ?: it.id).trim() }
                     .values
                     .map { duplicates ->
                         duplicates.first().copy(source = duplicates.map { it.source }.distinct().joinToString(" · "))
                     }
                     .sortedWith(compareByDescending<FinderResult> { it.parserSupported }.thenBy { it.country }.thenBy { it.protocol })
-                    .take(300)
+                    .take(500)
                 val failedSourceSummary = fetched.failedSourceNames.take(4).joinToString("، ")
                     .let { names -> if (names.isBlank()) "" else " منابع ناموفق: $names" }
                 status = when {
@@ -355,9 +355,9 @@ fun ConfigFinderSheet(
                     results.isEmpty() ->
                         "نتیجه‌ای پیدا نشد؛ کشور یا دستهٔ دیگری را امتحان کن. منابع ناموفق: ${fetched.failedSources} از ${fetched.totalSources}.$failedSourceSummary"
                     fetched.failedSources > 0 ->
-                        "تعداد گزینه‌ها: ${results.size} — ${fetched.failedSources} از ${fetched.totalSources} منبع پاسخ نداد؛ نتیجه ناقص است. حداکثر ۸ گزینه از هر فهرست؛ سرعت واقعی تضمین نشده است.$failedSourceSummary"
+                        "تعداد گزینه‌ها: ${results.size} — ${fetched.failedSources} از ${fetched.totalSources} منبع پاسخ نداد؛ نتیجه ناقص است. حداکثر ۲۰ گزینه از هر فهرست؛ سرعت واقعی تضمین نشده است.$failedSourceSummary"
                     else ->
-                        "تعداد گزینه‌ها: ${results.size} — همهٔ ${fetched.totalSources} منبع پاسخ دادند؛ حداکثر ۸ گزینه از هر فهرست. سالم‌بودن و سرعت واقعی هنوز با اتصال تست نشده است."
+                        "تعداد گزینه‌ها: ${results.size} — همهٔ ${fetched.totalSources} منبع پاسخ دادند؛ حداکثر ۲۰ گزینه از هر فهرست. سالم‌بودن و سرعت واقعی هنوز با اتصال تست نشده است."
                 }
             }.onFailure {
                 error = it.message?.take(240) ?: "خواندن منابع ناموفق بود."
