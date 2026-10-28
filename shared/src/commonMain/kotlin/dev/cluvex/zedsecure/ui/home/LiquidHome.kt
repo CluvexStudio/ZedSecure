@@ -749,7 +749,7 @@ private fun LiquidOrb(
                             onLongPress()
                         }
                         val hubJob = gestureScope.launch {
-                            delay(15_000L)
+                            delay(5_000L)
                             longTriggered = true
                             onOpenQuickHub()
                         }
