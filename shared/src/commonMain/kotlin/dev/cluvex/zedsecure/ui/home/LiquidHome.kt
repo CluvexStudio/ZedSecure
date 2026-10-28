@@ -329,6 +329,16 @@ internal fun LiquidHome(
         if (quickHubOpen) {
             LiquidQuickHubOverlay(
                 page = quickHubPage,
+                networkInfo = info,
+                localProxyAddress = localProxyAddress,
+                activeConfigName = activeConfigName,
+                proxyActive = live,
+                onRefreshNetworkInfo = onRefreshInfo,
+                onOpenConfigFinder = {
+                    quickHubOpen = false
+                    quickHubPage = null
+                    onOpenConfigFinder()
+                },
                 onOpenPage = { page ->
                     if (page == LiquidQuickHubPage.Config) {
                         quickHubOpen = false
@@ -361,6 +371,12 @@ private enum class LiquidQuickHubPage(
 @Composable
 private fun LiquidQuickHubOverlay(
     page: LiquidQuickHubPage?,
+    networkInfo: NetworkInfo,
+    localProxyAddress: String?,
+    activeConfigName: String?,
+    proxyActive: Boolean,
+    onRefreshNetworkInfo: () -> Unit,
+    onOpenConfigFinder: () -> Unit,
     onOpenPage: (LiquidQuickHubPage) -> Unit,
     onBack: () -> Unit,
     onClose: () -> Unit,
@@ -438,7 +454,7 @@ private fun LiquidQuickHubOverlay(
                     }
                 }
                 Text(
-                    "۱۵ ثانیه نگه داشتی؛ میان‌برهای مخفی باز شدند",
+                    "۵ ثانیه نگه داشتی؛ میان‌برهای مخفی باز شدند",
                     modifier = Modifier.align(Alignment.Center).offset(y = maxHeight * 0.285f).padding(horizontal = 28.dp),
                     color = Color.White.copy(alpha = 0.86f),
                     style = MaterialTheme.typography.bodyMedium,
@@ -497,27 +513,54 @@ private fun LiquidQuickHubOverlay(
                     Spacer(Modifier.height(10.dp))
                     Text(page.description, style = MaterialTheme.typography.bodyLarge, color = cs.onSurfaceVariant, textAlign = TextAlign.Center)
                     Spacer(Modifier.height(24.dp))
-                    Surface(
-                        shape = RoundedCornerShape(20.dp),
-                        color = cs.surface.copy(alpha = 0.65f),
-                        border = liquidBorder(),
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(
-                            "این صفحه به‌صورت اختصاصی برای Liquid Theme ساخته شده است. مرحلهٔ بعد، اتصال ابزار واقعی همین بخش خواهد بود.",
-                            Modifier.padding(16.dp),
-                            color = cs.onSurfaceVariant,
-                            style = MaterialTheme.typography.bodyMedium,
-                            textAlign = TextAlign.Center,
-                        )
+                    when (page) {
+                        LiquidQuickHubPage.Ip -> {
+                            Surface(shape = RoundedCornerShape(20.dp), color = cs.surface.copy(alpha = 0.65f), border = liquidBorder(), modifier = Modifier.fillMaxWidth()) {
+                                Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    Text("IP فعلی", style = MaterialTheme.typography.titleMedium, color = cs.primary, fontWeight = FontWeight.Bold)
+                                    LiquidHubInfoRow("IPv4", networkInfo.ipv4 ?: "در دسترس نیست")
+                                    LiquidHubInfoRow("IPv6", networkInfo.ipv6 ?: "در دسترس نیست")
+                                    LiquidHubInfoRow("کشور", networkInfo.country ?: "نامشخص")
+                                    LiquidHubInfoRow("شهر / ارائه‌دهنده", listOfNotNull(networkInfo.city, networkInfo.isp).joinToString(" · ").ifBlank { "نامشخص" })
+                                    LiquidHubInfoRow("مسیر", if (networkInfo.underVpn || networkInfo.viaTunnel) "عبور از تونل گزارش شده" else "عبور از VPN تأیید نشده")
+                                    networkInfo.error?.let { Text("وضعیت بررسی: $it", style = MaterialTheme.typography.bodySmall, color = cs.error) }
+                                }
+                            }
+                            Spacer(Modifier.height(12.dp))
+                            FilledTonalButton(onClick = onRefreshNetworkInfo, enabled = !networkInfo.loading && !networkInfo.placeLoading, shapes = ButtonDefaults.shapes()) {
+                                Text(if (networkInfo.loading || networkInfo.placeLoading) "در حال بررسی…" else "بررسی دوبارهٔ IP")
+                            }
+                        }
+                        LiquidQuickHubPage.Proxy -> {
+                            Surface(shape = RoundedCornerShape(20.dp), color = cs.surface.copy(alpha = 0.65f), border = liquidBorder(), modifier = Modifier.fillMaxWidth()) {
+                                Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    Text("پروکسی و مسیر فعلی", style = MaterialTheme.typography.titleMedium, color = cs.primary, fontWeight = FontWeight.Bold)
+                                    LiquidHubInfoRow("پروفایل انتخاب‌شده", activeConfigName ?: "پروفایلی انتخاب نشده")
+                                    LiquidHubInfoRow("پروکسی محلی", localProxyAddress ?: "آدرس پروکسی محلی در دسترس نیست")
+                                    LiquidHubInfoRow("وضعیت", if (proxyActive) "اتصال VPN فعال گزارش شده" else "اتصال فعال تأیید نشده")
+                                    Text("این اطلاعات، سلامت یا ناشناس‌ماندن پروکسی را تضمین نمی‌کند. برای یافتن پروفایل و آزمایش تأخیر، کانفیگ‌یاب را باز کن.", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
+                                }
+                            }
+                            Spacer(Modifier.height(12.dp))
+                            Button(onClick = onOpenConfigFinder, shapes = ButtonDefaults.shapes()) { Text("یافتن پروفایل در کانفیگ‌یاب") }
+                        }
+                        LiquidQuickHubPage.Config -> Unit
                     }
-                    Spacer(Modifier.height(28.dp))
+                    Spacer(Modifier.height(16.dp))
                     FilledTonalButton(onClick = onBack, shapes = ButtonDefaults.shapes()) {
                         Text("بازگشت به حلقهٔ میان‌برها")
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun LiquidHubInfoRow(label: String, value: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
     }
 }
 
