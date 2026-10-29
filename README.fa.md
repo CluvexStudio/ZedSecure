@@ -83,7 +83,7 @@ APK مخصوص دستگاهتان از [Releases](https://github.com/AMINOPY/ZX-
 
 </div>
 
-همهٔ هسته‌ها در [ZedSecure-Cores](https://github.com/CluvexStudio/ZedSecure-Cores) ساخته می‌شوند؛
+همهٔ هسته‌ها در [ZX VPN Cores](https://github.com/CluvexStudio/ZX VPN Cores) ساخته می‌شوند؛
 برای هر هسته یک workflow، از فورک‌ها و کامیت‌های دقیقی که در `pins.txt` آن آمده است.
 [`tools/cores.txt`](tools/cores.txt) نشان می‌دهد هر نسخه کدام بیلد را برمی‌دارد. زدن تگ `v*` نسخهٔ
 اندروید و همهٔ نسخه‌های دسکتاپ را در CI می‌سازد و همه را در یک ریلیز می‌گذارد؛ اندروید و دسکتاپ یک
