@@ -56,6 +56,11 @@ object AiTools {
             OBJ,
         ),
         AiTool(
+            "network_diagnostics",
+            "Read-only local Android network metadata: active transport, validated connectivity, DNS server count, IPv4/IPv6 route counts, and whether an HTTP proxy is configured. It does not reveal DNS addresses, contact remote hosts, or prove that a VPN has no leaks.",
+            OBJ,
+        ),
+        AiTool(
             "list_protocols",
             "Every engine this build can create directly, with the fields each one takes and which " +
                 "are required. Read it before create_server rather than assuming a field name.",
@@ -195,6 +200,7 @@ object AiTools {
                 "get_status" -> bridge.statusJson()
                 "read_logs" -> bridge.logsText(i("lines", 120).coerceIn(20, 500))
                 "core_report" -> bridge.coreReport()
+                "network_diagnostics" -> bridge.networkDiagnostics()
                 "app_map" -> bridge.appMapJson()
                 "list_protocols" -> bridge.protocolsJson()
                 "ping" -> bridge.ping(s("id").takeIf { it.isNotBlank() })
