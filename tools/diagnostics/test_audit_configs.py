@@ -14,7 +14,7 @@ class AuditConfigsTest(unittest.TestCase):
 
     def test_invalid_port_is_reported_without_echoing_secret(self):
         issues = audit_line("trojan://supersecret@example.com:99999#test")
-        self.assertIn("port outside valid range", issues)
+        self.assertIn("invalid port", issues)
 
     def test_unsupported_plain_text_is_reported(self):
         self.assertIn("no supported proxy URI found", audit_line("not a proxy config"))
