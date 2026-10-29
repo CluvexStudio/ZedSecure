@@ -26,6 +26,7 @@ class AppAiBridge(
     private val writeSettings: (AppSettings) -> Unit,
 
     private val coreReportFn: () -> String = { AI_UNSUPPORTED },
+    private val networkReportFn: () -> String = { AI_UNSUPPORTED },
     private val connectFn: suspend () -> String = { AI_UNSUPPORTED },
     private val disconnectFn: suspend () -> String = { AI_UNSUPPORTED },
     private val speedTestFn: suspend () -> String = { AI_UNSUPPORTED },
@@ -95,6 +96,9 @@ class AppAiBridge(
     }
 
     override fun coreReport(): String = runCatching { coreReportFn() }.getOrElse { it.message ?: AI_UNSUPPORTED }
+
+    override fun networkDiagnostics(): String =
+        runCatching { networkReportFn() }.getOrElse { it.message ?: AI_UNSUPPORTED }
 
     override fun appMapJson(): String = APP_MAP
 
