@@ -11,6 +11,8 @@ interface AiAppBridge {
 
     fun coreReport(): String
 
+    fun networkDiagnostics(): String
+
     fun appMapJson(): String
 
     fun applySettings(patchJson: String): String
