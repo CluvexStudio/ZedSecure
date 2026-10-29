@@ -160,6 +160,7 @@ fun AiChatScreen(
                                 while (voiceCallActive) {
                                     val heard = runCatching { bridge.listenOnce() }
                                         .getOrElse { "VOICE_ERROR: ${it.message ?: "voice input failed"}" }
+                                    if (!voiceCallActive) break
                                     when {
                                         heard.startsWith("MIC_PERMISSION_REQUIRED") -> {
                                             history += AiTurn(
