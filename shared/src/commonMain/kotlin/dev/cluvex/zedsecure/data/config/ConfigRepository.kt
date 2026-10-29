@@ -985,7 +985,12 @@ class ConfigRepository(private val store: KeyValueStore) {
     }
 
     fun removeAll(predicate: (VpnProfile) -> Boolean) {
-        _profiles.value = _profiles.value.filterNot(predicate)
+        val doomed = _profiles.value.filter(predicate).map { it.id }
+        if (doomed.isEmpty()) return
+        val doomedSet = doomed.toSet()
+        _profiles.value = _profiles.value.filterNot { it.id in doomedSet }
+        // Keep proxy chains consistent when bulk-removing a member profile.
+        doomed.forEach { scrubChainMember(it) }
         if (!activeExists()) {
             setActive(_profiles.value.firstOrNull()?.id)
         }
@@ -995,30 +1000,38 @@ class ConfigRepository(private val store: KeyValueStore) {
     fun removeDuplicates(): Int {
         val seen = HashSet<String>()
         val kept = ArrayList<VpnProfile>()
-        var removed = 0
+        val removedIds = ArrayList<String>()
         _profiles.value.forEach { profile ->
             val key = profile.rawPayload() ?: profile.id
-            if (profile.isLocked || seen.add(key)) kept += profile else removed++
+            if (profile.isLocked || seen.add(key)) {
+                kept += profile
+            } else {
+                removedIds += profile.id
+            }
         }
-        if (removed > 0) {
+        if (removedIds.isNotEmpty()) {
             _profiles.value = kept
-            if (!activeExists()) setActive(kept.firstOrNull()?.id)
+            // A removed duplicate may still be referenced by one or more chains.
+            removedIds.forEach { scrubChainMember(it) }
+            if (!activeExists()) setActive(_profiles.value.firstOrNull()?.id)
             persistProfiles()
         }
-        return removed
+        return removedIds.size
     }
 
     fun removeInvalid(): Int {
-        val before = _profiles.value.size
-        _profiles.value = _profiles.value.filter { keepAsValid(it) }
-        val removed = before - _profiles.value.size
-        if (removed > 0) {
+        val removedIds = _profiles.value.filterNot { keepAsValid(it) }.map { it.id }
+        if (removedIds.isNotEmpty()) {
+            val doomed = removedIds.toSet()
+            _profiles.value = _profiles.value.filterNot { it.id in doomed }
+            // Invalid profiles must not leave dangling references in proxy chains.
+            removedIds.forEach { scrubChainMember(it) }
             if (!activeExists()) {
                 setActive(_profiles.value.firstOrNull()?.id)
             }
             persistProfiles()
         }
-        return removed
+        return removedIds.size
     }
 
     fun invalidCount(): Int = _profiles.value.count { !keepAsValid(it) }
