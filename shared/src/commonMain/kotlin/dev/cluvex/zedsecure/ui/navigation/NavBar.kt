@@ -11,6 +11,7 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -76,9 +77,21 @@ private fun FloatingPillBar(
             .padding(bottom = 10.dp),
         contentAlignment = Alignment.Center,
     ) {
+        val liquid = dev.cluvex.zedsecure.ui.theme.LocalAppDesign.current == dev.cluvex.zedsecure.domain.model.AppDesign.Liquid
         HorizontalFloatingToolbar(
             expanded = true,
-            colors = FloatingToolbarDefaults.standardFloatingToolbarColors(),
+            colors = if (liquid) {
+                FloatingToolbarDefaults.standardFloatingToolbarColors(
+                    toolbarContainerColor = dev.cluvex.zedsecure.ui.theme.liquidFill(1.5f),
+                )
+            } else {
+                FloatingToolbarDefaults.standardFloatingToolbarColors()
+            },
+            modifier = if (liquid) {
+                Modifier.border(dev.cluvex.zedsecure.ui.theme.liquidBorder(), CircleShape)
+            } else {
+                Modifier
+            },
         ) {
             TopDestination.entries.forEach { dest ->
                 NavPill(
@@ -102,10 +115,12 @@ private fun ExpressivePillBar(current: TopDestination, onSelect: (TopDestination
             .padding(bottom = 10.dp, start = 16.dp, end = 16.dp),
         contentAlignment = Alignment.Center,
     ) {
+        val liquid = dev.cluvex.zedsecure.ui.theme.LocalAppDesign.current == dev.cluvex.zedsecure.domain.model.AppDesign.Liquid
         Surface(
             shape = RoundedCornerShape(28.dp),
-            color = MaterialTheme.colorScheme.surfaceContainer,
-            tonalElevation = 3.dp,
+            color = if (liquid) dev.cluvex.zedsecure.ui.theme.liquidFill(1.5f) else MaterialTheme.colorScheme.surfaceContainer,
+            tonalElevation = if (liquid) 0.dp else 3.dp,
+            border = if (liquid) dev.cluvex.zedsecure.ui.theme.liquidBorder() else null,
         ) {
             Row(
                 Modifier.padding(horizontal = 8.dp, vertical = 8.dp),

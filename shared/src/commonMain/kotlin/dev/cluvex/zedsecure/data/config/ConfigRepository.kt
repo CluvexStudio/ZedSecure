@@ -21,6 +21,7 @@ import dev.cluvex.zedsecure.domain.config.RuleGroup
 import dev.cluvex.zedsecure.domain.config.SniSpoofLink
 import dev.cluvex.zedsecure.domain.config.ZedLink
 import dev.cluvex.zedsecure.domain.config.ConfigParser
+import dev.cluvex.zedsecure.domain.config.NpvTunnelParser
 import dev.cluvex.zedsecure.domain.config.AwgConfig
 import dev.cluvex.zedsecure.domain.config.ShareLink
 import dev.cluvex.zedsecure.domain.config.CustomConfig
@@ -89,6 +90,25 @@ class ConfigRepository(private val store: KeyValueStore) {
     fun importText(text: String, subscriptionId: String = ""): Result<Int> = runCatching {
         val trimmed = text.trim()
         require(trimmed.isNotEmpty()) { "empty" }
+
+        val npvProfiles = NpvTunnelParser.parse(trimmed)
+        if (npvProfiles != null) {
+            var added = 0
+            var lastError: Throwable? = null
+            npvProfiles.forEach { item ->
+                runCatching {
+                    if (!item.rawJson.isNullOrBlank()) {
+                        addRawJson(item.rawJson, name = item.name, subscriptionId = subscriptionId).getOrThrow()
+                    } else {
+                        importText(item.link ?: throw IllegalArgumentException("NPV profile has no importable payload"), subscriptionId).getOrThrow()
+                    }
+                }.onSuccess { added++ }.onFailure { lastError = it }
+            }
+            if (added == 0) {
+                throw IllegalArgumentException(lastError?.message ?: "NPV Tunnel file contains no importable profiles")
+            }
+            return@runCatching added
+        }
 
         val sshLines = trimmed.lines().map { it.trim() }.filter { SshLink.isSshLink(it) }
         if (sshLines.isNotEmpty()) {
@@ -171,6 +191,25 @@ class ConfigRepository(private val store: KeyValueStore) {
                 ?.let { add(it) }
             add(trimmed)
         }.distinct()
+
+        bodies.forEach { body ->
+            if (NpvTunnelParser.isNpvText(body)) {
+                val profiles = NpvTunnelParser.parse(body) ?: return@forEach
+                var added = 0
+                var lastError: Throwable? = null
+                profiles.forEach { item ->
+                    runCatching {
+                        if (!item.rawJson.isNullOrBlank()) {
+                            addRawJson(item.rawJson, name = item.name, subscriptionId = subscriptionId).getOrThrow()
+                        } else {
+                            importText(item.link ?: throw IllegalArgumentException("NPV profile has no importable payload"), subscriptionId).getOrThrow()
+                        }
+                    }.onSuccess { added++ }.onFailure { lastError = it }
+                }
+                if (added > 0) return@runCatching added
+                throw IllegalArgumentException(lastError?.message ?: "NPV Tunnel file contains no importable profiles")
+            }
+        }
 
         bodies.forEach { body ->
 
@@ -946,7 +985,12 @@ class ConfigRepository(private val store: KeyValueStore) {
     }
 
     fun removeAll(predicate: (VpnProfile) -> Boolean) {
-        _profiles.value = _profiles.value.filterNot(predicate)
+        val doomed = _profiles.value.filter(predicate).map { it.id }
+        if (doomed.isEmpty()) return
+        val doomedSet = doomed.toSet()
+        _profiles.value = _profiles.value.filterNot { it.id in doomedSet }
+        // Keep proxy chains consistent when bulk-removing a member profile.
+        doomed.forEach { scrubChainMember(it) }
         if (!activeExists()) {
             setActive(_profiles.value.firstOrNull()?.id)
         }
@@ -956,30 +1000,38 @@ class ConfigRepository(private val store: KeyValueStore) {
     fun removeDuplicates(): Int {
         val seen = HashSet<String>()
         val kept = ArrayList<VpnProfile>()
-        var removed = 0
+        val removedIds = ArrayList<String>()
         _profiles.value.forEach { profile ->
             val key = profile.rawPayload() ?: profile.id
-            if (profile.isLocked || seen.add(key)) kept += profile else removed++
+            if (profile.isLocked || seen.add(key)) {
+                kept += profile
+            } else {
+                removedIds += profile.id
+            }
         }
-        if (removed > 0) {
+        if (removedIds.isNotEmpty()) {
             _profiles.value = kept
-            if (!activeExists()) setActive(kept.firstOrNull()?.id)
+            // A removed duplicate may still be referenced by one or more chains.
+            removedIds.forEach { scrubChainMember(it) }
+            if (!activeExists()) setActive(_profiles.value.firstOrNull()?.id)
             persistProfiles()
         }
-        return removed
+        return removedIds.size
     }
 
     fun removeInvalid(): Int {
-        val before = _profiles.value.size
-        _profiles.value = _profiles.value.filter { keepAsValid(it) }
-        val removed = before - _profiles.value.size
-        if (removed > 0) {
+        val removedIds = _profiles.value.filterNot { keepAsValid(it) }.map { it.id }
+        if (removedIds.isNotEmpty()) {
+            val doomed = removedIds.toSet()
+            _profiles.value = _profiles.value.filterNot { it.id in doomed }
+            // Invalid profiles must not leave dangling references in proxy chains.
+            removedIds.forEach { scrubChainMember(it) }
             if (!activeExists()) {
                 setActive(_profiles.value.firstOrNull()?.id)
             }
             persistProfiles()
         }
-        return removed
+        return removedIds.size
     }
 
     fun invalidCount(): Int = _profiles.value.count { !keepAsValid(it) }

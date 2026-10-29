@@ -178,8 +178,9 @@ fun HomeScreen(
     personalization: Personalization = Personalization.Default,
 
     connectStyle: ConnectButtonStyle = ConnectButtonStyle.Pill,
-    design: AppDesign = AppDesign.Pixel,
+    design: AppDesign = AppDesign.Liquid,
     homeVm: HomeViewModel = viewModel { HomeViewModel() },
+    onOpenConfigFinder: () -> Unit = onBrowseConfigs,
 ) {
     val ui by connectionVm.ui.collectAsStateWithLifecycle()
     val live = ui.state == ConnectionState.Connected
@@ -203,8 +204,8 @@ fun HomeScreen(
 
     if (design != AppDesign.Old) {
         Box(modifier.fillMaxSize()) {
-            if (design == AppDesign.Pixel) {
-                PixelHome(
+            if (design == AppDesign.Liquid) {
+                LiquidHome(
                     ui = ui,
                     info = info,
                     infoExpanded = infoExpanded,
@@ -223,6 +224,7 @@ fun HomeScreen(
                     contentPadding = contentPadding,
                     onToggleConnection = onToggleConnection,
                     onBrowseConfigs = onBrowseConfigs,
+                    onOpenConfigFinder = onOpenConfigFinder,
                     onSecretUnlocked = onSecretUnlocked,
                     onShowLogs = { showLogs = true },
                     onBurst = {

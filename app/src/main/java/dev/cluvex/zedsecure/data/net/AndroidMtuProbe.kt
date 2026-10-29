@@ -5,7 +5,6 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import dev.cluvex.zedsecure.data.net.MtuProbe
 import dev.cluvex.zedsecure.data.net.MtuVerdict
-import java.util.concurrent.TimeUnit
 
 object AndroidMtuProbe {
     fun install(context: Context) {
@@ -47,7 +46,7 @@ object AndroidMtuProbe {
         val output = runCatching {
             val text = process.inputStream.bufferedReader().use { it.readText() }
 
-            if (!process.waitFor(seconds + 2L, TimeUnit.SECONDS)) process.destroy()
+            process.waitFor()
             text
         }.getOrElse {
             runCatching { process.destroy() }

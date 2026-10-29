@@ -54,21 +54,21 @@ jobs:
           set -e
           V='${{ steps.v.outputs.name }}'
           mkdir -p dist
-          cp desktop/build/compose/binaries/main/deb/*.deb "dist/ZedSecure-$V-amd64.deb"
-          cp desktop/build/compose/binaries/main/rpm/*.rpm "dist/ZedSecure-$V-x86_64.rpm"
+          cp desktop/build/compose/binaries/main/deb/*.deb "dist/ZX-VPN-$V-amd64.deb"
+          cp desktop/build/compose/binaries/main/rpm/*.rpm "dist/ZX-VPN-$V-x86_64.rpm"
 
           APP=$(ls -d desktop/build/compose/binaries/main/app/*/ | head -1)
 
-          tar -C "$(dirname "$APP")" -czf "dist/ZedSecure-$V-linux-x86_64.tar.gz" "$(basename "$APP")"
+          tar -C "$(dirname "$APP")" -czf "dist/ZX-VPN-$V-linux-x86_64.tar.gz" "$(basename "$APP")"
 
           rm -rf AppDir && mkdir -p AppDir/usr
           cp -a "$APP." AppDir/usr/
           BIN=$(find AppDir/usr/bin -maxdepth 1 -type f -executable | head -1)
           cp desktop/icons/zedsecure.png AppDir/zedsecure.png
-          cat > AppDir/zedsecure.desktop <<EOF
+          cat > AppDir/zx-vpn.desktop <<EOF
           [Desktop Entry]
           Type=Application
-          Name=ZedSecure
+          Name=ZX VPN
           Exec=$(basename "$BIN")
           Icon=zedsecure
           Categories=Network;
@@ -80,24 +80,24 @@ jobs:
           exec "\$HERE/usr/bin/$(basename "$BIN")" "\$@"
           EOF
           chmod +x AppDir/AppRun
-          ARCH=x86_64 appimagetool --no-appstream AppDir "dist/ZedSecure-$V-x86_64.AppImage"
+          ARCH=x86_64 appimagetool --no-appstream AppDir "dist/ZX-VPN-$V-x86_64.AppImage"
 
-          ( cd dist && sha256sum ZedSecure-* > SHA256SUMS-linux.txt )
+          ( cd dist && sha256sum ZX-VPN-* > SHA256SUMS-linux.txt )
           ls -lh dist
 
       - name: The AppImage and the tarball start
         run: |
           set -e
           V='${{ steps.v.outputs.name }}'
-          got=$(APPIMAGE_EXTRACT_AND_RUN=1 "dist/ZedSecure-$V-x86_64.AppImage" --version)
+          got=$(APPIMAGE_EXTRACT_AND_RUN=1 "dist/ZX-VPN-$V-x86_64.AppImage" --version)
           echo "AppImage: $got"
-          [ "$got" = "ZedSecure $V" ]
+          [ "$got" = "ZX VPN $V" ]
           rm -rf /tmp/zs-tar && mkdir -p /tmp/zs-tar
-          tar -xzf "dist/ZedSecure-$V-linux-x86_64.tar.gz" -C /tmp/zs-tar
+          tar -xzf "dist/ZX-VPN-$V-linux-x86_64.tar.gz" -C /tmp/zs-tar
           bin=$(find /tmp/zs-tar -path '*/bin/*' -type f -perm -u+x | head -1)
           got=$("$bin" --version)
           echo "tar.gz: $got"
-          [ "$got" = "ZedSecure $V" ]
+          [ "$got" = "ZX VPN $V" ]
 
       - uses: actions/upload-artifact@v7
         with:
@@ -138,6 +138,7 @@ jobs:
           done
 
       - name: Build the installer and the portable build
+        shell: bash
         run: ./gradlew --warning-mode all :desktop:packageMsi :desktop:createDistributable
 
       - name: Assemble the release files
@@ -146,10 +147,10 @@ jobs:
           set -e
           V='${{ steps.v.outputs.name }}'
           mkdir -p dist
-          cp desktop/build/compose/binaries/main/msi/*.msi "dist/ZedSecure-$V-x86_64.msi"
+          cp desktop/build/compose/binaries/main/msi/*.msi "dist/ZX-VPN-$V-x86_64.msi"
           app=$(ls -d desktop/build/compose/binaries/main/app/*/ | head -1)
-          ( cd "$(dirname "$app")" && 7z a -tzip -mx=9 "$OLDPWD/dist/ZedSecure-$V-windows-x86_64.zip" "$(basename "$app")" >/dev/null )
-          ( cd dist && sha256sum ZedSecure-* > SHA256SUMS-windows.txt )
+          ( cd "$(dirname "$app")" && 7z a -tzip -mx=9 "$OLDPWD/dist/ZX-VPN-$V-windows-x86_64.zip" "$(basename "$app")" >/dev/null )
+          ( cd dist && sha256sum ZX-VPN-* > SHA256SUMS-windows.txt )
           ls -l dist
 
       - uses: actions/upload-artifact@v7
@@ -201,8 +202,8 @@ jobs:
           set -e
           V='${{ steps.v.outputs.name }}'
           mkdir -p dist
-          cp desktop/build/compose/binaries/main/dmg/*.dmg "dist/ZedSecure-$V-macos-${{ matrix.arch }}.dmg"
-          ( cd dist && shasum -a 256 ZedSecure-* > "SHA256SUMS-macos-${{ matrix.arch }}.txt" )
+          cp desktop/build/compose/binaries/main/dmg/*.dmg "dist/ZX-VPN-$V-macos-${{ matrix.arch }}.dmg"
+          ( cd dist && shasum -a 256 ZX-VPN-* > "SHA256SUMS-macos-${{ matrix.arch }}.txt" )
           ls -l dist
 
       - uses: actions/upload-artifact@v7

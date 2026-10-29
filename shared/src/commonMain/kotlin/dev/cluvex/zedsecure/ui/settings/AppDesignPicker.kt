@@ -76,11 +76,11 @@ fun AppDesignPicker(selected: AppDesign, onSelect: (AppDesign) -> Unit) {
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 DesignCard(
-                    name = stringResource(Res.string.home_design_pixel),
-                    selected = selected == AppDesign.Pixel,
+                    name = stringResource(Res.string.home_design_liquid),
+                    selected = selected == AppDesign.Liquid,
                     modifier = Modifier.weight(1f),
-                    onClick = { onSelect(AppDesign.Pixel) },
-                ) { PixelPreview() }
+                    onClick = { onSelect(AppDesign.Liquid) },
+                ) { LiquidPreview() }
                 DesignCard(
                     name = stringResource(Res.string.home_design_portal),
                     selected = selected == AppDesign.Portal,
@@ -99,35 +99,52 @@ fun AppDesignPicker(selected: AppDesign, onSelect: (AppDesign) -> Unit) {
 }
 
 @Composable
-private fun PixelPreview() {
+private fun LiquidPreview() {
     val cs = MaterialTheme.colorScheme
-    Column(
-        Modifier.fillMaxSize().padding(7.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        Box(Modifier.fillMaxWidth().height(10.dp).padding(horizontal = 6.dp)) {
-            Box(Modifier.size(width = 26.dp, height = 8.dp).clip(CircleShape).background(cs.surfaceContainerHigh))
+    val glass = Color.White.copy(alpha = 0.22f)
+    val edge = Brush.linearGradient(listOf(Color.White.copy(alpha = 0.7f), Color.White.copy(alpha = 0.08f)))
+    Box(Modifier.fillMaxSize()) {
+        Canvas(Modifier.fillMaxSize()) {
+            drawCircle(
+                Brush.radialGradient(listOf(cs.primary.copy(alpha = 0.55f), Color.Transparent), Offset(size.width * 0.15f, size.height * 0.1f), size.width),
+                size.width,
+                Offset(size.width * 0.15f, size.height * 0.1f),
+            )
+            drawCircle(
+                Brush.radialGradient(listOf(cs.tertiary.copy(alpha = 0.5f), Color.Transparent), Offset(size.width * 0.95f, size.height * 0.75f), size.width),
+                size.width,
+                Offset(size.width * 0.95f, size.height * 0.75f),
+            )
         }
         Column(
-            Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .clip(RoundedCornerShape(16.dp))
-                .background(cs.surfaceContainer),
+            Modifier.fillMaxSize().padding(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
+            verticalArrangement = Arrangement.spacedBy(5.dp),
         ) {
-            Box(
-                Modifier.size(42.dp).clip(MaterialShapes.Cookie12Sided.toShape()).background(cs.primary),
-            )
-            Spacer(Modifier.height(6.dp))
-            Box(Modifier.size(width = 40.dp, height = 5.dp).clip(CircleShape).background(cs.onSurface.copy(alpha = 0.7f)))
-        }
-        Box(Modifier.fillMaxWidth().height(14.dp).clip(RoundedCornerShape(7.dp)).background(cs.surfaceContainerHigh))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-            Box(Modifier.weight(1f).height(12.dp).clip(RoundedCornerShape(topStart = 6.dp, bottomStart = 6.dp, topEnd = 2.dp, bottomEnd = 2.dp)).background(cs.surfaceContainerHigh))
-            Box(Modifier.weight(1f).height(12.dp).clip(RoundedCornerShape(topStart = 2.dp, bottomStart = 2.dp, topEnd = 6.dp, bottomEnd = 6.dp)).background(cs.surfaceContainerHigh))
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(glass)
+                    .border(1.dp, edge, RoundedCornerShape(20.dp)),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                Box(
+                    Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(Brush.radialGradient(listOf(Color.White.copy(alpha = 0.85f), cs.primary, cs.tertiary), Offset(14f, 12f), 90f)),
+                )
+                Spacer(Modifier.height(7.dp))
+                Box(Modifier.size(width = 36.dp, height = 5.dp).clip(CircleShape).background(cs.onSurface.copy(alpha = 0.6f)))
+            }
+            Box(Modifier.fillMaxWidth().height(16.dp).clip(RoundedCornerShape(10.dp)).background(glass).border(1.dp, edge, RoundedCornerShape(10.dp)))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Box(Modifier.weight(1f).height(14.dp).clip(RoundedCornerShape(9.dp)).background(glass).border(1.dp, edge, RoundedCornerShape(9.dp)))
+                Box(Modifier.weight(1f).height(14.dp).clip(RoundedCornerShape(9.dp)).background(glass).border(1.dp, edge, RoundedCornerShape(9.dp)))
+            }
         }
     }
 }

@@ -81,12 +81,6 @@ fun rememberTourSteps(): List<TourStep> = listOf(
     ),
 
     TourStep(
-        target = TourTargets.SETTINGS_SUPPORT,
-        title = stringResource(Res.string.tour_set_support_title),
-        body = stringResource(Res.string.tour_set_support_body),
-        destination = TourDestination.Settings,
-    ),
-    TourStep(
         target = TourTargets.SETTINGS_LOOK,
         title = stringResource(Res.string.tour_set_look_title),
         body = stringResource(Res.string.tour_set_look_body),

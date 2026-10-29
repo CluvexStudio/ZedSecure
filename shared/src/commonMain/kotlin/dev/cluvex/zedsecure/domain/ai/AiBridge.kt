@@ -11,6 +11,8 @@ interface AiAppBridge {
 
     fun coreReport(): String
 
+    fun networkDiagnostics(): String
+
     fun appMapJson(): String
 
     fun applySettings(patchJson: String): String
@@ -38,6 +40,20 @@ interface AiAppBridge {
     suspend fun probeMtu(reconnect: Boolean = false, apply: Boolean = false): String
 
     suspend fun exitInfo(): String
+
+    /** Platform speech recognition. Implementations must not expose arbitrary system commands. */
+    suspend fun listenOnce(): String = AI_UNSUPPORTED
+
+    /** Speaks assistant output through the platform TTS engine when available. */
+    suspend fun speak(text: String): String = AI_UNSUPPORTED
+
+    fun stopSpeaking() = Unit
+
+    /** Searches public repository metadata only; returned endpoints are not assumed safe or working. */
+    suspend fun searchPublicRepositories(query: String, limit: Int = 5): String = AI_UNSUPPORTED
+
+    /** Finds public IPv4 literals in bounded, text-only public repository files. Candidates are unverified. */
+    suspend fun findPublicIpCandidates(query: String, limit: Int = 3): String = AI_UNSUPPORTED
 }
 
 const val AI_UNSUPPORTED = "not available on this platform"

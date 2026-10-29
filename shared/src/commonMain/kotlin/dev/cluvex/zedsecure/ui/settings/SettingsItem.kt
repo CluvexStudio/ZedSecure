@@ -106,7 +106,12 @@ private val PressedRadius = 22.dp
 private val HoveredRadius = 12.dp
 
 @Composable
-fun segmentColor(): Color = MaterialTheme.colorScheme.surfaceContainerHigh
+fun segmentColor(): Color =
+    if (dev.cluvex.zedsecure.ui.theme.LocalAppDesign.current == dev.cluvex.zedsecure.domain.model.AppDesign.Liquid) {
+        dev.cluvex.zedsecure.ui.theme.liquidFill()
+    } else {
+        MaterialTheme.colorScheme.surfaceContainerHigh
+    }
 
 @Composable
 private fun choiceIdleColor(): Color {

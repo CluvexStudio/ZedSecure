@@ -1,13 +1,13 @@
 <p align="center">
-  <img src="docs/assets/icon.png" width="104" alt="ZedSecure">
+  <img src="docs/assets/icon.png" width="104" alt="ZX VPN">
 </p>
 
-<h1 align="center">ZedSecure</h1>
+<h1 align="center">ZX VPN</h1>
 
 <p align="center">Every way through, in one app.</p>
 
 <p align="center">
-  <a href="https://github.com/CluvexStudio/ZedSecure/releases/latest"><img src="https://img.shields.io/github/v/release/CluvexStudio/ZedSecure?style=flat-square&color=C7F24E&labelColor=15170B&label=release" alt="Latest release"></a>
+  <a href="https://github.com/AMINOPY/ZX-VPN-/releases/latest"><img src="https://img.shields.io/github/v/release/AMINOPY/ZX-VPN-?style=flat-square&color=C7F24E&labelColor=15170B&label=release" alt="Latest release"></a>
   <a href="https://play.google.com/store/apps/details?id=com.zedsecure.vpn"><img src="https://img.shields.io/badge/Google%20Play-install-C7F24E?style=flat-square&labelColor=15170B" alt="Google Play"></a>
   <img src="https://img.shields.io/badge/Android%20%C2%B7%20Linux%20%C2%B7%20Windows%20%C2%B7%20macOS-C7F24E?style=flat-square&labelColor=15170B" alt="Android, Linux, Windows, macOS">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-C7F24E?style=flat-square&labelColor=15170B" alt="AGPL-3.0"></a>
@@ -15,9 +15,9 @@
 
 <p align="center"><b>English</b> · <a href="README.fa.md">فارسی</a></p>
 
-## What is ZedSecure?
+## What is ZX VPN?
 
-ZedSecure is a VPN and proxy client for Android, Linux, Windows and macOS that ships with more than one
+ZX VPN is a VPN and proxy client for Android, Linux, Windows and macOS that ships with more than one
 engine. When one route is blocked, the next one is already installed: Xray and sing-box for the
 usual protocols, Psiphon and Tor for when nothing else connects, DNS tunnels for networks that let
 little more than DNS through, and WireGuard, AmneziaWG, OpenConnect and IKEv2 for servers you
@@ -25,7 +25,7 @@ already run. Engines can be chained through each other, and one tap tests every 
 the connection to the fastest one.
 
 <p align="center">
-  <img src="docs/assets/showcase.png" width="100%" alt="ZedSecure: home, servers and settings">
+  <img src="docs/assets/showcase.png" width="100%" alt="ZX VPN: home, servers and settings">
 </p>
 
 ## Engines
@@ -56,12 +56,10 @@ Android has all of them. Linux, Windows and macOS carry Xray, sing-box, the DNS 
 ## Download
 
 **Android:** [Google Play](https://play.google.com/store/apps/details?id=com.zedsecure.vpn), or the
-APK for your device from [Releases](https://github.com/CluvexStudio/ZedSecure/releases/latest)
+APK for your device from [Releases](https://github.com/AMINOPY/ZX-VPN-/releases/latest)
 (`arm64-v8a` for almost every phone, `armeabi-v7a` for older ones).
 
-**Linux:** `.deb`, `.rpm`, `.AppImage` or `.tar.gz` from Releases. On Arch Linux, the community
-package [`zedsecure-bin`](https://aur.archlinux.org/packages/zedsecure-bin) is in the AUR:
-`yay -S zedsecure-bin`. On NixOS, `nix run github:CluvexStudio/ZedSecure`.
+**Linux:** `.deb`, `.rpm`, `.AppImage` or `.tar.gz` from Releases. Community Linux package names can differ from the official ZX VPN release artifacts.
 
 **Windows:** the `.msi` installer, or the portable `.zip`.
 
@@ -76,7 +74,7 @@ first time with right-click, then Open.
 ./gradlew :desktop:packageDeb    # or packageRpm, packageMsi, packageDmg
 ```
 
-Every engine is built in [ZedSecure-Cores](https://github.com/CluvexStudio/ZedSecure-Cores), one
+Every engine is built in [ZX VPN-Cores](https://github.com/CluvexStudio/ZedSecure-Cores), one
 workflow per engine, from the forks and exact commits in its `pins.txt`. [`tools/cores.txt`](tools/cores.txt)
 names the build each release takes. Pushing a `v*` tag builds Android and every desktop system in CI
 and puts them all in one release; Android and desktop share one version.
@@ -90,7 +88,7 @@ The main ideas of the tunnel come from [SlipNet](https://github.com/anonvector/S
 
 Versions before 3.0.9 used SlipNet's own engine, including its TCP transport, inside the core. Since 3.0.9, the engine is `zeddns`, written for this app. It has the same features, but with its own code.
 
-ZedSecure also stands on [Xray-core](https://github.com/XTLS/Xray-core), [sing-box](https://github.com/SagerNet/sing-box), [Psiphon](https://github.com/Psiphon-Labs/psiphon-tunnel-core), [Tor](https://www.torproject.org/), [MasterDnsVPN](https://github.com/masterking32/MasterDnsVPN), [AmneziaWG](https://github.com/amnezia-vpn/amneziawg-go), [OpenConnect](https://www.infradead.org/openconnect/), [hev-socks5-tunnel](https://github.com/heiher/hev-socks5-tunnel), and [zeptun](https://github.com/Noisemux/zeptun). Their licences are in [NOTICE](NOTICE).
+ZX VPN also stands on [Xray-core](https://github.com/XTLS/Xray-core), [sing-box](https://github.com/SagerNet/sing-box), [Psiphon](https://github.com/Psiphon-Labs/psiphon-tunnel-core), [Tor](https://www.torproject.org/), [MasterDnsVPN](https://github.com/masterking32/MasterDnsVPN), [AmneziaWG](https://github.com/amnezia-vpn/amneziawg-go), [OpenConnect](https://www.infradead.org/openconnect/), [hev-socks5-tunnel](https://github.com/heiher/hev-socks5-tunnel), and [zeptun](https://github.com/Noisemux/zeptun). Their licences are in [NOTICE](NOTICE).
 
 ## License
 

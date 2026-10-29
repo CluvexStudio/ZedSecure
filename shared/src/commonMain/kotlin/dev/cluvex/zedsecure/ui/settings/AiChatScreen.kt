@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -69,6 +70,7 @@ fun AiChatScreen(
     val steps = remember { mutableStateListOf<String>() }
     var draft by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
+    var voiceCallActive by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
 
     val agent = remember(settings.provider, settings.model(), settings.allowChanges, languageName) {
@@ -93,6 +95,39 @@ fun AiChatScreen(
         if (last >= 0) runCatching { listState.animateScrollToItem(last) }
     }
 
+    suspend fun processMessage(message: String): String {
+        if (message.isBlank() || busy) return ""
+        busy = true
+        steps.clear()
+        return try {
+            val produced = runCatching {
+                agent.ask(history.toList(), message) { step ->
+                    when (step) {
+                        is AiAgent.Step.Calling -> steps += "→ ${step.name}"
+                        is AiAgent.Step.Called -> steps += if (step.result.failed) {
+                            "✕ ${step.result.name}: ${step.result.content.take(200)}"
+                        } else {
+                            "✓ ${step.result.name}"
+                        }
+                        is AiAgent.Step.Failed -> steps += "✕ ${step.message}"
+                        else -> Unit
+                    }
+                }
+            }.getOrElse { e ->
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                listOf(
+                    AiTurn(AiRole.USER, message),
+                    AiTurn(AiRole.ASSISTANT, "", error = e.message ?: e::class.simpleName),
+                )
+            }
+            history.addAll(produced)
+            produced.lastOrNull { it.role == AiRole.ASSISTANT && it.text.isNotBlank() }?.text.orEmpty()
+        } finally {
+            steps.clear()
+            busy = false
+        }
+    }
+
     Column(modifier.fillMaxSize().padding(contentPadding)) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
             Text(settings.provider.label, style = MaterialTheme.typography.titleLarge)
@@ -101,6 +136,69 @@ fun AiChatScreen(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (voiceCallActive) {
+                    Text("Listening / speaking", style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f))
+                } else {
+                    Spacer(Modifier.weight(1f))
+                }
+                FilledTonalButton(
+                    enabled = !busy || voiceCallActive,
+                    onClick = {
+                        if (voiceCallActive) {
+                            voiceCallActive = false
+                            bridge.stopSpeaking()
+                        } else {
+                            voiceCallActive = true
+                            scope.launch {
+                                while (voiceCallActive) {
+                                    val heard = runCatching { bridge.listenOnce() }
+                                        .getOrElse { "VOICE_ERROR: ${it.message ?: "voice input failed"}" }
+                                    if (!voiceCallActive) break
+                                    when {
+                                        heard.startsWith("MIC_PERMISSION_REQUIRED") -> {
+                                            history += AiTurn(
+                                                AiRole.ASSISTANT,
+                                                text = "Microphone permission is required. Grant it and start Voice Call again.",
+                                            )
+                                            voiceCallActive = false
+                                        }
+                                        heard.startsWith("VOICE_ERROR:") -> {
+                                            history += AiTurn(AiRole.ASSISTANT, text = heard.removePrefix("VOICE_ERROR:").trim())
+                                            voiceCallActive = false
+                                        }
+                                        heard.isBlank() -> voiceCallActive = false
+                                        else -> {
+                                            val answer = processMessage(heard)
+                                            if (answer.isBlank()) {
+                                                voiceCallActive = false
+                                            } else {
+                                                val spoken = runCatching { bridge.speak(answer) }
+                                                    .getOrElse { "VOICE_ERROR: ${it.message ?: "speech output failed"}" }
+                                                if (spoken.startsWith("VOICE_ERROR:")) {
+                                                    history += AiTurn(
+                                                        AiRole.ASSISTANT,
+                                                        text = "Voice playback failed: ${spoken.removePrefix("VOICE_ERROR:").trim()}",
+                                                    )
+                                                    voiceCallActive = false
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                ) {
+                    Text(if (voiceCallActive) "■ End voice call" else "🎙 Voice call")
+                }
+            }
         }
         LazyColumn(
             state = listState,
@@ -134,34 +232,7 @@ fun AiChatScreen(
                 onClick = {
                     val message = draft.trim()
                     draft = ""
-                    busy = true
-                    steps.clear()
-                    scope.launch {
-                        val produced = runCatching {
-                        agent.ask(history.toList(), message) { step ->
-                            when (step) {
-                                is AiAgent.Step.Calling -> steps += "→ ${step.name}"
-                                is AiAgent.Step.Called -> steps += if (step.result.failed) {
-                                    "✕ ${step.result.name}: ${step.result.content.take(200)}"
-                                } else {
-                                    "✓ ${step.result.name}"
-                                }
-                                is AiAgent.Step.Failed -> steps += "✕ ${step.message}"
-                                else -> Unit
-                            }
-                        }
-                        }.getOrElse { e ->
-                            if (e is kotlinx.coroutines.CancellationException) throw e
-
-                            listOf(
-                                AiTurn(AiRole.USER, message),
-                                AiTurn(AiRole.ASSISTANT, "", error = e.message ?: e::class.simpleName),
-                            )
-                        }
-                        history.addAll(produced)
-                        steps.clear()
-                        busy = false
-                    }
+                    scope.launch { processMessage(message) }
                 },
             ) {
                 if (busy) {
