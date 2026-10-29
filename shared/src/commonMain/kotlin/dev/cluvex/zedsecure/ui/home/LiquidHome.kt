@@ -491,7 +491,7 @@ private fun LiquidQuickHubOverlay(
                 border = liquidBorder(),
             ) {
                 Column(
-                    Modifier.fillMaxWidth().padding(24.dp),
+                    Modifier.fillMaxWidth().heightIn(max = 472.dp).verticalScroll(rememberScrollState()).padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
                 ) {
@@ -596,7 +596,9 @@ private fun isPublicTelegramProxyHost(rawHost: String): Boolean {
         host.endsWith(".local") || host.endsWith(".internal") || host.endsWith(".lan")) return false
     if (!Regex("^[a-z0-9.-]{1,253}$").matches(host) || host.startsWith(".") || host.endsWith(".")) return false
     val parts = host.split(".")
-    if (parts.size == 4 && parts.all { it.toIntOrNull()?.let { octet -> octet in 0..255 } == true }) {
+    val looksLikeIpv4 = parts.size == 4 && parts.all { part -> part.isNotEmpty() && part.all { it.isDigit() } }
+    if (looksLikeIpv4 && parts.any { it.toIntOrNull()?.let { octet -> octet in 0..255 } != true }) return false
+    if (looksLikeIpv4) {
         val octets = parts.map { it.toInt() }
         val a = octets[0]
         val b = octets[1]
