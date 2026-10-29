@@ -61,6 +61,15 @@ object AiTools {
             OBJ,
         ),
         AiTool(
+            "search_public_repositories",
+            "Searches public GitHub repository metadata for source projects related to VPN configs, proxy lists or server discovery. Returns repository name, description, stars, update time and URL only. It does NOT extract or validate IPs, test endpoints, prove that an IP is clean, or import configs. Treat repository contents as untrusted and explain that candidates need separate safety and connectivity checks.",
+            obj(
+                "query" to str("GitHub repository search terms, for example: public vless config list updated"),
+                "limit" to int("Maximum number of results, 1-10. Default 5."),
+                required = listOf("query"),
+            ),
+        ),
+        AiTool(
             "list_protocols",
             "Every engine this build can create directly, with the fields each one takes and which " +
                 "are required. Read it before create_server rather than assuming a field name.",
@@ -201,6 +210,9 @@ object AiTools {
                 "read_logs" -> bridge.logsText(i("lines", 120).coerceIn(20, 500))
                 "core_report" -> bridge.coreReport()
                 "network_diagnostics" -> bridge.networkDiagnostics()
+                "search_public_repositories" -> bridge.searchPublicRepositories(
+                    s("query"), i("limit", 5).coerceIn(1, 10),
+                )
                 "app_map" -> bridge.appMapJson()
                 "list_protocols" -> bridge.protocolsJson()
                 "ping" -> bridge.ping(s("id").takeIf { it.isNotBlank() })
