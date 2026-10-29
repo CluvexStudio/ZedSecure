@@ -7,6 +7,7 @@ on:
       - 'app/**'
       - 'shared/**'
       - 'desktop/**'
+      - 'tools/diagnostics/**'
       - 'gradle/**'
       - 'gradlew'
       - 'settings.gradle.kts'
@@ -40,6 +41,11 @@ jobs:
           distribution: temurin
           java-version: "21"
       - uses: gradle/actions/setup-gradle@v5
+      - name: Run offline config-audit tests
+        run: |
+          python3 -m unittest tools/diagnostics/test_audit_configs.py
+          cc -std=c11 -Wall -Wextra -Werror -O2 tools/diagnostics/config_uri_check.c -o /tmp/zx-config-check
+          printf '%s\\n' 'vless://11111111-1111-4111-8111-111111111111@example.com:443?security=tls' | /tmp/zx-config-check
       - name: Fetch native engine artifacts
         run: ./tools/get-cores.sh android
       - name: Compile Android debug APK
