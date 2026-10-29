@@ -51,6 +51,9 @@ interface AiAppBridge {
 
     /** Searches public repository metadata only; returned endpoints are not assumed safe or working. */
     suspend fun searchPublicRepositories(query: String, limit: Int = 5): String = AI_UNSUPPORTED
+
+    /** Finds public IPv4 literals in bounded, text-only public repository files. Candidates are unverified. */
+    suspend fun findPublicIpCandidates(query: String, limit: Int = 3): String = AI_UNSUPPORTED
 }
 
 const val AI_UNSUPPORTED = "not available on this platform"
