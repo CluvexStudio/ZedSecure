@@ -8,7 +8,7 @@
 
 <p align="center">
   <a href="https://github.com/AMINOPY/ZX-VPN-/releases/latest"><img src="https://img.shields.io/github/v/release/AMINOPY/ZX-VPN-?style=flat-square&color=C7F24E&labelColor=15170B&label=release" alt="Latest release"></a>
-  <a href="https://play.google.com/store/apps/details?id=com.zedsecure.vpn"><img src="https://img.shields.io/badge/Google%20Play-install-C7F24E?style=flat-square&labelColor=15170B" alt="Google Play"></a>
+  <a href="https://play.google.com/store/apps/details?id=com.zx-vpn.vpn"><img src="https://img.shields.io/badge/Google%20Play-install-C7F24E?style=flat-square&labelColor=15170B" alt="Google Play"></a>
   <img src="https://img.shields.io/badge/Android%20%C2%B7%20Linux%20%C2%B7%20Windows%20%C2%B7%20macOS-C7F24E?style=flat-square&labelColor=15170B" alt="Android, Linux, Windows, macOS">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-C7F24E?style=flat-square&labelColor=15170B" alt="AGPL-3.0"></a>
 </p>
@@ -55,13 +55,13 @@ Android has all of them. Linux, Windows and macOS carry Xray, sing-box, the DNS 
 
 ## Download
 
-**Android:** [Google Play](https://play.google.com/store/apps/details?id=com.zedsecure.vpn), or the
+**Android:** [Google Play](https://play.google.com/store/apps/details?id=com.zx-vpn.vpn), or the
 APK for your device from [Releases](https://github.com/AMINOPY/ZX-VPN-/releases/latest)
 (`arm64-v8a` for almost every phone, `armeabi-v7a` for older ones).
 
 **Linux:** `.deb`, `.rpm`, `.AppImage` or `.tar.gz` from Releases. On Arch Linux, the community
-package [`zedsecure-bin`](https://aur.archlinux.org/packages/zedsecure-bin) is in the AUR:
-`yay -S zedsecure-bin`. On NixOS, `nix run github:CluvexStudio/ZedSecure`.
+package [`zx-vpn-bin`](https://aur.archlinux.org/packages/zx-vpn-bin) is in the AUR:
+`yay -S zx-vpn-bin`. On NixOS, `nix run github:CluvexStudio/ZX VPN`.
 
 **Windows:** the `.msi` installer, or the portable `.zip`.
 
@@ -76,7 +76,7 @@ first time with right-click, then Open.
 ./gradlew :desktop:packageDeb    # or packageRpm, packageMsi, packageDmg
 ```
 
-Every engine is built in [ZedSecure-Cores](https://github.com/CluvexStudio/ZedSecure-Cores), one
+Every engine is built in [ZX VPN-Cores](https://github.com/CluvexStudio/ZX VPN-Cores), one
 workflow per engine, from the forks and exact commits in its `pins.txt`. [`tools/cores.txt`](tools/cores.txt)
 names the build each release takes. Pushing a `v*` tag builds Android and every desktop system in CI
 and puts them all in one release; Android and desktop share one version.
