@@ -1,5 +1,7 @@
 package dev.cluvex.zedsecure.ai
 
+import android.content.Context
+
 import dev.cluvex.zedsecure.core.DnsProbe
 import dev.cluvex.zedsecure.core.VpnManager
 import dev.cluvex.zedsecure.core.XrayController
@@ -17,6 +19,7 @@ import kotlinx.serialization.json.put
 
 object AndroidAiBridge {
     fun create(
+        context: Context,
         repository: ConfigRepository,
         settings: SettingsRepository,
         toggleConnection: () -> Unit,
@@ -26,6 +29,7 @@ object AndroidAiBridge {
         readSettings = { settings.settings.value },
         writeSettings = { next -> settings.update { next } },
         coreReportFn = { XrayController.runtimeReport(14) },
+        networkReportFn = { dev.cluvex.zedsecure.core.NetworkDiagnostics.createReport(context) },
         connectFn = { connect(toggleConnection) },
         disconnectFn = { disconnect(toggleConnection) },
         speedTestFn = { speedTest() },
