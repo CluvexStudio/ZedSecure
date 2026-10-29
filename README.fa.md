@@ -62,9 +62,7 @@ APK مخصوص دستگاهتان از [Releases](https://github.com/AMINOPY/ZX-
 (`arm64-v8a` برای تقریباً همهٔ گوشی‌ها، `armeabi-v7a` برای گوشی‌های قدیمی‌تر).
 
 **لینوکس:** فایل `.deb`، `.rpm`، `.AppImage` یا `.tar.gz` از Releases. روی آرچ لینوکس، بستهٔ
-[`zedsecure-bin`](https://aur.archlinux.org/packages/zedsecure-bin) که کاربران ساخته‌اند در AUR هست:
-`yay -S zedsecure-bin`. روی NixOS:
-`nix run github:CluvexStudio/ZedSecure`
+بسته‌های لینوکسِ جامعه ممکن است نام نصب متفاوتی از فایل‌های رسمی ZX VPN داشته باشند.
 
 **ویندوز:** نصب‌کنندهٔ `.msi`، یا نسخهٔ قابل حمل `.zip`.
 
