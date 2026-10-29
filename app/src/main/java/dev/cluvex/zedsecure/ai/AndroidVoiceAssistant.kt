@@ -26,6 +26,9 @@ import kotlin.coroutines.resume
  * by the selected AI provider; it has no access to source files or arbitrary system commands.
  */
 object AndroidVoiceAssistant {
+    @Volatile private var activeRecognizer: SpeechRecognizer? = null
+    @Volatile private var activeTts: TextToSpeech? = null
+
     suspend fun listenOnce(context: Context): String = withContext(Dispatchers.Main.immediate) {
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             val activity = context as? Activity
@@ -44,10 +47,12 @@ object AndroidVoiceAssistant {
                     continuation.resume("VOICE_ERROR: speech recognition could not start.")
                     return@suspendCancellableCoroutine
                 }
+                activeRecognizer = recognizer
                 var finished = false
                 fun finish(result: String) {
                     if (finished) return
                     finished = true
+                    if (activeRecognizer === recognizer) activeRecognizer = null
                     runCatching { recognizer.destroy() }
                     if (continuation.isActive) continuation.resume(result)
                 }
@@ -92,11 +97,13 @@ object AndroidVoiceAssistant {
             fun finish(result: String) {
                 if (finished) return
                 finished = true
+                if (activeTts === tts) activeTts = null
                 tts?.shutdown()
                 if (continuation.isActive) continuation.resume(result)
             }
             tts = TextToSpeech(context.applicationContext) { status ->
                 val engine = tts
+                activeTts = engine
                 if (status != TextToSpeech.SUCCESS || engine == null) {
                     finish("VOICE_ERROR: text-to-speech is unavailable.")
                 } else {
@@ -104,6 +111,7 @@ object AndroidVoiceAssistant {
                     engine.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                         override fun onStart(utteranceId: String?) = Unit
                         override fun onDone(utteranceId: String?) = finish("spoken")
+                        override fun onStop(utteranceId: String?, interrupted: Boolean) = finish("stopped")
                         @Deprecated("Deprecated by Android")
                         override fun onError(utteranceId: String?) = finish("VOICE_ERROR: speech playback failed.")
                         override fun onError(utteranceId: String?, errorCode: Int) =
@@ -118,8 +126,8 @@ object AndroidVoiceAssistant {
     }
 
     fun stopSpeaking() {
-        // Each speak operation owns and shuts down its own TTS engine when it completes.
-        // Cancellation of the calling coroutine also shuts down the engine.
+        runCatching { activeRecognizer?.cancel() }
+        runCatching { activeTts?.stop() }
     }
 
     private const val REQUEST_AUDIO_PERMISSION = 8211
