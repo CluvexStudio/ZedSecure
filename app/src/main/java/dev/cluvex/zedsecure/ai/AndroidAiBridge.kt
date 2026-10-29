@@ -11,11 +11,18 @@ import dev.cluvex.zedsecure.data.net.NetworkInfoRepository
 import dev.cluvex.zedsecure.data.net.SpeedTestEngine
 import dev.cluvex.zedsecure.data.settings.SettingsRepository
 import dev.cluvex.zedsecure.domain.ai.AppAiBridge
+import dev.cluvex.zedsecure.domain.ai.AiAppBridge
 import dev.cluvex.zedsecure.data.net.DohProbe
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URL
+import java.net.URLEncoder
 
 object AndroidAiBridge {
     fun create(
@@ -24,19 +31,76 @@ object AndroidAiBridge {
         settings: SettingsRepository,
         toggleConnection: () -> Unit,
         mtuHint: () -> MtuServerHint?,
-    ): AppAiBridge = AppAiBridge(
-        repository = repository,
-        readSettings = { settings.settings.value },
-        writeSettings = { next -> settings.update { next } },
-        coreReportFn = { XrayController.runtimeReport(14) },
-        networkReportFn = { dev.cluvex.zedsecure.core.NetworkDiagnostics.createReport(context) },
-        connectFn = { connect(toggleConnection) },
-        disconnectFn = { disconnect(toggleConnection) },
-        speedTestFn = { speedTest() },
-        dnsTestFn = { server, mode, host -> testDns(server, mode, host) },
-        exitInfoFn = { exitInfo() },
-        mtuHintFn = mtuHint,
-    )
+    ): AiAppBridge {
+        val delegate = AppAiBridge(
+            repository = repository,
+            readSettings = { settings.settings.value },
+            writeSettings = { next -> settings.update { next } },
+            coreReportFn = { XrayController.runtimeReport(14) },
+            networkReportFn = { dev.cluvex.zedsecure.core.NetworkDiagnostics.createReport(context) },
+            connectFn = { connect(toggleConnection) },
+            disconnectFn = { disconnect(toggleConnection) },
+            speedTestFn = { speedTest() },
+            dnsTestFn = { server, mode, host -> testDns(server, mode, host) },
+            exitInfoFn = { exitInfo() },
+            mtuHintFn = mtuHint,
+        )
+        return object : AiAppBridge by delegate {
+            override suspend fun listenOnce(): String = AndroidVoiceAssistant.listenOnce(context)
+            override suspend fun speak(text: String): String = AndroidVoiceAssistant.speak(context, text)
+            override fun stopSpeaking() = AndroidVoiceAssistant.stopSpeaking()
+            override suspend fun searchPublicRepositories(query: String, limit: Int): String =
+                searchPublicRepositoriesInternal(query, limit)
+        }
+    }
+
+    private suspend fun searchPublicRepositoriesInternal(query: String, limit: Int): String =
+        withContext(Dispatchers.IO) {
+            val normalized = query.trim().take(160)
+            if (normalized.isBlank()) return@withContext """{"error":"provide a search query"}"""
+            val encoded = URLEncoder.encode(normalized, Charsets.UTF_8.name())
+            val url = URL("https://api.github.com/search/repositories?q=$encoded&sort=updated&per_page=${limit.coerceIn(1, 10)}")
+            val connection = (url.openConnection() as HttpURLConnection).apply {
+                requestMethod = "GET"
+                connectTimeout = 8_000
+                readTimeout = 8_000
+                setRequestProperty("Accept", "application/vnd.github+json")
+                setRequestProperty("User-Agent", "ZX-VPN-AI-Assistant")
+                setRequestProperty("X-GitHub-Api-Version", "2022-11-28")
+            }
+            try {
+                val code = connection.responseCode
+                val body = (if (code in 200..299) connection.inputStream else connection.errorStream)
+                    ?.bufferedReader()?.use { it.readText() }.orEmpty()
+                if (code !in 200..299) {
+                    return@withContext """{"error":"GitHub repository search failed","httpStatus":$code,"detail":${JSONObject.quote(body.take(240))}}"""
+                }
+                val root = JSONObject(body)
+                val items = root.optJSONArray("items")
+                val results = org.json.JSONArray()
+                if (items != null) {
+                    for (i in 0 until items.length()) {
+                        val item = items.optJSONObject(i) ?: continue
+                        results.put(JSONObject().apply {
+                            put("fullName", item.optString("full_name"))
+                            put("description", item.optString("description").take(300))
+                            put("url", item.optString("html_url"))
+                            put("stars", item.optInt("stargazers_count"))
+                            put("updatedAt", item.optString("updated_at"))
+                            put("defaultBranch", item.optString("default_branch"))
+                        })
+                    }
+                }
+                JSONObject().put("query", normalized)
+                    .put("results", results)
+                    .put("note", "Repository metadata only. No IP, endpoint, configuration or connection was validated.")
+                    .toString()
+            } catch (e: Exception) {
+                """{"error":${JSONObject.quote(e.message ?: "repository search failed")}}"""
+            } finally {
+                connection.disconnect()
+            }
+        }
 
     private suspend fun connect(toggle: () -> Unit): String {
         val before = VpnManager.status.value
