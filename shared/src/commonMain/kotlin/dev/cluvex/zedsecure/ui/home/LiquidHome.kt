@@ -33,6 +33,8 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.ui.input.pointer.pointerInput
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -582,9 +584,57 @@ private data class TelegramProxySource(val name: String, val url: String)
 
 private val telegramProxySources = listOf(
     TelegramProxySource("mtproto-proxy-pro · فهرست به‌روزشونده", "https://zakky8.github.io/mtproto-proxy-pro/all_proxies.txt"),
-    TelegramProxySource("mtproto-proxy-pro · مقاوم‌تر در برابر فیلتر", "https://zakky8.github.io/mtproto-proxy-pro/censorship_resistant.txt"),
-    TelegramProxySource("shablin/mtproto-proxy · فهرست عمومی", "https://raw.githubusercontent.com/shablin/mtproto-proxy/main/data/valid_proxy.txt"),
+    TelegramProxySource("mtproto-proxy-pro · فهرست مقاوم‌تر", "https://zakky8.github.io/mtproto-proxy-pro/censorship_resistant.txt"),
+    TelegramProxySource("shablin/mtproto-proxy", "https://raw.githubusercontent.com/shablin/mtproto-proxy/main/data/valid_proxy.txt"),
+    TelegramProxySource("کانال عمومی hddify", "https://t.me/s/hddify"),
+    TelegramProxySource("کانال عمومی mitivpn", "https://t.me/s/mitivpn"),
 )
+
+private fun isPublicTelegramProxyHost(rawHost: String): Boolean {
+    val host = rawHost.trim().trim('[', ']').lowercase()
+    if (host.isBlank() || host == "localhost" || host.endsWith(".localhost") ||
+        host.endsWith(".local") || host.endsWith(".internal") || host.endsWith(".lan")) return false
+    if (!Regex("^[a-z0-9.-]{1,253}$").matches(host) || host.startsWith(".") || host.endsWith(".")) return false
+    val parts = host.split(".")
+    if (parts.size == 4 && parts.all { it.toIntOrNull() in 0..255 }) {
+        val octets = parts.map { it.toInt() }
+        val a = octets[0]
+        val b = octets[1]
+        if (a == 0 || a == 10 || a == 127 || a >= 224 ||
+            (a == 169 && b == 254) || (a == 172 && b in 16..31) ||
+            (a == 192 && b == 168) || (a == 100 && b in 64..127)) return false
+    }
+    return true
+}
+
+private fun parseTelegramProxyCandidates(body: String, sourceName: String): List<TelegramProxyCandidate> {
+    val normalized = body.replace("&amp;", "&", ignoreCase = true).replace("&#38;", "&", ignoreCase = true)
+    val linkRegex = Regex("""(?i)(?:tg://proxy\?[^\s<>"']+|https?://t\.me/proxy\?[^\s<>"']+)""")
+    val fromLinks = linkRegex.findAll(normalized).mapNotNull { match ->
+        val link = match.value.trimEnd(',', ';', '.', ')', ']', '}', '"', '\'')
+        val params = link.substringAfter('?', "").substringBefore('#').split('&').mapNotNull { part ->
+            val key = part.substringBefore('=', "").lowercase()
+            val value = part.substringAfter('=', "")
+            if (key.isBlank() || value.isBlank()) null else key to value
+        }.toMap()
+        val host = params["server"]?.trim()?.trimEnd('.') ?: return@mapNotNull null
+        val port = params["port"]?.toIntOrNull()?.takeIf { it in 1..65535 } ?: return@mapNotNull null
+        val secret = params["secret"]?.trim() ?: return@mapNotNull null
+        if (!isPublicTelegramProxyHost(host) || secret.length !in 16..512 ||
+            secret.any { it.isWhitespace() || it == '&' || it == '#' || it == '?' }) return@mapNotNull null
+        TelegramProxyCandidate("https://t.me/proxy?server=$host&port=$port&secret=$secret", host, port, secret, sourceName)
+    }.toList()
+    val fromLines = normalized.lineSequence().mapNotNull { line ->
+        val match = Regex("""^\s*([A-Za-z0-9.-]{1,253}):(\d{1,5}):([A-Za-z0-9_+./=-]{16,512})\s*$""")
+            .matchEntire(line.trim()) ?: return@mapNotNull null
+        val host = match.groupValues[1]
+        val port = match.groupValues[2].toIntOrNull()?.takeIf { it in 1..65535 } ?: return@mapNotNull null
+        val secret = match.groupValues[3]
+        if (!isPublicTelegramProxyHost(host) || secret.length !in 16..512) return@mapNotNull null
+        TelegramProxyCandidate("https://t.me/proxy?server=$host&port=$port&secret=$secret", host, port, secret, sourceName)
+    }.toList()
+    return fromLinks + fromLines
+}
 
 @Composable
 private fun TelegramProxyFinder() {
@@ -617,7 +667,9 @@ private fun TelegramProxyFinder() {
                                 val fetched = coroutineScope {
                                     telegramProxySources.map { source -> async {
                                         runCatching {
-                                            val response = httpGetResponse(source.url, "ZX-VPN-TelegramProxyFinder/1.0", connectTimeoutMs = 7000, readTimeoutMs = 9000)
+                                            val response = withContext(Dispatchers.IO) {
+                                                httpGetResponse(source.url, "ZX-VPN-TelegramProxyFinder/1.1", connectTimeoutMs = 7000, readTimeoutMs = 9000)
+                                            }
                                             if (response.code !in 200..299) error("HTTP ${response.code}")
                                             source to response.body.take(1024 * 1024)
                                         }.getOrNull()
@@ -626,20 +678,7 @@ private fun TelegramProxyFinder() {
                                 sourcesOk = fetched.count { it != null }
                                 sourcesFailed = fetched.size - sourcesOk
                                 val parsed = fetched.filterNotNull().flatMap { (source, body) ->
-                                    val links = Regex("(?:tg://proxy\\?[^\\s<>\\\"']+|https?://t\\.me/proxy\\?[^\\s<>\\\"']+)", RegexOption.IGNORE_CASE)
-                                        .findAll(body).map { it.value.trimEnd(',', ';', '.', ')', ']', '}') }.toList()
-                                    links.mapNotNull { link ->
-                                        val params = link.substringAfter('?', "").split('&').mapNotNull { part ->
-                                            val key = part.substringBefore('=', "").lowercase()
-                                            val value = part.substringAfter('=', "")
-                                            if (key.isBlank() || value.isBlank()) null else key to value
-                                        }.toMap()
-                                        val host = params["server"]?.trim()?.trimEnd('.') ?: return@mapNotNull null
-                                        val port = params["port"]?.toIntOrNull()?.takeIf { it in 1..65535 } ?: return@mapNotNull null
-                                        val secret = params["secret"]?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
-                                        if (host.isBlank() || host.any { it.isWhitespace() }) return@mapNotNull null
-                                        TelegramProxyCandidate(link, host, port, secret, source.name)
-                                    }
+                                    parseTelegramProxyCandidates(body, source.name)
                                 }.distinctBy { "${it.host.lowercase()}:${it.port}:${it.secret.lowercase()}" }
                                 candidates = parsed
                                 status = if (parsed.isEmpty()) "منبع‌ها پاسخ دادند، اما پروکسی قابل‌خواندن پیدا نشد. بعداً دوباره تلاش کن." else "${parsed.size} پروکسی یکتا از ${sourcesOk} منبع دریافت شد؛ هنوز اتصال تلگرام تأیید نشده است."
