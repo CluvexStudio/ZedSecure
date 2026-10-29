@@ -59,9 +59,7 @@ Android has all of them. Linux, Windows and macOS carry Xray, sing-box, the DNS 
 APK for your device from [Releases](https://github.com/AMINOPY/ZX-VPN-/releases/latest)
 (`arm64-v8a` for almost every phone, `armeabi-v7a` for older ones).
 
-**Linux:** `.deb`, `.rpm`, `.AppImage` or `.tar.gz` from Releases. On Arch Linux, the community
-package [`zx-vpn-bin`](https://aur.archlinux.org/packages/zx-vpn-bin) is in the AUR:
-`yay -S zx-vpn-bin`. On NixOS, `nix run github:CluvexStudio/ZX VPN`.
+**Linux:** `.deb`, `.rpm`, `.AppImage` or `.tar.gz` from Releases. Community Linux package names can differ from the official ZX VPN release artifacts.
 
 **Windows:** the `.msi` installer, or the portable `.zip`.
 
@@ -76,7 +74,7 @@ first time with right-click, then Open.
 ./gradlew :desktop:packageDeb    # or packageRpm, packageMsi, packageDmg
 ```
 
-Every engine is built in [ZX VPN-Cores](https://github.com/CluvexStudio/ZX VPN-Cores), one
+Every engine is built in [ZX VPN-Cores](https://github.com/CluvexStudio/ZedSecure-Cores), one
 workflow per engine, from the forks and exact commits in its `pins.txt`. [`tools/cores.txt`](tools/cores.txt)
 names the build each release takes. Pushing a `v*` tag builds Android and every desktop system in CI
 and puts them all in one release; Android and desktop share one version.
