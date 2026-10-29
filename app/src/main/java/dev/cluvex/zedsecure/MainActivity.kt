@@ -305,6 +305,7 @@ class MainActivity : ComponentActivity() {
                 CompositionLocalProvider(LocalPlatform provides androidPlatform) {
                     val aiBridge = androidx.compose.runtime.remember {
                         dev.cluvex.zedsecure.ai.AndroidAiBridge.create(
+                            context = this@MainActivity,
                             repository = configRepository,
                             settings = repo,
                             toggleConnection = ::toggleConnection,
