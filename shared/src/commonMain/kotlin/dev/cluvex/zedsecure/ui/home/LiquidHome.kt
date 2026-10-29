@@ -607,6 +607,22 @@ private fun isPublicTelegramProxyHost(rawHost: String): Boolean {
     return true
 }
 
+private fun decodeTelegramProxyValue(raw: String): String = buildString {
+    var i = 0
+    while (i < raw.length) {
+        if (raw[i] == '%' && i + 2 < raw.length) {
+            val value = raw.substring(i + 1, i + 3).toIntOrNull(16)
+            if (value != null) {
+                append(value.toChar())
+                i += 3
+                continue
+            }
+        }
+        append(raw[i])
+        i++
+    }
+}
+
 private fun parseTelegramProxyCandidates(body: String, sourceName: String): List<TelegramProxyCandidate> {
     val normalized = body.replace("&amp;", "&", ignoreCase = true).replace("&#38;", "&", ignoreCase = true)
     val linkRegex = Regex("""(?i)(?:tg://proxy\?[^\s<>"']+|https?://t\.me/proxy\?[^\s<>"']+)""")
@@ -614,7 +630,7 @@ private fun parseTelegramProxyCandidates(body: String, sourceName: String): List
         val link = match.value.trimEnd(',', ';', '.', ')', ']', '}', '"', '\'')
         val params = link.substringAfter('?', "").substringBefore('#').split('&').mapNotNull { part ->
             val key = part.substringBefore('=', "").lowercase()
-            val value = part.substringAfter('=', "")
+            val value = decodeTelegramProxyValue(part.substringAfter('=', ""))
             if (key.isBlank() || value.isBlank()) null else key to value
         }.toMap()
         val host = params["server"]?.trim()?.trimEnd('.') ?: return@mapNotNull null
@@ -643,12 +659,19 @@ private fun TelegramProxyFinder() {
     val uriHandler = LocalUriHandler.current
     var candidates by remember { mutableStateOf<List<TelegramProxyCandidate>>(emptyList()) }
     var query by remember { mutableStateOf("") }
+    var manualInput by remember { mutableStateOf("") }
+    var onlyReachable by remember { mutableStateOf(false) }
     var loading by remember { mutableStateOf(false) }
     var testing by remember { mutableStateOf(false) }
+    var testProgress by remember { mutableIntStateOf(0) }
+    var testTotal by remember { mutableIntStateOf(0) }
     var status by remember { mutableStateOf("برای دریافت فهرست تازه، «جست‌وجوی پروکسی‌ها» را بزن.") }
     var sourcesOk by remember { mutableIntStateOf(0) }
     var sourcesFailed by remember { mutableIntStateOf(0) }
-    val visible = candidates.filter { it.host.contains(query, true) || it.source.contains(query, true) }
+    val visible = candidates.filter {
+        (it.host.contains(query, true) || it.source.contains(query, true)) &&
+            (!onlyReachable || it.tcpMs != null)
+    }
 
     Surface(shape = RoundedCornerShape(24.dp), color = cs.surface.copy(alpha = 0.72f), border = liquidBorder(), modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -694,6 +717,8 @@ private fun TelegramProxyFinder() {
                     onClick = {
                         scope.launch {
                             testing = true
+                            testProgress = 0
+                            testTotal = minOf(candidates.size, 80)
                             status = "در حال سنجش دسترسی TCP؛ این تست، handshake تلگرام نیست…"
                             try {
                                 val semaphore = Semaphore(4)
@@ -701,6 +726,7 @@ private fun TelegramProxyFinder() {
                                     candidates.take(80).map { candidate -> async {
                                         semaphore.withPermit {
                                             val ms = runCatching { PingService.tcpPing(candidate.host, candidate.port, timeoutMs = 2500) }.getOrDefault(-1L)
+                                            testProgress += 1
                                             candidate.copy(tcpMs = ms.takeIf { it > 0 }, tcpTested = true)
                                         }
                                     } }.awaitAll()
@@ -718,7 +744,32 @@ private fun TelegramProxyFinder() {
                     shapes = ButtonDefaults.shapes(),
                 ) { Text(if (testing) "در حال تست…" else "تست TCP") }
             }
+            if (loading || testing) {
+                LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth(), color = cs.primary)
+                if (testing) Text("پیشرفت تست: $testProgress از $testTotal", style = MaterialTheme.typography.labelSmall, color = cs.onSurfaceVariant)
+            }
             OutlinedTextField(value = query, onValueChange = { query = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("فیلتر بر اساس دامنه یا منبع") })
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(selected = !onlyReachable, onClick = { onlyReachable = false }, label = { Text("همه") })
+                FilterChip(selected = onlyReachable, onClick = { onlyReachable = true }, label = { Text("TCP پاسخ‌گو") })
+                Text("${visible.size} نتیجه", style = MaterialTheme.typography.labelMedium, color = cs.onSurfaceVariant)
+            }
+            OutlinedTextField(value = manualInput, onValueChange = { manualInput = it }, modifier = Modifier.fillMaxWidth(), minLines = 2, label = { Text("لینک پروکسی یا host:port:secret") })
+            FilledTonalButton(
+                enabled = manualInput.isNotBlank() && !loading && !testing,
+                onClick = {
+                    val parsed = parseTelegramProxyCandidates(manualInput, "ورودی دستی")
+                    if (parsed.isEmpty()) {
+                        status = "لینک MTProto معتبر پیدا نشد؛ فرمت t.me/proxy یا host:port:secret را وارد کن."
+                    } else {
+                        val combined = (candidates + parsed).distinctBy { "${it.host.lowercase()}:${it.port}:${it.secret.lowercase()}" }
+                        candidates = combined
+                        status = "${parsed.size} ورودی بررسی شد؛ موارد تکراری حذف شدند."
+                        manualInput = ""
+                    }
+                },
+                shapes = ButtonDefaults.shapes(),
+            ) { Text("افزودن ورودی دستی") }
             Text("$status", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
             if (sourcesFailed > 0) Text("منابع ناموفق: $sourcesFailed از ${telegramProxySources.size}", style = MaterialTheme.typography.labelSmall, color = cs.error)
             Column(Modifier.fillMaxWidth().heightIn(max = 360.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
