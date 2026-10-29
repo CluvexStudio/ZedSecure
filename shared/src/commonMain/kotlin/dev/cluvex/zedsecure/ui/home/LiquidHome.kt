@@ -596,7 +596,7 @@ private fun isPublicTelegramProxyHost(rawHost: String): Boolean {
         host.endsWith(".local") || host.endsWith(".internal") || host.endsWith(".lan")) return false
     if (!Regex("^[a-z0-9.-]{1,253}$").matches(host) || host.startsWith(".") || host.endsWith(".")) return false
     val parts = host.split(".")
-    if (parts.size == 4 && parts.all { it.toIntOrNull() in 0..255 }) {
+    if (parts.size == 4 && parts.all { it.toIntOrNull()?.let { octet -> octet in 0..255 } == true }) {
         val octets = parts.map { it.toInt() }
         val a = octets[0]
         val b = octets[1]
@@ -733,7 +733,7 @@ private fun TelegramProxyFinder() {
                                 }
                                 val checkedIds = checked.associateBy { "${it.host.lowercase()}:${it.port}:${it.secret.lowercase()}" }
                                 candidates = candidates.map { checkedIds["${it.host.lowercase()}:${it.port}:${it.secret.lowercase()}"] ?: it }
-                                    .sortedWith(compareBy<TelegramProxyCandidate>({ if (it.tcpMs == null) 1 else 0 }, { it.tcpMs ?: Long.MAX_VALUE }))
+                                    .sortedWith(compareBy<TelegramProxyCandidate>({ if (it.tcpMs != null) 0 else if (!it.tcpTested) 1 else 2 }, { it.tcpMs ?: Long.MAX_VALUE }))
                                 val reachable = checked.count { (it.tcpMs ?: -1L) > 0 }
                                 status = "تست TCP تمام شد: ${reachable} از ${checked.size} میزبان پاسخ دادند. handshake واقعی MTProto در این نسخه انجام نشده است."
                             } catch (e: Exception) {
