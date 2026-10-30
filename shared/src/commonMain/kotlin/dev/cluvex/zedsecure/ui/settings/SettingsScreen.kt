@@ -950,6 +950,7 @@ private fun UiPage(
                     AppLanguage.Persian to "فارسی",
                     AppLanguage.Chinese to "中文",
                     AppLanguage.Russian to "Русский",
+                    AppLanguage.Spanish to "Español",
                 ),
                 selected = s.language,
                 onSelected = onLanguage,

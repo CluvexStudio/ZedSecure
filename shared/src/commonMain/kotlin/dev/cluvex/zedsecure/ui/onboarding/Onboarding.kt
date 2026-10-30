@@ -262,6 +262,7 @@ private fun LanguageStep(settings: AppSettings, onLanguage: (AppLanguage) -> Uni
             AppLanguage.Persian to "فارسی",
             AppLanguage.Chinese to "中文",
             AppLanguage.Russian to "Русский",
+            AppLanguage.Spanish to "Español",
         ).forEach { (lang, label) ->
             ChoiceCard(
                 title = label,

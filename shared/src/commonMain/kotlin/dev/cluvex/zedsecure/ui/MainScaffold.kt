@@ -383,6 +383,7 @@ private fun languageEnglishName(language: AppLanguage): String = when (language)
     AppLanguage.Persian -> "Persian"
     AppLanguage.Chinese -> "Chinese"
     AppLanguage.Russian -> "Russian"
+    AppLanguage.Spanish -> "Spanish"
     AppLanguage.English -> "English"
 
     AppLanguage.System -> "the language the user writes in"
@@ -392,6 +393,7 @@ private fun languageNativeName(language: AppLanguage): String = when (language) 
     AppLanguage.Persian -> "فارسی"
     AppLanguage.Chinese -> "中文"
     AppLanguage.Russian -> "Русский"
+    AppLanguage.Spanish -> "Español"
     AppLanguage.English -> "English"
     AppLanguage.System -> ""
 }
