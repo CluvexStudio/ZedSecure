@@ -77,6 +77,7 @@ dependencies {
 compose.desktop {
     application {
         mainClass = "dev.cluvex.zedsecure.desktop.GuiKt"
+        jvmArgs += listOf("-XX:TieredStopAtLevel=1")
         nativeDistributions {
             targetFormats(TargetFormat.Deb, TargetFormat.Rpm, TargetFormat.AppImage, TargetFormat.Msi, TargetFormat.Dmg)
             packageName = "ZedSecure"

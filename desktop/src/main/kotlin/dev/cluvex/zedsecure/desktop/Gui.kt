@@ -71,6 +71,8 @@ import dev.cluvex.zedsecure.domain.model.RenderingMode
 import dev.cluvex.zedsecure.domain.model.RunMode
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import dev.cluvex.zedsecure.desktop.core.Os
@@ -109,6 +111,7 @@ private fun fittedWindowHeight(): Dp {
 private const val TRAY_SERVERS = 30
 private const val TRAY_HOST_RETRIES = 24
 private const val TRAY_HOST_RETRY_MS = 5_000L
+private const val TRAY_SPEED_MS = 5_000L
 
 fun main(args: Array<String>) {
     if (args.firstOrNull() == dev.cluvex.zedsecure.desktop.core.WindowsHelper.FLAG) {
@@ -202,7 +205,9 @@ fun main(args: Array<String>) {
                 raiseWindow++
             }
         }
-        val status by VpnManager.status.collectAsState()
+        val status by remember {
+            VpnManager.status.map { RootStatus(it.state, it.serverName, it.error) }.distinctUntilChanged()
+        }.collectAsState(VpnManager.status.value.let { RootStatus(it.state, it.serverName, it.error) })
         val connecting = status.state == ConnectionState.Connecting || status.state == ConnectionState.Disconnecting
         val connected = status.state == ConnectionState.Connected
         val trayScope = rememberCoroutineScope()
@@ -291,17 +296,28 @@ fun main(args: Array<String>) {
                 status.state == ConnectionState.Error -> stateError
                 else -> stateIdle
             }
-            val speeds = "↓ ${humanBps(status.downloadBps)}   ↑ ${humanBps(status.uploadBps)}"
+            var speeds by remember { mutableStateOf("") }
+            LaunchedEffect(connected) {
+                if (!connected) {
+                    speeds = ""
+                    return@LaunchedEffect
+                }
+                while (true) {
+                    val live = VpnManager.status.value
+                    speeds = "↓ ${humanBps(live.downloadBps)}   ↑ ${humanBps(live.uploadBps)}"
+                    kotlinx.coroutines.delay(TRAY_SPEED_MS)
+                }
+            }
             val tip = buildString {
                 append("ZedSecure · ").append(statusLine)
-                if (connected) append("\n").append(speeds)
+                if (connected && speeds.isNotEmpty()) append("\n").append(speeds)
             }
             val active = profiles.firstOrNull { it.id == activeId }
             val shown = (listOfNotNull(active) + profiles.filter { it.id != activeId }).take(TRAY_SERVERS)
             val proxyPort = VpnManager.activeSocksPort ?: LocalProxy.SOCKS_PORT
             val entries = buildList {
                 add(TrayEntry.Action(statusLine, enabled = false))
-                if (connected) add(TrayEntry.Action(speeds, enabled = false))
+                if (connected && speeds.isNotEmpty()) add(TrayEntry.Action(speeds, enabled = false))
                 add(TrayEntry.Separator)
                 add(
                     TrayEntry.Action(
@@ -459,6 +475,8 @@ fun main(args: Array<String>) {
                     fontScale = settings.uiFontScale.scale,
                 ) {
                     val focused = LocalWindowInfo.current.isWindowFocused
+                    val onScreen = windowVisible && !windowState.isMinimized
+                    LaunchedEffect(onScreen) { dev.cluvex.zedsecure.desktop.platform.DesktopMeter.foreground = onScreen }
                     val motion = if (windowVisible && !windowState.isMinimized && focused) {
                         MotionBudget.Throttled
                     } else {
@@ -548,3 +566,5 @@ private fun humanBps(bps: Long): String {
 }
 
 private const val MOUSE_BACK_BUTTON = 4
+
+private data class RootStatus(val state: ConnectionState, val serverName: String?, val error: String?)

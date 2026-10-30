@@ -36,6 +36,7 @@ class DesktopMeter(
 
     internal fun tick() {
         val now = clock()
+        if (!foreground && now - lastAt < BACKGROUND_TICK_MS) return
         val read = runCatching { totals() }.getOrNull()
         val (down, up) = read ?: (lastDown to lastUp)
         val seconds = (now - lastAt).coerceAtLeast(1).toDouble() / 1000.0
@@ -48,6 +49,13 @@ class DesktopMeter(
     }
 
     internal fun elapsedSeconds(now: Long): Int = ((now - startedAt + 500) / 1000).coerceAtLeast(0).toInt()
+
+    companion object {
+        private const val BACKGROUND_TICK_MS = 5_000L
+
+        @Volatile
+        var foreground: Boolean = true
+    }
 
     internal fun startAt(millis: Long) {
         startedAt = millis
