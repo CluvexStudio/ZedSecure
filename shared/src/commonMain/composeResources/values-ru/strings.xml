@@ -940,6 +940,14 @@
     <string name="subs_ua_custom">Свой</string>
     <string name="subs_ua_hint">Многие провайдеры отдают свои JSON-конфигурации только User-Agent v2rayNG, а всем остальным — обычные ссылки.</string>
     <string name="subs_edit">Изменить подписку</string>
+    <string name="subs_preset_title">Изменить все серверы этой подписки</string>
+    <string name="subs_preset_hint">Применяется при каждом обновлении подписки. Оставьте поле пустым, чтобы сохранить значение сервера.</string>
+    <string name="subs_preset_address">Адрес (например, чистый IP Cloudflare)</string>
+    <string name="subs_preset_fingerprint">Отпечаток TLS (fp)</string>
+    <string name="subs_preset_alpn">ALPN (auto выбирает по транспорту)</string>
+    <string name="subs_preset_finalmask">JSON фрагментации / finalmask (fm)</string>
+    <string name="subs_preset_ciphers">Наборы шифров (cs)</string>
+    <string name="subs_preset_ech">Конфигурация ECH (ech)</string>
     <string name="manual_awg_section">Обфускация AmneziaWG</string>
     <string name="manual_awg_hint">Оставьте все поля пустыми для обычного WireGuard. Значения должны совпадать с конфигурацией вашего провайдера.</string>
     <string name="manual_awg_advanced">Показать параметры AmneziaWG 1.5</string>

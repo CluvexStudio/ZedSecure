@@ -190,7 +190,10 @@ class ConfigRepository(private val store: KeyValueStore) {
         val current = _profiles.value
         val fresh = mutableListOf<VpnProfile>()
         var duplicates = 0
-        links.forEach { link ->
+        val preset = subscriptionId.takeIf { it.isNotBlank() }
+            ?.let { id -> _subscriptions.value.firstOrNull { it.id == id }?.preset }
+            ?.takeUnless { it.isEmpty }
+        links.map { preset?.apply(it) ?: it }.forEach { link ->
             runCatching {
                 if (SingBoxLinks.handles(link)) {
                     val parsed = SingBoxLinks.parse(link)
@@ -1156,7 +1159,13 @@ class ConfigRepository(private val store: KeyValueStore) {
         persistSubscriptions()
     }
 
-    fun editSubscription(id: String, newName: String, userAgent: String?, newUrl: String? = null) {
+    fun editSubscription(
+        id: String,
+        newName: String,
+        userAgent: String?,
+        newUrl: String? = null,
+        preset: dev.cluvex.zedsecure.domain.config.SubscriptionPreset? = null,
+    ) {
         val trimmedName = newName.trim()
         val trimmedUa = userAgent?.trim()?.takeIf { it.isNotBlank() }
         val trimmedUrl = newUrl?.trim()?.takeIf { it.isNotBlank() }
@@ -1166,6 +1175,7 @@ class ConfigRepository(private val store: KeyValueStore) {
                 name = trimmedName.ifEmpty { it.name },
                 url = trimmedUrl ?: it.url,
                 userAgent = trimmedUa,
+                preset = preset ?: it.preset,
             )
         }
         persistSubscriptions()

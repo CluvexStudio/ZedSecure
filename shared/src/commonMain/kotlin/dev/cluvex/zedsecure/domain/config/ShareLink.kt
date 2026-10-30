@@ -153,7 +153,7 @@ object ShareLink {
         return "ss://$creds@$host:${s.port}$q$fragment"
     }
 
-    private fun enc(value: String): String {
+    internal fun enc(value: String): String {
         val unreserved = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_.~"
         val sb = StringBuilder()
         for (byte in value.encodeToByteArray()) {

@@ -932,6 +932,14 @@
     <string name="subs_ua_custom">دلخواه</string>
     <string name="subs_ua_hint">خیلی از ارائه‌دهنده‌ها کانفیگ‌های JSON سفارشی خود را فقط به یوزر ایجنت v2rayNG می‌دهند و به بقیه لینک ساده می‌دهند.</string>
     <string name="subs_edit">ویرایش سابسکریپشن</string>
+    <string name="subs_preset_title">تغییر همهٔ سرورهای این اشتراک</string>
+    <string name="subs_preset_hint">هر بار که اشتراک به‌روز می‌شود اعمال می‌شود. فیلدی را خالی بگذارید تا همان مقداری که سرور می‌فرستد بماند.</string>
+    <string name="subs_preset_address">آدرس (مثلاً یک IP تمیز Cloudflare)</string>
+    <string name="subs_preset_fingerprint">اثر انگشت TLS (fp)</string>
+    <string name="subs_preset_alpn">ALPN (auto بر اساس ترنسپورت انتخاب می‌کند)</string>
+    <string name="subs_preset_finalmask">JSON فرگمنت / finalmask (fm)</string>
+    <string name="subs_preset_ciphers">Cipher suites (cs)</string>
+    <string name="subs_preset_ech">پیکربندی ECH (ech)</string>
     <string name="manual_awg_section">مبهم‌سازی AmneziaWG</string>
     <string name="manual_awg_hint">اگر همه را خالی بگذارید مثل وایرگارد معمولی کار می‌کند. مقادیر را با کانفیگ ارائه‌دهنده‌تان یکی کنید.</string>
     <string name="manual_awg_advanced">نمایش پارامترهای AmneziaWG 1.5</string>

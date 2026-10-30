@@ -939,6 +939,14 @@
     <string name="subs_ua_custom">Custom</string>
     <string name="subs_ua_hint">Many providers only send their JSON custom configs to the v2rayNG User-Agent, and send plain links to anything else.</string>
     <string name="subs_edit">Edit subscription</string>
+    <string name="subs_preset_title">Change every server in this subscription</string>
+    <string name="subs_preset_hint">Applied each time the subscription updates. Leave a field empty to keep what the server sends.</string>
+    <string name="subs_preset_address">Address (for example a clean Cloudflare IP)</string>
+    <string name="subs_preset_fingerprint">TLS fingerprint (fp)</string>
+    <string name="subs_preset_alpn">ALPN (auto picks one by transport)</string>
+    <string name="subs_preset_finalmask">Fragment / finalmask JSON (fm)</string>
+    <string name="subs_preset_ciphers">Cipher suites (cs)</string>
+    <string name="subs_preset_ech">ECH config (ech)</string>
     <string name="manual_awg_section">AmneziaWG obfuscation</string>
     <string name="manual_awg_hint">Leave every field empty for plain WireGuard behaviour. Match the values to the ones in your provider’s config.</string>
     <string name="manual_awg_advanced">Show AmneziaWG 1.5 parameters</string>

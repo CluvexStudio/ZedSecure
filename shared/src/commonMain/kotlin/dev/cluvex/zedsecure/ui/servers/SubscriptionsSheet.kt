@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -59,6 +60,7 @@ import dev.cluvex.zedsecure.ui.format.formatBytes
 import androidx.compose.ui.graphics.luminance
 import kotlinx.coroutines.launch
 import dev.cluvex.zedsecure.ui.platform.appVerticalScroll
+import org.jetbrains.compose.resources.StringResource
 
 @Composable
 fun SubscriptionsSheet(
@@ -287,11 +289,16 @@ fun SubscriptionsSheet(
         var newName by remember(target.id) { mutableStateOf(target.name) }
         var newUrl by remember(target.id) { mutableStateOf(target.url) }
         var newUa by remember(target.id) { mutableStateOf(target.userAgent.orEmpty()) }
+        var preset by remember(target.id) { mutableStateOf(target.preset) }
+        var presetOpen by remember(target.id) { mutableStateOf(!target.preset.isEmpty) }
         AlertDialog(
             onDismissRequest = { renameTarget = null },
             title = { Text(stringResource(Res.string.subs_edit)) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(
+                    Modifier.heightIn(max = 560.dp).appVerticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
                     OutlinedTextField(
                         value = newName,
                         onValueChange = { newName = it },
@@ -308,12 +315,38 @@ fun SubscriptionsSheet(
                         modifier = Modifier.fillMaxWidth(),
                     )
                     UserAgentPicker(newUa) { newUa = it }
+                    TextButton(onClick = { presetOpen = !presetOpen }) {
+                        Text(stringResource(Res.string.subs_preset_title))
+                    }
+                    if (presetOpen) {
+                        Text(
+                            stringResource(Res.string.subs_preset_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        PresetField(Res.string.subs_preset_address, preset.address) { preset = preset.copy(address = it) }
+                        PresetField(Res.string.subs_preset_fingerprint, preset.fingerprint) { preset = preset.copy(fingerprint = it) }
+                        PresetField(Res.string.subs_preset_alpn, preset.alpn) { preset = preset.copy(alpn = it) }
+                        PresetField(Res.string.subs_preset_finalmask, preset.finalMask, singleLine = false) {
+                            preset = preset.copy(finalMask = it)
+                        }
+                        PresetField(Res.string.subs_preset_ciphers, preset.cipherSuites) { preset = preset.copy(cipherSuites = it) }
+                        PresetField(Res.string.subs_preset_ech, preset.echConfigList) { preset = preset.copy(echConfigList = it) }
+                    }
                 }
             },
             confirmButton = {
                 TextButton(onClick = {
-                    repository.editSubscription(target.id, newName, newUa, newUrl)
+                    val changed = preset != target.preset
+                    repository.editSubscription(target.id, newName, newUa, newUrl, preset)
                     renameTarget = null
+                    if (changed) {
+                        busyId = target.id
+                        scope.launch {
+                            repository.updateSubscription(target.id)
+                            busyId = null
+                        }
+                    }
                 }) { Text(stringResource(Res.string.action_save)) }
             },
             dismissButton = {
@@ -343,6 +376,18 @@ fun SubscriptionsSheet(
             },
         )
     }
+}
+
+@Composable
+private fun PresetField(label: StringResource, value: String, singleLine: Boolean = true, onChange: (String) -> Unit) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onChange,
+        label = { Text(stringResource(label)) },
+        singleLine = singleLine,
+        minLines = if (singleLine) 1 else 2,
+        modifier = Modifier.fillMaxWidth(),
+    )
 }
 
 @Composable

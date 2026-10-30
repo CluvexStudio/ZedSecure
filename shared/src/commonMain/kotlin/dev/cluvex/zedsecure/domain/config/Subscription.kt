@@ -25,6 +25,8 @@ data class Subscription(
 
     val updateIntervalHours: Int? = null,
 
+    val preset: SubscriptionPreset = SubscriptionPreset(),
+
     val supportUrl: String? = null,
 
     val webPageUrl: String? = null,
