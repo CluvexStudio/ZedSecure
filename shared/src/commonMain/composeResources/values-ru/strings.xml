@@ -314,6 +314,8 @@
     <string name="tray_show">Показать окно</string>
     <string name="tray_hide">Скрыть окно</string>
     <string name="tray_quit">Выйти из ZedSecure</string>
+    <string name="tray_missing_minimized">Подключение активно. В этом окружении нет трея, поэтому ZedSecure свёрнут. Чтобы выйти, сначала отключитесь.</string>
+    <string name="tray_missing_gnome">В GNOME значок в трее добавляет расширение AppIndicator.</string>
     <string name="group_all">Все</string>
     <string name="group_manual">Вручную</string>
 

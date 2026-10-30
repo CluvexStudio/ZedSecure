@@ -431,6 +431,8 @@
     <string name="tray_show">نمایش پنجره</string>
     <string name="tray_hide">پنهان کردن پنجره</string>
     <string name="tray_quit">خروج از ZedSecure</string>
+    <string name="tray_missing_minimized">هنوز وصله. این دسکتاپ tray نداره، برای همین ZedSecure کوچک شد. برای خروج اول قطع کن.</string>
+    <string name="tray_missing_gnome">روی GNOME، افزونه‌ی AppIndicator آیکون tray رو اضافه می‌کنه.</string>
     <string name="option_none">هیچ‌کدام</string>
 
     <string name="title_ui_settings">رابط کاربری</string>

@@ -50,6 +50,8 @@ import dev.cluvex.zedsecure.shared.resources.tray_copy_proxy
 import dev.cluvex.zedsecure.shared.resources.tray_show
 import dev.cluvex.zedsecure.shared.resources.tray_hide
 import dev.cluvex.zedsecure.shared.resources.tray_quit
+import dev.cluvex.zedsecure.shared.resources.tray_missing_gnome
+import dev.cluvex.zedsecure.shared.resources.tray_missing_minimized
 import dev.cluvex.zedsecure.shared.resources.mode_system_proxy
 import dev.cluvex.zedsecure.shared.resources.mode_socks
 import dev.cluvex.zedsecure.shared.resources.mode_tun
@@ -105,6 +107,8 @@ private fun fittedWindowHeight(): Dp {
 }
 
 private const val TRAY_SERVERS = 30
+private const val TRAY_HOST_RETRIES = 24
+private const val TRAY_HOST_RETRY_MS = 5_000L
 
 fun main(args: Array<String>) {
     if (args.firstOrNull() == dev.cluvex.zedsecure.desktop.core.WindowsHelper.FLAG) {
@@ -155,11 +159,26 @@ fun main(args: Array<String>) {
             ImageLoader.Builder(ctx).components { add(SvgDecoder.Factory()) }.build()
         }
 
-        val nativeTrayHost = remember {
-            when (Os.current) {
-                Os.LINUX -> LinuxDesktop.trayHostAvailable() && LinuxDesktop.nativeTrayLoads()
-                Os.WINDOWS -> WindowsDesktop.nativeTrayLoads()
-                else -> false
+        var nativeTrayHost by remember {
+            mutableStateOf(
+                when (Os.current) {
+                    Os.LINUX -> LinuxDesktop.trayHostAvailable() && LinuxDesktop.nativeTrayLoads()
+                    Os.WINDOWS -> WindowsDesktop.nativeTrayLoads()
+                    else -> false
+                },
+            )
+        }
+        LaunchedEffect(Unit) {
+            if (Os.current != Os.LINUX || nativeTrayHost) return@LaunchedEffect
+            repeat(TRAY_HOST_RETRIES) {
+                kotlinx.coroutines.delay(TRAY_HOST_RETRY_MS)
+                val found = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    LinuxDesktop.trayHostAvailable() && LinuxDesktop.nativeTrayLoads()
+                }
+                if (found) {
+                    nativeTrayHost = true
+                    return@LaunchedEffect
+                }
             }
         }
         var nativeTrayFailed by remember { mutableStateOf(false) }
@@ -174,6 +193,9 @@ fun main(args: Array<String>) {
         }
         var windowVisible by remember { mutableStateOf(true) }
         var raiseWindow by remember { mutableStateOf(0) }
+        val noTrayNotice = stringResource(Res.string.tray_missing_minimized)
+        val noTrayGnomeHint = stringResource(Res.string.tray_missing_gnome)
+        var noTrayNoticeShown by remember { mutableStateOf(false) }
         LaunchedEffect(Unit) {
             SingleInstance.showRequests.collect {
                 windowVisible = true
@@ -370,7 +392,24 @@ fun main(args: Array<String>) {
 
         val windowState = rememberWindowState(width = WIN_W, height = fittedWindowHeight(), position = WindowPosition(Alignment.Center))
         Window(
-            onCloseRequest = { if (trayAvailable) windowVisible = false else { DesktopVpn.shutdown(); exitApplication() } },
+            onCloseRequest = {
+                val live = VpnManager.status.value.state
+                when {
+                    trayAvailable -> windowVisible = false
+                    live == ConnectionState.Connected || live == ConnectionState.Connecting -> {
+                        windowState.isMinimized = true
+                        if (!noTrayNoticeShown) {
+                            noTrayNoticeShown = true
+                            LogBus.append("W/Desktop there is no system tray here; the window was minimized because a connection is open")
+                            if (Os.current == Os.LINUX) {
+                                val gnome = System.getenv("XDG_CURRENT_DESKTOP").orEmpty().contains("GNOME", ignoreCase = true)
+                                LinuxDesktop.notify("ZedSecure", if (gnome) "$noTrayNotice $noTrayGnomeHint" else noTrayNotice)
+                            }
+                        }
+                    }
+                    else -> { DesktopVpn.shutdown(); exitApplication() }
+                }
+            },
             visible = windowVisible,
             title = "ZedSecure",
             icon = painterResource(Res.drawable.ic_zed_mark),

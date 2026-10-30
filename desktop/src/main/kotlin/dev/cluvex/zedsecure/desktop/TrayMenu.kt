@@ -207,7 +207,13 @@ object LinuxDesktop {
             "org.freedesktop.DBus.NameHasOwner", "string:org.kde.StatusNotifierWatcher",
             timeoutSec = 5,
         )
-        return dbusSend.first == 0 && "boolean true" in dbusSend.second
+        if (dbusSend.first == 0) return "boolean true" in dbusSend.second
+        val busctl = exec(
+            "busctl", "--user", "call", "org.freedesktop.DBus", "/org/freedesktop/DBus",
+            "org.freedesktop.DBus", "NameHasOwner", "s", "org.kde.StatusNotifierWatcher",
+            timeoutSec = 5,
+        )
+        return busctl.first == 0 && "b true" in busctl.second
     }
 
     fun notify(title: String, body: String) {

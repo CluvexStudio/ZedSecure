@@ -313,6 +313,8 @@
     <string name="tray_show">Show window</string>
     <string name="tray_hide">Hide window</string>
     <string name="tray_quit">Quit ZedSecure</string>
+    <string name="tray_missing_minimized">Still connected. This desktop has no tray, so ZedSecure was minimized instead. Disconnect first to quit.</string>
+    <string name="tray_missing_gnome">On GNOME, the AppIndicator extension adds the tray icon.</string>
     <string name="group_all">All</string>
     <string name="group_manual">Manual</string>
 

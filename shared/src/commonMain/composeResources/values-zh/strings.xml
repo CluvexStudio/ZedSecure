@@ -314,6 +314,8 @@
     <string name="tray_show">显示窗口</string>
     <string name="tray_hide">隐藏窗口</string>
     <string name="tray_quit">退出 ZedSecure</string>
+    <string name="tray_missing_minimized">仍保持连接。此桌面没有托盘，因此 ZedSecure 已最小化。要退出，请先断开连接。</string>
+    <string name="tray_missing_gnome">在 GNOME 中，安装 AppIndicator 扩展即可显示托盘图标。</string>
     <string name="group_all">全部</string>
     <string name="group_manual">手动</string>
 
