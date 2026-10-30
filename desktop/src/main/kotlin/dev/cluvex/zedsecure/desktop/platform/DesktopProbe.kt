@@ -128,7 +128,7 @@ object DesktopProbe {
                         if (best < 0) onFailure("no HTTP answer")
                         return best
                     }
-                    val ms = (System.nanoTime() - started) / 1_000_000
+                    val ms = ((System.nanoTime() - started) / 1_000_000).coerceAtLeast(1)
                     if (response.code in 200..399 && (best < 0 || ms < best)) best = ms
                     if (!response.keepAlive) return best
                 }
