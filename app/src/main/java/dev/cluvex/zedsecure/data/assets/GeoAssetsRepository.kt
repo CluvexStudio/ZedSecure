@@ -124,7 +124,12 @@ class GeoAssetsRepository(private val context: Context) : GeoAssets {
 
             val temp = File(target.parentFile, "${target.name}.part")
             connection.inputStream.use { input -> temp.outputStream().use { input.copyTo(it) } }
-            if (temp.length() <= 0) throw IllegalStateException("empty download")
+            val got = temp.length()
+            val expected = connection.contentLengthLong
+            if (got <= 0 || (expected > 0 && got != expected)) {
+                temp.delete()
+                throw IllegalStateException(if (got <= 0) "empty download" else "incomplete download: $got of $expected bytes")
+            }
             if (target.exists()) target.delete()
             temp.renameTo(target)
 

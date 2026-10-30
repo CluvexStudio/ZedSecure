@@ -61,7 +61,12 @@ object DesktopGeoAssets : GeoAssets {
             if (connection.responseCode !in 200..299) error("HTTP ${connection.responseCode}")
             val temp = File(target.parentFile, "${target.name}.part")
             connection.inputStream.use { input -> temp.outputStream().use { input.copyTo(it) } }
-            if (temp.length() <= 0) error("empty download")
+            val got = temp.length()
+            val expected = connection.contentLengthLong
+            if (got <= 0 || (expected > 0 && got != expected)) {
+                temp.delete()
+                error(if (got <= 0) "empty download" else "incomplete download: $got of $expected bytes")
+            }
             target.delete()
             if (!temp.renameTo(target)) error("could not move ${target.name} into place")
         } finally {
