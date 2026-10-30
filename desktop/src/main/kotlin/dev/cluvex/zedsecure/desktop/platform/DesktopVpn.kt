@@ -36,6 +36,8 @@ import kotlin.concurrent.thread
 object DesktopVpn {
     private const val METRICS_PORT = LocalPorts.DESKTOP_METRICS
     private const val SSH_PORT = LocalPorts.SSH
+    private const val PORT_WAIT_MS = 4_000L
+    private const val PORT_RETRY_MS = 200L
     private const val DNS_PORT = LocalPorts.DNS_TUNNEL
     private const val CARRIER_PORT = LocalPorts.CHAIN_CARRIER
     private const val CARRIER_CONFIG = "xray-carrier.json"
@@ -528,14 +530,14 @@ object DesktopVpn {
         }.getOrElse {
             VpnManager.onError(it.message ?: "This config type isn't supported on desktop yet"); return
         }
-        val socksPort = proxyPort()
-        val metricsPort = localPort(METRICS_PORT, setOf(socksPort, socksPort + 1))
-        val ported = DesktopXray.augmentWithMetrics(
-            dev.cluvex.zedsecure.domain.config.XrayJsonBuilder.withLocalPorts(baseJson, LocalProxy.SOCKS_PORT, socksPort),
-            metricsPort,
-        )
         VpnManager.onStarting(name)
         thread(name = "desktop-xray") {
+            val socksPort = proxyPort()
+            val metricsPort = localPort(METRICS_PORT, setOf(socksPort, socksPort + 1))
+            val ported = DesktopXray.augmentWithMetrics(
+                dev.cluvex.zedsecure.domain.config.XrayJsonBuilder.withLocalPorts(baseJson, LocalProxy.SOCKS_PORT, socksPort),
+                metricsPort,
+            )
             val json = keepCoreOutside(ported)
             val core = XrayCore(work)
             if (!core.start(json)) { VpnManager.onError("Core failed to start"); return@thread }
@@ -555,16 +557,16 @@ object DesktopVpn {
 
     private fun startSingBoxConfig(name: String, profile: dev.cluvex.zedsecure.domain.config.VpnProfile) {
         val source = profile.source as? dev.cluvex.zedsecure.domain.config.ProfileSource.SingBoxConfig ?: return
-        val socksPort = proxyPort()
-        val prepared = runCatching {
-            dev.cluvex.zedsecure.domain.config.SingBoxConfigs.prepareForDesktop(
-                source.json,
-                socksPort = socksPort,
-                clashApiPort = localPort(METRICS_PORT, setOf(socksPort)),
-            )
-        }.getOrElse { VpnManager.onError(it.message ?: "Not a usable sing-box config"); return }
         VpnManager.onStarting(name)
         thread(name = "desktop-singbox") {
+            val socksPort = proxyPort()
+            val prepared = runCatching {
+                dev.cluvex.zedsecure.domain.config.SingBoxConfigs.prepareForDesktop(
+                    source.json,
+                    socksPort = socksPort,
+                    clashApiPort = localPort(METRICS_PORT, setOf(socksPort)),
+                )
+            }.getOrElse { VpnManager.onError(it.message ?: "Not a usable sing-box config"); return@thread }
             val core = XrayCore(work)
             if (!core.startSingBox(prepared.json)) { VpnManager.onError("sing-box failed to start"); return@thread }
             xray = core
@@ -603,9 +605,14 @@ object DesktopVpn {
 
     private fun proxyPort(taken: Set<Int> = emptySet()): Int {
         val preferred = settingsProvider().effectiveLocalProxyPort
-        val free = preferred !in taken && preferred + 1 !in taken &&
-            LocalPortPicker.isFree(preferred) && LocalPortPicker.isFree(preferred + 1)
-        if (free) return preferred
+        if (preferred !in taken && preferred + 1 !in taken) {
+            val deadline = System.currentTimeMillis() + PORT_WAIT_MS
+            while (true) {
+                if (LocalPortPicker.isFree(preferred) && LocalPortPicker.isFree(preferred + 1)) return preferred
+                if (System.currentTimeMillis() >= deadline) break
+                Thread.sleep(PORT_RETRY_MS)
+            }
+        }
         return LocalPortPicker.pickPair(preferred + 2, taken).also { port ->
             LogBus.append("W/Desktop port $preferred is in use by another program; using $port instead")
         }
