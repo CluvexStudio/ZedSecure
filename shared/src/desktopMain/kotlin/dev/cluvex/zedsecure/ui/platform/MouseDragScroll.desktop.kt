@@ -167,7 +167,7 @@ actual fun Modifier.desktopScrollbar(state: ScrollState, padding: PaddingValues)
                     hot = false
                     continue
                 }
-                if (event.type != PointerEventType.Press || !over || thumb == null || !event.buttons.isPrimaryPressed) {
+                if (event.type != PointerEventType.Press || !over || !event.buttons.isPrimaryPressed) {
                     if (hot != over) hot = over
                     continue
                 }
