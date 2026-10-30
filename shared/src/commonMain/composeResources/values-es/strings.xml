@@ -902,7 +902,7 @@
     <string name="subs_edit">Editar suscripción</string>
     <string name="subs_preset_title">Cambiar todos los servidores de esta suscripción</string>
     <string name="subs_preset_hint">Se aplica cada vez que la suscripción se actualiza. Deja un campo vacío para conservar lo que envía el servidor.</string>
-    <string name="subs_preset_address">Dirección (por ejemplo, una IP limpia de Cloudflare)</string>
+    <string name="subs_preset_address">IP limpia para servidores WS, gRPC y XHTTP</string>
     <string name="subs_preset_fingerprint">Huella TLS (fp)</string>
     <string name="subs_preset_alpn">ALPN (auto elige según el transporte)</string>
     <string name="subs_preset_finalmask">JSON de fragmentación / finalmask (fm)</string>

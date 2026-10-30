@@ -934,7 +934,7 @@
     <string name="subs_edit">ویرایش سابسکریپشن</string>
     <string name="subs_preset_title">تغییر همهٔ سرورهای این اشتراک</string>
     <string name="subs_preset_hint">هر بار که اشتراک به‌روز می‌شود اعمال می‌شود. فیلدی را خالی بگذارید تا همان مقداری که سرور می‌فرستد بماند.</string>
-    <string name="subs_preset_address">آدرس (مثلاً یک IP تمیز Cloudflare)</string>
+    <string name="subs_preset_address">IP تمیز برای سرورهای WS، gRPC و XHTTP</string>
     <string name="subs_preset_fingerprint">اثر انگشت TLS (fp)</string>
     <string name="subs_preset_alpn">ALPN (auto بر اساس ترنسپورت انتخاب می‌کند)</string>
     <string name="subs_preset_finalmask">JSON فرگمنت / finalmask (fm)</string>

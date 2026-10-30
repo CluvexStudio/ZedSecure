@@ -32,6 +32,7 @@ internal object SubscriptionPresets {
     private val URL_SCHEMES = setOf("vless", "trojan", "ss", "hysteria2", "hy2", "tuic")
     private val TLS_SCHEMES = setOf("hysteria2", "hy2", "tuic", "trojan")
     private val HOST_HEADER_NETWORKS = setOf("ws", "httpupgrade", "xhttp", "splithttp", "h2", "http")
+    private val CDN_NETWORKS = HOST_HEADER_NETWORKS + "grpc"
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 
     fun rewrite(link: String, preset: SubscriptionPreset): String {
@@ -80,7 +81,8 @@ internal object SubscriptionPresets {
 
         var newHost = host
         val address = preset.address.trim()
-        if (address.isNotEmpty() && address != host) {
+        val cdnCapable = value("security")?.lowercase() != "reality" && value("type")?.lowercase() in CDN_NETWORKS
+        if (address.isNotEmpty() && address != host && cdnCapable) {
             newHost = address
             val domain = host.any { it.isLetter() } && ':' !in host
             val usesTls = when (value("security")?.lowercase()) {
@@ -138,7 +140,7 @@ internal object SubscriptionPresets {
         val updates = LinkedHashMap<String, String>()
         val address = preset.address.trim()
         val oldHost = text("add").orEmpty()
-        if (address.isNotEmpty() && address != oldHost) {
+        if (address.isNotEmpty() && address != oldHost && text("net")?.lowercase() in CDN_NETWORKS) {
             updates["add"] = address
             val domain = oldHost.any { it.isLetter() } && ':' !in oldHost
             if (domain && text("tls")?.lowercase() == "tls" && text("sni").isNullOrBlank()) updates["sni"] = oldHost

@@ -942,7 +942,7 @@
     <string name="subs_edit">编辑订阅</string>
     <string name="subs_preset_title">修改此订阅中的所有服务器</string>
     <string name="subs_preset_hint">每次订阅更新时应用。留空的字段将保留服务器提供的值。</string>
-    <string name="subs_preset_address">地址（例如一个干净的 Cloudflare IP）</string>
+    <string name="subs_preset_address">用于 WS、gRPC 和 XHTTP 服务器的干净 IP</string>
     <string name="subs_preset_fingerprint">TLS 指纹（fp）</string>
     <string name="subs_preset_alpn">ALPN（auto 会按传输方式选择）</string>
     <string name="subs_preset_finalmask">分片 / finalmask JSON（fm）</string>

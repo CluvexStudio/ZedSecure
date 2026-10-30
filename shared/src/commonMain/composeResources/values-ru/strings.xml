@@ -942,7 +942,7 @@
     <string name="subs_edit">Изменить подписку</string>
     <string name="subs_preset_title">Изменить все серверы этой подписки</string>
     <string name="subs_preset_hint">Применяется при каждом обновлении подписки. Оставьте поле пустым, чтобы сохранить значение сервера.</string>
-    <string name="subs_preset_address">Адрес (например, чистый IP Cloudflare)</string>
+    <string name="subs_preset_address">Чистый IP для серверов WS, gRPC и XHTTP</string>
     <string name="subs_preset_fingerprint">Отпечаток TLS (fp)</string>
     <string name="subs_preset_alpn">ALPN (auto выбирает по транспорту)</string>
     <string name="subs_preset_finalmask">JSON фрагментации / finalmask (fm)</string>

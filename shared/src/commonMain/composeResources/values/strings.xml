@@ -941,7 +941,7 @@
     <string name="subs_edit">Edit subscription</string>
     <string name="subs_preset_title">Change every server in this subscription</string>
     <string name="subs_preset_hint">Applied each time the subscription updates. Leave a field empty to keep what the server sends.</string>
-    <string name="subs_preset_address">Address (for example a clean Cloudflare IP)</string>
+    <string name="subs_preset_address">Clean IP for WS, gRPC and XHTTP servers</string>
     <string name="subs_preset_fingerprint">TLS fingerprint (fp)</string>
     <string name="subs_preset_alpn">ALPN (auto picks one by transport)</string>
     <string name="subs_preset_finalmask">Fragment / finalmask JSON (fm)</string>
