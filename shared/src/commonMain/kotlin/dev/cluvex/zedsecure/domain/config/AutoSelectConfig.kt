@@ -56,6 +56,8 @@ data class AutoSelectTuning(
     val retry: Boolean = true,
 
     val initialProfileId: String? = null,
+
+    val excludedCountries: Set<String> = emptySet(),
 )
 
 data class RuleGroup(
@@ -72,5 +74,8 @@ data class AutoSelectBuild(
     val skipped: List<String>,
 )
 
-class AutoSelectNoMembersException(val skipped: Int) :
-    Exception("auto-select has no usable server ($skipped skipped)")
+class AutoSelectNoMembersException(val skipped: Int, val excluded: Int = 0) :
+    Exception(
+        if (excluded > 0) "every server in this group is in a country you excluded from auto-select"
+        else "auto-select has no usable server ($skipped skipped)",
+    )

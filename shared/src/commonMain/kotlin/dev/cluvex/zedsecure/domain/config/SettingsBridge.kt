@@ -90,6 +90,7 @@ fun AppSettings.autoSelectTuning(): AutoSelectTuning = AutoSelectTuning(
     sweepIntervalMin = autoSelectSweepMinutes,
     switchMarginPercent = autoSelectSwitchMargin,
     retry = autoSelectRetry,
+    excludedCountries = autoSelectExcludedCountries.toSet(),
 )
 
 fun AppSettings.singBoxTuning(): SingBoxTuning = SingBoxTuning(

@@ -685,6 +685,7 @@
     <string name="engine_ikev2_needs_app">IKEv2 profiles cannot be started by always-on VPN. Open ZedSecure to connect.</string>
     <string name="auto_notif_remark">Auto · %1$s</string>
     <string name="auto_no_members">No server in this group can be used by Auto</string>
+    <string name="auto_all_excluded">Every server in this group is in a country excluded from Auto. Pick a server yourself or change Excluded countries.</string>
     <string name="auto_group_all_short">All servers</string>
     <string name="auto_group_manual_short">Manual</string>
 </resources>

@@ -194,7 +194,7 @@ private fun CountryRow(
     }
 }
 
-private fun countryName(code: String): String {
+internal fun countryName(code: String): String {
     val name = runCatching { Locale.Builder().setRegion(code).build() }.getOrNull()
         ?.getDisplayCountry(Locale.getDefault()).orEmpty()
     return name.ifBlank { code }

@@ -95,6 +95,8 @@ fun SettingsScreen(
 
     groupTargets: List<Pair<String, String>> = emptyList(),
 
+    autoCountries: List<String> = emptyList(),
+
     dnsTunnelActive: Boolean = false,
 
     onDeepLinkBack: (() -> Unit)? = null,
@@ -188,7 +190,7 @@ fun SettingsScreen(
             SettingsPage.Mux -> MuxPage(settings, contentPadding, modifier, onUpdate)
             SettingsPage.SingBox -> SingBoxPage(settings, contentPadding, modifier, onUpdate)
             SettingsPage.Fragment -> FragmentPage(settings, contentPadding, modifier, onUpdate)
-            SettingsPage.Observatory -> ObservatoryPage(settings, contentPadding, modifier, onUpdate)
+            SettingsPage.Observatory -> ObservatoryPage(settings, contentPadding, modifier, onUpdate, autoCountries)
             SettingsPage.Advanced -> AdvancedPage(settings, contentPadding, modifier, onUpdate)
             SettingsPage.Mode -> ModePage(settings, contentPadding, modifier, onUpdate)
             SettingsPage.Routing -> RoutingScreen(settings, contentPadding, onUpdate, modifier, serverTargets, groupTargets)
@@ -1970,6 +1972,7 @@ private fun ObservatoryPage(
     contentPadding: PaddingValues,
     modifier: Modifier,
     onUpdate: ((AppSettings) -> AppSettings) -> Unit,
+    autoCountries: List<String>,
 ) {
     val seconds = stringResource(Res.string.auto_seconds, "%s")
     val minutes = stringResource(Res.string.auto_minutes, "%s")
@@ -2011,6 +2014,30 @@ private fun ObservatoryPage(
                 selected = s.autoSelectSweepMinutes,
                 onSelected = { v -> onUpdate { it.copy(autoSelectSweepMinutes = v) } },
             )
+            var pickCountries by remember { mutableStateOf(false) }
+            val excluded = s.autoSelectExcludedCountries
+            SettingsActionRow(
+                title = stringResource(Res.string.auto_pref_excluded),
+                summary = if (excluded.isEmpty()) {
+                    stringResource(Res.string.auto_pref_excluded_none)
+                } else {
+                    stringResource(
+                        Res.string.auto_pref_excluded_sum,
+                        excluded.joinToString(", ") { dev.cluvex.zedsecure.ui.servers.countryName(it) },
+                    )
+                },
+            ) { pickCountries = true }
+            if (pickCountries) {
+                ExcludedCountriesDialog(
+                    available = autoCountries,
+                    selected = excluded,
+                    onDone = { picked ->
+                        onUpdate { it.copy(autoSelectExcludedCountries = picked) }
+                        pickCountries = false
+                    },
+                    onDismiss = { pickCountries = false },
+                )
+            }
         }
     }
 }

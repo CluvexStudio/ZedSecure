@@ -283,6 +283,9 @@ fun MainScaffold(
                     serverTargets = profiles
                         .filter { it.source is dev.cluvex.zedsecure.domain.config.ProfileSource.Link }
                         .map { it.id to it.name },
+                    autoCountries = androidx.compose.runtime.remember(profiles) {
+                        profiles.mapNotNull { dev.cluvex.zedsecure.domain.config.ProfileCountry.of(it) }.distinct()
+                    },
                     groupTargets = listOf(
                         dev.cluvex.zedsecure.domain.config.AutoSelectIds.ALL to
                             stringResource(Res.string.auto_title_for, stringResource(Res.string.auto_group_all)),

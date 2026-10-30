@@ -170,6 +170,9 @@ class SettingsRepository(context: Context) {
             autoSelectSweepMinutes = prefs.getInt("auto_sweep_minutes", d.autoSelectSweepMinutes),
             autoSelectSwitchMargin = prefs.getInt("auto_switch_margin", d.autoSelectSwitchMargin),
             autoSelectRetry = prefs.getBoolean("auto_retry", d.autoSelectRetry),
+            autoSelectExcludedCountries = prefs.getString("auto_excluded_countries", null)
+                ?.split(',')?.map { it.trim().uppercase() }?.filter { it.length == 2 }
+                ?: d.autoSelectExcludedCountries,
 
             autoConnectOnBoot = prefs.getBoolean("auto_connect_boot", d.autoConnectOnBoot),
             delayTestUrl = prefs.str("delay_url", d.delayTestUrl),
@@ -383,6 +386,7 @@ class SettingsRepository(context: Context) {
             putInt("auto_sweep_minutes", s.autoSelectSweepMinutes)
             putInt("auto_switch_margin", s.autoSelectSwitchMargin)
             putBoolean("auto_retry", s.autoSelectRetry)
+            putString("auto_excluded_countries", s.autoSelectExcludedCountries.joinToString(","))
 
             putBoolean("auto_connect_boot", s.autoConnectOnBoot)
             putString("delay_url", s.delayTestUrl)

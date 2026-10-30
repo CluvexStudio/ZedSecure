@@ -161,6 +161,7 @@
     <string name="engine_ikev2_needs_app">Профиль IKEv2 нельзя запустить через постоянный VPN. Откройте ZedSecure, чтобы подключиться.</string>
     <string name="auto_notif_remark">Авто · %1$s</string>
     <string name="auto_no_members">В этой группе нет серверов, которые может использовать «Авто»</string>
+    <string name="auto_all_excluded">Все серверы этой группы находятся в странах, исключённых из «Авто». Выберите сервер вручную или измените список исключённых стран.</string>
     <string name="auto_group_all_short">Все серверы</string>
     <string name="auto_group_manual_short">Вручную</string>
 </resources>

@@ -1245,6 +1245,11 @@
     <string name="auto_ago_hours">%1$s h ago</string>
     <string name="auto_pref_check">Re-check the server in use every</string>
     <string name="auto_pref_sweep">Re-measure the other servers every</string>
+    <string name="auto_pref_excluded">Excluded countries</string>
+    <string name="auto_pref_excluded_none">None. Auto can use servers in any country.</string>
+    <string name="auto_pref_excluded_sum">Auto skips servers in %1$s. You can still pick them yourself.</string>
+    <string name="auto_excluded_title">Countries Auto skips</string>
+    <string name="auto_excluded_empty">No countries yet. Test your servers and their countries show up here.</string>
     <string name="auto_pref_margin">Switch to a faster server only when it is faster by</string>
     <string name="auto_pref_retry">Move failed connections</string>
     <string name="auto_pref_retry_sum">A connection whose server stops answering continues on the next server instead of failing</string>

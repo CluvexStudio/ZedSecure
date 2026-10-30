@@ -112,7 +112,7 @@ class StartPlanner(context: Context) {
             },
         )
         is dev.cluvex.zedsecure.domain.config.AutoSelectNoMembersException ->
-            appContext.getString(R.string.auto_no_members)
+            appContext.getString(if (e.excluded > 0) R.string.auto_all_excluded else R.string.auto_no_members)
         else -> appContext.getString(R.string.config_invalid)
     }
 
@@ -270,7 +270,7 @@ class StartPlanner(context: Context) {
     ): XrayJsonBuilder.BuildOptions {
         val rulesets = RoutingMigration.effectiveRulesets(this)
         val ruleOutbounds = configRepository.resolveRuleOutbounds(rulesets)
-        val ruleGroups = if (carrier) emptyMap() else configRepository.resolveRuleGroups(rulesets)
+        val ruleGroups = if (carrier) emptyMap() else configRepository.resolveRuleGroups(rulesets, autoSelectExcludedCountries.toSet())
         val hosts = if (resolveFor != null && outboundDomainResolve != OutboundDomainResolve.DoNotResolve) {
             resolveServerHosts(physicalServersOf(resolveFor) + ruleOutbounds.values, preferIpv6)
         } else emptyMap()

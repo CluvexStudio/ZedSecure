@@ -1246,6 +1246,11 @@
     <string name="auto_ago_hours">%1$s 小时前</string>
     <string name="auto_pref_check">重新检查当前服务器的间隔</string>
     <string name="auto_pref_sweep">重新测量其他服务器的间隔</string>
+    <string name="auto_pref_excluded">排除的国家/地区</string>
+    <string name="auto_pref_excluded_none">无。自动模式可以使用任何国家/地区的服务器。</string>
+    <string name="auto_pref_excluded_sum">自动模式会跳过位于%1$s的服务器。您仍可手动选择它们。</string>
+    <string name="auto_excluded_title">自动模式跳过的国家/地区</string>
+    <string name="auto_excluded_empty">暂无国家/地区。测试服务器后，它们的国家/地区会显示在这里。</string>
     <string name="auto_pref_margin">仅当新服务器快出以下幅度时才切换</string>
     <string name="auto_pref_retry">转移失败的连接</string>
     <string name="auto_pref_retry_sum">服务器停止响应时，连接改由下一台服务器继续，而不是直接失败</string>

@@ -673,6 +673,7 @@
     <string name="engine_ikev2_needs_app">پروفایل IKEv2 را VPN همیشه‌روشن نمی‌تواند راه بیندازد. برای اتصال، ZedSecure را باز کنید.</string>
     <string name="auto_notif_remark">خودکار · %1$s</string>
     <string name="auto_no_members">هیچ سروری در این گروه برای حالت خودکار قابل استفاده نیست</string>
+    <string name="auto_all_excluded">همهٔ سرورهای این گروه در کشورهایی هستند که از حالت خودکار کنار گذاشته‌اید. خودتان سروری انتخاب کنید یا فهرست کشورهای کنارگذاشته را تغییر دهید.</string>
     <string name="auto_group_all_short">همهٔ سرورها</string>
     <string name="auto_group_manual_short">دستی</string>
 </resources>

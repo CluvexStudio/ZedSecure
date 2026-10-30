@@ -1246,6 +1246,11 @@
     <string name="auto_ago_hours">%1$s ч назад</string>
     <string name="auto_pref_check">Перепроверять текущий сервер каждые</string>
     <string name="auto_pref_sweep">Переизмерять остальные серверы каждые</string>
+    <string name="auto_pref_excluded">Исключённые страны</string>
+    <string name="auto_pref_excluded_none">Нет. «Авто» может использовать серверы в любой стране.</string>
+    <string name="auto_pref_excluded_sum">«Авто» пропускает серверы: %1$s. Их по-прежнему можно выбрать вручную.</string>
+    <string name="auto_excluded_title">Страны, которые «Авто» пропускает</string>
+    <string name="auto_excluded_empty">Стран пока нет. Проверьте серверы, и их страны появятся здесь.</string>
     <string name="auto_pref_margin">Переходить на более быстрый сервер, только если он быстрее на</string>
     <string name="auto_pref_retry">Переносить неудачные соединения</string>
     <string name="auto_pref_retry_sum">Соединение, чей сервер перестал отвечать, продолжается на следующем сервере, а не обрывается</string>

@@ -1238,6 +1238,11 @@
     <string name="auto_ago_hours">%1$s ساعت پیش</string>
     <string name="auto_pref_check">بررسی دوبارهٔ سرورِ در حال استفاده هر</string>
     <string name="auto_pref_sweep">سنجش دوبارهٔ بقیهٔ سرورها هر</string>
+    <string name="auto_pref_excluded">کشورهای کنارگذاشته</string>
+    <string name="auto_pref_excluded_none">هیچ‌کدام. حالت خودکار از سرورهای همهٔ کشورها استفاده می‌کند.</string>
+    <string name="auto_pref_excluded_sum">حالت خودکار سرورهای %1$s را کنار می‌گذارد. همچنان می‌توانید خودتان آن‌ها را انتخاب کنید.</string>
+    <string name="auto_excluded_title">کشورهایی که حالت خودکار کنار می‌گذارد</string>
+    <string name="auto_excluded_empty">هنوز کشوری مشخص نیست. سرورها را آزمایش کنید تا کشورشان اینجا نمایش داده شود.</string>
     <string name="auto_pref_margin">جابه‌جایی به سرور سریع‌تر فقط وقتی سریع‌تر باشد به اندازهٔ</string>
     <string name="auto_pref_retry">جابه‌جا کردن اتصال‌های ناموفق</string>
     <string name="auto_pref_retry_sum">اتصالی که سرورش پاسخ ندهد به‌جای قطع شدن روی سرور بعدی ادامه پیدا می‌کند</string>

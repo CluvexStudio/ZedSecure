@@ -518,7 +518,9 @@ internal fun wireDesktopServices(
     DesktopVpn.settingsProvider = { desktopSettings.settings.value }
 
     DesktopVpn.ruleOutboundsProvider = { configRepository.resolveRuleOutbounds(it) }
-    DesktopVpn.ruleGroupsProvider = { configRepository.resolveRuleGroups(it) }
+    DesktopVpn.ruleGroupsProvider = {
+        configRepository.resolveRuleGroups(it, desktopSettings.settings.value.autoSelectExcludedCountries.toSet())
+    }
     DesktopVpn.chainConfigProvider = { profile, options ->
         runCatching { configRepository.buildChainConfig(profile, options) }.getOrNull()
     }

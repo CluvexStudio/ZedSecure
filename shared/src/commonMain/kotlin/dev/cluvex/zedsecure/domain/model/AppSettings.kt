@@ -387,6 +387,8 @@ data class AppSettings(
 
     val autoSelectRetry: Boolean = true,
 
+    val autoSelectExcludedCountries: List<String> = emptyList(),
+
     val autoConnectOnBoot: Boolean = false,
     val delayTestUrl: String = "https://www.gstatic.com/generate_204",
     val realPingConcurrency: Int = 16,

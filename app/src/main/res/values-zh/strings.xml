@@ -161,6 +161,7 @@
     <string name="engine_ikev2_needs_app">始终开启的 VPN 无法启动 IKEv2 配置。请打开 ZedSecure 进行连接。</string>
     <string name="auto_notif_remark">自动 · %1$s</string>
     <string name="auto_no_members">该组中没有可供自动模式使用的服务器</string>
+    <string name="auto_all_excluded">该组中的所有服务器都位于已从自动模式中排除的国家/地区。请手动选择服务器，或修改排除的国家/地区。</string>
     <string name="auto_group_all_short">全部服务器</string>
     <string name="auto_group_manual_short">手动</string>
 </resources>

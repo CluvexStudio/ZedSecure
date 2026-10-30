@@ -14,6 +14,7 @@ import dev.cluvex.zedsecure.crypto.ZsxMetadata
 import dev.cluvex.zedsecure.crypto.ZsxSealRequest
 import dev.cluvex.zedsecure.domain.config.AmneziaLink
 import dev.cluvex.zedsecure.domain.config.AutoMember
+import dev.cluvex.zedsecure.domain.config.AutoSelectNoMembersException
 import dev.cluvex.zedsecure.domain.config.AutoSelectBuild
 import dev.cluvex.zedsecure.domain.config.AutoSelectIds
 import dev.cluvex.zedsecure.domain.config.AutoSelectTuning
@@ -774,10 +775,11 @@ class ConfigRepository(private val store: KeyValueStore) {
         return VpnProfile.fromAutoSelect(subscriptionId, groupName, autoSelectMembers(subscriptionId).size)
     }
 
-    fun autoSelectMembers(subscriptionId: String?): List<VpnProfile> = _profiles.value.filter { p ->
+    fun autoSelectMembers(subscriptionId: String?, excluded: Set<String> = emptySet()): List<VpnProfile> = _profiles.value.filter { p ->
         !p.isLocked &&
             (subscriptionId == null || p.subscriptionId == subscriptionId) &&
-            (p.source is ProfileSource.Link || p.source is ProfileSource.RawJson || p.source is ProfileSource.SingBox)
+            (p.source is ProfileSource.Link || p.source is ProfileSource.RawJson || p.source is ProfileSource.SingBox) &&
+            (excluded.isEmpty() || dev.cluvex.zedsecure.domain.config.ProfileCountry.of(p) !in excluded)
     }
 
     private fun autoMembersOf(members: List<VpnProfile>): List<AutoMember> = members.mapNotNull { p ->
@@ -800,6 +802,7 @@ class ConfigRepository(private val store: KeyValueStore) {
 
     fun resolveRuleGroups(
         rulesets: List<dev.cluvex.zedsecure.domain.model.RulesetItem>,
+        excluded: Set<String> = emptySet(),
     ): Map<String, RuleGroup> = rulesets
         .asSequence()
         .filter { it.enabled && AutoSelectIds.isAuto(it.outboundTag) }
@@ -808,7 +811,7 @@ class ConfigRepository(private val store: KeyValueStore) {
         .mapNotNull { tag ->
             val subscriptionId = AutoSelectIds.subscriptionOf(tag)
             if (!subscriptionId.isNullOrEmpty() && _subscriptions.value.none { it.id == subscriptionId }) return@mapNotNull null
-            val members = autoSelectMembers(subscriptionId)
+            val members = autoSelectMembers(subscriptionId, excluded)
             val built = autoMembersOf(members)
             if (built.isEmpty()) return@mapNotNull null
             tag to RuleGroup(built, fastestOf(members))
@@ -821,7 +824,11 @@ class ConfigRepository(private val store: KeyValueStore) {
         tuning: AutoSelectTuning,
     ): AutoSelectBuild {
         val group = profile.autoSelectSettings() ?: throw IllegalStateException("not an auto-select profile")
-        val members = autoSelectMembers(group.subscriptionId)
+        val members = autoSelectMembers(group.subscriptionId, tuning.excludedCountries)
+        if (members.isEmpty() && tuning.excludedCountries.isNotEmpty()) {
+            val all = autoSelectMembers(group.subscriptionId).size
+            if (all > 0) throw AutoSelectNoMembersException(skipped = 0, excluded = all)
+        }
         val built = autoMembersOf(members)
         val remembered = lastAutoSelectPick(profile.id)?.takeIf { id -> members.any { it.id == id } }
         val fastest = fastestOf(members)
