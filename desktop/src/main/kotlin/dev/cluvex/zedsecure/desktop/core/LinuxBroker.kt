@@ -436,7 +436,7 @@ object LinuxBroker {
         |  {
         |    echo "tunnel:"
         |    echo "  name: ${'$'}TUN"
-        |    echo "  mtu: 8500"
+        |    echo "  mtu: 1500"
         |    echo "  ipv4: 172.19.0.1"
         |    [ -n "${'$'}V6" ] && echo "  ipv6: 'fdfe:dcba:9876::1'"
         |    echo "socks5:"
