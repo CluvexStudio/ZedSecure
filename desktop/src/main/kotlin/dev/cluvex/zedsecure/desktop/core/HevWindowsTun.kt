@@ -98,7 +98,7 @@ class HevWindowsTun(
         const val ADAPTER = "ZedSecure"
         const val ADDRESS = "172.19.0.1"
         const val ADDRESS6 = "fdfe:dcba:9876::1"
-        const val MTU = 8500
+        const val MTU = 1500
         val ROUTES = listOf("0.0.0.0/1", "128.0.0.0/1", "0.0.0.0/0", "::/1", "8000::/1", "::/0")
         private val IPV4 = Regex("""^\d{1,3}(\.\d{1,3}){3}$""")
 
