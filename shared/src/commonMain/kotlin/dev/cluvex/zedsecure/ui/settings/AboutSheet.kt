@@ -33,6 +33,7 @@ import dev.cluvex.zedsecure.platform.AppInfo
 import dev.cluvex.zedsecure.ui.platform.LocalPlatform
 import dev.cluvex.zedsecure.ui.components.MorphingBlob
 import dev.cluvex.zedsecure.ui.theme.ZedGradients
+import dev.cluvex.zedsecure.ui.platform.rememberAppSheetState
 
 private const val TELEGRAM_URL = "https://t.me/CluvexStudio"
 private const val GITHUB_URL = "https://github.com/CluvexStudio"
@@ -44,7 +45,7 @@ private const val LIB_SOURCE_URL = "https://github.com/CluvexStudio/AndroidLibXr
 fun AboutSheet(onDismiss: () -> Unit) {
     val platform = LocalPlatform.current
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberAppSheetState()) {
         Column(
             Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, bottom = 28.dp),
             horizontalAlignment = Alignment.CenterHorizontally,

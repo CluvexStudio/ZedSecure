@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -44,6 +43,7 @@ import dev.cluvex.zedsecure.domain.config.ShareLink
 import dev.cluvex.zedsecure.domain.config.TransportConfig
 import dev.cluvex.zedsecure.ui.components.PickerField
 import dev.cluvex.zedsecure.ui.components.SectionTitle
+import dev.cluvex.zedsecure.ui.platform.appVerticalScroll
 
 private val NETWORKS = listOf("tcp", "ws", "grpc", "httpupgrade", "xhttp", "kcp")
 private val SECURITIES = listOf("" to "None", "tls" to "TLS", "reality" to "REALITY")
@@ -177,7 +177,7 @@ fun ManualConfigSheet(
         Column(
             Modifier
                 .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
+                .appVerticalScroll(rememberScrollState())
                 .imePadding()
                 .padding(start = 20.dp, end = 20.dp, bottom = 28.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),

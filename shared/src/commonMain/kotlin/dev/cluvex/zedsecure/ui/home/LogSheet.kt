@@ -54,6 +54,8 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import dev.cluvex.zedsecure.ui.platform.draggableHorizontalScroll
+import dev.cluvex.zedsecure.ui.platform.mouseDragScrollVertical
+import dev.cluvex.zedsecure.ui.platform.rememberAppSheetState
 
 private enum class LogCategory(val tags: Set<String>) {
     App(setOf(
@@ -169,7 +171,7 @@ fun LogSheet(onDismiss: () -> Unit) {
         if (lines.isNotEmpty() && atBottom) listState.scrollToItem(lines.lastIndex)
     }
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberAppSheetState()) {
         Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 20.dp)) {
             Row(
                 Modifier.fillMaxWidth().padding(bottom = 8.dp),
@@ -282,7 +284,7 @@ fun LogSheet(onDismiss: () -> Unit) {
                         ) {
                             LazyColumn(
                                 state = listState,
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp),
+                                modifier = Modifier.fillMaxWidth().mouseDragScrollVertical(listState).padding(horizontal = 10.dp, vertical = 6.dp),
                             ) {
                                 itemsIndexed(lines, key = { i, l -> "$i:${l.raw.hashCode()}" }) { _, line ->
                                     LogRow(line)

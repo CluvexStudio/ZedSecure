@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
@@ -40,6 +39,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import dev.cluvex.zedsecure.domain.config.SniSpoofProfile
 import dev.cluvex.zedsecure.domain.config.VpnProfile
+import dev.cluvex.zedsecure.ui.platform.appVerticalScroll
+import dev.cluvex.zedsecure.ui.platform.rememberAppSheetState
 
 @Composable
 fun SniSpoofSheet(
@@ -61,9 +62,9 @@ fun SniSpoofSheet(
     }
     var manual by remember { mutableStateOf(candidates.isEmpty() || (initial != null && pickedName.isEmpty())) }
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberAppSheetState()) {
         Column(
-            Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).imePadding()
+            Modifier.fillMaxWidth().appVerticalScroll(rememberScrollState()).imePadding()
                 .padding(start = 20.dp, end = 20.dp, bottom = 28.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {

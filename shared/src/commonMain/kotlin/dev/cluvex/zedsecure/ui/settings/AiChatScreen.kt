@@ -51,6 +51,7 @@ import dev.cluvex.zedsecure.shared.resources.ai_intro_changes
 import dev.cluvex.zedsecure.shared.resources.ai_intro_readonly
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
+import dev.cluvex.zedsecure.ui.platform.mouseDragScrollVertical
 
 @Composable
 fun AiChatScreen(
@@ -104,7 +105,7 @@ fun AiChatScreen(
         }
         LazyColumn(
             state = listState,
-            modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 12.dp),
+            modifier = Modifier.weight(1f).fillMaxWidth().mouseDragScrollVertical(listState).padding(horizontal = 12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             if (history.isEmpty()) {

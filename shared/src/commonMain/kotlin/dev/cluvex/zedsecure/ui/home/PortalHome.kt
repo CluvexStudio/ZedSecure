@@ -47,7 +47,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialShapes
@@ -125,6 +124,7 @@ import kotlin.math.floor
 import kotlin.math.sin
 import kotlin.math.sqrt
 import kotlin.random.Random
+import dev.cluvex.zedsecure.ui.platform.appVerticalScroll
 
 internal val SearchShapes: List<RoundedPolygon> = listOf(
     MaterialShapes.SoftBurst,
@@ -187,7 +187,7 @@ internal fun PortalHome(
                     StageColumn(
                         viewport = maxHeight,
                         stageMin = if (compact) 180.dp else 220.dp,
-                        modifier = Modifier.fillMaxWidth().scrollFade(scroll).verticalScroll(scroll),
+                        modifier = Modifier.fillMaxWidth().scrollFade(scroll).appVerticalScroll(scroll),
                     ) {
                         Column(Modifier.fillMaxWidth()) {
                             PortalTopBar(ui.state, animate, onSecretUnlocked, onShowLogs)
@@ -277,7 +277,7 @@ internal fun PortalHome(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .heightIn(max = 140.dp)
-                                            .verticalScroll(noteScroll)
+                                            .appVerticalScroll(noteScroll)
                                             .padding(horizontal = 16.dp, vertical = 12.dp),
                                     )
                                 }

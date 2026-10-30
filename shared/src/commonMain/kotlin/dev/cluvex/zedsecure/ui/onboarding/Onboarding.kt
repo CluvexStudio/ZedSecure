@@ -25,7 +25,6 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -53,6 +52,7 @@ import dev.cluvex.zedsecure.shared.resources.*
 import dev.cluvex.zedsecure.ui.theme.ThemeProfiles
 import dev.cluvex.zedsecure.ui.theme.applyThemeProfile
 import org.jetbrains.compose.resources.stringResource
+import dev.cluvex.zedsecure.ui.platform.appVerticalScroll
 
 const val ONBOARDING_VERSION = 1
 
@@ -84,7 +84,7 @@ fun OnboardingFlow(
                 label = "onboarding-step",
                 modifier = Modifier.weight(1f),
             ) { current ->
-                Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+                Column(Modifier.fillMaxSize().appVerticalScroll(rememberScrollState())) {
                     when (current) {
                         0 -> ThemeModeStep(settings, onUpdate)
                         1 -> ThemeProfileStep(settings, onUpdate)

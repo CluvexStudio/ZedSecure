@@ -51,7 +51,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
@@ -133,6 +132,7 @@ import org.jetbrains.compose.resources.stringResource
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
+import dev.cluvex.zedsecure.ui.platform.appVerticalScroll
 
 @Composable
 internal fun PixelHome(
@@ -194,7 +194,7 @@ internal fun PixelHome(
                     StageColumn(
                         viewport = maxHeight,
                         stageMin = if (compact) 300.dp else 340.dp,
-                        modifier = Modifier.fillMaxWidth().scrollFade(scroll).verticalScroll(scroll),
+                        modifier = Modifier.fillMaxWidth().scrollFade(scroll).appVerticalScroll(scroll),
                     ) {
                         Column(Modifier.fillMaxWidth()) {
                             PortalTopBar(ui.state, animate, onSecretUnlocked, onShowLogs)
@@ -280,7 +280,7 @@ internal fun PixelHome(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .heightIn(max = 140.dp)
-                                            .verticalScroll(noteScroll)
+                                            .appVerticalScroll(noteScroll)
                                             .padding(horizontal = 16.dp, vertical = 12.dp),
                                     )
                                 }
@@ -352,7 +352,7 @@ private fun PixelHeroCard(
             Column(
                 Modifier
                     .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
+                    .appVerticalScroll(rememberScrollState())
                     .heightIn(min = maxHeight)
                     .padding(horizontal = 18.dp, vertical = 18.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,

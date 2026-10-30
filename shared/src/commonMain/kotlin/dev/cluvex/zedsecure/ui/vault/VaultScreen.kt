@@ -23,7 +23,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import kotlinx.coroutines.withContext
@@ -70,6 +69,10 @@ import dev.cluvex.zedsecure.domain.config.VpnProfile
 import dev.cluvex.zedsecure.ui.components.MorphingBlob
 import dev.cluvex.zedsecure.ui.components.PageHeader
 import dev.cluvex.zedsecure.ui.theme.ZedGradients
+import dev.cluvex.zedsecure.ui.platform.appVerticalScroll
+import dev.cluvex.zedsecure.ui.platform.mouseDragScrollVertical
+import androidx.compose.foundation.lazy.rememberLazyListState
+import dev.cluvex.zedsecure.ui.platform.rememberAppSheetState
 
 private const val NOTE_MAX_LEN = 500
 
@@ -134,8 +137,10 @@ fun VaultScreen(
             if (locked.isEmpty()) {
                 VaultEmptyState(Modifier.fillMaxSize())
             } else {
+                val listState = rememberLazyListState()
                 LazyColumn(
-                    Modifier.fillMaxSize().padding(horizontal = 20.dp),
+                    Modifier.fillMaxSize().mouseDragScrollVertical(listState).padding(horizontal = 20.dp),
+                    state = listState,
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     items(locked, key = { it.id }) { profile ->
@@ -326,11 +331,11 @@ private fun CreateLockedSheet(
     var passwordVisible by remember { mutableStateOf(false) }
     var expiryDays by remember { mutableStateOf("0") }
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberAppSheetState()) {
         Column(
             Modifier
                 .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
+                .appVerticalScroll(rememberScrollState())
                 .imePadding()
                 .padding(start = 20.dp, end = 20.dp, bottom = 26.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),

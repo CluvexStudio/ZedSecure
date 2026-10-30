@@ -7,7 +7,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -65,6 +64,7 @@ import org.jetbrains.compose.resources.stringResource
 import dev.cluvex.zedsecure.shared.resources.Res
 import dev.cluvex.zedsecure.shared.resources.*
 import kotlin.math.roundToInt
+import dev.cluvex.zedsecure.ui.platform.appVerticalScroll
 
 @Composable
 fun SpeedTestScreen(
@@ -170,7 +170,7 @@ fun SpeedTestScreen(
                     footerNote()
                 }
                 Column(
-                    Modifier.weight(0.56f).fillMaxHeight().verticalScroll(rememberScrollState()),
+                    Modifier.weight(0.56f).fillMaxHeight().appVerticalScroll(rememberScrollState()),
                 ) {
                     Spacer(Modifier.height(8.dp))
                     if (!connected) { NotConnectedNote(); Spacer(Modifier.height(10.dp)) }
@@ -206,7 +206,7 @@ fun SpeedTestScreen(
                 Spacer(Modifier.height(14.dp))
 
                 Column(
-                    Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
+                    Modifier.weight(1f, fill = false).appVerticalScroll(rememberScrollState()),
                 ) {
                     DetailPane(st)
                 }

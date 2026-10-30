@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -47,6 +46,7 @@ import dev.cluvex.zedsecure.shared.resources.*
 import dev.cluvex.zedsecure.ui.platform.LocalPlatform
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
+import dev.cluvex.zedsecure.ui.platform.appVerticalScroll
 
 @Composable
 fun NudgeHost(
@@ -165,7 +165,7 @@ fun UpdateDialog(info: UpdateInfo, onDismiss: () -> Unit) {
                         color = MaterialTheme.colorScheme.primary,
                     )
                     Spacer(Modifier.padding(top = 4.dp))
-                    Box(Modifier.heightIn(max = 240.dp).verticalScroll(rememberScrollState())) {
+                    Box(Modifier.heightIn(max = 240.dp).appVerticalScroll(rememberScrollState())) {
                         Text(info.releaseNotes, style = MaterialTheme.typography.bodyMedium)
                     }
                 }

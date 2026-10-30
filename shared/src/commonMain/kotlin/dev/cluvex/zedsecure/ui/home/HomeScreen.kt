@@ -32,7 +32,6 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.clickable
@@ -150,6 +149,7 @@ import kotlin.math.hypot
 import kotlin.math.ln
 import kotlin.math.sin
 import kotlin.random.Random
+import dev.cluvex.zedsecure.ui.platform.appVerticalScroll
 
 @Composable
 fun HomeScreen(
@@ -314,7 +314,7 @@ fun HomeScreen(
                 StageColumn(
                     viewport = maxHeight,
                     stageMin = STAGE_MIN,
-                    modifier = Modifier.fillMaxWidth().scrollFade(upperScroll).verticalScroll(upperScroll),
+                    modifier = Modifier.fillMaxWidth().scrollFade(upperScroll).appVerticalScroll(upperScroll),
                 ) {
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                 BrandHeader(
@@ -473,7 +473,7 @@ fun HomeScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .heightIn(max = 140.dp)
-                                    .verticalScroll(noteScroll)
+                                    .appVerticalScroll(noteScroll)
                                     .padding(horizontal = 16.dp, vertical = 12.dp),
                             )
                         }

@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.ModalBottomSheet
@@ -38,6 +37,8 @@ import dev.cluvex.zedsecure.shared.resources.*
 import dev.cluvex.zedsecure.ui.components.PickerField
 import dev.cluvex.zedsecure.ui.platform.LocalPlatform
 import org.jetbrains.compose.resources.stringResource
+import dev.cluvex.zedsecure.ui.platform.appVerticalScroll
+import dev.cluvex.zedsecure.ui.platform.rememberAppSheetState
 
 @Composable
 fun RuleEditSheet(
@@ -70,11 +71,11 @@ fun RuleEditSheet(
     val remarksBlank = remarks.isBlank()
     val canSave = domainError == null && ipError == null && portValid && !remarksBlank
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberAppSheetState()) {
         Column(
             Modifier
                 .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
+                .appVerticalScroll(rememberScrollState())
                 .imePadding()
                 .padding(horizontal = 20.dp)
                 .padding(bottom = 8.dp),

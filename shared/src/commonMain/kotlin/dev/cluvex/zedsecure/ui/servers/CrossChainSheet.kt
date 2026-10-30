@@ -36,6 +36,8 @@ import dev.cluvex.zedsecure.domain.config.VpnProfile
 import dev.cluvex.zedsecure.shared.resources.Res
 import dev.cluvex.zedsecure.shared.resources.*
 import org.jetbrains.compose.resources.stringResource
+import dev.cluvex.zedsecure.ui.platform.mouseDragScrollVertical
+import androidx.compose.foundation.lazy.rememberLazyListState
 
 private enum class CrossSlot { CARRIER, EXIT }
 
@@ -78,8 +80,10 @@ fun CrossChainSheet(
         sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded)),
     ) {
         Column(Modifier.fillMaxWidth().imePadding()) {
+            val listState = rememberLazyListState()
             LazyColumn(
-                Modifier.fillMaxWidth().weight(1f, fill = false).heightIn(max = 560.dp),
+                Modifier.fillMaxWidth().weight(1f, fill = false).heightIn(max = 560.dp).mouseDragScrollVertical(listState),
+                state = listState,
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 8.dp),
             ) {

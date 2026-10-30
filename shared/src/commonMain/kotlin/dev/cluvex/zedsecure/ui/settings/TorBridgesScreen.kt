@@ -39,6 +39,8 @@ import dev.cluvex.zedsecure.domain.model.AppSettings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
+import dev.cluvex.zedsecure.ui.platform.mouseDragScrollVertical
+import androidx.compose.foundation.lazy.rememberLazyListState
 
 @Composable
 fun TorBridgesScreen(
@@ -109,7 +111,8 @@ fun TorBridgesScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         } else {
-            LazyColumn(Modifier.fillMaxWidth().weight(1f)) {
+            val listState = rememberLazyListState()
+            LazyColumn(Modifier.fillMaxWidth().weight(1f).mouseDragScrollVertical(listState), state = listState) {
                 items(bridges, key = { it.line }) { b ->
                     BridgeRow(
                         bridge = b,

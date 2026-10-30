@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SheetValue
@@ -52,6 +51,7 @@ import dev.cluvex.zedsecure.domain.config.OpenConnectProfile
 import dev.cluvex.zedsecure.ui.components.PickerField
 import kotlinx.coroutines.launch
 import dev.cluvex.zedsecure.ui.platform.LocalPlatform
+import dev.cluvex.zedsecure.ui.platform.appVerticalScroll
 
 @Composable
 fun OpenConnectSheet(
@@ -109,7 +109,7 @@ fun OpenConnectSheet(
         Column(
             Modifier
                 .fillMaxWidth()
-                .verticalScroll(scrollState)
+                .appVerticalScroll(scrollState)
                 .imePadding()
                 .padding(start = 20.dp, end = 20.dp, bottom = 28.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),

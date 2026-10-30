@@ -66,6 +66,7 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
+import dev.cluvex.zedsecure.ui.platform.mouseDragScrollVertical
 
 @Composable
 fun RoutingScreen(
@@ -196,6 +197,7 @@ fun RoutingScreen(
         state = listState,
         modifier = modifier
             .fillMaxSize()
+            .mouseDragScrollVertical(listState)
             .imePadding()
             .padding(contentPadding),
         contentPadding = PaddingValues(bottom = 24.dp),

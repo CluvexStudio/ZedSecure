@@ -50,7 +50,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
@@ -97,6 +96,7 @@ import dev.cluvex.zedsecure.ui.components.PageBackButton
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
+import dev.cluvex.zedsecure.ui.platform.appVerticalScroll
 
 private const val DisabledAlpha = 0.38f
 private val SegmentGap = 2.dp
@@ -930,7 +930,7 @@ fun SettingsPageScaffold(
     Column(
         modifier
             .fillMaxWidth()
-            .verticalScroll(scroll)
+            .appVerticalScroll(scroll, contentPadding)
             .padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {

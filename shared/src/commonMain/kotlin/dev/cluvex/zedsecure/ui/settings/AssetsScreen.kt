@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.Icon
@@ -43,6 +42,7 @@ import dev.cluvex.zedsecure.domain.model.AppSettings
 import dev.cluvex.zedsecure.domain.model.GeoFilesSource
 import dev.cluvex.zedsecure.ui.platform.LocalPlatform
 import kotlinx.coroutines.launch
+import dev.cluvex.zedsecure.ui.platform.appVerticalScroll
 
 @Composable
 fun AssetsScreen(
@@ -58,7 +58,7 @@ fun AssetsScreen(
     Column(
         modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+            .appVerticalScroll(rememberScrollState(), contentPadding)
             .padding(contentPadding),
     ) {
         Spacer(Modifier.height(8.dp))

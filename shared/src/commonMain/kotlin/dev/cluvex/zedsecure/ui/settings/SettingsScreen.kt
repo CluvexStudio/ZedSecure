@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
@@ -75,6 +74,7 @@ import dev.cluvex.zedsecure.domain.config.SingBoxTuning
 import dev.cluvex.zedsecure.domain.config.effectiveLanSocksPort
 import dev.cluvex.zedsecure.domain.config.effectiveLocalProxyPort
 import dev.cluvex.zedsecure.platform.secureRandomToken
+import dev.cluvex.zedsecure.ui.platform.appVerticalScroll
 
 enum class SettingsPage {
     Root, Ui, Vpn, Core, Routing, PerApp, Mux, Fragment, Observatory, Advanced, Mode, Assets, SingBox,
@@ -299,7 +299,7 @@ private fun RootPage(
     androidx.compose.foundation.layout.Column(
         modifier
             .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
+            .appVerticalScroll(rememberScrollState(), contentPadding)
             .padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {

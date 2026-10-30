@@ -38,6 +38,8 @@ import dev.cluvex.zedsecure.shared.resources.*
 import dev.cluvex.zedsecure.domain.config.PsiphonRegions
 import dev.cluvex.zedsecure.ui.components.FlagBadge
 import java.util.Locale
+import dev.cluvex.zedsecure.ui.platform.mouseDragScrollVertical
+import androidx.compose.foundation.lazy.rememberLazyListState
 
 @Composable
 fun PsiphonCountryField(
@@ -142,7 +144,8 @@ private fun CountryPickerSheet(
                 placeholder = { Text(stringResource(Res.string.action_search)) },
                 modifier = Modifier.fillMaxWidth(),
             )
-            LazyColumn(Modifier.heightIn(max = 460.dp).padding(top = 8.dp)) {
+            val listState = rememberLazyListState()
+            LazyColumn(Modifier.heightIn(max = 460.dp).padding(top = 8.dp).mouseDragScrollVertical(listState), state = listState) {
                 items(filtered, key = { it }) { c ->
                     CountryRow(
                         code = c,

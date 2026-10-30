@@ -33,7 +33,6 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyGridState
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -118,6 +117,9 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.ui.draw.clip
 import androidx.compose.material3.CircularProgressIndicator
+import dev.cluvex.zedsecure.ui.platform.appVerticalScroll
+import dev.cluvex.zedsecure.ui.platform.mouseDragScrollVertical
+import dev.cluvex.zedsecure.ui.platform.rememberAppSheetState
 
 @Composable
 fun ServersScreen(
@@ -937,7 +939,7 @@ fun ServersScreen(
                     LazyVerticalGrid(
                         state = gridState,
                         columns = GridCells.Fixed(if (twoColumns) 2 else 1),
-                        modifier = Modifier.fillMaxSize().then(groupSwipe),
+                        modifier = Modifier.fillMaxSize().then(groupSwipe).mouseDragScrollVertical(gridState),
                         contentPadding = gridPadding,
                         horizontalArrangement = Arrangement.spacedBy(personalization.density.gapDp.dp),
                         verticalArrangement = Arrangement.spacedBy(personalization.density.gapDp.dp),
@@ -2058,11 +2060,11 @@ private fun AddServerSheet(
     onCrossChain: () -> Unit,
     onSubscription: () -> Unit,
 ) {
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberAppSheetState()) {
         Column(
             Modifier
                 .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
+                .appVerticalScroll(rememberScrollState())
                 .padding(bottom = 26.dp),
         ) {
             Text(
