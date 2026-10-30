@@ -17,12 +17,12 @@ class HevWindowsTun(
     @Volatile private var state: File? = null
     @Volatile private var up = false
 
-    internal fun config(): String = buildString {
+    internal fun config(withIpv6: Boolean = ipv6): String = buildString {
         appendLine("tunnel:")
         appendLine("  name: $ADAPTER")
-        appendLine("  mtu: 1500")
+        appendLine("  mtu: $MTU")
         appendLine("  ipv4: $ADDRESS")
-        if (ipv6) appendLine("  ipv6: '$ADDRESS6'")
+        if (withIpv6) appendLine("  ipv6: '$ADDRESS6'")
         appendLine("socks5:")
         appendLine("  address: 127.0.0.1")
         appendLine("  port: $socksPort")
@@ -31,10 +31,10 @@ class HevWindowsTun(
         appendLine("  log-level: $logLevel")
     }
 
-    internal fun plan(): String = buildString {
+    internal fun plan(withIpv6: Boolean = ipv6): String = buildString {
         appendLine("address=$ADDRESS")
         appendLine("routes=${routes.filter { ':' !in it }.joinToString(",")}")
-        appendLine("routes6=${if (ipv6) routes.filter { ':' in it }.joinToString(",") else ""}")
+        appendLine("routes6=${if (withIpv6) routes.filter { ':' in it }.joinToString(",") else ""}")
         appendLine("dns=${dnsAddresses(dnsServers).joinToString(",")}")
         appendLine("bypass=${bypassIps.map { it.trim() }.filter { IPV4.matches(it) }.distinct().joinToString(",")}")
     }
@@ -61,7 +61,16 @@ class HevWindowsTun(
             discard()
             return false
         }
-        WindowsElevation.hevUp(dir).onFailure {
+        val first = WindowsElevation.hevUp(dir)
+        val result = if (first.isFailure && ipv6 && refusedIpv6(first.exceptionOrNull()?.message)) {
+            println("[tun] Windows refused an IPv6 address on the tunnel (IPv6 is off on this PC); starting it with IPv4 only")
+            File(dir, "hev.yml").writeText(config(withIpv6 = false))
+            File(dir, "tun.properties").writeText(plan(withIpv6 = false))
+            WindowsElevation.hevUp(dir)
+        } else {
+            first
+        }
+        result.onFailure {
             println("[tun] ${it.message}")
             discard()
             return false
@@ -89,8 +98,11 @@ class HevWindowsTun(
         const val ADAPTER = "ZedSecure"
         const val ADDRESS = "172.19.0.1"
         const val ADDRESS6 = "fdfe:dcba:9876::1"
+        const val MTU = 8500
         val ROUTES = listOf("0.0.0.0/1", "128.0.0.0/1", "0.0.0.0/0", "::/1", "8000::/1", "::/0")
         private val IPV4 = Regex("""^\d{1,3}(\.\d{1,3}){3}$""")
+
+        internal fun refusedIpv6(error: String?): Boolean = error?.contains("tunnel ipv6", ignoreCase = true) == true
 
         internal fun dnsAddresses(servers: String): List<String> =
             servers.split(',', ' ', ';', '\n').map { it.trim().substringBefore(':') }.filter { IPV4.matches(it) }.distinct().take(3)
