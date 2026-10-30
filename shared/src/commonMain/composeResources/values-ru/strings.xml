@@ -505,6 +505,8 @@
     <string name="tun_engine_title">Движок туннеля</string>
     <string name="tun_engine_zeptun">zeptun (рекомендуется)</string>
     <string name="tun_engine_hev">hev-socks5-tunnel</string>
+    <string name="tun_engine_zeptun_default">zeptun (по умолчанию)</string>
+    <string name="tun_engine_sub_mac">На macOS по умолчанию используется zeptun. Если в режиме VPN Mac нагревается или тормозит, переключитесь на hev.</string>
     <string name="tun_engine_sub">То, что превращает пакеты из туннеля в проксированные соединения. zeptun держит тёплые соединения и ограничивает свою память; старый движок оставлен на случай, если устройство с ним не согласится.</string>
     <string name="tun_engine_hev_default">hev-socks5-tunnel (по умолчанию)</string>
     <string name="tun_engine_sub_desktop">В Windows по умолчанию используется hev. zeptun дополнительно блокирует брандмауэром Windows DNS-запросы мимо туннеля; выберите его, если hev не работает на этом ПК.</string>

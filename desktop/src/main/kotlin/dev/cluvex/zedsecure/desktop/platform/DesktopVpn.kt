@@ -662,6 +662,7 @@ object DesktopVpn {
                 work, socksPort, bypassIps, udpOverTcp, settings.vpnDns, AdminPassword::ask,
                 allowApps = listOf("xray.exe", "zeddns.exe").map { File(work, it) }.filter { it.isFile },
                 zeptunOnWindows = settings.useZepTun,
+                hevOnMac = settings.useHevOnMac,
                 excludeCgroup = excludeCgroup,
             )
             if (engine != null && engine.start()) {

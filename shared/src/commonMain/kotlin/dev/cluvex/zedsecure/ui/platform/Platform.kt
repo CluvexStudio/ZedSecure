@@ -65,6 +65,8 @@ interface Platform {
 
     val choosesTunEngine: Boolean get() = true
 
+    val isMac: Boolean get() = false
+
     val supportsNetworkTypeRules: Boolean get() = false
 
     val automaticRendering: AutomaticRendering? get() = null

@@ -1438,7 +1438,24 @@ private fun VpnPage(
             )
         }
 
-        if (LocalPlatform.current.choosesTunEngine && LocalPlatform.current.isComputer) {
+        if (LocalPlatform.current.choosesTunEngine && LocalPlatform.current.isComputer && LocalPlatform.current.isMac) {
+            SettingsGroup {
+                SettingsListRow(
+                    title = stringResource(Res.string.tun_engine_title),
+                    options = listOf(
+                        false to stringResource(Res.string.tun_engine_zeptun_default),
+                        true to stringResource(Res.string.tun_engine_hev),
+                    ),
+                    selected = s.useHevOnMac,
+                    enabled = hevOn,
+                    onSelected = { v -> onUpdate { it.copy(useHevOnMac = v) } },
+                )
+                SettingsInfoRow(
+                    stringResource(Res.string.tun_engine_title),
+                    stringResource(Res.string.tun_engine_sub_mac),
+                )
+            }
+        } else if (LocalPlatform.current.choosesTunEngine && LocalPlatform.current.isComputer) {
             SettingsGroup {
                 SettingsListRow(
                     title = stringResource(Res.string.tun_engine_title),

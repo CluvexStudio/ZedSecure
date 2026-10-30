@@ -504,6 +504,8 @@
     <string name="tun_engine_title">Tunnel engine</string>
     <string name="tun_engine_zeptun">zeptun (recommended)</string>
     <string name="tun_engine_hev">hev-socks5-tunnel</string>
+    <string name="tun_engine_zeptun_default">zeptun (default)</string>
+    <string name="tun_engine_sub_mac">zeptun is the default on macOS. If VPN mode makes this Mac hot or slow, switch to hev.</string>
     <string name="tun_engine_sub">What turns the packets Android sends into the tunnel back into proxied connections. zeptun keeps warm connections ready and bounds its own memory; the older engine is here in case a device disagrees.</string>
     <string name="tun_engine_hev_default">hev-socks5-tunnel (default)</string>
     <string name="tun_engine_sub_desktop">hev is the default on Windows. zeptun also blocks DNS that tries to leave outside the tunnel through the Windows firewall; switch to it if hev does not work on this PC.</string>

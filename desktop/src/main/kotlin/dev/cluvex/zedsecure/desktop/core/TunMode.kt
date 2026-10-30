@@ -60,7 +60,13 @@ class TunMode(
             allowApps: List<File> = emptyList(),
             zeptunOnWindows: Boolean = false,
             excludeCgroup: String? = null,
+            hevOnMac: Boolean = false,
         ): DesktopTun? = when {
+            Os.current == Os.MACOS && hevOnMac -> HevBinary.extract(workDir)?.let {
+                HevMacTun(it, socksPort, workDir, bypassIps = bypassIps, udpOverTcp = udpOverTcp, dnsServers = dnsServers)
+            } ?: ZeptunBinary.extract(workDir)?.let {
+                ZeptunTun(it, socksPort, workDir, bypassIps = bypassIps, udpOverTcp = udpOverTcp, dnsServers = dnsServers, allowApps = allowApps)
+            }
             usesZeptun(zeptunOnWindows = zeptunOnWindows) -> ZeptunBinary.extract(workDir)?.let {
                 ZeptunTun(it, socksPort, workDir, bypassIps = bypassIps, udpOverTcp = udpOverTcp, dnsServers = dnsServers, allowApps = allowApps)
             }

@@ -96,8 +96,9 @@ case "$TARGET" in
     cp "$(fetch dns-tunnels "zeddns-macos-$arch")" "$bin/zeddns"
     cp "$(fetch dns-tunnels "masterdns-macos-$arch")" "$bin/masterdns"
     cp "$(fetch psiphon "psiphon-macos-$arch")" "$bin/psiphon"
+    cp "$(fetch hev "hev-macos-$arch")" "$bin/hev-socks5-tunnel"
     tor_tree "$(fetch tor "tor-macos-$arch.zip")" "$bin/tor"
-    chmod +x "$bin/xray" "$bin/zeptun" "$bin/zeddns" "$bin/masterdns" "$bin/psiphon"
+    chmod +x "$bin/xray" "$bin/zeptun" "$bin/zeddns" "$bin/masterdns" "$bin/psiphon" "$bin/hev-socks5-tunnel"
     ;;
   *)
     echo "unknown target $TARGET" >&2

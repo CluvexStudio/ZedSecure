@@ -18,9 +18,22 @@ internal object MacTunHelper {
 
     @Synchronized
     fun up(workDir: File, zeptun: File, toml: String): Boolean {
-        val ctrl = ensure(workDir, zeptun) ?: return false
+        val ctrl = ensure(workDir, zeptun, HevBinary.extract(workDir)) ?: return false
         listOf("ready", "failed", "lost", "stop").forEach { File(ctrl, it).delete() }
         File(ctrl, "zeptun.toml").writeText(toml)
+        File(ctrl, "engine").writeText("zeptun")
+        File(ctrl, "start").writeText("start")
+        return awaitReady(ctrl)
+    }
+
+    @Synchronized
+    fun upHev(workDir: File, hev: File, yaml: String, dns: String, bypass: List<String>): Boolean {
+        val ctrl = ensure(workDir, ZeptunBinary.extract(workDir), hev) ?: return false
+        listOf("ready", "failed", "lost", "stop").forEach { File(ctrl, it).delete() }
+        File(ctrl, "hev.yml").writeText(yaml)
+        File(ctrl, "dns").writeText(dns)
+        File(ctrl, "bypass").writeText(bypass.joinToString("") { "$it\n" })
+        File(ctrl, "engine").writeText("hev")
         File(ctrl, "start").writeText("start")
         return awaitReady(ctrl)
     }
@@ -41,8 +54,9 @@ internal object MacTunHelper {
     fun repair(workDir: File, zeptun: File?): Boolean {
         if (!dnsLeftBehind) return true
         println("[$LABEL] the DNS of this Mac still points at the tunnel from an earlier run; putting it back")
-        if (zeptun == null) return false
-        return ensure(workDir, zeptun) != null && !dnsLeftBehind
+        val hev = HevBinary.extract(workDir)
+        if (zeptun == null && hev == null) return false
+        return ensure(workDir, zeptun, hev) != null && !dnsLeftBehind
     }
 
     @Synchronized
@@ -64,7 +78,7 @@ internal object MacTunHelper {
             .filter { it.isNotBlank() }
     }
 
-    private fun ensure(workDir: File, zeptun: File): File? {
+    private fun ensure(workDir: File, zeptun: File?, hev: File?): File? {
         control?.takeIf { process?.isAlive == true }?.let { return it }
         control?.let { runCatching { it.deleteRecursively() } }
         control = null
@@ -76,7 +90,8 @@ internal object MacTunHelper {
         val staged = runCatching {
             script.writeText(script())
             script.setExecutable(true, true)
-            zeptun.copyTo(File(ctrl, "zeptun"), overwrite = true)
+            zeptun?.copyTo(File(ctrl, "zeptun"), overwrite = true)
+            hev?.copyTo(File(ctrl, "hev"), overwrite = true)
         }
         if (staged.isFailure) {
             println("[$LABEL] could not stage the helper: ${staged.exceptionOrNull()?.message}")
@@ -84,8 +99,11 @@ internal object MacTunHelper {
             return null
         }
         val args = listOf(
-            "/bin/sh", script.absolutePath, File(ctrl, "zeptun").absolutePath, ctrl.absolutePath,
+            "/bin/sh", script.absolutePath,
+            if (zeptun != null) File(ctrl, "zeptun").absolutePath else "-",
+            ctrl.absolutePath,
             ProcessHandle.current().pid().toString(),
+            if (hev != null) File(ctrl, "hev").absolutePath else "-",
         )
         val command = if (passwordlessSudo()) {
             println("[$LABEL] using sudo, which needs no password here")
@@ -155,12 +173,19 @@ internal object MacTunHelper {
         |PERSIST="${ZeptunTun.MAC_DNS_RESTORE}"
         |RUN=${'$'}(mktemp -d /tmp/zedsecure-tun.XXXXXX) || { echo "the helper has no private directory" >"${'$'}CTRL/failed"; exit 1; }
         |BACKUP="${'$'}RUN/dns-backup"
-        |if ! cp "${'$'}1" "${'$'}RUN/zeptun" || ! chmod 700 "${'$'}RUN/zeptun"; then
+        |if [ "${'$'}1" != - ] && { ! cp "${'$'}1" "${'$'}RUN/zeptun" || ! chmod 700 "${'$'}RUN/zeptun"; }; then
         |  echo "zeptun could not be staged" >"${'$'}CTRL/failed"
         |  rm -rf "${'$'}RUN"
         |  exit 1
         |fi
+        |if [ -n "${'$'}4" ] && [ "${'$'}4" != - ] && { ! cp "${'$'}4" "${'$'}RUN/hev" || ! chmod 700 "${'$'}RUN/hev"; }; then
+        |  echo "hev could not be staged" >"${'$'}CTRL/failed"
+        |  rm -rf "${'$'}RUN"
+        |  exit 1
+        |fi
         |ZP=
+        |TUNIF=
+        |TUN_DNS=${ZeptunTun.MAC_TUN_DNS}
         |restore_dns() {
         |  [ -f "${'$'}1" ] || return 0
         |  while IFS="${'$'}TAB" read -r svc servers; do
@@ -185,7 +210,7 @@ internal object MacTunHelper {
         |  done
         |  mkdir -p "${'$'}(dirname "${'$'}PERSIST")" && cp "${'$'}BACKUP" "${'$'}PERSIST"
         |  while IFS="${'$'}TAB" read -r svc servers; do
-        |    networksetup -setdnsservers "${'$'}svc" ${ZeptunTun.MAC_TUN_DNS} >/dev/null 2>&1
+        |    networksetup -setdnsservers "${'$'}svc" "${'$'}TUN_DNS" >/dev/null 2>&1
         |  done < "${'$'}BACKUP"
         |  dscacheutil -flushcache >/dev/null 2>&1
         |  killall -HUP mDNSResponder >/dev/null 2>&1
@@ -193,6 +218,12 @@ internal object MacTunHelper {
         |tun_down() {
         |  restore_dns "${'$'}BACKUP"
         |  rm -f "${'$'}PERSIST"
+        |  if [ -f "${'$'}RUN/routes" ]; then
+        |    while IFS= read -r spec; do
+        |      [ -n "${'$'}spec" ] && route -n delete ${'$'}spec >/dev/null 2>&1
+        |    done < "${'$'}RUN/routes"
+        |    rm -f "${'$'}RUN/routes"
+        |  fi
         |  if [ -n "${'$'}ZP" ]; then
         |    kill "${'$'}ZP" 2>/dev/null
         |    i=0
@@ -201,11 +232,72 @@ internal object MacTunHelper {
         |    wait "${'$'}ZP" 2>/dev/null
         |  fi
         |  ZP=
+        |  TUNIF=
         |  rm -f "${'$'}CTRL/ready"
         |}
         |tun_up() {
         |  tun_down
         |  rm -f "${'$'}CTRL/failed" "${'$'}CTRL/lost"
+        |  if [ "${'$'}(cat "${'$'}CTRL/engine" 2>/dev/null)" = hev ]; then
+        |    hev_up
+        |  else
+        |    zeptun_up
+        |  fi
+        |}
+        |hev_up() {
+        |  TUN_DNS=${'$'}(cat "${'$'}CTRL/dns" 2>/dev/null)
+        |  case ${'$'}TUN_DNS in ''|*[!0-9.]*) TUN_DNS=${ZeptunTun.DEFAULT_DNS} ;; esac
+        |  if [ ! -x "${'$'}RUN/hev" ]; then
+        |    echo "hev is not part of this helper" >"${'$'}CTRL/failed"
+        |    return
+        |  fi
+        |  if ! cp "${'$'}CTRL/hev.yml" "${'$'}RUN/hev.yml" 2>/dev/null; then
+        |    echo "the tunnel settings are missing" >"${'$'}CTRL/failed"
+        |    return
+        |  fi
+        |  "${'$'}RUN/hev" "${'$'}RUN/hev.yml" >"${'$'}CTRL/zeptun.log" 2>&1 &
+        |  ZP=${'$'}!
+        |  i=0
+        |  while [ ${'$'}i -lt 150 ]; do
+        |    kill -0 "${'$'}ZP" 2>/dev/null || break
+        |    TUNIF=${'$'}(ifconfig | awk '/^[a-z]/ { n = ${'$'}1; sub(":", "", n) } index(${'$'}0, "inet ${ZeptunTun.TUN_V4} ") { print n; exit }')
+        |    [ -n "${'$'}TUNIF" ] && break
+        |    sleep 0.2
+        |    i=${'$'}((i + 1))
+        |  done
+        |  if [ -z "${'$'}TUNIF" ]; then
+        |    echo "hev did not bring the tunnel up. ${'$'}(tail -n 5 "${'$'}CTRL/zeptun.log" 2>/dev/null | tr '\n' ' ')" >"${'$'}CTRL/failed"
+        |    tun_down
+        |    return
+        |  fi
+        |  : > "${'$'}RUN/routes"
+        |  GW=${'$'}(route -n get default 2>/dev/null | awk '/gateway:/ { print ${'$'}2; exit }')
+        |  if [ -n "${'$'}GW" ] && [ -f "${'$'}CTRL/bypass" ]; then
+        |    while IFS= read -r ip; do
+        |      case ${'$'}ip in ''|*[!0-9.]*) continue ;; esac
+        |      route -n add -host "${'$'}ip" "${'$'}GW" >/dev/null 2>&1 && echo "-host ${'$'}ip" >> "${'$'}RUN/routes"
+        |    done < "${'$'}CTRL/bypass"
+        |  fi
+        |  for net in 0.0.0.0/1 128.0.0.0/1; do
+        |    if ! route -n add -net "${'$'}net" -interface "${'$'}TUNIF" >/dev/null 2>&1; then
+        |      echo "macOS refused the tunnel route ${'$'}net" >"${'$'}CTRL/failed"
+        |      tun_down
+        |      return
+        |    fi
+        |    echo "-net ${'$'}net" >> "${'$'}RUN/routes"
+        |  done
+        |  for net in ::/1 8000::/1; do
+        |    route -n add -inet6 -net "${'$'}net" -interface "${'$'}TUNIF" >/dev/null 2>&1 && echo "-inet6 -net ${'$'}net" >> "${'$'}RUN/routes"
+        |  done
+        |  point_dns_at_tunnel
+        |  echo "${'$'}ZP" >"${'$'}CTRL/ready"
+        |}
+        |zeptun_up() {
+        |  TUN_DNS=${ZeptunTun.MAC_TUN_DNS}
+        |  if [ ! -x "${'$'}RUN/zeptun" ]; then
+        |    echo "zeptun is not part of this helper" >"${'$'}CTRL/failed"
+        |    return
+        |  fi
         |  if ! cp "${'$'}CTRL/zeptun.toml" "${'$'}RUN/zeptun.toml" 2>/dev/null; then
         |    echo "the tunnel settings are missing" >"${'$'}CTRL/failed"
         |    return

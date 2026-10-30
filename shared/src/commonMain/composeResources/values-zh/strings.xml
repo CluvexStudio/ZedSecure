@@ -505,6 +505,8 @@
     <string name="tun_engine_title">隧道引擎</string>
     <string name="tun_engine_zeptun">zeptun（推荐）</string>
     <string name="tun_engine_hev">hev-socks5-tunnel</string>
+    <string name="tun_engine_zeptun_default">zeptun（默认）</string>
+    <string name="tun_engine_sub_mac">macOS 上默认使用 zeptun。如果 VPN 模式让这台 Mac 发热或变慢，请切换到 hev。</string>
     <string name="tun_engine_sub">把安卓送进隧道的数据包变回代理连接的组件。zeptun 会预留热连接并限制自身内存；保留旧引擎是为了应对个别设备不兼容。</string>
     <string name="tun_engine_hev_default">hev-socks5-tunnel（默认）</string>
     <string name="tun_engine_sub_desktop">Windows 上默认使用 hev。zeptun 还会用 Windows 防火墙拦截绕过隧道的 DNS；如果 hev 在这台电脑上无法使用，请切换到它。</string>

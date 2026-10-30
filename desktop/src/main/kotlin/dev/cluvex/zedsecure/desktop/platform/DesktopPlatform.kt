@@ -23,7 +23,9 @@ object DesktopPlatform : Platform {
     override val supportsSniSpoof: Boolean get() = false
     override val automaticRendering: AutomaticRendering get() = DesktopRendering.automatic
     override val supportsTun: Boolean get() = dev.cluvex.zedsecure.desktop.core.TunMode.supported()
-    override val choosesTunEngine: Boolean get() = Os.current == Os.WINDOWS
+    override val choosesTunEngine: Boolean get() = Os.current == Os.WINDOWS || Os.current == Os.MACOS
+
+    override val isMac: Boolean get() = Os.current == Os.MACOS
     override val geoAssets: dev.cluvex.zedsecure.data.assets.GeoAssets get() = dev.cluvex.zedsecure.desktop.core.DesktopGeoAssets
     override val adminAccess: AdminAccess?
         get() = if (Os.current == Os.LINUX) LinuxAdminAccess else null

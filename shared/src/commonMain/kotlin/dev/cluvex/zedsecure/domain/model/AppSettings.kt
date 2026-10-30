@@ -294,6 +294,8 @@ data class AppSettings(
     val vpnMtu: Int = 1500,
 
     val useZepTun: Boolean = false,
+
+    val useHevOnMac: Boolean = false,
     val hevTunLogLevel: HevLogLevel = HevLogLevel.Warn,
 
     val hevTunRwTimeout: String = "300,60",

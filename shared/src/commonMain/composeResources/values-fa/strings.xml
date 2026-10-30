@@ -499,6 +499,8 @@
     <string name="tun_engine_title">موتور تونل</string>
     <string name="tun_engine_zeptun">zeptun (پیشنهادی)</string>
     <string name="tun_engine_hev">hev-socks5-tunnel</string>
+    <string name="tun_engine_zeptun_default">zeptun (پیش‌فرض)</string>
+    <string name="tun_engine_sub_mac">zeptun روی macOS پیش‌فرض است. اگر حالت VPN این مک را داغ یا کند می‌کند، به hev تغییر دهید.</string>
     <string name="tun_engine_sub">چیزی که بسته‌های اندروید را به اتصال‌های پروکسی‌شده تبدیل می‌کند. zeptun اتصال‌های آماده نگه می‌دارد و مصرف حافظه‌اش کران‌دار است؛ موتور قدیمی برای وقتی است که دستگاهی با آن مشکل داشته باشد.</string>
     <string name="tun_engine_hev_default">hev-socks5-tunnel (پیش‌فرض)</string>
     <string name="tun_engine_sub_desktop">روی ویندوز hev پیش‌فرض است. zeptun با فایروال ویندوز جلوی DNSهایی را هم که بیرون از تونل می‌روند می‌گیرد؛ اگر hev روی این کامپیوتر کار نکرد، آن را انتخاب کنید.</string>
