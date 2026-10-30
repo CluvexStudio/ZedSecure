@@ -43,6 +43,7 @@ import dev.cluvex.zedsecure.platform.AppInfo
 import dev.cluvex.zedsecure.platform.currentTimeMillis
 import dev.cluvex.zedsecure.shared.resources.Res
 import dev.cluvex.zedsecure.shared.resources.*
+import kotlinx.coroutines.launch
 import dev.cluvex.zedsecure.ui.platform.LocalPlatform
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -128,8 +129,12 @@ fun NudgeHost(
 @Composable
 fun UpdateDialog(info: UpdateInfo, onDismiss: () -> Unit) {
     val platform = LocalPlatform.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val installable = remember(info) { platform.canInstallUpdate(info) }
+    var progress by remember { mutableStateOf<Float?>(null) }
+    var failed by remember { mutableStateOf(false) }
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (progress == null) onDismiss() },
         icon = {
             Surface(
                 shape = RoundedCornerShape(14.dp),
@@ -169,19 +174,53 @@ fun UpdateDialog(info: UpdateInfo, onDismiss: () -> Unit) {
                         Text(info.releaseNotes, style = MaterialTheme.typography.bodyMedium)
                     }
                 }
+                progress?.let { done ->
+                    Spacer(Modifier.padding(top = 14.dp))
+                    androidx.compose.material3.LinearProgressIndicator(progress = { done }, modifier = Modifier.fillMaxWidth())
+                    Spacer(Modifier.padding(top = 6.dp))
+                    Text(
+                        if (done >= 1f) {
+                            stringResource(Res.string.update_verifying)
+                        } else {
+                            stringResource(Res.string.update_downloading, "${(done * 100).toInt()}%")
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+                if (failed) {
+                    Spacer(Modifier.padding(top = 12.dp))
+                    Text(
+                        stringResource(Res.string.update_failed),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
             }
         },
         confirmButton = {
-            Button(onClick = {
-                val url = info.downloadUrl
-                if (url != null) platform.openUri(url) else platform.openStorePage()
-                onDismiss()
-            }) {
-                Text(stringResource(Res.string.update_action_update))
+            Button(
+                enabled = progress == null,
+                onClick = {
+                    if (installable && !failed) {
+                        progress = 0f
+                        scope.launch {
+                            platform.installUpdate(info) { done -> progress = done }.onFailure {
+                                progress = null
+                                failed = true
+                            }
+                        }
+                    } else {
+                        val url = info.downloadUrl
+                        if (url != null) platform.openUri(url) else platform.openStorePage()
+                        onDismiss()
+                    }
+                },
+            ) {
+                Text(stringResource(if (failed) Res.string.update_open_page else Res.string.update_action_update))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(Res.string.update_action_later)) }
+            TextButton(enabled = progress == null, onClick = onDismiss) { Text(stringResource(Res.string.update_action_later)) }
         },
     )
 }

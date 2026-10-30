@@ -912,6 +912,10 @@
     <string name="update_whats_new">更新内容</string>
     <string name="update_action_update">更新</string>
     <string name="update_action_later">稍后</string>
+    <string name="update_downloading">正在下载 %1$s</string>
+    <string name="update_verifying">正在校验下载的文件…</string>
+    <string name="update_failed">无法安装更新。您可以改从发布页面下载。</string>
+    <string name="update_open_page">打开下载页面</string>
     <string name="update_check_title">检查更新</string>
     <string name="update_check_summary">在 Google Play 查找新版本</string>
     <string name="update_checking">正在检查…</string>

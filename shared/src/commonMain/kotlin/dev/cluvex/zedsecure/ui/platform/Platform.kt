@@ -91,6 +91,11 @@ interface Platform {
 
     val deviceAbis: List<String> get() = emptyList()
 
+    fun canInstallUpdate(info: dev.cluvex.zedsecure.data.update.UpdateInfo): Boolean = false
+
+    suspend fun installUpdate(info: dev.cluvex.zedsecure.data.update.UpdateInfo, progress: (Float) -> Unit): Result<Unit> =
+        Result.failure(UnsupportedOperationException("updates install from the store on this platform"))
+
     fun openStorePage() {
         openUri(
             if (distribution == Distribution.PlayStore) dev.cluvex.zedsecure.data.update.PlayStore.WEB_URL

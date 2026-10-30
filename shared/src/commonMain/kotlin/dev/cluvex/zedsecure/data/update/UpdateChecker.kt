@@ -35,6 +35,7 @@ data class UpdateInfo(
     val versionName: String,
     val releaseNotes: String,
     val downloadUrl: String? = null,
+    val assets: Map<String, String> = emptyMap(),
 )
 
 object UpdateChecker {
@@ -97,6 +98,7 @@ object UpdateChecker {
             versionName = version,
             releaseNotes = releaseNotesFrom(root.text("body").orEmpty()),
             downloadUrl = apk ?: root.text("html_url") ?: GitHubReleases.LATEST_URL,
+            assets = assets,
         )
     }
 

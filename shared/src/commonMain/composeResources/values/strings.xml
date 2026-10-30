@@ -911,6 +911,10 @@
     <string name="update_whats_new">What's new</string>
     <string name="update_action_update">Update</string>
     <string name="update_action_later">Later</string>
+    <string name="update_downloading">Downloading %1$s</string>
+    <string name="update_verifying">Checking the download…</string>
+    <string name="update_failed">The update could not be installed. You can download it from the release page instead.</string>
+    <string name="update_open_page">Open the download page</string>
     <string name="update_check_title">Check for updates</string>
     <string name="update_check_summary">Look for a newer version on Google Play</string>
     <string name="update_checking">Checking…</string>

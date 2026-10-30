@@ -912,6 +912,10 @@
     <string name="update_whats_new">Что нового</string>
     <string name="update_action_update">Обновить</string>
     <string name="update_action_later">Позже</string>
+    <string name="update_downloading">Загрузка %1$s</string>
+    <string name="update_verifying">Проверка загруженного файла…</string>
+    <string name="update_failed">Не удалось установить обновление. Его можно скачать со страницы релиза.</string>
+    <string name="update_open_page">Открыть страницу загрузки</string>
     <string name="update_check_title">Проверить обновления</string>
     <string name="update_check_summary">Поиск новой версии в Google Play</string>
     <string name="update_checking">Проверка…</string>

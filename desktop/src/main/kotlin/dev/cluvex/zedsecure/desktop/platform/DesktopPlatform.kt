@@ -74,6 +74,13 @@ object DesktopPlatform : Platform {
 
     override val isComputer: Boolean get() = true
 
+    override fun canInstallUpdate(info: dev.cluvex.zedsecure.data.update.UpdateInfo): Boolean = WindowsUpdater.supports(info)
+
+    override suspend fun installUpdate(
+        info: dev.cluvex.zedsecure.data.update.UpdateInfo,
+        progress: (Float) -> Unit,
+    ): Result<Unit> = WindowsUpdater.install(info, progress)
+
     override fun toast(message: String) {
         LogBus.append("I/$message")
     }

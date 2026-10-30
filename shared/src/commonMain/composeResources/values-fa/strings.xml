@@ -904,6 +904,10 @@
     <string name="update_whats_new">تازه‌ها</string>
     <string name="update_action_update">به‌روزرسانی</string>
     <string name="update_action_later">بعداً</string>
+    <string name="update_downloading">در حال دانلود %1$s</string>
+    <string name="update_verifying">در حال بررسی فایل دانلودشده…</string>
+    <string name="update_failed">نصب به‌روزرسانی انجام نشد. می‌توانید آن را از صفحهٔ انتشار دانلود کنید.</string>
+    <string name="update_open_page">باز کردن صفحهٔ دانلود</string>
     <string name="update_check_title">بررسی به‌روزرسانی</string>
     <string name="update_check_summary">جست‌وجوی نسخهٔ جدیدتر در گوگل‌پلی</string>
     <string name="update_checking">در حال بررسی…</string>
