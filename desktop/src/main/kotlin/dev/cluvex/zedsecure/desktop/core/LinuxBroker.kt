@@ -324,6 +324,8 @@ object LinuxBroker {
 
     private const val TUN_WAIT_SEC = 25L
     private const val ENGINE_TABLE = "zedsecure_engines"
+    private const val DNS_TABLE = "zedsecure_dns"
+    private const val LAN_RANGES = "10.0.0.0/8, 100.64.0.0/10, 169.254.0.0/16, 172.16.0.0/12, 192.168.0.0/16"
     private const val ENGINE_MARK = "0x5ed0"
     private const val ENGINE_ROUTES = 5208
     private const val STOP_WAIT_SEC = 15L
@@ -371,6 +373,7 @@ object LinuxBroker {
         |JOB_PID=
         |ROUTES=
         |RESOLVED=
+        |DNAT=
         |EXCL=
         |SVM=
         |ENG=
@@ -395,6 +398,8 @@ object LinuxBroker {
         |  WATCH_PID=
         |  [ -n "${'$'}RESOLVED" ] && resolvectl --no-ask-password revert "${'$'}TUN" >/dev/null 2>&1
         |  RESOLVED=
+        |  [ -n "${'$'}DNAT" ] && nft delete table ip $DNS_TABLE >/dev/null 2>&1
+        |  DNAT=
         |  printf '%s\n' "${'$'}ROUTES" | while read -r f p rest; do
         |    [ -n "${'$'}p" ] && ip "${'$'}f" route del "${'$'}p" ${'$'}rest 2>/dev/null
         |  done
@@ -473,6 +478,19 @@ object LinuxBroker {
         |    resolvectl --no-ask-password domain "${'$'}TUN" '~.' >/dev/null 2>&1
         |    resolvectl --no-ask-password default-route "${'$'}TUN" yes >/dev/null 2>&1
         |    RESOLVED=1
+        |  fi
+        |  if is_ip4 "${'$'}dns" && command -v nft >/dev/null 2>&1 && { [ -z "${'$'}RESOLVED" ] || ! grep -Eq '^[[:space:]]*nameserver[[:space:]]+127[.]' /etc/resolv.conf 2>/dev/null; }; then
+        |    nft delete table ip $DNS_TABLE >/dev/null 2>&1
+        |    if printf '%s\n' \
+        |      "table ip $DNS_TABLE {" \
+        |      "  chain out {" \
+        |      "    type nat hook output priority -100; policy accept;" \
+        |      "    ip daddr { $LAN_RANGES } ip daddr != ${'$'}dns udp dport 53 dnat to ${'$'}dns" \
+        |      "    ip daddr { $LAN_RANGES } ip daddr != ${'$'}dns tcp dport 53 dnat to ${'$'}dns" \
+        |      "  }" \
+        |      "}" | nft -f - >/dev/null 2>&1; then
+        |      DNAT=1
+        |    fi
         |  fi
         |  say "OK"
         |}
