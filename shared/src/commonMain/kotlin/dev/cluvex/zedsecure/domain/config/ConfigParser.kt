@@ -26,6 +26,14 @@ object ConfigParser {
     private val UNSUPPORTED_SS_METHODS = setOf("none", "plain")
 
     fun parse(link: String): ServerConfig {
+        val parsed = parseScheme(link)
+        return if (parsed.runOnSingBox && !parsed.protocol.sharedWithSingBox) parsed.copy(runOnSingBox = false) else parsed
+    }
+
+    private fun wantsSingBox(value: String?): Boolean =
+        value?.trim()?.lowercase()?.let { it == "singbox" || it == "sing-box" } == true
+
+    private fun parseScheme(link: String): ServerConfig {
         val trimmed = link.trim()
         val scheme = trimmed.substringBefore("://", "").lowercase()
         return when (val protocol = Protocol.fromScheme(scheme)) {
@@ -33,7 +41,7 @@ object ConfigParser {
             Protocol.VMESS -> parseVmess(trimmed)
             Protocol.TROJAN -> parseTrojan(trimmed)
             Protocol.SHADOWSOCKS -> parseShadowsocks(trimmed)
-            Protocol.SOCKS, Protocol.HTTP -> parseUserPass(trimmed, protocol)
+            Protocol.SOCKS, Protocol.HTTP -> parseUserPass(trimmed, protocol, scheme)
             Protocol.HYSTERIA -> parseHysteria(trimmed)
             Protocol.WIREGUARD, Protocol.AMNEZIAWG -> parseWireguard(trimmed, protocol)
             Protocol.MASQUE -> parseMasque(trimmed)
@@ -63,6 +71,7 @@ object ConfigParser {
 
             pinnedCertSha256 = q["pcs"]?.takeIf { it.isNotBlank() },
             tls = securityFrom(q, defaultSecurity = q["security"] ?: ""),
+            runOnSingBox = wantsSingBox(q["core"]),
         )
     }
 
@@ -118,9 +127,13 @@ object ConfigParser {
                 publicKey = str("pbk")?.takeIf { it.isNotBlank() },
                 shortId = str("sid")?.takeIf { it.isNotBlank() },
                 spiderX = str("spx")?.takeIf { it.isNotBlank() },
+                mldsa65Verify = str("pqv")?.takeIf { it.isNotBlank() },
                 echConfigList = str("ech")?.takeIf { it.isNotBlank() },
+                verifyPeerCertByName = str("vcn")?.takeIf { it.isNotBlank() },
                 allowInsecure = str("allowInsecure") == "1" || str("allowInsecure")?.lowercase() == "true",
             ),
+            pinnedCertSha256 = str("pcs")?.takeIf { it.isNotBlank() },
+            runOnSingBox = wantsSingBox(str("core")),
         )
     }
 
@@ -141,6 +154,7 @@ object ConfigParser {
 
             pinnedCertSha256 = q["pcs"]?.takeIf { it.isNotBlank() },
             tls = securityFrom(q, defaultSecurity = q["security"].orEmpty()),
+            runOnSingBox = wantsSingBox(q["core"]),
         )
     }
 
@@ -160,6 +174,7 @@ object ConfigParser {
 
             pinnedCertSha256 = q["pcs"]?.takeIf { it.isNotBlank() },
             tls = securityFrom(q, defaultSecurity = q["security"] ?: "tls"),
+            runOnSingBox = wantsSingBox(q["core"]),
         )
     }
 
@@ -219,6 +234,7 @@ object ConfigParser {
 
             pinnedCertSha256 = q["pcs"]?.takeIf { it.isNotBlank() },
             tls = securityFrom(q, defaultSecurity = q["security"] ?: if (mapped?.tls == true) "tls" else ""),
+            runOnSingBox = wantsSingBox(q["core"]),
         )
     }
 
@@ -274,7 +290,7 @@ object ConfigParser {
         }
     }
 
-    private fun parseUserPass(link: String, protocol: Protocol): ServerConfig {
+    private fun parseUserPass(link: String, protocol: Protocol, scheme: String): ServerConfig {
         val body = link.substringAfter("://")
         if (protocol == Protocol.HTTP && hasPath(body)) {
             throw ConfigParseException("A web address, not an HTTP proxy")
@@ -306,10 +322,13 @@ object ConfigParser {
             port = p.port ?: if (protocol == Protocol.HTTP) 80 else 1080,
             userId = pass,
             username = user,
-            transport = transportFrom(p.query),
+            transport = transportFrom(p.query).copy(
+                headers = p.query["headers"]?.takeIf { protocol == Protocol.HTTP && it.isNotBlank() },
+            ),
 
             pinnedCertSha256 = p.query["pcs"]?.takeIf { it.isNotBlank() },
-            tls = securityFrom(p.query, defaultSecurity = p.query["security"] ?: ""),
+            tls = securityFrom(p.query, defaultSecurity = p.query["security"] ?: if (scheme == "https") "tls" else ""),
+            runOnSingBox = wantsSingBox(p.query["core"]),
         )
     }
 
@@ -328,6 +347,8 @@ object ConfigParser {
             userId = p.userInfo,
             secretKey = p.userInfo,
             tls = securityFrom(p.query, defaultSecurity = "tls"),
+            transport = TransportConfig(finalMask = p.query["fm"]?.takeIf { it.isNotBlank() }),
+            runOnSingBox = wantsSingBox(p.query["core"]),
 
             obfsPassword = p.query["obfs-password"]?.takeIf { it.isNotBlank() },
             portHopping = p.query["mport"]?.takeIf { it.isNotBlank() } ?: multiPort,
@@ -370,6 +391,7 @@ object ConfigParser {
                 path = q["path"]?.takeIf { it.isNotBlank() },
                 headers = q["headers"]?.takeIf { it.isNotBlank() },
                 xhttpExtra = q["extra"]?.takeIf { it.isNotBlank() },
+                finalMask = q["fm"]?.takeIf { it.isNotBlank() },
             ),
             tls = securityFrom(q, defaultSecurity = "tls"),
         )
@@ -402,6 +424,8 @@ object ConfigParser {
                 ?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() }.orEmpty(),
             dnsServers = p.query["dns"]?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() }.orEmpty(),
             awg = awg,
+            transport = TransportConfig(finalMask = p.query["fm"]?.takeIf { it.isNotBlank() }),
+            runOnSingBox = wantsSingBox(p.query["core"]),
         )
     }
 

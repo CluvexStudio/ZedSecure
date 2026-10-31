@@ -5,7 +5,6 @@ import dev.cluvex.zedsecure.R
 import dev.cluvex.zedsecure.ZedSecureApp
 import dev.cluvex.zedsecure.data.assets.GeoAssetsRepository
 import dev.cluvex.zedsecure.data.assets.GeoCodeReader
-import dev.cluvex.zedsecure.domain.config.ConfigParser
 import dev.cluvex.zedsecure.domain.config.Ikev2Profile
 import dev.cluvex.zedsecure.domain.config.LocalPorts
 import dev.cluvex.zedsecure.domain.config.LocalProxy
@@ -286,15 +285,13 @@ class StartPlanner(context: Context) {
     }
 
     private fun physicalServersOf(profile: VpnProfile): List<ServerConfig> {
-        val link = when (val src = profile.source) {
-            is ProfileSource.Link -> src.link
-            is ProfileSource.ProxyChain -> src.memberIds.firstOrNull()
+        val server = when (profile.source) {
+            is ProfileSource.ProxyChain -> profile.proxyChainSettings()?.firstOrNull()
                 ?.let { configRepository.profile(it) }
-                ?.takeIf { it.source is ProfileSource.Link }
-                ?.rawPayload()
-            else -> null
-        } ?: return emptyList()
-        return listOfNotNull(runCatching { ConfigParser.parse(link) }.getOrNull())
+                ?.linkServer
+            else -> profile.linkServer
+        }
+        return listOfNotNull(server)
     }
 
     private fun resolveServerHosts(servers: Collection<ServerConfig>, preferIpv6: Boolean): Map<String, List<String>> {

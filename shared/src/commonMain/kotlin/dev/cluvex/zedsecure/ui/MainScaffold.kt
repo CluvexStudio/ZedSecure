@@ -104,10 +104,7 @@ fun MainScaffold(
     val lockedNote = activeProfile?.takeIf { it.isLocked }?.note
 
     val mtuHint = androidx.compose.runtime.remember(activeProfile) {
-        val link = (activeProfile?.source as? dev.cluvex.zedsecure.domain.config.ProfileSource.Link)?.link
-        val parsed = link?.let {
-            runCatching { dev.cluvex.zedsecure.domain.config.ConfigParser.parse(it) }.getOrNull()
-        }
+        val parsed = activeProfile?.linkServer
         val host = parsed?.address?.takeIf { it.isNotBlank() } ?: activeProfile?.address.orEmpty()
         dev.cluvex.zedsecure.data.net.MtuServerHint(
             host = host,
@@ -281,7 +278,7 @@ fun MainScaffold(
                     },
 
                     serverTargets = profiles
-                        .filter { it.source is dev.cluvex.zedsecure.domain.config.ProfileSource.Link }
+                        .filter { it.standardLink != null }
                         .map { it.id to it.name },
                     autoCountries = androidx.compose.runtime.remember(profiles) {
                         profiles.mapNotNull { dev.cluvex.zedsecure.domain.config.ProfileCountry.of(it) }.distinct()

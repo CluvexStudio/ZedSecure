@@ -29,9 +29,40 @@ data class SingBoxTuning(
 
         val UDP_OVER_TCP_PROTOCOLS = setOf("shadowsocks", "socks")
 
+        val QUIC_TYPES = setOf("tuic", "hysteria", "hysteria2")
+
         val FINGERPRINTS = listOf(
             "chrome", "firefox", "edge", "safari", "360", "qq", "ios", "android", "random", "randomized",
         )
+
+        private val NAIVE_REJECTED_TLS = setOf("utls", "fragment", "record_fragment", "insecure", "alpn", "disable_sni")
+
+        private val QUIC_REJECTED_TLS = setOf("utls", "fragment", "record_fragment")
+
+        fun dropRejectedTls(fragment: String): String {
+            val root = SingBoxJson.parse(fragment) as? JsonObject ?: return fragment
+            val outbounds = root["outbounds"] as? JsonArray ?: return fragment
+            var changed = false
+            val fixed = buildJsonArray {
+                outbounds.forEach { element ->
+                    val outbound = element as? JsonObject
+                    val type = (outbound?.get("type") as? JsonPrimitive)?.content?.lowercase()
+                    val rejected = when (type) {
+                        "naive" -> NAIVE_REJECTED_TLS
+                        in QUIC_TYPES -> QUIC_REJECTED_TLS
+                        else -> emptySet()
+                    }
+                    val tls = outbound?.get("tls") as? JsonObject
+                    if (outbound == null || tls == null || rejected.none { it in tls }) {
+                        add(element)
+                    } else {
+                        changed = true
+                        add(JsonObject(outbound + ("tls" to JsonObject(tls.filterKeys { it !in rejected }))))
+                    }
+                }
+            }
+            return if (changed) SingBoxJson.encode(JsonObject(root + ("outbounds" to fixed))) else fragment
+        }
 
         fun apply(fragment: String, tuning: SingBoxTuning): String {
             if (tuning.isEmpty) return fragment
@@ -80,12 +111,15 @@ data class SingBoxTuning(
     private fun tls(outbound: JsonObject): JsonElement? {
         val tls = outbound["tls"] as? JsonObject ?: return null
         if ((tls["enabled"] as? JsonPrimitive)?.content != "true") return null
+        val type = (outbound["type"] as? JsonPrimitive)?.content?.lowercase()
+        if (type == "naive") return null
+        val quic = type in QUIC_TYPES
         var result = tls
-        if (tlsFragment && "fragment" !in tls) result = JsonObject(result + ("fragment" to JsonPrimitive(true)))
-        if (tlsRecordFragment && "record_fragment" !in tls) {
+        if (!quic && tlsFragment && "fragment" !in tls) result = JsonObject(result + ("fragment" to JsonPrimitive(true)))
+        if (!quic && tlsRecordFragment && "record_fragment" !in tls) {
             result = JsonObject(result + ("record_fragment" to JsonPrimitive(true)))
         }
-        if (utlsFingerprint.isNotBlank() && "utls" !in tls) {
+        if (!quic && utlsFingerprint.isNotBlank() && "utls" !in tls) {
             result = JsonObject(
                 result + (
                     "utls" to buildJsonObject {

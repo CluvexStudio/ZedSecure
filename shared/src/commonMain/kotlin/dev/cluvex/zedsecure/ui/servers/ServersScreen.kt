@@ -94,7 +94,6 @@ import dev.cluvex.zedsecure.data.net.PingService
 import dev.cluvex.zedsecure.core.AutoSelect
 import dev.cluvex.zedsecure.domain.config.AutoSelectIds
 import dev.cluvex.zedsecure.domain.config.ConfigParseException
-import dev.cluvex.zedsecure.domain.config.ConfigParser
 import dev.cluvex.zedsecure.domain.config.VpnProfile
 import dev.cluvex.zedsecure.ui.onboarding.TourTargets
 import dev.cluvex.zedsecure.ui.onboarding.tourTarget
@@ -316,6 +315,7 @@ fun ServersScreen(
 
     var confirmDeleteInvalid by remember { mutableStateOf<Int?>(null) }
     var editTarget by remember { mutableStateOf<VpnProfile?>(null) }
+    var editAsJson by remember(editTarget?.id) { mutableStateOf(false) }
 
     var moveTarget by remember { mutableStateOf<VpnProfile?>(null) }
 
@@ -1406,8 +1406,33 @@ fun ServersScreen(
     }
 
     editTarget?.let { target ->
+        val singBoxFormLink = remember(target.id, editAsJson) { if (editAsJson) null else singBoxFormLinkOf(target) }
         when {
-            target.isSingBox || target.isSingBoxConfig -> {
+            singBoxFormLink != null -> {
+                ManualConfigSheet(
+                    initialSingBoxLink = singBoxFormLink,
+                    onEditJson = { editAsJson = true },
+                    onDismiss = { editTarget = null },
+                    onSave = { link ->
+                        val updated = runCatching {
+                            VpnProfile.fromAnyLink(
+                                link = link,
+                                id = target.id,
+                                addedAt = target.addedAt,
+                                subscriptionId = target.subscriptionId,
+                            )
+                        }.getOrNull()
+                        if (updated == null) {
+                            toastRes(Res.string.config_invalid)
+                        } else {
+                            repository.update(updated.copy(lastPingMs = target.lastPingMs, countryCode = target.countryCode))
+                            toastRes(Res.string.saved)
+                        }
+                        editTarget = null
+                    },
+                )
+            }
+            target.isSingBox && target.standardLink == null || target.isSingBoxConfig -> {
                 val source = target.source
                 RawJsonSheet(
                     title = stringResource(Res.string.singbox_json_title),
@@ -1567,11 +1592,7 @@ fun ServersScreen(
                 )
             }
             else -> {
-                val parsed = remember(target.id) {
-                    target.rawPayload()?.let { payload ->
-                        runCatching { ConfigParser.parse(payload) }.getOrNull()
-                    }
-                }
+                val parsed = remember(target.id) { target.linkServer }
                 if (parsed == null) {
                     LaunchedEffect(target.id) {
                         toastRes(Res.string.edit_unsupported)
@@ -1583,7 +1604,7 @@ fun ServersScreen(
                         onDismiss = { editTarget = null },
                         onSave = { link ->
                             val updated = runCatching {
-                                VpnProfile.fromLink(
+                                VpnProfile.fromAnyLink(
                                     link = link,
                                     id = target.id,
                                     addedAt = target.addedAt,
@@ -2365,3 +2386,17 @@ private fun Modifier.springEntrance(index: Int, startedAt: Long, enabled: Boolea
 private const val ENTRANCE_WINDOW_MS = 800L
 private const val ENTRANCE_STAGGER_LIMIT = 12
 private const val ENTRANCE_STEP_MS = 45L
+
+private fun singBoxFormLinkOf(profile: VpnProfile): String? {
+    val source = profile.source as? dev.cluvex.zedsecure.domain.config.ProfileSource.SingBox ?: return null
+    source.link?.let { link -> return link.takeIf { dev.cluvex.zedsecure.domain.config.SingBoxLinks.handles(it) } }
+    val root = runCatching {
+        kotlinx.serialization.json.Json.parseToJsonElement(dev.cluvex.zedsecure.domain.config.Jsonc.strip(source.json))
+    }.getOrNull() as? kotlinx.serialization.json.JsonObject ?: return null
+    if (root.containsKey("endpoints")) return null
+    val outbound = (root["outbounds"] as? kotlinx.serialization.json.JsonArray)?.singleOrNull()
+        as? kotlinx.serialization.json.JsonObject ?: return null
+    if (!dev.cluvex.zedsecure.domain.config.SingBoxLinks.formEditable(outbound)) return null
+    val tag = (outbound["tag"] as? kotlinx.serialization.json.JsonPrimitive)?.content ?: profile.name
+    return dev.cluvex.zedsecure.domain.config.SingBoxLinks.build(outbound, tag)
+}

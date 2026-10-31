@@ -16,20 +16,28 @@ data class SubscriptionPreset(
     val finalMask: String = "",
     val cipherSuites: String = "",
     val echConfigList: String = "",
+    val core: String = "",
 ) {
     val isEmpty: Boolean
-        get() = listOf(address, fingerprint, alpn, finalMask, cipherSuites, echConfigList).all { it.isBlank() }
+        get() = listOf(address, fingerprint, alpn, finalMask, cipherSuites, echConfigList, core).all { it.isBlank() }
 
-    fun apply(link: String): String =
-        if (isEmpty) link else runCatching { SubscriptionPresets.rewrite(link.trim(), this) }.getOrDefault(link)
+    fun apply(link: String): String {
+        if (isEmpty) return link
+        val rewritten = runCatching { SubscriptionPresets.rewrite(link.trim(), this) }.getOrDefault(link)
+        return runCatching { SubscriptionPresets.withCore(rewritten, core) }.getOrDefault(rewritten)
+    }
 
     companion object {
         const val ALPN_AUTO = "auto"
+        const val CORE_SINGBOX = "singbox"
+        const val CORE_XRAY = "xray"
     }
 }
 
 internal object SubscriptionPresets {
     private val URL_SCHEMES = setOf("vless", "trojan", "ss", "hysteria2", "hy2", "tuic")
+    private val MASK_ONLY_SCHEMES = setOf("wireguard", "wg", "socks", "socks5", "http", "https")
+    private val CORE_SCHEMES = setOf("vless", "vmess", "trojan", "ss", "hysteria2", "hy2", "wireguard", "wg", "socks", "socks5", "http", "https")
     private val TLS_SCHEMES = setOf("hysteria2", "hy2", "tuic", "trojan")
     private val HOST_HEADER_NETWORKS = setOf("ws", "httpupgrade", "xhttp", "splithttp", "h2", "http")
     private val CDN_NETWORKS = HOST_HEADER_NETWORKS + "grpc"
@@ -40,8 +48,38 @@ internal object SubscriptionPresets {
         return when (scheme) {
             "vmess" -> rewriteVmess(link, preset)
             in URL_SCHEMES -> rewriteUrl(scheme, link, preset)
+            in MASK_ONLY_SCHEMES -> preset.finalMask.trim().takeIf { it.isNotEmpty() }?.let { setQuery(link, "fm", it) } ?: link
             else -> link
         }
+    }
+
+    @OptIn(ExperimentalEncodingApi::class)
+    fun withCore(link: String, core: String): String {
+        val wanted = core.trim().lowercase()
+        if (wanted != SubscriptionPreset.CORE_SINGBOX && wanted != SubscriptionPreset.CORE_XRAY) return link
+        val scheme = link.substringBefore("://", "").lowercase()
+        if (scheme !in CORE_SCHEMES) return link
+        val singBox = wanted == SubscriptionPreset.CORE_SINGBOX
+        val payload = link.substringAfter("://").substringBefore('#')
+        if (scheme == "vmess" && '@' !in payload) {
+            val obj = json.parseToJsonElement(ConfigParser.decodeBase64Utf8(payload)) as? JsonObject ?: return link
+            val rebuilt = buildJsonObject {
+                obj.forEach { (k, v) -> if (k != "core") put(k, v) }
+                if (singBox) put("core", JsonPrimitive("singbox"))
+            }
+            val fragment = if ('#' in link) "#" + link.substringAfter('#') else ""
+            return "vmess://" + Base64.encode(rebuilt.toString().encodeToByteArray()) + fragment
+        }
+        return setQuery(link, "core", if (singBox) "singbox" else null)
+    }
+
+    private fun setQuery(link: String, key: String, value: String?): String {
+        val fragment = if ('#' in link) "#" + link.substringAfter('#') else ""
+        val body = link.substringBefore('#')
+        val base = body.substringBefore('?')
+        val query = body.substringAfter('?', "").split('&').filter { it.isNotEmpty() && it.substringBefore('=') != key }
+        val parts = if (value == null) query else query + "$key=${encode(value)}"
+        return base + (if (parts.isEmpty()) "" else "?" + parts.joinToString("&")) + fragment
     }
 
     internal fun autoAlpn(network: String?): String? = when (network?.lowercase()) {
@@ -152,6 +190,14 @@ internal object SubscriptionPresets {
             alpn.equals(SubscriptionPreset.ALPN_AUTO, ignoreCase = true) -> autoAlpn(text("net"))?.let { updates["alpn"] = it }
             alpn.isNotEmpty() -> updates["alpn"] = alpn
         }
+        val ech = preset.echConfigList.trim()
+        if (ech.isNotEmpty()) {
+            updates["ech"] = ech
+            if (preset.finalMask.isBlank() && obj.containsKey("fm")) updates["fm"] = ""
+            if (preset.cipherSuites.isBlank() && obj.containsKey("cs")) updates["cs"] = ""
+        }
+        preset.cipherSuites.trim().takeIf { it.isNotEmpty() }?.let { updates["cs"] = it }
+        preset.finalMask.trim().takeIf { it.isNotEmpty() }?.let { updates["fm"] = it }
         if (updates.isEmpty()) return link
         val rebuilt = buildJsonObject {
             obj.forEach { (k, v) -> if (k !in updates) put(k, v) }

@@ -125,6 +125,16 @@ data class VpnProfile(
 
     fun autoSelectSettings(): ProfileSource.AutoSelect? = source as? ProfileSource.AutoSelect
 
+    val standardLink: String?
+        get() = when (val src = source) {
+            is ProfileSource.Link -> src.link
+            is ProfileSource.SingBox -> src.link
+            else -> null
+        }?.takeUnless { SingBoxLinks.handles(it) }
+
+    val linkServer: ServerConfig?
+        get() = standardLink?.let { runCatching { ConfigParser.parse(it) }.getOrNull() }
+
     private val chainProtocol: Protocol?
         get() = (source as? ProfileSource.Link)
             ?.let { runCatching { ConfigParser.parse(it.link) }.getOrNull()?.protocol }
@@ -513,13 +523,54 @@ data class VpnProfile(
                     forSpeedtest = forSpeedtest,
                     geoAssetsAvailable = options.geoAssetsAvailable,
                 )
+            } else if (SingBoxLinks.handles(trimmed)) {
+                val parsed = SingBoxLinks.parse(trimmed)
+                XrayJsonBuilder.buildSingBox(parsed.fragment, parsed.name, options = options, forSpeedtest = forSpeedtest)
             } else {
-                XrayJsonBuilder.build(
-                    ConfigParser.parse(trimmed),
-                    options = options,
-                    forSpeedtest = forSpeedtest,
-                )
+                val server = ConfigParser.parse(trimmed)
+                if (server.runOnSingBox && SingBoxConvert.canRun(server)) {
+                    val tag = SingBoxConvert.tagOf(server)
+                    XrayJsonBuilder.buildSingBox(SingBoxConvert.fragment(server, tag), tag, options = options, forSpeedtest = forSpeedtest)
+                } else {
+                    XrayJsonBuilder.build(server, options = options, forSpeedtest = forSpeedtest)
+                }
             }
+        }
+
+        fun fromAnyLink(
+            link: String,
+            id: String,
+            addedAt: Long,
+            locked: Boolean = false,
+            subscriptionId: String = "",
+            name: String? = null,
+        ): VpnProfile {
+            if (SingBoxLinks.handles(link)) {
+                val parsed = SingBoxLinks.parse(link)
+                val server = SingBoxJson.servers(parsed.fragment).firstOrNull()
+                    ?: throw ConfigParseException("Invalid sing-box link")
+                return fromSingBox(server, id, addedAt, subscriptionId, name ?: parsed.name, link)
+                    .copy(isLocked = locked)
+            }
+            val parsed = ConfigParser.parse(link)
+            val profile = if (parsed.runOnSingBox && SingBoxConvert.canRun(parsed)) {
+                val tag = SingBoxConvert.tagOf(parsed)
+                VpnProfile(
+                    id = id,
+                    name = parsed.remark.ifBlank { "${parsed.address}:${parsed.port}" },
+                    protocol = parsed.protocol.name,
+                    address = parsed.address,
+                    port = parsed.port,
+                    transportLabel = parsed.transportLabel,
+                    source = ProfileSource.SingBox(json = SingBoxConvert.fragment(parsed, tag), carrier = tag, link = link),
+                    addedAt = addedAt,
+                    isLocked = locked,
+                    subscriptionId = subscriptionId,
+                )
+            } else {
+                fromLink(link, id, addedAt, locked, subscriptionId)
+            }
+            return if (name.isNullOrBlank()) profile else profile.copy(name = name)
         }
 
         fun fromLink(
@@ -536,7 +587,7 @@ data class VpnProfile(
                 protocol = parsed.protocol.name,
                 address = parsed.address,
                 port = parsed.port,
-                transportLabel = parsed.transportLabel,
+                transportLabel = parsed.copy(runOnSingBox = false).transportLabel,
                 source = ProfileSource.Link(link),
                 addedAt = addedAt,
                 isLocked = locked,

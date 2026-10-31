@@ -310,10 +310,7 @@ class MainActivity : ComponentActivity() {
                             toggleConnection = ::toggleConnection,
                             mtuHint = {
                                 val active = configRepository.activeProfile()
-                                val link = (active?.source as? dev.cluvex.zedsecure.domain.config.ProfileSource.Link)?.link
-                                val parsed = link?.let {
-                                    runCatching { dev.cluvex.zedsecure.domain.config.ConfigParser.parse(it) }.getOrNull()
-                                }
+                                val parsed = active?.linkServer
                                 val host = parsed?.address?.takeIf { it.isNotBlank() }
                                     ?: active?.address.orEmpty()
                                 if (host.isBlank()) {

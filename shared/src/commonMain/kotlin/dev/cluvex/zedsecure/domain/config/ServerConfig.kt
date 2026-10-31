@@ -27,6 +27,8 @@ enum class Protocol(val id: String, val label: String) {
 
     val supportsMux: Boolean get() = this == VLESS || this == VMESS
 
+    val sharedWithSingBox: Boolean get() = this != MASQUE && this != AMNEZIAWG
+
     companion object {
         fun fromScheme(scheme: String): Protocol? = when (scheme.lowercase()) {
             "vless" -> VLESS
@@ -134,6 +136,8 @@ data class ServerConfig(
 
     val bandwidthUp: String? = null,
     val bandwidthDown: String? = null,
+
+    val runOnSingBox: Boolean = false,
 ) {
     val transportLabel: String
         get() = buildString {
@@ -148,6 +152,7 @@ data class ServerConfig(
                     "tls" -> append(" / TLS")
                 }
             }
+            if (runOnSingBox) append(" · sing-box")
         }
 
     val isWarp: Boolean get() = protocol == Protocol.MASQUE && secretKey.isNotBlank()

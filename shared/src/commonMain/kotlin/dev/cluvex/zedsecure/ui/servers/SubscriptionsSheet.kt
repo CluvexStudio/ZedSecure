@@ -332,6 +332,16 @@ fun SubscriptionsSheet(
                         }
                         PresetField(Res.string.subs_preset_ciphers, preset.cipherSuites) { preset = preset.copy(cipherSuites = it) }
                         PresetField(Res.string.subs_preset_ech, preset.echConfigList) { preset = preset.copy(echConfigList = it) }
+                        dev.cluvex.zedsecure.ui.components.PickerField(
+                            label = stringResource(Res.string.subs_preset_core),
+                            options = listOf(
+                                "" to stringResource(Res.string.subs_preset_core_link),
+                                dev.cluvex.zedsecure.domain.config.SubscriptionPreset.CORE_XRAY to "Xray",
+                                dev.cluvex.zedsecure.domain.config.SubscriptionPreset.CORE_SINGBOX to stringResource(Res.string.subs_preset_core_singbox),
+                            ),
+                            selected = preset.core,
+                            onSelect = { preset = preset.copy(core = it) },
+                        )
                     }
                 }
             },

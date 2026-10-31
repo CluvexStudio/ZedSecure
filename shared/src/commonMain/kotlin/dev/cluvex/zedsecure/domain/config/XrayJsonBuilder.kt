@@ -240,7 +240,7 @@ object XrayJsonBuilder {
         dialerProxy: String?,
         tuning: SingBoxTuning = SingBoxTuning(),
     ): JsonObject {
-        val parsed = leanJson.parseToJsonElement(Jsonc.strip(SingBoxTuning.apply(fragment, tuning))) as? JsonObject
+        val parsed = leanJson.parseToJsonElement(Jsonc.strip(SingBoxTuning.apply(SingBoxTuning.dropRejectedTls(fragment), tuning))) as? JsonObject
             ?: throw IllegalArgumentException("sing-box fragment is not a JSON object")
         return buildJsonObject {
             put("tag", tag)
@@ -551,7 +551,7 @@ object XrayJsonBuilder {
             putJsonArray("outbounds") {
                 proxyOutbounds()
 
-                namedOutbounds.forEach { (tag, server) -> add(proxyOutbound(server, options, tag = tag)) }
+                namedOutbounds.forEach { (tag, server) -> add(serverOutbound(server, options, tag)) }
                 groupOutbounds.values.forEach { group -> group.forEach { add(it) } }
                 add(directOutbound())
                 add(blockOutbound())
@@ -1385,6 +1385,14 @@ private fun statsPolicy(slowUpstream: Boolean = false) = buildJsonObject {
         }
     }
 
+    private fun serverOutbound(s: ServerConfig, options: BuildOptions, tag: String): JsonObject =
+        if (s.runOnSingBox && SingBoxConvert.canRun(s)) {
+            val carrier = SingBoxConvert.tagOf(s)
+            singBoxOutbound(SingBoxConvert.fragment(s, carrier), carrier, tag, entryDialer(options), options.singBox)
+        } else {
+            proxyOutbound(s, options, tag = tag)
+        }
+
     private fun proxyOutbound(
         s: ServerConfig,
         options: BuildOptions = BuildOptions(),
@@ -1446,20 +1454,23 @@ private fun statsPolicy(slowUpstream: Boolean = false) = buildJsonObject {
                     }
                 }
 
-                Protocol.SOCKS, Protocol.HTTP -> putJsonArray("servers") {
-                    addJsonObject {
-                        put("address", address)
-                        put("port", s.port)
-                        if (s.username.isNotBlank() || s.userId.isNotBlank()) {
-                            putJsonArray("users") {
-                                addJsonObject {
-                                    put("user", s.username)
-                                    put("pass", s.userId)
-                                    put("level", 8)
+                Protocol.SOCKS, Protocol.HTTP -> {
+                    putJsonArray("servers") {
+                        addJsonObject {
+                            put("address", address)
+                            put("port", s.port)
+                            if (s.username.isNotBlank() || s.userId.isNotBlank()) {
+                                putJsonArray("users") {
+                                    addJsonObject {
+                                        put("user", s.username)
+                                        put("pass", s.userId)
+                                        put("level", 8)
+                                    }
                                 }
                             }
                         }
                     }
+                    if (s.protocol == Protocol.HTTP) masqueHeaders(s.transport.headers)?.let { put("headers", it) }
                 }
                 Protocol.WIREGUARD, Protocol.AMNEZIAWG -> {
                     put("secretKey", s.secretKey)
@@ -1529,11 +1540,12 @@ private fun statsPolicy(slowUpstream: Boolean = false) = buildJsonObject {
                 }
             }
         } else if (s.protocol == Protocol.HYSTERIA) {
-            put("streamSettings", hysteriaStreamSettings(s, options, dialerProxy))
+            put("streamSettings", applyFinalMask(hysteriaStreamSettings(s, options, dialerProxy), s.transport.finalMask))
         } else if (s.protocol == Protocol.MASQUE) {
-            put("streamSettings", masqueStreamSettings(s, options, dialerProxy))
-        } else if (s.protocol.isWireguardFamily && (dialerProxy != null || pinsServerHost(s, options))) {
-            putJsonObject("streamSettings") { putSockopt(s, options, dialerProxy) }
+            put("streamSettings", applyFinalMask(masqueStreamSettings(s, options, dialerProxy), s.transport.finalMask))
+        } else if (s.protocol.isWireguardFamily) {
+            val stream = applyFinalMask(buildJsonObject { putSockopt(s, options, dialerProxy) }, s.transport.finalMask)
+            if (stream.isNotEmpty()) put("streamSettings", stream)
         }
     }
 
@@ -1544,17 +1556,8 @@ private fun statsPolicy(slowUpstream: Boolean = false) = buildJsonObject {
     ) = buildJsonObject {
         put("network", "hysteria")
         put("security", "tls")
-        putJsonObject("tlsSettings") {
-            val sni = s.tls.sni?.takeIf { it.isNotBlank() }
-            if (sni != null) put("serverName", sni)
-
-            putJsonArray("alpn") { add("h3") }
-
-            val pinned = s.pinnedCertSha256?.takeIf { it.isNotBlank() }
-            if (pinned != null) put("pinnedPeerCertSha256", pinned)
-            else if (s.tls.allowInsecure && sni != null) put("verifyPeerCertByName", sni)
-            if (options.useSystemCa) put("useSystemCA", true)
-        }
+        val alpn = s.tls.alpn?.split(",")?.map(String::trim)?.filter(String::isNotEmpty)?.takeIf { it.isNotEmpty() }
+        put("tlsSettings", tlsSettingsOf(s, s.tls.sni?.takeIf { it.isNotBlank() }, options, alpnOverride = alpn ?: listOf("h3"), fingerprint = false))
         putJsonObject("hysteriaSettings") {
             put("version", 2)
             val auth = s.secretKey.ifBlank { s.userId }
@@ -1680,17 +1683,44 @@ private fun statsPolicy(slowUpstream: Boolean = false) = buildJsonObject {
     ): JsonObject = applyFinalMask(streamSettingsBase(s, options, dialerProxy), s.transport.finalMask)
 
     private fun applyFinalMask(stream: JsonObject, raw: String?): JsonObject {
-        val text = raw?.takeIf { it.isNotBlank() } ?: return stream
-        val parsed = runCatching { Json.parseToJsonElement(text) as? JsonObject }.getOrNull()
-            ?: return stream
-        val existing = stream["finalmask"] as? JsonObject
-        val merged = if (existing == null) parsed else buildJsonObject {
-            existing.forEach { (k, v) -> put(k, v) }
-            parsed.forEach { (k, v) -> put(k, v) }
-        }
+        val user = finalMaskOf(raw) ?: return stream
+        val merged = mergeFinalMask(stream["finalmask"] as? JsonObject, user)
         return buildJsonObject {
             stream.forEach { (k, v) -> if (k != "finalmask") put(k, v) }
             put("finalmask", merged)
+        }
+    }
+
+    fun finalMaskOf(raw: String?): JsonObject? {
+        val text = raw?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+        return runCatching { Json.parseToJsonElement(Jsonc.strip(text)) as? JsonObject }.getOrNull()
+    }
+
+    private val DIAL_MASKS = setOf("udphop", "xicmp")
+
+    private fun maskType(mask: JsonElement): String? =
+        ((mask as? JsonObject)?.get("type") as? JsonPrimitive)?.content?.lowercase()
+
+    fun mergeFinalMask(base: JsonObject?, user: JsonObject): JsonObject {
+        fun masks(value: JsonElement?): List<JsonElement> = (value as? JsonArray)?.toList().orEmpty()
+        fun dialLast(list: List<JsonElement>): List<JsonElement> =
+            list.filterNot { maskType(it) in DIAL_MASKS } + list.filter { maskType(it) in DIAL_MASKS }
+        val userUdp = masks(user["udp"])
+        val userTypes = userUdp.mapNotNull { maskType(it) }.toSet()
+        val baseUdp = masks(base?.get("udp")).filterNot { mask ->
+            val type = maskType(mask)
+            type in userTypes && type == "salamander" || type in DIAL_MASKS && userTypes.any { it in DIAL_MASKS }
+        }
+        val tcp = masks(base?.get("tcp")) + masks(user["tcp"])
+        val udp = dialLast(baseUdp + userUdp)
+        val baseQuic = base?.get("quicParams") as? JsonObject
+        val userQuic = user["quicParams"] as? JsonObject
+        return buildJsonObject {
+            base?.forEach { (k, v) -> if (k !in setOf("tcp", "udp", "quicParams")) put(k, v) }
+            user.forEach { (k, v) -> if (k !in setOf("tcp", "udp", "quicParams")) put(k, v) }
+            if (tcp.isNotEmpty()) put("tcp", JsonArray(tcp))
+            if (udp.isNotEmpty()) put("udp", JsonArray(udp))
+            if (baseQuic != null || userQuic != null) put("quicParams", JsonObject(baseQuic.orEmpty() + userQuic.orEmpty()))
         }
     }
 

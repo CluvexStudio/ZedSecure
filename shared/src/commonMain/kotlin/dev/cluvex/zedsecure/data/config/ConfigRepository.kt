@@ -195,25 +195,12 @@ class ConfigRepository(private val store: KeyValueStore) {
             ?.takeUnless { it.isEmpty }
         links.map { preset?.apply(it) ?: it }.forEach { link ->
             runCatching {
-                if (SingBoxLinks.handles(link)) {
-                    val parsed = SingBoxLinks.parse(link)
-                    val server = SingBoxJson.servers(parsed.fragment).first()
-                    VpnProfile.fromSingBox(
-                        server = server,
-                        id = newId(),
-                        addedAt = currentTimeMillis(),
-                        subscriptionId = subscriptionId,
-                        name = parsed.name,
-                        link = link,
-                    )
-                } else {
-                    VpnProfile.fromLink(
-                        link = link,
-                        id = newId(),
-                        addedAt = currentTimeMillis(),
-                        subscriptionId = subscriptionId,
-                    )
-                }
+                VpnProfile.fromAnyLink(
+                    link = link,
+                    id = newId(),
+                    addedAt = currentTimeMillis(),
+                    subscriptionId = subscriptionId,
+                )
             }.onSuccess { profile ->
                 val duplicate = (current + fresh).any {
                     it.rawPayload() == link && it.subscriptionId == subscriptionId
@@ -690,9 +677,7 @@ class ConfigRepository(private val store: KeyValueStore) {
         .mapNotNull { rule ->
             val id = dev.cluvex.zedsecure.domain.model.RulesetItem.profileIdOf(rule.outboundTag)
                 ?: return@mapNotNull null
-            val payload = profile(id)?.takeIf { it.source is ProfileSource.Link }?.rawPayload()
-                ?: return@mapNotNull null
-            runCatching { ConfigParser.parse(payload) }.getOrNull()?.let { rule.outboundTag to it }
+            profile(id)?.linkServer?.let { rule.outboundTag to it }
         }
         .toMap()
 
@@ -713,6 +698,7 @@ class ConfigRepository(private val store: KeyValueStore) {
             val obfuscated = parsed.copy(
                 protocol = Protocol.AMNEZIAWG,
                 awg = AwgConfig.amneziaDefaults(),
+                runOnSingBox = false,
             )
             changed++
             p.copy(
