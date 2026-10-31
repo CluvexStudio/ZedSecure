@@ -86,7 +86,9 @@ fun AutoSelectCard(
     onSelect: () -> Unit,
     onDetails: () -> Unit,
     personalization: Personalization = Personalization.Default,
+    modifier: Modifier = Modifier,
 ) {
+    val bento = dev.cluvex.zedsecure.ui.bento.Bento.active
     val container = if (active) {
         personalization.serverActiveColor ?: MaterialTheme.colorScheme.primaryContainer
     } else {
@@ -101,26 +103,27 @@ fun AutoSelectCard(
     val phase = live?.status?.phase
     Surface(
         onClick = onSelect,
-        shape = RoundedCornerShape(personalization.cornerStyle.serverCardDp.dp),
+        shape = if (bento) dev.cluvex.zedsecure.ui.bento.BentoShapes.small() else RoundedCornerShape(personalization.cornerStyle.serverCardDp.dp),
         color = container,
         contentColor = onContainer,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
     ) {
         Row(
             Modifier.fillMaxWidth().padding(start = 12.dp, end = 4.dp, top = 12.dp, bottom = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            val badge = if (bento && phase == null) dev.cluvex.zedsecure.ui.bento.Bento.colors.lime else phaseColor(phase)
             Box(
                 Modifier
                     .size(42.dp)
-                    .clip(MaterialShapes.Cookie9Sided.toShape())
-                    .background(phaseColor(phase)),
+                    .clip((if (bento) MaterialShapes.Puffy else MaterialShapes.Cookie9Sided).toShape())
+                    .background(badge),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     painterResource(Res.drawable.ic_bolt),
                     contentDescription = null,
-                    tint = phaseColor(phase).readableOn(),
+                    tint = badge.readableOn(),
                     modifier = Modifier.size(22.dp),
                 )
             }

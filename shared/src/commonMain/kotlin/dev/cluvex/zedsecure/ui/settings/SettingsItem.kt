@@ -179,6 +179,10 @@ fun SettingsGroup(
 
 @Composable
 fun SettingsGroupLabel(title: String, modifier: Modifier = Modifier) {
+    if (dev.cluvex.zedsecure.ui.bento.Bento.active) {
+        dev.cluvex.zedsecure.ui.bento.BentoGroupLabel(title, modifier)
+        return
+    }
     Text(
         title,
         style = MaterialTheme.typography.labelLargeEmphasized,
@@ -875,6 +879,10 @@ fun SettingsHeader(
     scroll: ScrollState? = null,
     modifier: Modifier = Modifier,
 ) {
+    if (dev.cluvex.zedsecure.ui.bento.Bento.active) {
+        dev.cluvex.zedsecure.ui.bento.BentoPageHeader(title, subtitle, art, modifier, scroll)
+        return
+    }
     Column(modifier.fillMaxWidth().padding(start = 22.dp, end = 18.dp)) {
         PageBackButton()
         Row(verticalAlignment = Alignment.CenterVertically) {

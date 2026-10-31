@@ -178,8 +178,14 @@ fun HomeScreen(
     personalization: Personalization = Personalization.Default,
 
     connectStyle: ConnectButtonStyle = ConnectButtonStyle.Pill,
-    design: AppDesign = AppDesign.Pixel,
+    design: AppDesign = AppDesign.Bento,
     homeVm: HomeViewModel = viewModel { HomeViewModel() },
+    bentoActive: dev.cluvex.zedsecure.ui.bento.BentoActiveServer? = null,
+    bentoPicks: List<dev.cluvex.zedsecure.ui.bento.BentoServerPick> = emptyList(),
+    onPickServer: (String) -> Unit = {},
+    onAddServer: () -> Unit = onBrowseConfigs,
+    onOpenSpeedTest: (() -> Unit)? = null,
+    onOpenMap: (() -> Unit)? = null,
 ) {
     val ui by connectionVm.ui.collectAsStateWithLifecycle()
     val live = ui.state == ConnectionState.Connected
@@ -203,26 +209,25 @@ fun HomeScreen(
 
     if (design != AppDesign.Old) {
         Box(modifier.fillMaxSize()) {
-            if (design == AppDesign.Pixel) {
-                PixelHome(
+            if (design == AppDesign.Bento) {
+                val budget = dev.cluvex.zedsecure.ui.theme.LocalMotionBudget.current
+                dev.cluvex.zedsecure.ui.bento.BentoHome(
                     ui = ui,
                     info = info,
-                    infoExpanded = infoExpanded,
-                    onOpenInfo = homeVm::openDetails,
-                    onCloseInfo = homeVm::closeDetails,
-                    onRefreshPing = homeVm::refreshPing,
-                    onRefreshPlace = homeVm::refreshPlace,
-                    onRefreshInfo = { homeVm.refresh(force = true) },
-                    activeConfigName = activeConfigName,
-                    activeConfigDetail = activeConfigDetail,
-                    activeLocked = activeLocked,
+                    active = bentoActive,
+                    picks = bentoPicks,
                     lockedNote = lockedNote,
                     localProxyAddress = localProxyAddress,
                     showConnectionInfo = showConnectionInfo,
-                    reduceMotion = reduceMotion,
+                    animate = !reduceMotion && budget != dev.cluvex.zedsecure.ui.theme.MotionBudget.Paused,
                     contentPadding = contentPadding,
                     onToggleConnection = onToggleConnection,
                     onBrowseConfigs = onBrowseConfigs,
+                    onPickServer = onPickServer,
+                    onAddServer = onAddServer,
+                    onOpenSpeedTest = onOpenSpeedTest,
+                    onOpenMap = onOpenMap,
+                    onRefreshInfo = { homeVm.refresh(force = true) },
                     onSecretUnlocked = onSecretUnlocked,
                     onShowLogs = { showLogs = true },
                     onBurst = {
@@ -241,11 +246,14 @@ fun HomeScreen(
                     },
                 )
             } else {
-                PortalHome(
+                PixelHome(
                     ui = ui,
                     info = info,
                     infoExpanded = infoExpanded,
-                    onToggleInfo = homeVm::toggleExpanded,
+                    onOpenInfo = homeVm::openDetails,
+                    onCloseInfo = homeVm::closeDetails,
+                    onRefreshPing = homeVm::refreshPing,
+                    onRefreshPlace = homeVm::refreshPlace,
                     onRefreshInfo = { homeVm.refresh(force = true) },
                     activeConfigName = activeConfigName,
                     activeConfigDetail = activeConfigDetail,

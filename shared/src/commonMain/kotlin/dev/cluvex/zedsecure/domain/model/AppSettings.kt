@@ -8,7 +8,7 @@ enum class ColorStyle { ZedSecure, TonalSpot, Vibrant, Expressive, Rainbow, Frui
 
 enum class ColorContrast(val level: Double) { Standard(0.0), Medium(0.5), High(1.0) }
 
-enum class AppDesign { Pixel, Portal, Old }
+enum class AppDesign { Bento, Pixel, Old }
 
 enum class ScreenTransition {
     Fade,
@@ -235,7 +235,9 @@ data class AppSettings(
     val customConfigCardColor: Long? = null,
     val customConfigCardTextColor: Long? = null,
 
-    val appDesign: AppDesign = AppDesign.Pixel,
+    val appDesign: AppDesign = AppDesign.Bento,
+
+    val bento: BentoPrefs = BentoPrefs(),
 
     val connectButtonStyle: ConnectButtonStyle = ConnectButtonStyle.Hero,
 
@@ -477,6 +479,12 @@ data class AppSettings(
 
     val torFakeSniEnabled: Boolean = false,
     val torFakeSniHosts: String = "",
+
+    val detectServerLocation: Boolean = false,
+
+    val localProxyAuth: Boolean = true,
+
+    val reconnectOnNetworkChange: Boolean = true,
 ) {
     val useHevTun: Boolean get() = true
 

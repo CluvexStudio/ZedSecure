@@ -302,7 +302,7 @@ class StartPlanner(context: Context) {
         val pool = Executors.newFixedThreadPool(hosts.size.coerceAtMost(4))
         return try {
             val pending = hosts.associateWith { host ->
-                pool.submit(Callable { InetAddress.getAllByName(host).toList() })
+                pool.submit(Callable { guardedLookup(host) })
             }
             val deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(RESOLVE_BUDGET_MS)
             pending.mapNotNull { (host, future) ->
@@ -314,6 +314,22 @@ class StartPlanner(context: Context) {
         } finally {
             pool.shutdownNow()
         }
+    }
+
+    private fun guardedLookup(host: String): List<InetAddress> {
+        val found = InetAddress.getAllByName(host).toList()
+        val clean = found.filterNot { dev.cluvex.zedsecure.domain.config.DnsGuard.isPoisoned(it.hostAddress.orEmpty()) }
+        if (clean.isNotEmpty() || found.isEmpty()) return clean
+        dev.cluvex.zedsecure.core.LogBus.append(
+            "W/DNS: $host resolved to ${found.joinToString { it.hostAddress.orEmpty() }}, a filtering block page; asking DNS over HTTPS instead",
+        )
+        val real = kotlinx.coroutines.runBlocking { dev.cluvex.zedsecure.domain.config.DnsGuard.lookup(host) }
+        if (real == null) {
+            dev.cluvex.zedsecure.core.LogBus.append("W/DNS: no clean address for $host; the core resolves it on its own")
+            return emptyList()
+        }
+        dev.cluvex.zedsecure.core.LogBus.append("I/DNS: $host is $real by DNS over HTTPS")
+        return listOf(InetAddress.getByName(real))
     }
 
     private fun orderAddresses(addresses: List<InetAddress>, preferIpv6: Boolean): List<String> {

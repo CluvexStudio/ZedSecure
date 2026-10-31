@@ -138,11 +138,17 @@ fun ServersScreen(
 
     personalization: Personalization = Personalization.Default,
     reduceMotion: Boolean = false,
+    detectServerLocation: Boolean = false,
+    addRequest: Boolean = false,
+    onAddRequestConsumed: () -> Unit = {},
 ) {
     val platform = LocalPlatform.current
     val scope = rememberCoroutineScope()
     val entranceStart = remember { System.currentTimeMillis() }
-    val springIn = !reduceMotion && dev.cluvex.zedsecure.ui.theme.LocalAppDesign.current == dev.cluvex.zedsecure.domain.model.AppDesign.Pixel
+    val design = dev.cluvex.zedsecure.ui.theme.LocalAppDesign.current
+    val bento = design == dev.cluvex.zedsecure.domain.model.AppDesign.Bento
+    val springIn = !reduceMotion && (design == dev.cluvex.zedsecure.domain.model.AppDesign.Pixel || bento)
+    var query by rememberSaveable { mutableStateOf("") }
     val lockedCannotShare = stringResource(Res.string.locked_cannot_share)
 
     fun toastImportFailure(e: Throwable) {
@@ -297,6 +303,12 @@ fun ServersScreen(
     val activeId by repository.activeId.collectAsStateWithLifecycle()
 
     var showAddSheet by remember { mutableStateOf(false) }
+    LaunchedEffect(addRequest) {
+        if (addRequest) {
+            showAddSheet = true
+            onAddRequestConsumed()
+        }
+    }
     var showManual by remember { mutableStateOf(false) }
 
     var fanOpen by remember { mutableStateOf(false) }
@@ -460,10 +472,206 @@ fun ServersScreen(
         )
     }
 
+    val pingMenuItems: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit = {
+        DropdownMenuItem(
+            text = { Text(stringResource(Res.string.ping_tcp_all)) },
+            onClick = {
+                pingMenu = false
+
+                PingCoordinator.start(
+                    profiles = shown,
+                    useRealDelay = false,
+                    concurrency = realPingConcurrency,
+                    delayUrl = delayTestUrl,
+                    chainConfig = repository::chainProbeConfig,
+
+                    clearPings = { repository.clearPings(it, persist = false) },
+                    detectCountry = detectServerLocation,
+                    onResult = { id, ms, cc -> repository.setPing(id, ms, cc, persist = false) },
+                    flush = { repository.flushProfiles() },
+
+                    onFinished = { if (autoSortAfterTest) repository.sortByTestResults() },
+                )
+            },
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(Res.string.ping_real_all)) },
+            onClick = {
+                pingMenu = false
+                PingCoordinator.start(
+                    profiles = shown,
+                    useRealDelay = true,
+                    concurrency = realPingConcurrency,
+                    delayUrl = delayTestUrl,
+                    chainConfig = repository::chainProbeConfig,
+
+                    clearPings = { repository.clearPings(it, persist = false) },
+                    detectCountry = detectServerLocation,
+                    onResult = { id, ms, cc -> repository.setPing(id, ms, cc, persist = false) },
+                    flush = { repository.flushProfiles() },
+
+                    onFinished = { if (autoSortAfterTest) repository.sortByTestResults() },
+                )
+            },
+        )
+    }
+    val overflowItems: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit = {
+        DropdownMenuItem(
+            text = { Text(stringResource(Res.string.subs_update_all)) },
+            leadingIcon = { Icon(painterResource(Res.drawable.ic_schedule), null) },
+            enabled = subscriptions.isNotEmpty() && !updating,
+            onClick = {
+                overflowOpen = false
+                updating = true
+
+                scope.launch(kotlinx.coroutines.Dispatchers.Default) {
+                    val n = repository.updateAllSubscriptions()
+
+                    if (autoTestAfterUpdate) {
+                        val all = repository.profiles.value
+                        repository.clearPings(all.map { it.id }, persist = false)
+                        PingService.measureAll(
+                            all,
+                            useRealDelay = true,
+                            concurrency = realPingConcurrency,
+                            delayUrl = delayTestUrl,
+                            chainConfig = repository::chainProbeConfig,
+                            detectCountry = detectServerLocation,
+                        ) { id, ms, cc ->
+                            repository.setPing(id, ms, cc, persist = false)
+                        }
+                        repository.flushProfiles()
+                        if (autoRemoveInvalidAfterTest) repository.removeInvalid()
+                        if (autoSortAfterTest) repository.sortByTestResults()
+                    }
+                    updating = false
+                    toastRes(Res.string.subs_updated, n)
+                }
+            },
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(Res.string.select_multiple)) },
+            leadingIcon = { Icon(painterResource(Res.drawable.ic_check_circle), null) },
+            enabled = shown.isNotEmpty(),
+            onClick = {
+                overflowOpen = false
+                selecting = true
+                selected = emptySet()
+            },
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(Res.string.sort_by_results)) },
+            leadingIcon = { Icon(painterResource(Res.drawable.ic_tune), null) },
+            onClick = {
+                overflowOpen = false
+                repository.sortByTestResults()
+            },
+        )
+        HorizontalDivider()
+        DropdownMenuItem(
+            text = { Text(stringResource(Res.string.del_duplicates)) },
+            leadingIcon = { Icon(painterResource(Res.drawable.ic_delete), null) },
+            onClick = {
+                overflowOpen = false
+                val n = repository.removeDuplicates()
+                toastRes(Res.string.removed_count, n)
+            },
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(Res.string.del_invalid)) },
+            leadingIcon = { Icon(painterResource(Res.drawable.ic_delete), null) },
+            onClick = {
+                overflowOpen = false
+
+                confirmDeleteInvalid = repository.invalidCount()
+            },
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(Res.string.export_all)) },
+            leadingIcon = { Icon(painterResource(Res.drawable.ic_ios_share), null) },
+            onClick = {
+                overflowOpen = false
+                val payload = repository.exportAllPayloads()
+                if (payload.isBlank()) {
+                    toastRes(Res.string.nothing_to_export)
+                } else {
+                    platform.shareText(payload)
+                }
+            },
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(Res.string.del_all)) },
+            leadingIcon = { Icon(painterResource(Res.drawable.ic_delete), null) },
+            onClick = {
+                overflowOpen = false
+                confirmDeleteAll = true
+            },
+        )
+    }
+
     Box(modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().padding(top = contentPadding.calculateTopPadding())) {
             Spacer(Modifier.height(8.dp))
-            Row(
+            if (bento) {
+                dev.cluvex.zedsecure.ui.bento.BentoTopBar(title = stringResource(Res.string.nav_servers)) {
+                    Box {
+                        if (testing) {
+                            dev.cluvex.zedsecure.ui.bento.BentoIconButton(
+                                Res.drawable.ic_close,
+                                stringResource(Res.string.ping_stop),
+                                { PingCoordinator.cancel() },
+                            )
+                        } else {
+                            dev.cluvex.zedsecure.ui.bento.BentoIconButton(
+                                Res.drawable.ic_speed,
+                                stringResource(Res.string.ping_test),
+                                { pingMenu = true },
+                                modifier = Modifier.tourTarget(TourTargets.SERVERS_PING),
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = pingMenu,
+                            onDismissRequest = { pingMenu = false },
+                            shape = MaterialTheme.shapes.largeIncreased,
+                        ) {
+                            pingMenuItems()
+                        }
+                    }
+                    Box {
+                        dev.cluvex.zedsecure.ui.bento.BentoIconButton(
+                            Res.drawable.ic_more_vert,
+                            stringResource(Res.string.servers_actions),
+                            { overflowOpen = true },
+                            modifier = Modifier.tourTarget(TourTargets.SERVERS_MORE),
+                        )
+                        DropdownMenu(
+                            expanded = overflowOpen,
+                            onDismissRequest = { overflowOpen = false },
+                            shape = MaterialTheme.shapes.largeIncreased,
+                        ) {
+                            overflowItems()
+                        }
+                    }
+                    dev.cluvex.zedsecure.ui.bento.MotifButton(
+                        shape = androidx.compose.material3.MaterialShapes.Clover4Leaf,
+                        container = dev.cluvex.zedsecure.ui.bento.Bento.colors.lime,
+                        content = dev.cluvex.zedsecure.ui.bento.Bento.colors.onLime,
+                        icon = Res.drawable.ic_add,
+                        label = stringResource(Res.string.servers_add),
+                        onClick = { showAddSheet = true },
+                        onLongClick = { importFromClipboard() },
+                        modifier = Modifier.tourTarget(TourTargets.SERVERS_ADD),
+                    )
+                }
+                if (servers.isNotEmpty()) {
+                    dev.cluvex.zedsecure.ui.bento.BentoSearchField(
+                        value = query,
+                        onValueChange = { query = it },
+                        placeholder = stringResource(Res.string.bento_search_servers),
+                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp),
+                    )
+                }
+            } else Row(
                 Modifier.fillMaxWidth().padding(end = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -492,45 +700,7 @@ fun ServersScreen(
                         onDismissRequest = { pingMenu = false },
                         shape = MaterialTheme.shapes.largeIncreased,
                     ) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(Res.string.ping_tcp_all)) },
-                            onClick = {
-                                pingMenu = false
-
-                                PingCoordinator.start(
-                                    profiles = shown,
-                                    useRealDelay = false,
-                                    concurrency = realPingConcurrency,
-                                    delayUrl = delayTestUrl,
-                                    chainConfig = repository::chainProbeConfig,
-
-                                    clearPings = { repository.clearPings(it, persist = false) },
-                                    onResult = { id, ms, cc -> repository.setPing(id, ms, cc, persist = false) },
-                                    flush = { repository.flushProfiles() },
-
-                                    onFinished = { if (autoSortAfterTest) repository.sortByTestResults() },
-                                )
-                            },
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(Res.string.ping_real_all)) },
-                            onClick = {
-                                pingMenu = false
-                                PingCoordinator.start(
-                                    profiles = shown,
-                                    useRealDelay = true,
-                                    concurrency = realPingConcurrency,
-                                    delayUrl = delayTestUrl,
-                                    chainConfig = repository::chainProbeConfig,
-
-                                    clearPings = { repository.clearPings(it, persist = false) },
-                                    onResult = { id, ms, cc -> repository.setPing(id, ms, cc, persist = false) },
-                                    flush = { repository.flushProfiles() },
-
-                                    onFinished = { if (autoSortAfterTest) repository.sortByTestResults() },
-                                )
-                            },
-                        )
+                        pingMenuItems()
                     }
                 }
 
@@ -588,96 +758,7 @@ fun ServersScreen(
                         onDismissRequest = { overflowOpen = false },
                         shape = MaterialTheme.shapes.largeIncreased,
                     ) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(Res.string.subs_update_all)) },
-                            leadingIcon = { Icon(painterResource(Res.drawable.ic_schedule), null) },
-                            enabled = subscriptions.isNotEmpty() && !updating,
-                            onClick = {
-                                overflowOpen = false
-                                updating = true
-
-                                scope.launch(kotlinx.coroutines.Dispatchers.Default) {
-                                    val n = repository.updateAllSubscriptions()
-
-                                    if (autoTestAfterUpdate) {
-                                        val all = repository.profiles.value
-                                        repository.clearPings(all.map { it.id }, persist = false)
-                                        PingService.measureAll(
-                                            all,
-                                            useRealDelay = true,
-                                            concurrency = realPingConcurrency,
-                                            delayUrl = delayTestUrl,
-                                            chainConfig = repository::chainProbeConfig,
-                                        ) { id, ms, cc ->
-                                            repository.setPing(id, ms, cc, persist = false)
-                                        }
-                                        repository.flushProfiles()
-                                        if (autoRemoveInvalidAfterTest) repository.removeInvalid()
-                                        if (autoSortAfterTest) repository.sortByTestResults()
-                                    }
-                                    updating = false
-                                    toastRes(Res.string.subs_updated, n)
-                                }
-                            },
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(Res.string.select_multiple)) },
-                            leadingIcon = { Icon(painterResource(Res.drawable.ic_check_circle), null) },
-                            enabled = shown.isNotEmpty(),
-                            onClick = {
-                                overflowOpen = false
-                                selecting = true
-                                selected = emptySet()
-                            },
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(Res.string.sort_by_results)) },
-                            leadingIcon = { Icon(painterResource(Res.drawable.ic_tune), null) },
-                            onClick = {
-                                overflowOpen = false
-                                repository.sortByTestResults()
-                            },
-                        )
-                        HorizontalDivider()
-                        DropdownMenuItem(
-                            text = { Text(stringResource(Res.string.del_duplicates)) },
-                            leadingIcon = { Icon(painterResource(Res.drawable.ic_delete), null) },
-                            onClick = {
-                                overflowOpen = false
-                                val n = repository.removeDuplicates()
-                                toastRes(Res.string.removed_count, n)
-                            },
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(Res.string.del_invalid)) },
-                            leadingIcon = { Icon(painterResource(Res.drawable.ic_delete), null) },
-                            onClick = {
-                                overflowOpen = false
-
-                                confirmDeleteInvalid = repository.invalidCount()
-                            },
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(Res.string.export_all)) },
-                            leadingIcon = { Icon(painterResource(Res.drawable.ic_ios_share), null) },
-                            onClick = {
-                                overflowOpen = false
-                                val payload = repository.exportAllPayloads()
-                                if (payload.isBlank()) {
-                                    toastRes(Res.string.nothing_to_export)
-                                } else {
-                                    platform.shareText(payload)
-                                }
-                            },
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(Res.string.del_all)) },
-                            leadingIcon = { Icon(painterResource(Res.drawable.ic_delete), null) },
-                            onClick = {
-                                overflowOpen = false
-                                confirmDeleteAll = true
-                            },
-                        )
+                        overflowItems()
                     }
                 }
             }
@@ -702,6 +783,16 @@ fun ServersScreen(
                 }
             }
 
+            if (subscriptions.isEmpty() && bento) {
+                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
+                    dev.cluvex.zedsecure.ui.bento.BentoChip(
+                        label = stringResource(Res.string.subs_title),
+                        selected = false,
+                        onClick = { showSubs = true },
+                        modifier = Modifier.tourTarget(TourTargets.SERVERS_SUBS),
+                    )
+                }
+            }
             if (subscriptions.isNotEmpty()) {
                 val counts = remember(servers) { servers.groupingBy { it.subscriptionId }.eachCount() }
 
@@ -733,6 +824,16 @@ fun ServersScreen(
                             selected = groupIndex == 1,
                             onClick = { groupIndex = 1 },
                         )
+                    }
+                    if (bento) {
+                        item(key = "group-subs") {
+                            dev.cluvex.zedsecure.ui.bento.BentoChip(
+                                label = stringResource(Res.string.subs_title),
+                                selected = false,
+                                onClick = { showSubs = true },
+                                modifier = Modifier.tourTarget(TourTargets.SERVERS_SUBS),
+                            )
+                        }
                     }
                     itemsIndexed(subscriptions, key = { _, sub -> sub.id }) { index, sub ->
                         var menuOpen by remember { mutableStateOf(false) }
@@ -863,66 +964,113 @@ fun ServersScreen(
                 )
             } else {
                 val gridPadding = PaddingValues(
-                    start = 20.dp,
-                    end = 20.dp,
-                    bottom = contentPadding.calculateBottomPadding() + 88.dp,
+                    start = if (bento) 16.dp else 20.dp,
+                    end = if (bento) 16.dp else 20.dp,
+                    top = if (bento) 4.dp else 0.dp,
+                    bottom = contentPadding.calculateBottomPadding() + if (bento) 16.dp else 88.dp,
                 )
 
-                val card: @Composable (VpnProfile) -> Unit = { profile ->
-                    ServerCard(
-                        modifier = if (twoColumns) Modifier.fillMaxHeight() else Modifier,
-                        profile = profile,
-                        active = profile.id == activeId,
-                        personalization = personalization,
-                        subscriptionName = subscriptions
-                            .firstOrNull { it.id == profile.subscriptionId }?.name,
-                        selecting = selecting,
-                        isSelected = profile.id in selected,
-                        onClick = {
-                            if (selecting) {
-                                selected = if (profile.id in selected) selected - profile.id
-                                else selected + profile.id
+                val card: @Composable (VpnProfile, Int, Int) -> Unit = { profile, position, count ->
+                    val onCardClick = {
+                        if (selecting) {
+                            selected = if (profile.id in selected) selected - profile.id
+                            else selected + profile.id
+                        } else {
+                            repository.setActive(profile.id)
+                            onServerActivated()
+                        }
+                    }
+                    val shareLink = runCatching { repository.shareLinkOf(profile) }.getOrNull()
+                    val onShare = {
+                        val pl = runCatching { repository.shareLinkOf(profile) }.getOrNull()
+                        if (pl == null) platform.toast(lockedCannotShare) else platform.shareText(pl)
+                    }
+                    val onShareQr = {
+                        qrTarget = runCatching { repository.shareLinkOf(profile) }.getOrNull()
+                            ?.let { profile.name to it }
+                    }
+                    val onRename = { renameTarget = profile }
+                    val onEdit = { editTarget = profile }
+                    val onMoveGroup = { moveTarget = profile }
+                    val onPingTcp: () -> Unit = {
+                        scope.launch(kotlinx.coroutines.Dispatchers.Default) {
+                            repository.clearPings(listOf(profile.id), persist = false)
+                            val ms = PingService.tcpPing(profile.address, profile.port)
+                            val cc = if (ms > 0 && detectServerLocation) GeoLookup.countryOf(profile.address) else null
+                            repository.setPing(profile.id, if (ms > 0) ms.toInt() else PingService.FAILED_PING, cc)
+                        }
+                    }
+                    val onPingReal: () -> Unit = {
+                        scope.launch(kotlinx.coroutines.Dispatchers.Default) {
+                            repository.clearPings(listOf(profile.id), persist = false)
+                            val ms = PingService.realDelay(
+                                profile,
+                                url = delayTestUrl.ifBlank { dev.cluvex.zedsecure.data.net.NetworkInfoRepository.DELAY_TEST_URL },
+                            )
+                            val cc = if (ms > 0 && detectServerLocation) GeoLookup.countryOf(profile.address) else null
+                            repository.setPing(profile.id, if (ms > 0) ms.toInt() else PingService.FAILED_PING, cc)
+                        }
+                    }
+                    val onDelete = {
+                        if (confirmRemove) deleteTarget = profile else repository.remove(profile.id)
+                    }
+                    val subscriptionName = subscriptions.firstOrNull { it.id == profile.subscriptionId }?.name
+                    if (bento) {
+                        val typeLabel = if (profile.isCustom) stringResource(Res.string.servers_custom_config) else profile.transportLabel
+                        dev.cluvex.zedsecure.ui.bento.BentoServerRow(
+                            name = profile.name,
+                            detail = if (groupIndex == 0 && subscriptionName != null) {
+                                typeLabel.removeSuffix(" · sing-box") + " · " + subscriptionName +
+                                    if (typeLabel.endsWith(" · sing-box")) " · sing-box" else ""
                             } else {
-                                repository.setActive(profile.id)
-                                onServerActivated()
-                            }
-                        },
-
-                        shareLink = runCatching { repository.shareLinkOf(profile) }.getOrNull(),
-                        onShare = {
-                            val pl = runCatching { repository.shareLinkOf(profile) }.getOrNull()
-                            if (pl == null) platform.toast(lockedCannotShare) else platform.shareText(pl)
-                        },
-                        onShareQr = {
-                            qrTarget = runCatching { repository.shareLinkOf(profile) }.getOrNull()
-                                ?.let { profile.name to it }
-                        },
-                        onRename = { renameTarget = profile },
-                        onEdit = { editTarget = profile },
-                        onMoveGroup = { moveTarget = profile },
-                        onPingTcp = {
-                            scope.launch(kotlinx.coroutines.Dispatchers.Default) {
-                                repository.clearPings(listOf(profile.id), persist = false)
-                                val ms = PingService.tcpPing(profile.address, profile.port)
-                                val cc = if (ms > 0) GeoLookup.countryOf(profile.address) else null
-                                repository.setPing(profile.id, if (ms > 0) ms.toInt() else PingService.FAILED_PING, cc)
-                            }
-                        },
-                        onPingReal = {
-                            scope.launch(kotlinx.coroutines.Dispatchers.Default) {
-                                repository.clearPings(listOf(profile.id), persist = false)
-                                val ms = PingService.realDelay(
-                                    profile,
-                                    url = delayTestUrl.ifBlank { dev.cluvex.zedsecure.data.net.NetworkInfoRepository.DELAY_TEST_URL },
-                                )
-                                val cc = if (ms > 0) GeoLookup.countryOf(profile.address) else null
-                                repository.setPing(profile.id, if (ms > 0) ms.toInt() else PingService.FAILED_PING, cc)
-                            }
-                        },
-                        onDelete = {
-                            if (confirmRemove) deleteTarget = profile else repository.remove(profile.id)
-                        },
-                    )
+                                typeLabel
+                            },
+                            country = dev.cluvex.zedsecure.domain.config.ProfileCountry.of(profile),
+                            pingMs = profile.lastPingMs,
+                            showPing = personalization.showServerPing,
+                            active = profile.id == activeId,
+                            selecting = selecting,
+                            selected = profile.id in selected,
+                            shape = if (twoColumns) dev.cluvex.zedsecure.ui.bento.BentoShapes.small()
+                            else dev.cluvex.zedsecure.ui.bento.BentoShapes.row(position, count),
+                            onClick = onCardClick,
+                            modifier = if (twoColumns) Modifier.fillMaxHeight() else Modifier,
+                        ) { close ->
+                            ServerMenuItems(
+                                profile = profile,
+                                shareLink = shareLink,
+                                onShare = onShare,
+                                onShareQr = onShareQr,
+                                onEdit = onEdit,
+                                onRename = onRename,
+                                onMoveGroup = onMoveGroup,
+                                onPingTcp = onPingTcp,
+                                onPingReal = onPingReal,
+                                onDelete = onDelete,
+                                close = close,
+                            )
+                        }
+                    } else {
+                        ServerCard(
+                            modifier = if (twoColumns) Modifier.fillMaxHeight() else Modifier,
+                            profile = profile,
+                            active = profile.id == activeId,
+                            personalization = personalization,
+                            subscriptionName = subscriptionName,
+                            selecting = selecting,
+                            isSelected = profile.id in selected,
+                            onClick = onCardClick,
+                            shareLink = shareLink,
+                            onShare = onShare,
+                            onShareQr = onShareQr,
+                            onRename = onRename,
+                            onEdit = onEdit,
+                            onMoveGroup = onMoveGroup,
+                            onPingTcp = onPingTcp,
+                            onPingReal = onPingReal,
+                            onDelete = onDelete,
+                        )
+                    }
                 }
 
                 val gridState = rememberLazyGridState()
@@ -942,9 +1090,23 @@ fun ServersScreen(
                         columns = GridCells.Fixed(if (twoColumns) 2 else 1),
                         modifier = Modifier.fillMaxSize().then(groupSwipe).mouseDragScrollVertical(gridState),
                         contentPadding = gridPadding,
-                        horizontalArrangement = Arrangement.spacedBy(personalization.density.gapDp.dp),
-                        verticalArrangement = Arrangement.spacedBy(personalization.density.gapDp.dp),
+                        horizontalArrangement = Arrangement.spacedBy(if (bento) 8.dp else personalization.density.gapDp.dp),
+                        verticalArrangement = Arrangement.spacedBy(if (bento && !twoColumns) 2.dp else if (bento) 8.dp else personalization.density.gapDp.dp),
                     ) {
+                        if (bento && openSubscription != null) {
+                            item(key = "provider-${openSubscription.id}", span = { GridItemSpan(maxLineSpan) }) {
+                                dev.cluvex.zedsecure.ui.bento.BentoProviderCard(
+                                    sub = openSubscription,
+                                    serverCount = shown.size,
+                                    updatedAgo = dev.cluvex.zedsecure.ui.bento.bentoUpdatedAgo(openSubscription.lastUpdated),
+                                    updating = updatingSubId == openSubscription.id,
+                                    onUpdate = { updateSubscription(openSubscription) },
+                                    onManage = { showSubs = true },
+                                    onOpenUrl = { platform.openUri(it) },
+                                    modifier = Modifier.padding(bottom = 8.dp),
+                                )
+                            }
+                        }
                         if (autoMembers.size >= 2) {
                             item(key = "auto-select", span = { GridItemSpan(maxLineSpan) }) {
                                 AutoSelectCard(
@@ -959,10 +1121,16 @@ fun ServersScreen(
                                     },
                                     onDetails = { showAutoSheet = true },
                                     personalization = personalization,
+                                    modifier = if (bento) Modifier.padding(bottom = 8.dp) else Modifier,
                                 )
                             }
                         }
-                        gridItemsIndexed(order, key = { _, p -> p.id }) { position, profile ->
+                        val needle = query.trim().lowercase()
+                        val visibleOrder = if (needle.isEmpty()) order else order.filter { p ->
+                            p.name.lowercase().contains(needle) || p.address.lowercase().contains(needle) ||
+                                p.transportLabel.lowercase().contains(needle) || p.protocol.lowercase().contains(needle)
+                        }
+                        gridItemsIndexed(visibleOrder, key = { _, p -> p.id }) { position, profile ->
                             ReorderableItem(reorderState, key = profile.id) {
                                 Box(
 
@@ -973,13 +1141,13 @@ fun ServersScreen(
                                         .then(if (position == 0) Modifier.tourTarget(TourTargets.SERVER_CARD) else Modifier)
                                         .then(
 
-                                            if (selecting) Modifier
+                                            if (selecting || needle.isNotEmpty()) Modifier
                                             else Modifier.longPressDraggableHandle(
                                                 onDragStopped = { repository.reorder(order.map { it.id }) },
                                             ),
                                         ),
                                 ) {
-                                    card(profile)
+                                    card(profile, position, visibleOrder.size)
                                 }
                             }
                         }
@@ -1016,7 +1184,7 @@ fun ServersScreen(
             )
         }
 
-        Column(
+        if (!bento) Column(
             horizontalAlignment = Alignment.End,
             verticalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier
@@ -1817,6 +1985,17 @@ private fun GroupTab(
     onClick: () -> Unit,
     onMenu: (() -> Unit)? = null,
 ) {
+    if (dev.cluvex.zedsecure.ui.bento.Bento.active) {
+        dev.cluvex.zedsecure.ui.bento.BentoChip(
+            label = label,
+            selected = selected,
+            onClick = onClick,
+            onLongClick = onMenu,
+            trailing = count.toString(),
+            modifier = if (onMenu != null) Modifier.onSecondaryClick(onMenu) else Modifier,
+        )
+        return
+    }
     Surface(
         shape = RoundedCornerShape(50),
         color = if (selected) MaterialTheme.colorScheme.primary
@@ -1972,55 +2151,18 @@ private fun ServerCard(
                     onDismissRequest = { menuOpen = false },
                     shape = MaterialTheme.shapes.largeIncreased,
                 ) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(Res.string.action_share)) },
-                        leadingIcon = { Icon(painterResource(Res.drawable.ic_ios_share), null) },
-
-                        enabled = shareLink != null,
-                        onClick = { menuOpen = false; onShare() },
-                    )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(Res.string.action_share_qr)) },
-                        leadingIcon = { Icon(painterResource(Res.drawable.ic_qr_code_2), null) },
-                        enabled = shareLink != null,
-                        onClick = { menuOpen = false; onShareQr() },
-                    )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(Res.string.action_edit)) },
-                        leadingIcon = { Icon(painterResource(Res.drawable.ic_edit), null) },
-                        enabled = profile.isEditable,
-                        onClick = { menuOpen = false; onEdit() },
-                    )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(Res.string.servers_rename)) },
-                        leadingIcon = { Icon(painterResource(Res.drawable.ic_description), null) },
-                        onClick = { menuOpen = false; onRename() },
-                    )
-                    onMoveGroup?.let { move ->
-                        DropdownMenuItem(
-                            text = { Text(stringResource(Res.string.groups_move)) },
-                            leadingIcon = { Icon(painterResource(Res.drawable.ic_add_link), null) },
-                            onClick = { menuOpen = false; move() },
-                        )
-                    }
-
-                    if ((!profile.isManagedTunnel || profile.isSingBoxConfig) && !profile.isDnsBasedTunnel) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(Res.string.ping_tcp)) },
-                            leadingIcon = { Icon(painterResource(Res.drawable.ic_speed), null) },
-                            onClick = { menuOpen = false; onPingTcp() },
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(Res.string.ping_real)) },
-                            leadingIcon = { Icon(painterResource(Res.drawable.ic_bolt), null) },
-                            onClick = { menuOpen = false; onPingReal() },
-                        )
-                    }
-                    HorizontalDivider()
-                    DropdownMenuItem(
-                        text = { Text(stringResource(Res.string.action_delete)) },
-                        leadingIcon = { Icon(painterResource(Res.drawable.ic_delete), null) },
-                        onClick = { menuOpen = false; onDelete() },
+                    ServerMenuItems(
+                        profile = profile,
+                        shareLink = shareLink,
+                        onShare = onShare,
+                        onShareQr = onShareQr,
+                        onEdit = onEdit,
+                        onRename = onRename,
+                        onMoveGroup = onMoveGroup,
+                        onPingTcp = onPingTcp,
+                        onPingReal = onPingReal,
+                        onDelete = onDelete,
+                        close = { menuOpen = false },
                     )
                 }
             }
@@ -2399,4 +2541,70 @@ private fun singBoxFormLinkOf(profile: VpnProfile): String? {
     if (!dev.cluvex.zedsecure.domain.config.SingBoxLinks.formEditable(outbound)) return null
     val tag = (outbound["tag"] as? kotlinx.serialization.json.JsonPrimitive)?.content ?: profile.name
     return dev.cluvex.zedsecure.domain.config.SingBoxLinks.build(outbound, tag)
+}
+
+@Composable
+private fun androidx.compose.foundation.layout.ColumnScope.ServerMenuItems(
+    profile: VpnProfile,
+    shareLink: String?,
+    onShare: () -> Unit,
+    onShareQr: () -> Unit,
+    onEdit: () -> Unit,
+    onRename: () -> Unit,
+    onMoveGroup: (() -> Unit)?,
+    onPingTcp: () -> Unit,
+    onPingReal: () -> Unit,
+    onDelete: () -> Unit,
+    close: () -> Unit,
+) {
+    DropdownMenuItem(
+        text = { Text(stringResource(Res.string.action_share)) },
+        leadingIcon = { Icon(painterResource(Res.drawable.ic_ios_share), null) },
+
+        enabled = shareLink != null,
+        onClick = { close(); onShare() },
+    )
+    DropdownMenuItem(
+        text = { Text(stringResource(Res.string.action_share_qr)) },
+        leadingIcon = { Icon(painterResource(Res.drawable.ic_qr_code_2), null) },
+        enabled = shareLink != null,
+        onClick = { close(); onShareQr() },
+    )
+    DropdownMenuItem(
+        text = { Text(stringResource(Res.string.action_edit)) },
+        leadingIcon = { Icon(painterResource(Res.drawable.ic_edit), null) },
+        enabled = profile.isEditable,
+        onClick = { close(); onEdit() },
+    )
+    DropdownMenuItem(
+        text = { Text(stringResource(Res.string.servers_rename)) },
+        leadingIcon = { Icon(painterResource(Res.drawable.ic_description), null) },
+        onClick = { close(); onRename() },
+    )
+    onMoveGroup?.let { move ->
+        DropdownMenuItem(
+            text = { Text(stringResource(Res.string.groups_move)) },
+            leadingIcon = { Icon(painterResource(Res.drawable.ic_add_link), null) },
+            onClick = { close(); move() },
+        )
+    }
+
+    if ((!profile.isManagedTunnel || profile.isSingBoxConfig) && !profile.isDnsBasedTunnel) {
+        DropdownMenuItem(
+            text = { Text(stringResource(Res.string.ping_tcp)) },
+            leadingIcon = { Icon(painterResource(Res.drawable.ic_speed), null) },
+            onClick = { close(); onPingTcp() },
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(Res.string.ping_real)) },
+            leadingIcon = { Icon(painterResource(Res.drawable.ic_bolt), null) },
+            onClick = { close(); onPingReal() },
+        )
+    }
+    HorizontalDivider()
+    DropdownMenuItem(
+        text = { Text(stringResource(Res.string.action_delete)) },
+        leadingIcon = { Icon(painterResource(Res.drawable.ic_delete), null) },
+        onClick = { close(); onDelete() },
+    )
 }

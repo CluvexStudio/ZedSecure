@@ -29,6 +29,7 @@ object PingCoordinator {
         delayUrl: String,
         chainConfig: (VpnProfile) -> String?,
         clearPings: (List<String>) -> Unit,
+        detectCountry: Boolean = false,
         onResult: (id: String, ms: Int?, countryCode: String?) -> Unit,
         flush: () -> Unit,
 
@@ -46,6 +47,7 @@ object PingCoordinator {
                     concurrency = concurrency,
                     delayUrl = delayUrl,
                     chainConfig = chainConfig,
+                    detectCountry = detectCountry,
                     onProgress = { done, total ->
                         if (mine == generation) _progress.value = Progress(done, total, useRealDelay)
                     },

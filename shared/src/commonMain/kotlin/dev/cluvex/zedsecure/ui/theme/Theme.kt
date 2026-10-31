@@ -19,6 +19,11 @@ import com.materialkolor.dynamicColorScheme
 import com.materialkolor.dynamiccolor.ColorSpec
 import com.materialkolor.ktx.animateColorScheme
 import dev.cluvex.zedsecure.domain.model.AppDesign
+import dev.cluvex.zedsecure.domain.model.BentoPrefs
+import dev.cluvex.zedsecure.ui.bento.BentoPalettes
+import dev.cluvex.zedsecure.ui.bento.BentoStyle
+import dev.cluvex.zedsecure.ui.bento.LocalBentoStyle
+import dev.cluvex.zedsecure.ui.bento.bentoColorScheme
 import dev.cluvex.zedsecure.domain.model.ColorContrast
 import dev.cluvex.zedsecure.domain.model.ColorStyle
 
@@ -35,7 +40,9 @@ fun ZedSecureTheme(
     colorContrast: ColorContrast = ColorContrast.Standard,
     animateColors: Boolean = true,
 
-    design: AppDesign = AppDesign.Pixel,
+    design: AppDesign = AppDesign.Bento,
+
+    bento: BentoPrefs = BentoPrefs(),
 
     languageTag: String = "en",
 
@@ -43,8 +50,17 @@ fun ZedSecureTheme(
     content: @Composable () -> Unit,
 ) {
     val system = if (dynamicColor) dynamicColorSchemeOrNull(darkTheme) else null
-    val scheme = (system ?: rememberZedColorScheme(darkTheme, accentColor, colorStyle, colorContrast))
-        .let { if (amoledBlack) it.amoled(darkTheme) else it }
+    val bentoSeed = system?.primary ?: accentSeed(accentColor)
+    val bentoColors = remember(bento.palette, darkTheme, bentoSeed, amoledBlack) {
+        BentoPalettes.of(bento.palette, darkTheme, bentoSeed, amoledBlack)
+    }
+    val scheme = if (design == AppDesign.Bento) {
+        remember(bentoColors) { bentoColorScheme(bentoColors) }
+    } else {
+        (system ?: rememberZedColorScheme(darkTheme, accentColor, colorStyle, colorContrast))
+            .let { if (amoledBlack) it.amoled(darkTheme) else it }
+    }
+    val bentoStyle = remember(bentoColors, bento, languageTag) { BentoStyle(bentoColors, bento, latin = languageTag != "fa") }
     val colorScheme = if (animateColors) {
         animateColorScheme(scheme, animationSpec = { spring(stiffness = Spring.StiffnessMediumLow) })
     } else {
@@ -61,7 +77,12 @@ fun ZedSecureTheme(
         shapes = ZedShapes,
         typography = typographyFor(languageTag, design),
     ) {
-        CompositionLocalProvider(LocalDensity provides scaled, LocalAppDesign provides design, content = content)
+        CompositionLocalProvider(
+            LocalDensity provides scaled,
+            LocalAppDesign provides design,
+            LocalBentoStyle provides bentoStyle,
+            content = content,
+        )
     }
 }
 
@@ -111,7 +132,7 @@ val ColorStyle.palette: PaletteStyle
         ColorStyle.Monochrome -> PaletteStyle.Monochrome
     }
 
-val LocalAppDesign = staticCompositionLocalOf { AppDesign.Pixel }
+val LocalAppDesign = staticCompositionLocalOf { AppDesign.Bento }
 
 @Composable
 expect fun dynamicColorSchemeOrNull(darkTheme: Boolean): ColorScheme?

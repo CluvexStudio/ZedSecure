@@ -43,6 +43,10 @@ fun PageHeader(
 
     singleLine: Boolean = false,
 ) {
+    if (dev.cluvex.zedsecure.ui.bento.Bento.active) {
+        dev.cluvex.zedsecure.ui.bento.BentoPageHeader(title = title, subtitle = subtitle, art = null, modifier = modifier)
+        return
+    }
     Column(modifier.fillMaxWidth().padding(horizontal = 22.dp)) {
         PageBackButton()
         androidx.compose.foundation.layout.BoxWithConstraints {

@@ -87,10 +87,14 @@ class ZedVpnService : VpnService() {
     private var connected = false
 
     private var proxyOnly = false
+    private var localAuth: dev.cluvex.zedsecure.domain.config.LocalProxyAuth.Credentials? = null
 
     private var autoSelectSession = false
     private var networkWatch: android.net.ConnectivityManager.NetworkCallback? = null
     private var networkTypeWatch: android.net.ConnectivityManager.NetworkCallback? = null
+    private var underlyingWatch: android.net.ConnectivityManager.NetworkCallback? = null
+    @Volatile private var underlyingNetwork: android.net.Network? = null
+    private var underlyingJob: kotlinx.coroutines.Job? = null
     private var networkTypeJob: Job? = null
     @Volatile private var builtNetworkType: String? = null
     @Volatile private var swappingCore = false
@@ -232,6 +236,12 @@ class ZedVpnService : VpnService() {
         localProxyPort = settings.effectiveLocalProxyPort
         hevLogLevel = settings.hevTunLogLevel.value
         hevRwTimeout = settings.hevTunRwTimeout
+        localAuth = if (!proxyOnly && settings.localProxyAuth) {
+            localAuth ?: dev.cluvex.zedsecure.domain.config.LocalProxyAuth.begin()
+        } else {
+            dev.cluvex.zedsecure.domain.config.LocalProxyAuth.end()
+            null
+        }
 
         if (proxyOnly) {
             if (kind == VpnManager.KIND_XRAY) { startProxyOnly(configJson, socksPort); return }
@@ -342,7 +352,7 @@ class ZedVpnService : VpnService() {
                 writeProxyOutbound(xray, "127.0.0.1", listenPort)
 
                 val port = freePairFor(socksPort)
-                if (!XrayController.start(XrayJsonBuilder.withLocalPorts(xray.toString(), LocalPorts.XRAY_SOCKS, port))) {
+                if (!XrayController.start(ported(xray.toString(), port))) {
                     VpnManager.onError(coreStartError())
                     stopEverything(); return@launch
                 }
@@ -614,9 +624,10 @@ class ZedVpnService : VpnService() {
         singBox = engine
         singBoxLastUp = 0L
         singBoxLastDown = 0L
+        val securedJson = localAuth?.let { dev.cluvex.zedsecure.domain.config.LocalProxyAuth.secureSingBox(configJson, it) } ?: configJson
         scope.launch(kotlinx.coroutines.Dispatchers.IO) {
             try {
-                engine.start(configJson)
+                engine.start(securedJson)
             } catch (e: Exception) {
                 Log.e(TAG, "sing-box failed to start", e)
                 VpnManager.onError(engineFailed(R.string.engine_singbox_failed, e.message))
@@ -653,7 +664,7 @@ class ZedVpnService : VpnService() {
         killSwitchEnabled = false
         VpnManager.setActiveKind(kind)
         advance(VpnNotifications.Stage.Engine)
-        if (!XrayController.start(XrayJsonBuilder.withLocalPorts(configJson, LocalPorts.XRAY_SOCKS, socksPort))) {
+        if (!XrayController.start(ported(configJson, socksPort))) {
             VpnManager.onError(coreStartError())
             stopEverything()
             return
@@ -672,7 +683,7 @@ class ZedVpnService : VpnService() {
 
     private fun startXray(configJson: String, preferredPort: Int, descriptor: ParcelFileDescriptor, tunMtu: Int) {
         val socksPort = freePairFor(preferredPort)
-        if (!XrayController.start(XrayJsonBuilder.withLocalPorts(configJson, LocalPorts.XRAY_SOCKS, socksPort))) {
+        if (!XrayController.start(ported(configJson, socksPort))) {
             VpnManager.onError(coreStartError())
             stopEverything()
             return
@@ -682,6 +693,11 @@ class ZedVpnService : VpnService() {
         if (!bridge(descriptor, socksPort, tunMtu, pipeline = true)) return
         VpnManager.activeSocksPort = socksPort
         finishConnected()
+    }
+
+    private fun ported(json: String, port: Int): String {
+        val moved = XrayJsonBuilder.withLocalPorts(json, LocalPorts.XRAY_SOCKS, port)
+        return localAuth?.let { dev.cluvex.zedsecure.domain.config.LocalProxyAuth.secureXray(moved, it) } ?: moved
     }
 
     private fun freePairFor(preferred: Int): Int =
@@ -784,7 +800,7 @@ class ZedVpnService : VpnService() {
             .onFailure { Log.e(TAG, "the routing front could not be built", it) }
             .getOrNull()
         val port = freePairFor(localProxyPort)
-        if (front == null || !FrontCore.start(this, XrayJsonBuilder.withLocalPorts(front, LocalPorts.XRAY_SOCKS, port))) {
+        if (front == null || !FrontCore.start(this, ported(front, port))) {
             VpnManager.onError(coreStartError(FrontCore.lastError))
             stopEverything(); return
         }
@@ -814,6 +830,8 @@ class ZedVpnService : VpnService() {
                 ipv4 = hevIpv4,
                 ipv6 = hevIpv6,
                 preferIpv6 = hevIpv6 != null,
+                socksUser = localAuth?.user,
+                socksPass = localAuth?.pass,
                 pipeline = pipeline,
                 logLevel = hevLogLevel,
                 rwTimeout = hevRwTimeout,
@@ -828,6 +846,8 @@ class ZedVpnService : VpnService() {
                 mtu = tunMtu,
                 ipv4 = hevIpv4,
                 ipv6 = hevIpv6,
+                socksUser = localAuth?.user,
+                socksPass = localAuth?.pass,
                 pipeline = pipeline,
                 logLevel = hevLogLevel,
                 rwTimeout = hevRwTimeout,
@@ -925,6 +945,69 @@ class ZedVpnService : VpnService() {
         ZedWidgetProvider.refresh(this, force = true)
         startStatsLoop()
         watchNetworkType()
+        watchUnderlyingNetwork()
+    }
+
+    private fun watchUnderlyingNetwork() {
+        if (underlyingWatch != null || kind != VpnManager.KIND_XRAY) return
+        if (!SettingsRepository(this).settings.value.reconnectOnNetworkChange) return
+        val cm = getSystemService(android.net.ConnectivityManager::class.java) ?: return
+        underlyingNetwork = null
+        val callback = object : android.net.ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: android.net.Network) {
+                val previous = underlyingNetwork
+                underlyingNetwork = network
+                if (previous == null || previous == network) return
+                underlyingJob?.cancel()
+                underlyingJob = scope.launch {
+                    delay(NETWORK_SETTLE_MS)
+                    rebuildForNetworkChange()
+                }
+            }
+        }
+        runCatching { cm.registerDefaultNetworkCallback(callback) }
+            .onSuccess { underlyingWatch = callback }
+            .onFailure { Log.w(TAG, "network change watch unavailable", it) }
+    }
+
+    private fun stopUnderlyingWatch() {
+        underlyingJob?.cancel()
+        underlyingJob = null
+        underlyingWatch?.let { cb ->
+            runCatching { getSystemService(android.net.ConnectivityManager::class.java)?.unregisterNetworkCallback(cb) }
+        }
+        underlyingWatch = null
+        underlyingNetwork = null
+    }
+
+    private fun rebuildForNetworkChange() {
+        if (!connected || kind != VpnManager.KIND_XRAY || swappingCore || killSwitchActive || reconnecting) return
+        if (autoSelectSession) {
+            LogBus.append("I/Network: the network changed; auto-select keeps its own connections")
+            return
+        }
+        networkTypeJob?.cancel()
+        val plan = StartPlanner(this).planActive(allowProxyOnly = proxyOnly)
+        val sameSession = plan is StartPlanner.Plan.Start && plan.kind == VpnManager.KIND_XRAY &&
+            plan.proxyOnly == proxyOnly && plan.remark == remark &&
+            plan.socksPort == (VpnManager.activeSocksPort ?: plan.socksPort)
+        if (!sameSession) {
+            LogBus.append("W/Network: the network changed; reconnect to move the tunnel onto it")
+            return
+        }
+        swappingCore = true
+        val started = try {
+            (plan as StartPlanner.Plan.Start).let { XrayController.start(ported(it.configJson, it.socksPort)) }
+        } finally {
+            swappingCore = false
+        }
+        if (started) {
+            builtNetworkType = NetworkKind.current(this)
+            LogBus.append("I/Network: the network changed; the tunnel was rebuilt on the new one")
+        } else {
+            VpnManager.onError(coreStartError())
+            stopEverything()
+        }
     }
 
     private fun watchNetworkType() {
@@ -962,6 +1045,7 @@ class ZedVpnService : VpnService() {
 
     private fun rebuildForNetworkType(type: String) {
         if (!connected || kind != VpnManager.KIND_XRAY || autoSelectSession) return
+        underlyingJob?.cancel()
         val plan = StartPlanner(this).planActive(allowProxyOnly = proxyOnly)
         val sameSession = plan is StartPlanner.Plan.Start && plan.kind == VpnManager.KIND_XRAY &&
             plan.proxyOnly == proxyOnly && plan.remark == remark &&
@@ -973,7 +1057,7 @@ class ZedVpnService : VpnService() {
         }
         swappingCore = true
         val started = try {
-            (plan as StartPlanner.Plan.Start).let { XrayController.start(XrayJsonBuilder.withLocalPorts(it.configJson, LocalPorts.XRAY_SOCKS, it.socksPort)) }
+            (plan as StartPlanner.Plan.Start).let { XrayController.start(ported(it.configJson, it.socksPort)) }
         } finally {
             swappingCore = false
         }
@@ -1002,7 +1086,7 @@ class ZedVpnService : VpnService() {
         }
         swappingCore = true
         val started = try {
-            (plan as StartPlanner.Plan.Start).let { XrayController.start(XrayJsonBuilder.withLocalPorts(it.configJson, LocalPorts.XRAY_SOCKS, it.socksPort)) }
+            (plan as StartPlanner.Plan.Start).let { XrayController.start(ported(it.configJson, it.socksPort)) }
         } finally {
             swappingCore = false
         }
@@ -1283,6 +1367,7 @@ class ZedVpnService : VpnService() {
         geoReloadJob = null
         statsJob?.cancel()
         stopNetworkTypeWatch()
+        stopUnderlyingWatch()
         stopAutoSelectSession()
         psiphon?.stop(); psiphon = null
         dnsTunnel?.stop(); dnsTunnel = null
@@ -1322,6 +1407,8 @@ class ZedVpnService : VpnService() {
         }
         stopHoldWatch()
         reconnecting = false
+        localAuth = null
+        dev.cluvex.zedsecure.domain.config.LocalProxyAuth.end()
         val tunToClose = tun
         tun = null
         connected = false
@@ -1763,7 +1850,7 @@ class ZedVpnService : VpnService() {
                     VpnManager.onError(getString(R.string.config_invalid)); stopEverything(); return
                 }
                 val port = freePairFor(localProxyPort)
-                if (!XrayController.start(XrayJsonBuilder.withLocalPorts(patched, LocalPorts.XRAY_SOCKS, port))) {
+                if (!XrayController.start(ported(patched, port))) {
                     VpnManager.onError(coreStartError()); stopEverything(); return
                 }
 

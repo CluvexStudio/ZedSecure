@@ -56,10 +56,24 @@ object TunnelReadiness {
     }
 
     private fun socks5Connect(out: OutputStream, input: InputStream, host: String, port: Int): Boolean {
-        out.write(byteArrayOf(0x05, 0x01, 0x00))
+        val credentials = dev.cluvex.zedsecure.domain.config.LocalProxyAuth.current
+        out.write(if (credentials != null) byteArrayOf(0x05, 0x02, 0x00, 0x02) else byteArrayOf(0x05, 0x01, 0x00))
         out.flush()
         val greeting = input.readExactly(2) ?: return false
-        if (greeting[0] != 0x05.toByte() || greeting[1] != 0x00.toByte()) return false
+        if (greeting[0] != 0x05.toByte()) return false
+        when (greeting[1]) {
+            0x00.toByte() -> Unit
+            0x02.toByte() -> {
+                val auth = credentials ?: return false
+                val user = auth.user.toByteArray()
+                val pass = auth.pass.toByteArray()
+                out.write(byteArrayOf(0x01, user.size.toByte()) + user + byteArrayOf(pass.size.toByte()) + pass)
+                out.flush()
+                val reply = input.readExactly(2) ?: return false
+                if (reply[1] != 0x00.toByte()) return false
+            }
+            else -> return false
+        }
 
         val domain = host.toByteArray()
         val request = ByteArray(7 + domain.size)

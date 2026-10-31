@@ -15,7 +15,7 @@ import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.jsonPrimitive
 
 class DesktopSettings(private val store: KeyValueStore) {
-    private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
+    private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true; coerceInputValues = true }
 
     private val _settings = MutableStateFlow(load())
     val settings: StateFlow<AppSettings> = _settings.asStateFlow()
@@ -37,7 +37,7 @@ class DesktopSettings(private val store: KeyValueStore) {
                 settings
             }
         }
-        val current = if (store.getString(DEFAULTS_KEY) != DEFAULTS_VERSION) {
+        var current = if (store.getString(DEFAULTS_KEY) != DEFAULTS_VERSION) {
             val defaults = AppSettings()
             val moved = stored?.let {
                 it.copy(
@@ -55,6 +55,18 @@ class DesktopSettings(private val store: KeyValueStore) {
         } else {
             stored
         }
+        if (current != null && store.getString(DESIGN_KEY) != DESIGN_VERSION) {
+            val moved = if (current.appDesign == dev.cluvex.zedsecure.domain.model.AppDesign.Pixel || designWasPortal(raw)) {
+                current.copy(appDesign = dev.cluvex.zedsecure.domain.model.AppDesign.Bento)
+            } else {
+                current
+            }
+            runCatching {
+                if (moved != current) store.putString(KEY, json.encodeToString(AppSettings.serializer(), moved))
+                store.putString(DESIGN_KEY, DESIGN_VERSION)
+            }
+            current = moved
+        }
         if (store.getString(MODE_KEY) != MODE_VERSION) {
             val migrated = (current ?: AppSettings()).copy(runMode = RunMode.SystemProxy)
             runCatching {
@@ -66,6 +78,10 @@ class DesktopSettings(private val store: KeyValueStore) {
         return current ?: AppSettings(runMode = RunMode.SystemProxy)
     }
 
+    private fun designWasPortal(raw: String?): Boolean = raw != null && runCatching {
+        (json.parseToJsonElement(raw) as? JsonObject)?.get("appDesign")?.jsonPrimitive?.content == "Portal"
+    }.getOrDefault(false)
+
     private fun hadSoftwareRendering(raw: String): Boolean = runCatching {
         (json.parseToJsonElement(raw) as? JsonObject)?.get(LEGACY_SOFTWARE_RENDERING)?.jsonPrimitive?.booleanOrNull == true
     }.getOrDefault(false)
@@ -74,6 +90,8 @@ class DesktopSettings(private val store: KeyValueStore) {
         const val LEGACY_SOFTWARE_RENDERING = "softwareRendering"
         const val KEY = "settings"
         const val MODE_KEY = "run_mode_version"
+        const val DESIGN_KEY = "design_version"
+        const val DESIGN_VERSION = "bento"
         const val MODE_VERSION = "2"
         const val DEFAULTS_KEY = "routing_defaults_version"
         const val DEFAULTS_VERSION = "3"

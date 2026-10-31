@@ -4,7 +4,9 @@ import android.content.Context
 import android.content.SharedPreferences
 import dev.cluvex.zedsecure.domain.model.AppLanguage
 import dev.cluvex.zedsecure.domain.ai.AiSettings
+import dev.cluvex.zedsecure.domain.model.AppDesign
 import dev.cluvex.zedsecure.domain.model.AppSettings
+import dev.cluvex.zedsecure.domain.model.BentoPrefs
 import dev.cluvex.zedsecure.domain.model.DomainStrategy
 import dev.cluvex.zedsecure.domain.model.FragmentPackets
 import dev.cluvex.zedsecure.domain.model.GeoFilesSource
@@ -41,6 +43,12 @@ class SettingsRepository(context: Context) {
             }
             if (prefs.getString("tor_rendezvous", null) == LEGACY_RENDEZVOUS) edit.putString("tor_rendezvous", d.torSnowflakeRendezvous)
             edit.putBoolean(KEY_ROUTING_DEFAULTS_MIGRATED, true).apply()
+        }
+        if (!prefs.getBoolean(KEY_BENTO_INTRO, false)) {
+            val edit = prefs.edit()
+            val stored = prefs.getString("app_design", null)
+            if (stored == null || stored == "Pixel" || stored == "Portal") edit.putString("app_design", AppDesign.Bento.name)
+            edit.putBoolean(KEY_BENTO_INTRO, true).apply()
         }
         return AppSettings(
 
@@ -243,13 +251,18 @@ class SettingsRepository(context: Context) {
 
             killSwitch = prefs.getBoolean("kill_switch", d.killSwitch),
 
+            bento = prefs.getString("bento_prefs", null)
+                ?.let { runCatching { aiJson.decodeFromString(BentoPrefs.serializer(), it) }.getOrNull() }
+                ?: d.bento,
+            detectServerLocation = prefs.getBoolean("detect_server_location", d.detectServerLocation),
+            localProxyAuth = prefs.getBoolean("local_proxy_auth", d.localProxyAuth),
+            reconnectOnNetworkChange = prefs.getBoolean("reconnect_on_network_change", d.reconnectOnNetworkChange),
+
             ai = prefs.getString("ai_settings", null)
                 ?.let { runCatching { aiJson.decodeFromString(AiSettings.serializer(), it) }.getOrNull() }
                 ?: d.ai,
         )
     }
-
-    private val aiJson = kotlinx.serialization.json.Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
     fun update(transform: (AppSettings) -> AppSettings) {
         val next = transform(_settings.value)
@@ -457,6 +470,11 @@ class SettingsRepository(context: Context) {
             putInt("ssh_max_channels", s.sshMaxChannels)
 
             putBoolean("kill_switch", s.killSwitch)
+
+            putString("bento_prefs", aiJson.encodeToString(BentoPrefs.serializer(), s.bento))
+            putBoolean("detect_server_location", s.detectServerLocation)
+            putBoolean("local_proxy_auth", s.localProxyAuth)
+            putBoolean("reconnect_on_network_change", s.reconnectOnNetworkChange)
             putString("ai_settings", aiJson.encodeToString(AiSettings.serializer(), s.ai))
         }.apply()
     }
@@ -484,10 +502,12 @@ class SettingsRepository(context: Context) {
     companion object {
         private const val PREFS_NAME = "zed_settings"
         private const val KEY_ROUTING_DEFAULTS_MIGRATED = "routing_defaults_migrated"
+        private const val KEY_BENTO_INTRO = "bento_design_intro"
         private const val LEGACY_RENDEZVOUS = "amp"
         private const val LEGACY_DIRECT_DNS = "223.5.5.5"
 
         private val json = Json { ignoreUnknownKeys = true }
+        private val aiJson = Json { ignoreUnknownKeys = true; encodeDefaults = true; coerceInputValues = true }
         private val RULESETS = ListSerializer(RulesetItem.serializer())
 
         fun readLanguageTag(context: Context): String? {

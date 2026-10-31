@@ -704,7 +704,14 @@ object DesktopVpn {
     private fun pinServerAddresses(hosts: List<String>): Map<String, List<String>> =
         hosts.filter { host -> host.any { it.isLetter() } && ':' !in host }.associateWith { host ->
             val all = runCatching { InetAddress.getAllByName(host).toList() }.getOrDefault(emptyList())
-            all.filterIsInstance<java.net.Inet4Address>().ifEmpty { all }.mapNotNull { it.hostAddress }.distinct()
+            val picked = all.filterIsInstance<java.net.Inet4Address>().ifEmpty { all }.mapNotNull { it.hostAddress }.distinct()
+            val clean = dev.cluvex.zedsecure.domain.config.DnsGuard.clean(picked)
+            if (clean.isNotEmpty() || picked.isEmpty()) {
+                clean
+            } else {
+                LogBus.append("W/DNS: $host resolved to ${picked.joinToString()}, a filtering block page; asking DNS over HTTPS instead")
+                listOfNotNull(kotlinx.coroutines.runBlocking { dev.cluvex.zedsecure.domain.config.DnsGuard.lookup(host) })
+            }
         }.filterValues { it.isNotEmpty() }
 
     private fun resolveHosts(hosts: List<String>): List<String> = hosts.flatMap { host ->
