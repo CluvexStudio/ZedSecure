@@ -16,7 +16,9 @@ import java.nio.file.StandardCopyOption
 import java.util.concurrent.TimeUnit
 
 class XrayCore(private val workDir: File, private val engineCgroup: String? = null) {
-    private var process: Process? = null
+    @Volatile private var process: Process? = null
+    @Volatile private var stopped = false
+    private val lock = Any()
 
     val isRunning: Boolean get() = process?.isAlive == true
 
@@ -36,16 +38,24 @@ class XrayCore(private val workDir: File, private val engineCgroup: String? = nu
             System.err.println("no bundled xray for ${Os.current}")
             return false
         }
+        if (stopped) return false
         return try {
-            process = EngineCgroup.start(
+            val started = EngineCgroup.start(
                 ProcessBuilder(*command(bin))
                     .directory(workDir)
                     .apply { environment()["XRAY_LOCATION_ASSET"] = DesktopGeoAssets.dir.absolutePath },
                 engineCgroup,
             )
-            Thread { runCatching { process?.inputStream?.bufferedReader()?.forEachLine { println("[xray] $it") } } }
+            val kept = synchronized(lock) {
+                if (stopped) false else { process = started; true }
+            }
+            if (!kept) {
+                stopProcess(started)
+                return false
+            }
+            Thread { runCatching { started.inputStream.bufferedReader().forEachLine { println("[xray] $it") } } }
                 .apply { isDaemon = true }.start()
-            Thread { runCatching { process?.errorStream?.bufferedReader()?.forEachLine { println("[xray] $it") } } }
+            Thread { runCatching { started.errorStream.bufferedReader().forEachLine { println("[xray] $it") } } }
                 .apply { isDaemon = true }.start()
             if (readyPorts.isEmpty()) {
                 Thread.sleep(300)
@@ -77,8 +87,10 @@ class XrayCore(private val workDir: File, private val engineCgroup: String? = nu
     }.getOrDefault(false)
 
     fun stop() {
-        val running = process ?: return
-        process = null
+        val running = synchronized(lock) {
+            stopped = true
+            process.also { process = null }
+        } ?: return
         stopProcess(running)
     }
 
@@ -118,30 +130,41 @@ object XrayBinary {
             Os.WINDOWS -> "windows" to "xray.exe"
             else -> return null
         }
-        val stream = XrayBinary::class.java.getResourceAsStream("/bin/$sub/$name") ?: return null
         val out = File(workDir, name)
-        if (!replace(stream, out) && !out.isFile) return null
-        out.setExecutable(true)
-
-        val cronet = when (Os.current) {
+        if (!BinaryInstall.install("/bin/$sub/$name", out)) return null
+        when (Os.current) {
             Os.LINUX -> "libcronet.so"
             Os.WINDOWS -> "libcronet.dll"
             else -> null
-        }
-        if (cronet != null) {
-            XrayBinary::class.java.getResourceAsStream("/bin/$sub/$cronet")?.use { input ->
-                val lib = File(workDir, cronet)
-                val bytes = input.readBytes()
-                if (!lib.isFile || lib.length() != bytes.size.toLong()) replace(bytes.inputStream(), lib)
-            }
-        }
+        }?.let { cronet -> BinaryInstall.install("/bin/$sub/$cronet", File(workDir, cronet), executable = false) }
         return out
     }
 
+    fun replace(source: InputStream, target: File): Boolean = BinaryInstall.replace(source, target)
+}
+
+internal object BinaryInstall {
+    private val installed = HashSet<String>()
+
+    @Synchronized
+    fun install(resource: String, target: File, executable: Boolean = true): Boolean {
+        val key = target.absolutePath
+        if (key in installed && target.isFile) return true
+        val stream = BinaryInstall::class.java.getResourceAsStream(resource) ?: return target.isFile
+        if (!replace(stream, target) && !target.isFile) return false
+        if (executable) target.setExecutable(true)
+        installed += key
+        return true
+    }
+
+    @Synchronized
     fun replace(source: InputStream, target: File): Boolean {
-        val staged = File(target.parentFile, "${target.name}.new")
+        target.parentFile?.mkdirs()
+        val staged = runCatching { File.createTempFile("${target.name}.", ".new", target.parentFile) }
+            .getOrElse { source.close(); return false }
         return runCatching {
             source.use { input -> staged.outputStream().use { input.copyTo(it) } }
+            if (target.canExecute()) staged.setExecutable(true)
             Files.move(staged.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
             true
         }.getOrElse {

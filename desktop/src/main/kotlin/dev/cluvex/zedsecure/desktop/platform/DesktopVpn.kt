@@ -44,7 +44,7 @@ object DesktopVpn {
     private const val CHAIN = "The chain"
 
     val work = File(System.getProperty("java.io.tmpdir"), "zedsecure").apply { mkdirs() }
-    private var xray: XrayCore? = null
+    @Volatile private var xray: XrayCore? = null
     private var tun: DesktopTun? = null
     private var stats: DesktopStats? = null
     private var singBoxStats: DesktopSingBoxStats? = null
@@ -289,12 +289,11 @@ object DesktopVpn {
         val metricsPort = localPort(METRICS_PORT, setOf(socksPort, socksPort + 1, upstreamPort))
         val json = DesktopXray.augmentWithMetrics(frontJson(upstreamPort, socksPort, onion), metricsPort)
             .let { if (viaTun && cgroup == null) keepCoreOutside(it) else it }
-        val core = XrayCore(work, engineCgroup = cgroup)
+        val core = adopt(XrayCore(work, engineCgroup = cgroup))
         if (!core.start(json)) {
             VpnManager.onError("Core failed to start")
             return false
         }
-        xray = core
         if (!route(socksPort, bypass.orEmpty(), udpOverTcp = false, tunCarries = engine.takeIf { !viaTun }, excludeCgroup = cgroup)) {
             core.stop()
             xray = null
@@ -466,9 +465,8 @@ object DesktopVpn {
             metricsPort,
         )
             .let { if (bypass != null) keepCoreOutside(it) else it }
-        val core = XrayCore(work, engineCgroup = excluded)
+        val core = adopt(XrayCore(work, engineCgroup = excluded))
         if (!core.start(json)) return "the core did not start"
-        xray = core
         if (!route(socksPort, bypass.orEmpty(), udpOverTcp = false, tunCarries = CHAIN.takeIf { bypass == null && excluded == null }, excludeCgroup = excluded)) {
             return "could not route traffic"
         }
@@ -539,9 +537,8 @@ object DesktopVpn {
                 metricsPort,
             )
             val json = keepCoreOutside(ported)
-            val core = XrayCore(work)
+            val core = adopt(XrayCore(work))
             if (!core.start(json)) { VpnManager.onError("Core failed to start"); return@thread }
-            xray = core
             dev.cluvex.zedsecure.core.AutoSelect.activate()
             val bypass = resolveHosts(DesktopXray.extractServerHosts(json))
             if (!route(socksPort, bypass, udpOverTcp = false)) {
@@ -567,9 +564,8 @@ object DesktopVpn {
                     clashApiPort = localPort(METRICS_PORT, setOf(socksPort)),
                 )
             }.getOrElse { VpnManager.onError(it.message ?: "Not a usable sing-box config"); return@thread }
-            val core = XrayCore(work)
+            val core = adopt(XrayCore(work))
             if (!core.startSingBox(prepared.json)) { VpnManager.onError("sing-box failed to start"); return@thread }
-            xray = core
 
             val hosts = dev.cluvex.zedsecure.domain.config.SingBoxJson.servers(source.json).mapNotNull { it.address }
             if (!route(prepared.socksPort, resolveHosts(hosts), udpOverTcp = false)) {
@@ -770,6 +766,13 @@ object DesktopVpn {
     init {
         dev.cluvex.zedsecure.desktop.core.LinuxBroker.onTunLost = { tunnelLost() }
         dev.cluvex.zedsecure.desktop.core.WindowsElevation.onLost = { what -> if (what == "tun") tunnelLost() }
+    }
+
+    @Synchronized
+    private fun adopt(core: XrayCore): XrayCore {
+        xray?.takeIf { it !== core }?.stop()
+        xray = core
+        return core
     }
 
     @Synchronized
