@@ -535,6 +535,9 @@ internal fun wireDesktopServices(
     dev.cluvex.zedsecure.core.CoreProbe.measureOutboundDelay = { cfg, url ->
         DesktopProbe.measureOutboundDelay(cfg, url)
     }
+    dev.cluvex.zedsecure.data.net.PingService.probeOptions = {
+        dev.cluvex.zedsecure.domain.config.XrayJsonBuilder.BuildOptions(useSystemCa = desktopSettings.settings.value.useSystemCa)
+    }
 
     dev.cluvex.zedsecure.data.assets.GeoAutoFetch.start(background, dev.cluvex.zedsecure.desktop.core.DesktopGeoAssets) {
         desktopSettings.settings.value

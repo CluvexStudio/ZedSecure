@@ -11,11 +11,14 @@ enum class Protocol(val id: String, val label: String) {
 
     AMNEZIAWG("wireguard", "AmneziaWG"),
     HYSTERIA("hysteria", "Hysteria"),
+    MASQUE("masque", "MASQUE"),
     ;
 
     val usesUserPass: Boolean get() = this == SOCKS || this == HTTP
 
     val isWireguardFamily: Boolean get() = this == WIREGUARD || this == AMNEZIAWG
+
+    val isUdpBased: Boolean get() = isWireguardFamily || this == HYSTERIA || this == MASQUE
 
     val carriesUdp: Boolean get() = this != HTTP
 
@@ -35,6 +38,7 @@ enum class Protocol(val id: String, val label: String) {
             "wireguard", "wg" -> WIREGUARD
             "awg", "amneziawg" -> AMNEZIAWG
             "hysteria", "hysteria2", "hy2" -> HYSTERIA
+            "masque" -> MASQUE
             else -> null
         }
     }
@@ -58,6 +62,10 @@ data class TransportConfig(
     val kcpTti: Int? = null,
 
     val finalMask: String? = null,
+
+    val headers: String? = null,
+
+    val xdriveSettings: String? = null,
 )
 
 data class SecurityConfig(
@@ -112,6 +120,8 @@ data class ServerConfig(
 
     val portHopping: String? = null,
 
+    val hopInterval: String? = null,
+
     val pinnedCertSha256: String? = null,
 
     val localAddresses: List<String> = emptyList(),
@@ -129,6 +139,7 @@ data class ServerConfig(
         get() = buildString {
             append(protocol.label)
             if (protocol == Protocol.AMNEZIAWG && !awg.isEmpty) append(" · obfs")
+            if (protocol == Protocol.MASQUE) append(if (isWarp) " · WARP" else if (tls.alpn?.trim()?.lowercase() == "h2") " · HTTP/2" else " · HTTP/3")
             if (protocol.supportsTransport) {
                 append(" · ")
                 append(transport.network.uppercase())
@@ -138,4 +149,6 @@ data class ServerConfig(
                 }
             }
         }
+
+    val isWarp: Boolean get() = protocol == Protocol.MASQUE && secretKey.isNotBlank()
 }

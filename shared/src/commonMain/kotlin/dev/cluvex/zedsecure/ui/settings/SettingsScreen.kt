@@ -1556,6 +1556,12 @@ private fun CorePage(
                 selected = s.outboundDomainResolve,
                 onSelected = { v -> onUpdate { it.copy(outboundDomainResolve = v) } },
             )
+            SettingsSwitchRow(
+                title = stringResource(Res.string.title_pref_use_system_ca),
+                summary = stringResource(Res.string.summary_pref_use_system_ca),
+                checked = s.useSystemCa,
+                onCheckedChange = { v -> onUpdate { it.copy(useSystemCa = v) } },
+            )
         }
 
         SettingsGroup {

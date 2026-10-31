@@ -36,6 +36,7 @@ object ConfigParser {
             Protocol.SOCKS, Protocol.HTTP -> parseUserPass(trimmed, protocol)
             Protocol.HYSTERIA -> parseHysteria(trimmed)
             Protocol.WIREGUARD, Protocol.AMNEZIAWG -> parseWireguard(trimmed, protocol)
+            Protocol.MASQUE -> parseMasque(trimmed)
             null -> throw ConfigParseException("Unsupported or invalid link scheme")
         }
     }
@@ -313,22 +314,64 @@ object ConfigParser {
     }
 
     private fun parseHysteria(link: String): ServerConfig {
-        val p = parseLink(link.substringAfter("://"))
+        val body = link.substringAfter("://")
+        val p = parseLink(body)
         if (p.host.isBlank()) throw ConfigParseException("Invalid hysteria link")
+        val portSpec = rawPortSpec(body)
+        val multiPort = portSpec?.takeIf { spec -> spec.any { it == '-' || it == ',' } }
+        val firstPort = multiPort?.split(',', '-')?.firstNotNullOfOrNull { it.trim().toIntOrNull() }
         return ServerConfig(
             protocol = Protocol.HYSTERIA,
             remark = p.fragment,
             address = p.host,
-            port = p.port ?: 443,
+            port = p.port ?: firstPort ?: 443,
             userId = p.userInfo,
             secretKey = p.userInfo,
             tls = securityFrom(p.query, defaultSecurity = "tls"),
 
             obfsPassword = p.query["obfs-password"]?.takeIf { it.isNotBlank() },
-            portHopping = p.query["mport"]?.takeIf { it.isNotBlank() },
+            portHopping = p.query["mport"]?.takeIf { it.isNotBlank() } ?: multiPort,
+            hopInterval = (p.query["hopInterval"] ?: p.query["hop_interval"] ?: p.query["mportHopInt"])
+                ?.trim()?.removeSuffix("s")?.takeIf { it.isNotBlank() },
             pinnedCertSha256 = p.query["pinSHA256"]?.takeIf { it.isNotBlank() },
             bandwidthUp = p.query["upmbps"]?.takeIf { it.isNotBlank() },
             bandwidthDown = p.query["downmbps"]?.takeIf { it.isNotBlank() },
+        )
+    }
+
+    private fun rawPortSpec(body: String): String? {
+        val authority = body.substringBefore('#').substringBefore('?').substringBefore('/').substringAfterLast('@')
+        val spec = if (authority.startsWith("[")) authority.substringAfter("]:", "") else authority.substringAfter(':', "")
+        return spec.trim().takeIf { it.isNotEmpty() }
+    }
+
+    private fun parseMasque(link: String): ServerConfig {
+        val p = parseLink(link.substringAfter("://"))
+        if (p.host.isBlank()) throw ConfigParseException("Invalid masque link")
+        val q = p.query
+        val user = if (p.userInfo.contains(':')) p.userInfo.substringBefore(':') else p.userInfo
+        val pass = if (p.userInfo.contains(':')) p.userInfo.substringAfter(':') else ""
+        fun list(key: String) = q[key]?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() }.orEmpty()
+        return ServerConfig(
+            protocol = Protocol.MASQUE,
+            remark = p.fragment,
+            address = p.host,
+            port = p.port ?: 443,
+            username = user,
+            userId = pass,
+            secretKey = q["privatekey"]?.trim().orEmpty(),
+            peerPublicKey = q["publickey"]?.trim().orEmpty(),
+            localAddresses = list("address"),
+            dnsServers = list("dns"),
+            pinnedCertSha256 = q["pcs"]?.takeIf { it.isNotBlank() },
+            transport = TransportConfig(
+                network = "masque",
+                host = q["host"]?.takeIf { it.isNotBlank() },
+                path = q["path"]?.takeIf { it.isNotBlank() },
+                headers = q["headers"]?.takeIf { it.isNotBlank() },
+                xhttpExtra = q["extra"]?.takeIf { it.isNotBlank() },
+            ),
+            tls = securityFrom(q, defaultSecurity = "tls"),
         )
     }
 
@@ -454,6 +497,8 @@ object ConfigParser {
         kcpTti = q["tti"]?.toIntOrNull(),
 
         finalMask = q["fm"]?.takeIf { it.isNotBlank() },
+
+        xdriveSettings = q["xdrive"]?.takeIf { it.isNotBlank() },
     )
 
     private fun securityFrom(q: Map<String, String>, defaultSecurity: String) = SecurityConfig(

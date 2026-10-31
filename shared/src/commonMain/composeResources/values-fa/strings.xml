@@ -988,7 +988,7 @@
 
     <string name="add_group_import">افزودن</string>
     <string name="add_free_badge">رایگان</string>
-    <string name="add_free_hint">سایفون و Tor رایگان هستند و سرور شخصی لازم ندارند. بقیهٔ روش‌ها به سرور یا اشتراک خودتان وصل می‌شوند.</string>
+    <string name="add_free_hint">سایفون، Tor و Cloudflare WARP رایگان هستند و سرور شخصی لازم ندارند. بقیهٔ روش‌ها به سرور یا اشتراک خودتان وصل می‌شوند.</string>
     <string name="add_group_tunnels">تونل‌ها</string>
     <string name="add_group_dns">تونل‌های DNS</string>
     <string name="add_group_vpn">پروتکل‌های VPN</string>
@@ -1478,4 +1478,27 @@
     <string name="home_design_pixel">پیکسل</string>
     <string name="pixel_tap_cancel">برای لغو لمس کنید</string>
     <string name="pixel_other_server">سرور دیگر</string>
+    <string name="title_pref_use_system_ca">اعتماد به گواهی‌های این دستگاه</string>
+    <string name="summary_pref_use_system_ca">سرورهای TLS به‌جای فهرست ریشهٔ داخل هسته، با مخزن گواهی سیستم بررسی می‌شوند. فقط اگر مرجع گواهی خودتان را نصب کرده‌اید روشنش کنید.</string>
+    <string name="manual_vless_encryption">رمزنگاری (VLESS Encryption، اگر استفاده نمی‌شود none)</string>
+    <string name="manual_hop_interval">فاصلهٔ پرش پورت به ثانیه (مثلاً 30 یا 20-40)</string>
+    <string name="manual_masque_warp">Cloudflare WARP</string>
+    <string name="manual_masque_warp_hint">WARP به‌جای نام کاربری و رمز از کلید دستگاه ثبت‌شده استفاده می‌کند. از سرورها › افزودن › Cloudflare WARP یکی بسازید.</string>
+    <string name="manual_masque_warp_private_key">کلید خصوصی دستگاه (ECDSA P-256)</string>
+    <string name="manual_masque_warp_public_key">کلید عمومی سرور</string>
+    <string name="manual_masque_http">نسخهٔ HTTP</string>
+    <string name="manual_masque_path">مسیر (خالی = /.well-known/masque/ip/*/*/)</string>
+    <string name="manual_masque_authority">میزبان Authority (اختیاری)</string>
+    <string name="manual_masque_headers">هدرهای اضافه (Name: value; Name: value)</string>
+    <string name="manual_masque_dns">DNS داخل تونل (آدرس IP)</string>
+    <string name="manual_masque_extra">JSON اضافهٔ masqueSettings (اختیاری)</string>
+    <string name="manual_xdrive_hint">XDRIVE ترافیک VLESS را از راه یک سرویس ذخیره‌سازی می‌برد. به VLESS Encryption در هر دو طرف نیاز دارد و Mux برایش خودکار روشن می‌شود.</string>
+    <string name="manual_xdrive_settings">JSON تنظیمات xdriveSettings (service، remoteFolder، secrets…)</string>
+    <string name="warp_add_title">Cloudflare WARP</string>
+    <string name="warp_add_body">یک دستگاه رایگان WARP در Cloudflare ثبت می‌کند و آن را به‌صورت سرور MASQUE اضافه می‌کند. اگر وصل هستید، ثبت از راه همان اتصال انجام می‌شود.</string>
+    <string name="warp_add_terms">با افزودن WARP شرایط استفادهٔ Cloudflare را می‌پذیرید (cloudflare.com/application/terms).</string>
+    <string name="warp_registering">در حال ثبت در Cloudflare…</string>
+    <string name="warp_failed">ثبت ناموفق بود: %1$s</string>
+    <string name="warp_add_action">ثبت</string>
+    <string name="warp_added">Cloudflare WARP اضافه شد</string>
 </resources>

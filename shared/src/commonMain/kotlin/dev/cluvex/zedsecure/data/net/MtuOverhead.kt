@@ -49,7 +49,7 @@ object MtuOverheads {
                 parts += MtuOverhead.Part("WireGuard", WIREGUARD)
             }
 
-            Protocol.HYSTERIA -> {
+            Protocol.HYSTERIA, Protocol.MASQUE -> {
                 parts += MtuOverhead.Part("UDP", UDP)
                 parts += MtuOverhead.Part("QUIC", QUIC)
             }

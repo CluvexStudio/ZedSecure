@@ -18,6 +18,36 @@ object ShareLink {
         Protocol.SOCKS, Protocol.HTTP -> buildUserPass(s)
         Protocol.HYSTERIA -> buildUri("hysteria2", s.secretKey.ifBlank { s.userId }, s)
         Protocol.WIREGUARD, Protocol.AMNEZIAWG -> buildWireguard(s)
+        Protocol.MASQUE -> buildMasque(s)
+    }
+
+    private fun buildMasque(s: ServerConfig): String {
+        val host = if (s.address.contains(":")) "[${s.address}]" else s.address
+        val fragment = if (s.remark.isBlank()) "" else "#${enc(s.remark)}"
+        val creds = when {
+            s.username.isBlank() && s.userId.isBlank() -> ""
+            s.userId.isBlank() -> "${enc(s.username)}@"
+            else -> "${enc(s.username)}:${enc(s.userId)}@"
+        }
+        val params = buildList {
+            s.tls.sni?.takeIf { it.isNotBlank() }?.let { add("sni" to it) }
+            s.tls.alpn?.takeIf { it.isNotBlank() }?.let { add("alpn" to it) }
+            s.tls.fingerprint?.takeIf { it.isNotBlank() }?.let { add("fp" to it) }
+            s.tls.echConfigList?.takeIf { it.isNotBlank() }?.let { add("ech" to it) }
+            s.tls.verifyPeerCertByName?.takeIf { it.isNotBlank() }?.let { add("vcn" to it) }
+            if (s.tls.allowInsecure) add("allowInsecure" to "1")
+            s.pinnedCertSha256?.takeIf { it.isNotBlank() }?.let { add("pcs" to it) }
+            s.transport.host?.takeIf { it.isNotBlank() }?.let { add("host" to it) }
+            s.transport.path?.takeIf { it.isNotBlank() }?.let { add("path" to it) }
+            s.transport.headers?.takeIf { it.isNotBlank() }?.let { add("headers" to it) }
+            s.transport.xhttpExtra?.takeIf { it.isNotBlank() }?.let { add("extra" to it) }
+            if (s.dnsServers.isNotEmpty()) add("dns" to s.dnsServers.joinToString(","))
+            if (s.secretKey.isNotBlank()) add("privatekey" to s.secretKey)
+            if (s.peerPublicKey.isNotBlank()) add("publickey" to s.peerPublicKey)
+            if (s.localAddresses.isNotEmpty()) add("address" to s.localAddresses.joinToString(","))
+        }.joinToString("&") { (k, v) -> "$k=${enc(v)}" }
+        val query = if (params.isEmpty()) "" else "?$params"
+        return "masque://$creds$host:${s.port}$query$fragment"
     }
 
     private fun buildUserPass(s: ServerConfig): String {
@@ -108,6 +138,7 @@ object ShareLink {
         s.tls.echConfigList?.takeIf { it.isNotBlank() }?.let { add("ech" to it) }
         s.tls.cipherSuites?.takeIf { it.isNotBlank() }?.let { add("cs" to it) }
         s.transport.finalMask?.takeIf { it.isNotBlank() }?.let { add("fm" to it) }
+        s.transport.xdriveSettings?.takeIf { it.isNotBlank() }?.let { add("xdrive" to it) }
 
         if (s.protocol != Protocol.HYSTERIA) {
             s.pinnedCertSha256?.takeIf { it.isNotBlank() }?.let { add("pcs" to it) }
@@ -130,6 +161,7 @@ object ShareLink {
                     add("obfs-password" to it)
                 }
                 s.portHopping?.takeIf { it.isNotBlank() }?.let { add("mport" to it) }
+                s.hopInterval?.takeIf { it.isNotBlank() }?.let { add("hopInterval" to it) }
                 s.pinnedCertSha256?.takeIf { it.isNotBlank() }?.let { add("pinSHA256" to it) }
                 s.bandwidthUp?.takeIf { it.isNotBlank() }?.let { add("upmbps" to it) }
                 s.bandwidthDown?.takeIf { it.isNotBlank() }?.let { add("downmbps" to it) }
@@ -153,7 +185,7 @@ object ShareLink {
         return "ss://$creds@$host:${s.port}$q$fragment"
     }
 
-    internal fun enc(value: String): String {
+    fun enc(value: String): String {
         val unreserved = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_.~"
         val sb = StringBuilder()
         for (byte in value.encodeToByteArray()) {

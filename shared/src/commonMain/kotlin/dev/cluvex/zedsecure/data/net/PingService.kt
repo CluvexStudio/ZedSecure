@@ -20,6 +20,10 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 
 object PingService {
+    @kotlin.concurrent.Volatile
+    var probeOptions: () -> dev.cluvex.zedsecure.domain.config.XrayJsonBuilder.BuildOptions =
+        { dev.cluvex.zedsecure.domain.config.XrayJsonBuilder.BuildOptions() }
+
     private const val TCP_TIMEOUT_MS = 2_500
 
     private const val REAL_PING_CONCURRENCY = 16
@@ -164,7 +168,7 @@ object PingService {
                 if (tcpConnectMillis(profile.address, profile.port, PRECHECK_TIMEOUT_MS) < 0) return -1L
             }
 
-            runCatching { profile.toXrayConfigJson(forSpeedtest = true) }.getOrElse { return -1L }
+            runCatching { profile.toXrayConfigJson(options = probeOptions(), forSpeedtest = true) }.getOrElse { return -1L }
         }
         val started = currentTimeMillis()
         val first = probeWithTimeout(profile, config, url)
@@ -189,7 +193,7 @@ object PingService {
         return profile.protocol !in UDP_OUTBOUND_PROTOCOLS
     }
 
-    private val UDP_OUTBOUND_PROTOCOLS = setOf("WIREGUARD", "AMNEZIAWG", "HYSTERIA")
+    private val UDP_OUTBOUND_PROTOCOLS = setOf("WIREGUARD", "AMNEZIAWG", "HYSTERIA", "MASQUE")
 
     private suspend fun probeWithTimeout(profile: VpnProfile, config: String, url: String): Long =
         withContext(Dispatchers.IO) {

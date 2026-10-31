@@ -955,7 +955,7 @@
     <string name="speedtest_data_note">Usa hasta %1$d MB por prueba</string>
     <string name="add_group_import">Importar</string>
     <string name="add_free_badge">Gratis</string>
-    <string name="add_free_hint">Psiphon y Tor son gratis y no necesitan un servidor propio. Todo lo demás se conecta a tu propio servidor o suscripción.</string>
+    <string name="add_free_hint">Psiphon, Tor y Cloudflare WARP son gratis y no necesitan un servidor propio. Todo lo demás se conecta a tu propio servidor o suscripción.</string>
     <string name="add_group_tunnels">Túneles</string>
     <string name="add_group_dns">Túneles DNS</string>
     <string name="add_group_vpn">Protocolos VPN</string>
@@ -1439,4 +1439,27 @@
     <string name="home_design_pixel">Pixel</string>
     <string name="pixel_tap_cancel">Toca para cancelar</string>
     <string name="pixel_other_server">Otro servidor</string>
+    <string name="title_pref_use_system_ca">Confiar en los certificados del dispositivo</string>
+    <string name="summary_pref_use_system_ca">Comprueba los servidores TLS con el almacén de certificados del sistema en lugar de la lista de raíces integrada en el núcleo. Actívalo solo si instalaste tu propia autoridad de certificación.</string>
+    <string name="manual_vless_encryption">Cifrado (VLESS Encryption, none si no se usa)</string>
+    <string name="manual_hop_interval">Intervalo de salto en segundos (p. ej. 30 o 20-40)</string>
+    <string name="manual_masque_warp">Cloudflare WARP</string>
+    <string name="manual_masque_warp_hint">WARP usa una clave de dispositivo registrada en lugar de usuario y contraseña. Crea una en Servidores › Añadir › Cloudflare WARP.</string>
+    <string name="manual_masque_warp_private_key">Clave privada del dispositivo (ECDSA P-256)</string>
+    <string name="manual_masque_warp_public_key">Clave pública del servidor</string>
+    <string name="manual_masque_http">Versión de HTTP</string>
+    <string name="manual_masque_path">Ruta (vacía = /.well-known/masque/ip/*/*/)</string>
+    <string name="manual_masque_authority">Host de authority (opcional)</string>
+    <string name="manual_masque_headers">Cabeceras extra (Name: value; Name: value)</string>
+    <string name="manual_masque_dns">DNS dentro del túnel (direcciones IP)</string>
+    <string name="manual_masque_extra">JSON extra de masqueSettings (opcional)</string>
+    <string name="manual_xdrive_hint">XDRIVE lleva VLESS a través de un servicio de almacenamiento. Necesita VLESS Encryption en ambos lados; la multiplexación se activa sola.</string>
+    <string name="manual_xdrive_settings">JSON de xdriveSettings (service, remoteFolder, secrets…)</string>
+    <string name="warp_add_title">Cloudflare WARP</string>
+    <string name="warp_add_body">Registra un dispositivo WARP gratuito en Cloudflare y lo añade como servidor MASQUE. Si estás conectado, el registro pasa por la conexión actual.</string>
+    <string name="warp_add_terms">Al añadir WARP aceptas las condiciones de servicio de Cloudflare (cloudflare.com/application/terms).</string>
+    <string name="warp_registering">Registrando en Cloudflare…</string>
+    <string name="warp_failed">El registro falló: %1$s</string>
+    <string name="warp_add_action">Registrar</string>
+    <string name="warp_added">Cloudflare WARP añadido</string>
 </resources>

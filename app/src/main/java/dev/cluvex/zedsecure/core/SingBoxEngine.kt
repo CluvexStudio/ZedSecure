@@ -127,8 +127,6 @@ class SingBoxEngine(
 
         override fun openTun(options: TunOptions): Int = openTunInterface(options)
 
-        override fun useProcFS(): Boolean = false
-
         override fun findConnectionOwner(
             ipProtocol: Int,
             sourceAddress: String,

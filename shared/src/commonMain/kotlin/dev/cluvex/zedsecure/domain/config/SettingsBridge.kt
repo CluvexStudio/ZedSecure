@@ -58,6 +58,7 @@ fun AppSettings.toBuildOptions(
     fakeDns = localDnsEnabled && fakeDnsEnabled,
     outboundDomainResolve = outboundDomainResolve.value,
     resolvedServerHosts = resolvedServerHosts,
+    useSystemCa = useSystemCa,
 )
 
 val AppSettings.effectiveLanSocksPort: Int get() = LocalPorts.lanSocksPort(socksPort)

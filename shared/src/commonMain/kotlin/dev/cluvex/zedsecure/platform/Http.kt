@@ -31,3 +31,12 @@ internal expect suspend fun httpJson(
 
     socksPort: Int? = null,
 ): HttpTextResponse
+
+internal expect suspend fun httpPatchJson(
+    url: String,
+    headers: Map<String, String>,
+    body: String,
+    connectTimeoutMs: Int = 20_000,
+    readTimeoutMs: Int = 30_000,
+    socksPort: Int? = null,
+): HttpTextResponse

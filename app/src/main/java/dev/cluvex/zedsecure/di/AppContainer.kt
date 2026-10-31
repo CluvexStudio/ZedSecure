@@ -46,6 +46,9 @@ class AppContainer(context: Context) {
         CoreProbe.measureOutboundDelay = { cfg, url ->
             runCatching { Libv2ray.measureOutboundDelay(cfg, url) }.getOrDefault(-1L)
         }
+        dev.cluvex.zedsecure.data.net.PingService.probeOptions = {
+            dev.cluvex.zedsecure.domain.config.XrayJsonBuilder.BuildOptions(useSystemCa = settingsRepository.settings.value.useSystemCa)
+        }
 
         dev.cluvex.zedsecure.core.AutoSelect.readStatus = {
             runCatching { Libv2ray.autoSelectStatus() }.getOrNull()

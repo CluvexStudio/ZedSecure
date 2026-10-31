@@ -286,6 +286,8 @@ data class AppSettings(
 
     val enableIpv6: Boolean = false,
     val preferIpv6: Boolean = false,
+
+    val useSystemCa: Boolean = false,
     val localDnsEnabled: Boolean = false,
     val fakeDnsEnabled: Boolean = false,
     val vpnDns: String = "1.1.1.1",

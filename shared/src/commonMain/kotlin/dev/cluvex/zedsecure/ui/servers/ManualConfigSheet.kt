@@ -45,7 +45,9 @@ import dev.cluvex.zedsecure.ui.components.PickerField
 import dev.cluvex.zedsecure.ui.components.SectionTitle
 import dev.cluvex.zedsecure.ui.platform.appVerticalScroll
 
-private val NETWORKS = listOf("tcp", "ws", "grpc", "httpupgrade", "xhttp", "kcp")
+private val NETWORKS = listOf("tcp", "ws", "grpc", "httpupgrade", "xhttp", "kcp", "xdrive")
+
+private val MASQUE_ALPNS = listOf("h3" to "HTTP/3", "h2" to "HTTP/2")
 private val SECURITIES = listOf("" to "None", "tls" to "TLS", "reality" to "REALITY")
 
 private val FLOWS = listOf(
@@ -149,6 +151,10 @@ fun ManualConfigSheet(
     var cipherSuites by remember { mutableStateOf(initial?.tls?.cipherSuites ?: "") }
 
     var finalMask by remember { mutableStateOf(initial?.transport?.finalMask ?: "") }
+    var headers by remember { mutableStateOf(initial?.transport?.headers ?: "") }
+    var xdriveSettings by remember { mutableStateOf(initial?.transport?.xdriveSettings ?: "") }
+    var hopInterval by remember { mutableStateOf(initial?.hopInterval ?: "") }
+    var warp by remember { mutableStateOf(initial?.isWarp ?: false) }
     var allowInsecure by remember { mutableStateOf(initial?.tls?.allowInsecure ?: false) }
     var verifyCertName by remember { mutableStateOf(initial?.tls?.verifyPeerCertByName ?: "") }
     var mldsa65Verify by remember { mutableStateOf(initial?.tls?.mldsa65Verify ?: "") }
@@ -202,6 +208,7 @@ fun ManualConfigSheet(
             when (protocol) {
                 Protocol.VLESS -> {
                     Field(userId, { userId = it }, Res.string.manual_uuid)
+                    Field(encryption, { encryption = it }, Res.string.manual_vless_encryption)
 
                     PickerField(
                         label = stringResource(Res.string.manual_flow),
@@ -238,6 +245,9 @@ fun ManualConfigSheet(
                     Field(secretKey, { secretKey = it }, Res.string.manual_auth)
                     Field(obfsPassword, { obfsPassword = it }, Res.string.manual_obfs_password)
                     Field(portHopping, { portHopping = it }, Res.string.manual_port_hopping)
+                    if (portHopping.isNotBlank()) {
+                        Field(hopInterval, { hopInterval = it.filter { c -> c.isDigit() || c == '-' }.take(9) }, Res.string.manual_hop_interval)
+                    }
                     Field(pinnedCert, { pinnedCert = it }, Res.string.manual_pinned_cert)
                     Field(bandwidthUp, { bandwidthUp = it.filter(Char::isDigit).take(6) }, Res.string.manual_bandwidth_up, number = true)
                     Field(bandwidthDown, { bandwidthDown = it.filter(Char::isDigit).take(6) }, Res.string.manual_bandwidth_down, number = true)
@@ -248,6 +258,48 @@ fun ManualConfigSheet(
                         selected = alpn,
                         onSelect = { alpn = it },
                     )
+                }
+                Protocol.MASQUE -> {
+                    LabeledSwitch(
+                        label = stringResource(Res.string.manual_masque_warp),
+                        checked = warp,
+                        onChange = { warp = it },
+                    )
+                    if (warp) {
+                        Text(
+                            stringResource(Res.string.manual_masque_warp_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Field(secretKey, { secretKey = it }, Res.string.manual_masque_warp_private_key)
+                        Field(peerPublicKey, { peerPublicKey = it }, Res.string.manual_masque_warp_public_key)
+                        Field(localAddress, { localAddress = it }, Res.string.manual_local_address)
+                    } else {
+                        Field(username, { username = it }, Res.string.manual_username)
+                        Field(userId, { userId = it }, Res.string.manual_password)
+                    }
+                    PickerField(
+                        label = stringResource(Res.string.manual_masque_http),
+                        options = MASQUE_ALPNS,
+                        selected = if (alpn.trim().lowercase() == "h2") "h2" else "h3",
+                        onSelect = { alpn = it },
+                    )
+                    Field(sni, { sni = it }, Res.string.manual_sni)
+                    if (alpn.trim().lowercase() == "h2") {
+                        PickerField(
+                            label = stringResource(Res.string.manual_fingerprint),
+                            options = UTLS_FINGERPRINTS,
+                            selected = fingerprint,
+                            onSelect = { fingerprint = it },
+                        )
+                    }
+                    Field(path, { path = it }, Res.string.manual_masque_path)
+                    Field(host, { host = it }, Res.string.manual_masque_authority)
+                    Field(headers, { headers = it }, Res.string.manual_masque_headers)
+                    Field(wgDns, { wgDns = it }, Res.string.manual_masque_dns)
+                    Field(xhttpExtra, { xhttpExtra = it }, Res.string.manual_masque_extra)
+                    Field(pinnedCert, { pinnedCert = it }, Res.string.manual_pinned_cert)
+                    Field(verifyCertName, { verifyCertName = it }, Res.string.manual_verify_cert_name)
                 }
                 Protocol.WIREGUARD, Protocol.AMNEZIAWG -> {
                     Field(secretKey, { secretKey = it }, Res.string.manual_private_key)
@@ -303,7 +355,7 @@ fun ManualConfigSheet(
                     selected = network,
                     onSelect = { network = it },
                 )
-                if (network != "tcp" && network != "kcp") {
+                if (network != "tcp" && network != "kcp" && network != "xdrive") {
                     Field(host, { host = it }, Res.string.manual_host)
                 }
 
@@ -345,6 +397,20 @@ fun ManualConfigSheet(
                             onSelect = { streamMode = it },
                         )
                         Field(xhttpExtra, { xhttpExtra = it }, Res.string.manual_xhttp_extra)
+                    }
+                    "xdrive" -> {
+                        Text(
+                            stringResource(Res.string.manual_xdrive_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        OutlinedTextField(
+                            value = xdriveSettings,
+                            onValueChange = { xdriveSettings = it },
+                            label = { Text(stringResource(Res.string.manual_xdrive_settings)) },
+                            minLines = 3,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
                     }
                     "grpc" -> {
                         Field(serviceName, { serviceName = it }, Res.string.manual_service_name)
@@ -414,6 +480,7 @@ fun ManualConfigSheet(
 
             Button(
                 onClick = {
+                    val masque = protocol == Protocol.MASQUE
                     val config = ServerConfig(
                         protocol = protocol,
                         remark = remark.ifBlank { address },
@@ -425,9 +492,9 @@ fun ManualConfigSheet(
                         vmessSecurity = vmessSecurity.ifBlank { "auto" },
                         flow = flow.ifBlank { null },
                         shadowsocksMethod = ssMethod.ifBlank { null },
-                        username = username.trim(),
-                        secretKey = secretKey.trim(),
-                        peerPublicKey = peerPublicKey.trim(),
+                        username = if (masque && warp) "" else username.trim(),
+                        secretKey = if (masque && !warp) "" else secretKey.trim(),
+                        peerPublicKey = if (masque && !warp) "" else peerPublicKey.trim(),
                         localAddresses = localAddress.split(",")
                             .map { it.trim() }
                             .filter { it.isNotEmpty() },
@@ -442,11 +509,12 @@ fun ManualConfigSheet(
                         awg = if (protocol == Protocol.AMNEZIAWG) awg else AwgConfig(),
                         obfsPassword = obfsPassword.ifBlank { null },
                         portHopping = portHopping.ifBlank { null },
+                        hopInterval = hopInterval.takeIf { portHopping.isNotBlank() }?.ifBlank { null },
                         pinnedCertSha256 = pinnedCert.ifBlank { null },
                         bandwidthUp = bandwidthUp.ifBlank { null },
                         bandwidthDown = bandwidthDown.ifBlank { null },
                         transport = TransportConfig(
-                            network = network,
+                            network = if (masque) "masque" else network,
 
                             headerType = headerType.takeIf { it.isNotBlank() && it != "none" },
                             host = host.ifBlank { null },
@@ -459,9 +527,11 @@ fun ManualConfigSheet(
                             kcpMtu = kcpMtu.toIntOrNull(),
                             finalMask = finalMask.ifBlank { null },
                             kcpTti = kcpTti.toIntOrNull(),
+                            headers = headers.takeIf { masque }?.ifBlank { null },
+                            xdriveSettings = xdriveSettings.takeIf { !masque && network == "xdrive" }?.ifBlank { null },
                         ),
                         tls = SecurityConfig(
-                            security = security,
+                            security = if (masque) "tls" else security,
                             sni = sni.ifBlank { null },
                             alpn = alpn.ifBlank { null },
                             fingerprint = fingerprint.ifBlank { null },
@@ -482,6 +552,7 @@ fun ManualConfigSheet(
                     Protocol.WIREGUARD, Protocol.AMNEZIAWG ->
                         secretKey.isNotBlank() && peerPublicKey.isNotBlank()
                     Protocol.HYSTERIA -> secretKey.isNotBlank()
+                    Protocol.MASQUE -> !warp || secretKey.isNotBlank() && localAddress.isNotBlank()
                     else -> userId.isNotBlank()
                 },
                 shape = RoundedCornerShape(18.dp),

@@ -599,7 +599,7 @@ class ConfigRepository(private val store: KeyValueStore) {
 
     private fun udpProtocolsOf(profile: VpnProfile): String? {
         fun offending(c: ServerConfig): String? {
-            val udpProtocol = c.protocol.isWireguardFamily || c.protocol == Protocol.HYSTERIA
+            val udpProtocol = c.protocol.isUdpBased
             val udpTransport = c.transport.network.lowercase() in setOf("kcp", "mkcp")
             return when {
                 udpProtocol -> c.protocol.label

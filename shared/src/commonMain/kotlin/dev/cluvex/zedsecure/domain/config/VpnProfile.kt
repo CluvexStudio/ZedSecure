@@ -130,7 +130,7 @@ data class VpnProfile(
             ?.let { runCatching { ConfigParser.parse(it.link) }.getOrNull()?.protocol }
 
     val needsUdpHop: Boolean
-        get() = chainProtocol?.let { it.isWireguardFamily || it == Protocol.HYSTERIA } == true
+        get() = chainProtocol?.isUdpBased == true
 
     val carriesUdpHop: Boolean get() = chainProtocol?.carriesUdp != false
 

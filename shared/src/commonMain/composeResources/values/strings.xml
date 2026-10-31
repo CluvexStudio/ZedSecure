@@ -995,7 +995,7 @@
 
     <string name="add_group_import">Import</string>
     <string name="add_free_badge">Free</string>
-    <string name="add_free_hint">Psiphon and Tor are free and need no server of your own. Everything else connects to your own server or subscription.</string>
+    <string name="add_free_hint">Psiphon, Tor and Cloudflare WARP are free and need no server of your own. Everything else connects to your own server or subscription.</string>
     <string name="add_group_tunnels">Tunnels</string>
     <string name="add_group_dns">DNS tunnels</string>
     <string name="add_group_vpn">VPN protocols</string>
@@ -1485,4 +1485,27 @@
     <string name="home_design_pixel">Pixel</string>
     <string name="pixel_tap_cancel">Tap to cancel</string>
     <string name="pixel_other_server">Other server</string>
+    <string name="title_pref_use_system_ca">Trust this device's certificates</string>
+    <string name="summary_pref_use_system_ca">Check TLS servers against the system certificate store instead of the root list built into the core. Turn on only if you installed your own certificate authority.</string>
+    <string name="manual_vless_encryption">Encryption (VLESS Encryption, none if unused)</string>
+    <string name="manual_hop_interval">Hop interval in seconds (e.g. 30 or 20-40)</string>
+    <string name="manual_masque_warp">Cloudflare WARP</string>
+    <string name="manual_masque_warp_hint">WARP uses a registered device key instead of a username and password. Add one from Servers › Add › Cloudflare WARP.</string>
+    <string name="manual_masque_warp_private_key">Device private key (ECDSA P-256)</string>
+    <string name="manual_masque_warp_public_key">Endpoint public key</string>
+    <string name="manual_masque_http">HTTP version</string>
+    <string name="manual_masque_path">Path (empty = /.well-known/masque/ip/*/*/)</string>
+    <string name="manual_masque_authority">Authority host (optional)</string>
+    <string name="manual_masque_headers">Extra headers (Name: value; Name: value)</string>
+    <string name="manual_masque_dns">DNS inside the tunnel (IP addresses)</string>
+    <string name="manual_masque_extra">Extra masqueSettings JSON (optional)</string>
+    <string name="manual_xdrive_hint">XDRIVE carries VLESS through a storage service. It needs VLESS Encryption on both sides; multiplexing is turned on for it automatically.</string>
+    <string name="manual_xdrive_settings">xdriveSettings JSON (service, remoteFolder, secrets…)</string>
+    <string name="warp_add_title">Cloudflare WARP</string>
+    <string name="warp_add_body">Registers a free WARP device with Cloudflare and adds it as a MASQUE server. If you are connected, registration goes through the current connection.</string>
+    <string name="warp_add_terms">By adding WARP you accept Cloudflare's terms of service (cloudflare.com/application/terms).</string>
+    <string name="warp_registering">Registering with Cloudflare…</string>
+    <string name="warp_failed">Registration failed: %1$s</string>
+    <string name="warp_add_action">Register</string>
+    <string name="warp_added">Cloudflare WARP added</string>
 </resources>

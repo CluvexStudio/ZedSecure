@@ -80,6 +80,7 @@ compose.desktop {
         jvmArgs += listOf("-XX:TieredStopAtLevel=1")
         nativeDistributions {
             targetFormats(TargetFormat.Deb, TargetFormat.Rpm, TargetFormat.AppImage, TargetFormat.Msi, TargetFormat.Dmg)
+            modules("java.net.http")
             packageName = "ZedSecure"
             packageVersion = zedVersion
             description = "ZedSecure VPN client"

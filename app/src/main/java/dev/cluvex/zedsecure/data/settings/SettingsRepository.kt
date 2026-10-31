@@ -96,6 +96,7 @@ class SettingsRepository(context: Context) {
 
             enableIpv6 = prefs.getBoolean("ipv6", d.enableIpv6),
             preferIpv6 = prefs.getBoolean("prefer_ipv6", d.preferIpv6),
+            useSystemCa = prefs.getBoolean("use_system_ca", d.useSystemCa),
             localDnsEnabled = prefs.getBoolean("local_dns", d.localDnsEnabled),
             fakeDnsEnabled = prefs.getBoolean("fake_dns", d.fakeDnsEnabled),
             vpnDns = prefs.str("vpn_dns", d.vpnDns),
@@ -312,6 +313,7 @@ class SettingsRepository(context: Context) {
 
             putBoolean("ipv6", s.enableIpv6)
             putBoolean("prefer_ipv6", s.preferIpv6)
+            putBoolean("use_system_ca", s.useSystemCa)
             putBoolean("local_dns", s.localDnsEnabled)
             putBoolean("fake_dns", s.fakeDnsEnabled)
             putString("vpn_dns", s.vpnDns)

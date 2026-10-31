@@ -996,7 +996,7 @@
 
     <string name="add_group_import">导入</string>
     <string name="add_free_badge">免费</string>
-    <string name="add_free_hint">Psiphon 和 Tor 免费，无需自己的服务器。其他方式都连接到你自己的服务器或订阅。</string>
+    <string name="add_free_hint">Psiphon、Tor 和 Cloudflare WARP 免费，无需自己的服务器。其他方式都连接到你自己的服务器或订阅。</string>
     <string name="add_group_tunnels">隧道</string>
     <string name="add_group_dns">DNS 隧道</string>
     <string name="add_group_vpn">VPN 协议</string>
@@ -1486,4 +1486,27 @@
     <string name="home_design_pixel">Pixel</string>
     <string name="pixel_tap_cancel">轻触取消</string>
     <string name="pixel_other_server">换个服务器</string>
+    <string name="title_pref_use_system_ca">信任本设备的证书</string>
+    <string name="summary_pref_use_system_ca">用系统证书库而不是内核自带的根证书列表来验证 TLS 服务器。只有安装了自己的证书颁发机构时才需要开启。</string>
+    <string name="manual_vless_encryption">加密（VLESS Encryption，不使用时填 none）</string>
+    <string name="manual_hop_interval">跳端口间隔（秒，例如 30 或 20-40）</string>
+    <string name="manual_masque_warp">Cloudflare WARP</string>
+    <string name="manual_masque_warp_hint">WARP 使用已注册的设备密钥代替用户名和密码。可在 服务器 › 添加 › Cloudflare WARP 中创建。</string>
+    <string name="manual_masque_warp_private_key">设备私钥（ECDSA P-256）</string>
+    <string name="manual_masque_warp_public_key">端点公钥</string>
+    <string name="manual_masque_http">HTTP 版本</string>
+    <string name="manual_masque_path">路径（留空 = /.well-known/masque/ip/*/*/）</string>
+    <string name="manual_masque_authority">Authority 主机（可选）</string>
+    <string name="manual_masque_headers">额外请求头（Name: value; Name: value）</string>
+    <string name="manual_masque_dns">隧道内 DNS（IP 地址）</string>
+    <string name="manual_masque_extra">额外的 masqueSettings JSON（可选）</string>
+    <string name="manual_xdrive_hint">XDRIVE 通过存储服务传输 VLESS。两端都需要 VLESS Encryption，并会自动为其开启多路复用。</string>
+    <string name="manual_xdrive_settings">xdriveSettings JSON（service、remoteFolder、secrets…）</string>
+    <string name="warp_add_title">Cloudflare WARP</string>
+    <string name="warp_add_body">在 Cloudflare 注册一个免费的 WARP 设备，并作为 MASQUE 服务器添加。如果已连接，注册会通过当前连接进行。</string>
+    <string name="warp_add_terms">添加 WARP 即表示你接受 Cloudflare 的服务条款（cloudflare.com/application/terms）。</string>
+    <string name="warp_registering">正在向 Cloudflare 注册…</string>
+    <string name="warp_failed">注册失败：%1$s</string>
+    <string name="warp_add_action">注册</string>
+    <string name="warp_added">已添加 Cloudflare WARP</string>
 </resources>

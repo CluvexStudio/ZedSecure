@@ -996,7 +996,7 @@
 
     <string name="add_group_import">Импорт</string>
     <string name="add_free_badge">Бесплатно</string>
-    <string name="add_free_hint">Psiphon и Tor бесплатны и не требуют своего сервера. Остальные способы подключаются к вашему серверу или подписке.</string>
+    <string name="add_free_hint">Psiphon, Tor и Cloudflare WARP бесплатны и не требуют своего сервера. Остальные способы подключаются к вашему серверу или подписке.</string>
     <string name="add_group_tunnels">Туннели</string>
     <string name="add_group_dns">DNS-туннели</string>
     <string name="add_group_vpn">Протоколы VPN</string>
@@ -1486,4 +1486,27 @@
     <string name="home_design_pixel">Pixel</string>
     <string name="pixel_tap_cancel">Нажмите, чтобы отменить</string>
     <string name="pixel_other_server">Другой сервер</string>
+    <string name="title_pref_use_system_ca">Доверять сертификатам устройства</string>
+    <string name="summary_pref_use_system_ca">Проверять TLS-серверы по системному хранилищу сертификатов, а не по встроенному в ядро списку корневых. Включайте, только если установили собственный центр сертификации.</string>
+    <string name="manual_vless_encryption">Шифрование (VLESS Encryption, none если не используется)</string>
+    <string name="manual_hop_interval">Интервал смены порта в секундах (например 30 или 20-40)</string>
+    <string name="manual_masque_warp">Cloudflare WARP</string>
+    <string name="manual_masque_warp_hint">WARP использует зарегистрированный ключ устройства вместо имени пользователя и пароля. Создайте его в Серверы › Добавить › Cloudflare WARP.</string>
+    <string name="manual_masque_warp_private_key">Закрытый ключ устройства (ECDSA P-256)</string>
+    <string name="manual_masque_warp_public_key">Открытый ключ сервера</string>
+    <string name="manual_masque_http">Версия HTTP</string>
+    <string name="manual_masque_path">Путь (пусто = /.well-known/masque/ip/*/*/)</string>
+    <string name="manual_masque_authority">Хост Authority (необязательно)</string>
+    <string name="manual_masque_headers">Дополнительные заголовки (Name: value; Name: value)</string>
+    <string name="manual_masque_dns">DNS внутри туннеля (IP-адреса)</string>
+    <string name="manual_masque_extra">Дополнительный JSON masqueSettings (необязательно)</string>
+    <string name="manual_xdrive_hint">XDRIVE передаёт VLESS через сервис хранения. Нужен VLESS Encryption с обеих сторон; мультиплексирование для него включается автоматически.</string>
+    <string name="manual_xdrive_settings">JSON xdriveSettings (service, remoteFolder, secrets…)</string>
+    <string name="warp_add_title">Cloudflare WARP</string>
+    <string name="warp_add_body">Регистрирует бесплатное устройство WARP в Cloudflare и добавляет его как сервер MASQUE. Если вы подключены, регистрация идёт через текущее подключение.</string>
+    <string name="warp_add_terms">Добавляя WARP, вы принимаете условия использования Cloudflare (cloudflare.com/application/terms).</string>
+    <string name="warp_registering">Регистрация в Cloudflare…</string>
+    <string name="warp_failed">Не удалось зарегистрироваться: %1$s</string>
+    <string name="warp_add_action">Зарегистрировать</string>
+    <string name="warp_added">Cloudflare WARP добавлен</string>
 </resources>
