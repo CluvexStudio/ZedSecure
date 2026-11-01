@@ -195,7 +195,7 @@ fun BentoConnectBar(
     Column(
         modifier
             .fillMaxWidth()
-            .height(80.dp)
+            .height(84.dp)
             .clip(BentoShapes.block())
             .background(c.lime)
             .semantics(mergeDescendants = true) {
@@ -228,10 +228,13 @@ fun BentoConnectBar(
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        BoxWithConstraints(Modifier.fillMaxWidth().height(40.dp)) {
+        BoxWithConstraints(Modifier.fillMaxWidth().height(44.dp)) {
             val density = LocalDensity.current
             val knob = 40.dp
             val range = with(density) { (maxWidth - knob).toPx().coerceAtLeast(1f) }
+            val wave = Bento.prefs.wave
+            val amp = with(density) { WAVE_AMP.toPx() }
+            val wavelength = with(density) { waveLength(range, WAVE_LENGTH.toPx()) }
             val draggableState = rememberDraggableState { delta ->
                 if (!busy && !locked) position = (position + delta / range).coerceIn(0f, 1f)
             }
@@ -280,11 +283,13 @@ fun BentoConnectBar(
                         },
                     ),
             ) {
-                if (Bento.prefs.wave) {
+                if (wave) {
                     WaveTrack(
                         progress = { position },
                         color = c.onLime,
                         knob = with(density) { knob.toPx() },
+                        amp = amp,
+                        wavelength = wavelength,
                         rtl = rtl,
                         phase = phase,
                         connected = state == ConnectionState.Connected,
@@ -294,6 +299,7 @@ fun BentoConnectBar(
                     Modifier
                         .align(Alignment.CenterStart)
                         .offset { IntOffset((position * range).roundToInt(), 0) }
+                        .graphicsLayer { translationY = if (wave) waveOffset(position * range, amp, wavelength) else 0f }
                         .size(knob)
                         .clip(CircleShape)
                         .background(c.onLime),
@@ -305,6 +311,17 @@ fun BentoConnectBar(
         }
     }
 }
+
+private val WAVE_AMP = 4.5.dp
+private val WAVE_LENGTH = 32.dp
+
+internal fun waveLength(range: Float, preferred: Float): Float {
+    val halves = (range / (preferred / 2f)).roundToInt().coerceAtLeast(1)
+    return 2f * range / halves
+}
+
+internal fun waveOffset(distance: Float, amp: Float, wavelength: Float): Float =
+    amp * sin(2f * PI.toFloat() * distance / wavelength)
 
 @Composable
 private fun wavePhase(): State<Float> {
@@ -322,6 +339,8 @@ private fun WaveTrack(
     progress: () -> Float,
     color: Color,
     knob: Float,
+    amp: Float,
+    wavelength: Float,
     rtl: Boolean,
     phase: State<Float>?,
     connected: Boolean,
@@ -331,22 +350,20 @@ private fun WaveTrack(
         val p = progress()
         val width = size.width
         val mid = size.height / 2f
-        val amp = 4.5.dp.toPx()
-        val length = 32.dp.toPx()
         val stroke = 4.5.dp.toPx()
-        val knobCenter = knob / 2f + p * (width - knob)
+        val start = knob / 2f
+        val end = width - knob / 2f
+        val knobCenter = start + p * (width - knob)
         fun build(from: Float, to: Float) {
             path.reset()
             var x = from
-            path.moveTo(x, mid + amp * sin(2f * PI.toFloat() * x / length))
+            path.moveTo(x, mid + waveOffset(x - start, amp, wavelength))
             while (x < to) {
                 x = (x + 2f).coerceAtMost(to)
-                path.lineTo(x, mid + amp * sin(2f * PI.toFloat() * x / length))
+                path.lineTo(x, mid + waveOffset(x - start, amp, wavelength))
             }
         }
         scale(if (rtl) -1f else 1f, 1f, pivot = Offset(width / 2f, mid)) {
-            val start = knob / 2f
-            val end = width - knob / 2f
             if (knobCenter < end - 1f) {
                 build(knobCenter, end)
                 val dash = phase?.value
