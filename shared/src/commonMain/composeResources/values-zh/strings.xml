@@ -1636,8 +1636,8 @@
     <string name="bento_live_vpn">MTU %1$d · %2$s</string>
     <string name="bento_live_kill">断网保护已开启</string>
     <string name="bento_live_rules">%1$d 条规则</string>
-    <string name="bento_detect_location_title">检测服务器位置</string>
-    <string name="bento_detect_location_sum">测试时查询每台服务器所在的国家，服务器地址会发送给查询服务。</string>
+    <string name="bento_detect_location_title">显示服务器位置</string>
+    <string name="bento_detect_location_sum">测试时查询每台服务器所在的国家，并在服务器列表中显示国旗。服务器地址会发送给查询服务。</string>
     <string name="bento_net_change_title">切换网络时重建隧道</string>
     <string name="bento_net_change_sum">在 Wi-Fi 和移动数据之间切换时隧道随之切换，WireGuard 和 Hysteria 不会断开。</string>
     <string name="bento_proxy_auth_title">本地代理密码</string>

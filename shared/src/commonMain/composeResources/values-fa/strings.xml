@@ -1628,8 +1628,8 @@
     <string name="bento_live_vpn">MTU %1$d · %2$s</string>
     <string name="bento_live_kill">کیل‌سوییچ روشن</string>
     <string name="bento_live_rules">%1$d قانون</string>
-    <string name="bento_detect_location_title">تشخیص موقعیت سرورها</string>
-    <string name="bento_detect_location_sum">هنگام تست، کشور هر سرور پیدا می‌شود. آدرس سرورها به یک سرویس جستجو فرستاده می‌شود.</string>
+    <string name="bento_detect_location_title">نمایش موقعیت سرورها</string>
+    <string name="bento_detect_location_sum">هنگام تست، کشور هر سرور پیدا می‌شود و پرچمش در فهرست سرورها نشان داده می‌شود. آدرس سرورها به یک سرویس جستجو فرستاده می‌شود.</string>
     <string name="bento_net_change_title">ساخت دوباره هنگام تغییر شبکه</string>
     <string name="bento_net_change_sum">با جابه‌جایی بین وای‌فای و دیتا، تونل هم جابه‌جا می‌شود تا WireGuard و Hysteria قطع نشوند.</string>
     <string name="bento_proxy_auth_title">رمز روی پروکسی محلی</string>

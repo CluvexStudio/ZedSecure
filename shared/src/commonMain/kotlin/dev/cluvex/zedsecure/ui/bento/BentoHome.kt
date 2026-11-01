@@ -120,6 +120,7 @@ data class BentoActiveServer(
     val name: String,
     val detail: String?,
     val country: String?,
+    val protocol: String,
     val engine: String,
     val locked: Boolean,
 )
@@ -130,6 +131,7 @@ data class BentoServerPick(
     val name: String,
     val detail: String,
     val country: String?,
+    val protocol: String,
     val pingMs: Int?,
 )
 
@@ -394,14 +396,17 @@ private fun ServerCard(
         Text(stringResource(Res.string.bento_current_server).uppercase(), style = BentoType.caption(), color = tone.content.copy(alpha = 0.8f))
         Row(verticalAlignment = Alignment.CenterVertically) {
             val country = (if (live && showInfo) info.countryCode else null) ?: active?.country
-            BentoFlag(
-                countryCode = country,
-                size = 50.dp,
-                corner = 17.dp,
-                fallback = active?.name?.take(2)?.uppercase(),
-                container = c.chipOnStage,
-                content = tone.content,
-            )
+            if (country != null || active == null) {
+                BentoFlag(
+                    countryCode = country,
+                    size = 50.dp,
+                    corner = 17.dp,
+                    container = c.chipOnStage,
+                    content = tone.content,
+                )
+            } else {
+                BentoProtocolBadge(active.protocol, size = 50.dp, corner = 17.dp, container = c.chipOnStage, content = tone.content)
+            }
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
@@ -590,7 +595,7 @@ private fun PickRow(pick: BentoServerPick, index: Int, count: Int, onClick: () -
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        BentoFlag(pick.country, size = 38.dp, corner = 13.dp, fallback = pick.name.take(2).uppercase())
+        if (pick.country != null) BentoFlag(pick.country, size = 38.dp, corner = 13.dp) else BentoProtocolBadge(pick.protocol)
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
             Text(pick.name, style = BentoType.rowTitle(), color = c.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)

@@ -283,12 +283,13 @@ fun MainScaffold(
                         dev.cluvex.zedsecure.ui.bento.BentoActiveServer(
                             name = homeName ?: p.name,
                             detail = homeDetail ?: p.transportLabel.removeSuffix(" · sing-box"),
-                            country = dev.cluvex.zedsecure.domain.config.ProfileCountry.of(p),
+                            country = if (settings.detectServerLocation) dev.cluvex.zedsecure.domain.config.ProfileCountry.of(p) else null,
+                            protocol = p.protocol,
                             engine = dev.cluvex.zedsecure.ui.bento.bentoEngineOf(p),
                             locked = p.isLocked,
                         )
                     },
-                    bentoPicks = androidx.compose.runtime.remember(profiles, activeId) {
+                    bentoPicks = androidx.compose.runtime.remember(profiles, activeId, settings.detectServerLocation) {
                         profiles
                             .filter { !it.isLocked && it.id != activeId && (it.lastPingMs ?: 0) > 0 }
                             .sortedBy { it.lastPingMs }
@@ -298,7 +299,8 @@ fun MainScaffold(
                                     id = it.id,
                                     name = it.name,
                                     detail = it.transportLabel.removeSuffix(" · sing-box"),
-                                    country = dev.cluvex.zedsecure.domain.config.ProfileCountry.of(it),
+                                    country = if (settings.detectServerLocation) dev.cluvex.zedsecure.domain.config.ProfileCountry.of(it) else null,
+                                    protocol = it.protocol,
                                     pingMs = it.lastPingMs,
                                 )
                             }

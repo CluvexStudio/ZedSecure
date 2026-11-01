@@ -1589,8 +1589,8 @@
     <string name="bento_live_vpn">MTU %1$d · %2$s</string>
     <string name="bento_live_kill">kill switch activado</string>
     <string name="bento_live_rules">%1$d reglas</string>
-    <string name="bento_detect_location_title">Detectar la ubicación de los servidores</string>
-    <string name="bento_detect_location_sum">Al probar, busca el país de cada servidor. Las direcciones se envían a un servicio de consulta.</string>
+    <string name="bento_detect_location_title">Mostrar la ubicación de los servidores</string>
+    <string name="bento_detect_location_sum">Al probar, busca el país de cada servidor y muestra su bandera en la lista. Las direcciones se envían a un servicio de consulta.</string>
     <string name="bento_net_change_title">Reconstruir al cambiar de red</string>
     <string name="bento_net_change_sum">Al pasar entre Wi-Fi y datos móviles, el túnel también cambia, así WireGuard e Hysteria siguen funcionando.</string>
     <string name="bento_proxy_auth_title">Contraseña en el proxy local</string>

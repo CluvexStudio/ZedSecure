@@ -1636,8 +1636,8 @@
     <string name="bento_live_vpn">MTU %1$d · %2$s</string>
     <string name="bento_live_kill">kill switch включён</string>
     <string name="bento_live_rules">Правил: %1$d</string>
-    <string name="bento_detect_location_title">Определять страну серверов</string>
-    <string name="bento_detect_location_sum">При проверке определять страну каждого сервера. Адреса серверов отправляются сервису поиска.</string>
+    <string name="bento_detect_location_title">Показывать страны серверов</string>
+    <string name="bento_detect_location_sum">При проверке определять страну каждого сервера и показывать её флаг в списке. Адреса серверов отправляются сервису поиска.</string>
     <string name="bento_net_change_title">Пересоздавать при смене сети</string>
     <string name="bento_net_change_sum">При переходе между Wi-Fi и мобильной сетью туннель переезжает тоже, и WireGuard с Hysteria не обрываются.</string>
     <string name="bento_proxy_auth_title">Пароль на локальном прокси</string>
