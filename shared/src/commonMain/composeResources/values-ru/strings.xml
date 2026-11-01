@@ -9,7 +9,7 @@
     <string name="servers_count">Серверов: %1$d</string>
     <string name="servers_add">Добавить сервер</string>
     <string name="servers_add_clipboard">Импорт из буфера обмена</string>
-    <string name="servers_add_manual">Добавить вручную (Xray)</string>
+    <string name="servers_add_manual">Добавить вручную</string>
     <string name="servers_add_custom">Своя конфигурация (JSON)</string>
     <string name="servers_imported">Импортировано серверов: %1$d</string>
     <string name="servers_add_file">Из файла (.ovpn, .conf, .json)</string>
@@ -1806,4 +1806,5 @@
     <string name="ipd_ipv6">IPv6</string>
     <string name="ipd_ipv6_on">Есть</string>
     <string name="ipd_ipv6_off">Нет</string>
+    <string name="manual_edit_title">Изменить сервер</string>
 </resources>

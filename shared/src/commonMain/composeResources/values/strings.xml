@@ -8,7 +8,7 @@
     <string name="servers_count">%1$d servers</string>
     <string name="servers_add">Add server</string>
     <string name="servers_add_clipboard">Import from clipboard</string>
-    <string name="servers_add_manual">Add manually (Xray)</string>
+    <string name="servers_add_manual">Add manually</string>
     <string name="servers_add_custom">Custom config (JSON)</string>
     <string name="servers_imported">Imported %1$d server(s)</string>
     <string name="servers_add_file">From a file (.ovpn, .conf, .json)</string>
@@ -1805,4 +1805,5 @@
     <string name="ipd_ipv6">IPv6</string>
     <string name="ipd_ipv6_on">Active</string>
     <string name="ipd_ipv6_off">None</string>
+    <string name="manual_edit_title">Edit server</string>
 </resources>

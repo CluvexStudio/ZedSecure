@@ -276,7 +276,7 @@ fun ManualConfigSheet(
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Text(
-                stringResource(Res.string.servers_add_manual),
+                stringResource(if (initial != null || initialSingBoxLink != null) Res.string.manual_edit_title else Res.string.servers_add_manual),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
             )

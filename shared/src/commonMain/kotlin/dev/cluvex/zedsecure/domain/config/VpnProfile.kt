@@ -124,21 +124,7 @@ data class VpnProfile(
     val isSingBoxConfig: Boolean get() = source is ProfileSource.SingBoxConfig
 
     val engineLabel: String
-        get() = when (val src = source) {
-            is ProfileSource.SingBox, is ProfileSource.SingBoxConfig -> ENGINE_SINGBOX
-            is ProfileSource.Link -> if (SingBoxLinks.handles(src.link)) ENGINE_SINGBOX else ENGINE_XRAY
-            is ProfileSource.Tor -> "Tor"
-            is ProfileSource.Psiphon -> "Psiphon"
-            is ProfileSource.DnsTunnel -> if (src.settings.isVaydns) "VayDNS" else "DNSTT"
-            is ProfileSource.MasterDns -> "MasterDNS"
-            is ProfileSource.Ssh -> "SSH"
-            is ProfileSource.OpenConnect -> "OpenConnect"
-            is ProfileSource.Ikev2 -> "IKEv2"
-            is ProfileSource.SniSpoof -> "Xray · SNI"
-            is ProfileSource.CrossChain -> ENGINE_CHAIN
-            is ProfileSource.AutoSelect -> ENGINE_AUTO
-            is ProfileSource.RawJson, is ProfileSource.Sealed, is ProfileSource.ProxyChain -> ENGINE_XRAY
-        }
+        get() = engineLabelOf(source)
 
     fun autoSelectSettings(): ProfileSource.AutoSelect? = source as? ProfileSource.AutoSelect
 
@@ -539,6 +525,30 @@ data class VpnProfile(
             source = ProfileSource.Ssh(settings),
             addedAt = addedAt,
         )
+
+        fun engineLabelOf(source: ProfileSource): String = when (val src = source) {
+            is ProfileSource.SingBox, is ProfileSource.SingBoxConfig -> ENGINE_SINGBOX
+            is ProfileSource.Link -> if (SingBoxLinks.handles(src.link)) ENGINE_SINGBOX else ENGINE_XRAY
+            is ProfileSource.Tor -> "Tor"
+            is ProfileSource.Psiphon -> "Psiphon"
+            is ProfileSource.DnsTunnel -> if (src.settings.isVaydns) "VayDNS" else "DNSTT"
+            is ProfileSource.MasterDns -> "MasterDNS"
+            is ProfileSource.Ssh -> "SSH"
+            is ProfileSource.OpenConnect -> "OpenConnect"
+            is ProfileSource.Ikev2 -> "IKEv2"
+            is ProfileSource.SniSpoof -> "Xray · SNI"
+            is ProfileSource.CrossChain -> ENGINE_CHAIN
+            is ProfileSource.AutoSelect -> ENGINE_AUTO
+            is ProfileSource.Sealed -> sealedEngineLabel(src.zsxBase64)
+            is ProfileSource.RawJson, is ProfileSource.ProxyChain -> ENGINE_XRAY
+        }
+
+        private val sealedLabels = java.util.concurrent.ConcurrentHashMap<String, String>()
+
+        private fun sealedEngineLabel(zsx: String): String = sealedLabels.getOrPut(zsx) {
+            val payload = runCatching { ZsxCrypto.open(Base64.decode(zsx), password = null) }.getOrNull()
+            payload?.let { sourceOfPayload(it) }?.takeIf { it !is ProfileSource.Sealed }?.let { engineLabelOf(it) } ?: ENGINE_XRAY
+        }
 
         fun sourceOfPayload(payload: String): ProfileSource? {
             val text = payload.trim()

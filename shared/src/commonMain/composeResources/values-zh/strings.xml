@@ -9,7 +9,7 @@
     <string name="servers_count">%1$d 个服务器</string>
     <string name="servers_add">添加服务器</string>
     <string name="servers_add_clipboard">从剪贴板导入</string>
-    <string name="servers_add_manual">手动添加 (Xray)</string>
+    <string name="servers_add_manual">手动添加</string>
     <string name="servers_add_custom">自定义配置 (JSON)</string>
     <string name="servers_imported">已导入 %1$d 个服务器</string>
     <string name="servers_add_file">从文件导入（.ovpn、.conf、.json）</string>
@@ -1806,4 +1806,5 @@
     <string name="ipd_ipv6">IPv6</string>
     <string name="ipd_ipv6_on">可用</string>
     <string name="ipd_ipv6_off">无</string>
+    <string name="manual_edit_title">编辑服务器</string>
 </resources>

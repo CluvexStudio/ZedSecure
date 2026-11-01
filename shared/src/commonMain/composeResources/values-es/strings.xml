@@ -7,7 +7,7 @@
     <string name="servers_count">%1$d servidores</string>
     <string name="servers_add">Añadir servidor</string>
     <string name="servers_add_clipboard">Importar del portapapeles</string>
-    <string name="servers_add_manual">Añadir manualmente (Xray)</string>
+    <string name="servers_add_manual">Añadir manualmente</string>
     <string name="servers_add_custom">Configuración personalizada (JSON)</string>
     <string name="servers_imported">Servidores importados: %1$d</string>
     <string name="servers_add_file">Desde un archivo (.ovpn, .conf, .json)</string>
@@ -1759,4 +1759,5 @@
     <string name="ipd_ipv6">IPv6</string>
     <string name="ipd_ipv6_on">Activa</string>
     <string name="ipd_ipv6_off">No</string>
+    <string name="manual_edit_title">Editar servidor</string>
 </resources>

@@ -140,7 +140,7 @@ fun main(args: Array<String>) {
 
     runCatching {
         desktopSettings.settings.value.language.tag?.let {
-            java.util.Locale.setDefault(java.util.Locale.forLanguageTag(it))
+            java.util.Locale.setDefault(latinDigits(it))
         }
     }
 
@@ -556,10 +556,14 @@ private val systemLanguageTag: String =
 
 internal fun languageTagFor(language: AppLanguage): String = language.tag ?: systemLanguageTag
 
+private fun latinDigits(tag: String): java.util.Locale =
+    runCatching { java.util.Locale.Builder().setLanguageTag(tag).setUnicodeLocaleKeyword("nu", "latn").build() }
+        .getOrElse { java.util.Locale.forLanguageTag(tag) }
+
 @Composable
 internal fun ProvideAppLanguage(langTag: String, content: @Composable () -> Unit) {
     val locale = remember(langTag) {
-        java.util.Locale.forLanguageTag(langTag).also { java.util.Locale.setDefault(it) }
+        latinDigits(langTag).also { java.util.Locale.setDefault(it) }
     }
     val direction = if (java.awt.ComponentOrientation.getOrientation(locale).isLeftToRight) LayoutDirection.Ltr else LayoutDirection.Rtl
     CompositionLocalProvider(LocalLayoutDirection provides direction, content = content)
