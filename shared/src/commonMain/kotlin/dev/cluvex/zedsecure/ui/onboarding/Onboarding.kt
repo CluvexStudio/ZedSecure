@@ -146,7 +146,6 @@ fun OnboardingFlow(
     var directTorrent by rememberSaveable { mutableStateOf(true) }
     var proxyAll by rememberSaveable { mutableStateOf(false) }
     var applyRules by rememberSaveable { mutableStateOf(!replay) }
-    var localDns by rememberSaveable { mutableStateOf(true) }
 
     val options = RoutingPresets.RegionOptions(directLocal, blockAds, blockQuic, directTorrent, proxyAll)
     val preview = remember(region, options) { RoutingPresets.forRegion(region, options) }
@@ -159,10 +158,6 @@ fun OnboardingFlow(
                 rulesets = RoutingPresets.apply(it.rulesets, RoutingPresets.forRegion(region, options)),
                 routingSeeded = true,
                 routingMigrated = true,
-                directDns = RoutingPresets.regionDirectDns(region)
-                    ?.takeIf { localDns && !proxyAll && directLocal }
-                    ?.address
-                    ?: it.directDns,
             )
         }
     }
@@ -225,8 +220,6 @@ fun OnboardingFlow(
                         onDirectTorrent = { directTorrent = it },
                         proxyAll = proxyAll,
                         onProxyAll = { proxyAll = it },
-                        localDns = localDns,
-                        onLocalDns = { localDns = it },
                     )
                     3 -> LookStep(settings, onUpdate)
                     else -> ReadyStep(region, applyRules, preview.size)
@@ -509,12 +502,9 @@ private fun RulesStep(
     onDirectTorrent: (Boolean) -> Unit,
     proxyAll: Boolean,
     onProxyAll: (Boolean) -> Unit,
-    localDns: Boolean,
-    onLocalDns: (Boolean) -> Unit,
 ) {
     val c = Bento.colors
     val country = if (region.isBlank()) "" else dev.cluvex.zedsecure.ui.servers.countryName(region)
-    val dns = RoutingPresets.regionDirectDns(region)
     Column(
         Modifier.fillMaxSize().appVerticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -540,15 +530,6 @@ private fun RulesStep(
                     live && !proxyAll,
                     onDirectLocal,
                     flag = region,
-                )
-            }
-            if (dns != null) {
-                RuleSwitch(
-                    stringResource(Res.string.onb_rules_dns),
-                    stringResource(Res.string.onb_rules_dns_sum, "${dns.name} · ${dns.address}"),
-                    localDns && directLocal && !proxyAll,
-                    live && directLocal && !proxyAll,
-                    onLocalDns,
                 )
             }
             RuleSwitch(stringResource(Res.string.onb_rules_ads), stringResource(Res.string.onb_rules_ads_sum), blockAds, live, onBlockAds)

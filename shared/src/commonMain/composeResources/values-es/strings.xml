@@ -1697,6 +1697,6 @@
     <string name="onb_region_from_network">la conexión actual (Wi-Fi o datos)</string>
     <string name="onb_region_from_language">el idioma y la región del teléfono</string>
     <string name="sb_snell_psk_short">Los servidores Snell v6 necesitan una clave de 12 a 255 bytes.</string>
-    <string name="onb_rules_dns">DNS local para sitios directos</string>
-    <string name="onb_rules_dns_sum">Los sitios locales se resuelven con %1$s y reciben servidores locales</string>
+    <string name="dns_region_title">DNS local para sitios directos</string>
+    <string name="dns_region_sum">Los sitios locales se resuelven con %1$s y reciben servidores locales</string>
 </resources>

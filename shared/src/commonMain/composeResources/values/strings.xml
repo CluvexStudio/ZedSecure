@@ -1743,6 +1743,6 @@
     <string name="onb_region_from_network">your current Wi-Fi or data connection</string>
     <string name="onb_region_from_language">your phone's language and region</string>
     <string name="sb_snell_psk_short">Snell v6 servers need a key of 12 to 255 bytes.</string>
-    <string name="onb_rules_dns">Local DNS for direct sites</string>
-    <string name="onb_rules_dns_sum">Domestic sites resolve through %1$s, so they get local servers</string>
+    <string name="dns_region_title">Local DNS for direct sites</string>
+    <string name="dns_region_sum">Domestic sites resolve through %1$s, so they get local servers</string>
 </resources>

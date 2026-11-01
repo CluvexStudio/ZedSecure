@@ -683,6 +683,7 @@ private fun BentoRoot(
                 stringResource(Res.string.title_pref_route_only_enabled),
                 stringResource(Res.string.title_pref_remote_dns),
                 stringResource(Res.string.title_pref_domestic_dns),
+                stringResource(Res.string.dns_region_title),
                 stringResource(Res.string.title_pref_dns_hosts),
                 stringResource(Res.string.title_pref_enable_local_proxy),
                 stringResource(Res.string.title_pref_local_proxy_port),
@@ -2074,6 +2075,14 @@ private fun CorePage(
                 value = s.directDns,
                 onValueChanged = { v -> onUpdate { it.copy(directDns = v) } },
             )
+            dev.cluvex.zedsecure.domain.model.RoutingPresets.regionDirectDns(s.regionCode)?.let { dns ->
+                SettingsSwitchRow(
+                    title = stringResource(Res.string.dns_region_title),
+                    summary = stringResource(Res.string.dns_region_sum, "${dns.name} · ${dns.address}"),
+                    checked = s.directDns.trim() == dns.address,
+                    onCheckedChange = { on -> onUpdate { it.copy(directDns = if (on) dns.address else AppSettings().directDns) } },
+                )
+            }
             SettingsEditRow(
                 title = stringResource(Res.string.title_pref_dns_hosts),
                 value = s.dnsHosts,
