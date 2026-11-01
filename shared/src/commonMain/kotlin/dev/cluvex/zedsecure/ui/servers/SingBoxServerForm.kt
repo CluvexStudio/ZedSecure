@@ -105,9 +105,13 @@ class SingBoxDraft(link: String?) {
     val ready: Boolean
         get() = server.isNotBlank() && port.toIntOrNull() in 1..65535 && when (kind) {
             SingBoxKind.TUIC -> user.isNotBlank()
-            SingBoxKind.ANYTLS, SingBoxKind.SNELL -> password.isNotBlank()
+            SingBoxKind.ANYTLS -> password.isNotBlank()
+            SingBoxKind.SNELL -> password.isNotBlank() && !snellKeyTooShort
             else -> true
         }
+
+    val snellKeyTooShort: Boolean
+        get() = kind == SingBoxKind.SNELL && params["version"] == "6" && password.encodeToByteArray().size !in SNELL_V6_KEY
 
     fun toLink(): String {
         val scheme = when (kind) {
@@ -143,6 +147,8 @@ class SingBoxDraft(link: String?) {
     fun valid(): Boolean = ready && runCatching { SingBoxLinks.parse(toLink()) }.isSuccess
 
     companion object {
+        private val SNELL_V6_KEY = 12..255
+
         fun canEdit(link: String): Boolean = SingBoxLinks.handles(link)
     }
 }
@@ -218,6 +224,14 @@ fun SingBoxFields(draft: SingBoxDraft) {
         }
         SingBoxKind.SNELL -> {
             SbField(draft.password, { draft.password = it }, Res.string.sb_snell_psk)
+            if (draft.snellKeyTooShort && draft.password.isNotEmpty()) {
+                Text(
+                    stringResource(Res.string.sb_snell_psk_short),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(start = 4.dp),
+                )
+            }
             PickerField(stringResource(Res.string.sb_snell_version), SNELL_VERSIONS, draft["version"].ifEmpty { "4" }, { version ->
                 if (version != draft["version"]) {
                     listOf("obfs", "obfs-host", "mode").forEach { draft[it] = "" }

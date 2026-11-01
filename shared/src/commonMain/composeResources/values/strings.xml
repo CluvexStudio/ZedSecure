@@ -1742,4 +1742,5 @@
     <string name="onb_region_from_mobile">your mobile network</string>
     <string name="onb_region_from_network">your current Wi-Fi or data connection</string>
     <string name="onb_region_from_language">your phone's language and region</string>
+    <string name="sb_snell_psk_short">Snell v6 servers need a key of 12 to 255 bytes.</string>
 </resources>

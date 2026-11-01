@@ -32,6 +32,7 @@ import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.cluvex.zedsecure.data.map.WorldMap
 import dev.cluvex.zedsecure.data.net.NetworkInfo
 import dev.cluvex.zedsecure.shared.resources.Res
 import dev.cluvex.zedsecure.shared.resources.ic_restart_alt

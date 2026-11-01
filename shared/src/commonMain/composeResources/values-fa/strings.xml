@@ -1735,4 +1735,5 @@
     <string name="onb_region_from_mobile">شبکهٔ موبایل</string>
     <string name="onb_region_from_network">اتصال فعلی (وای‌فای یا دیتا)</string>
     <string name="onb_region_from_language">زبان و منطقهٔ گوشی</string>
+    <string name="sb_snell_psk_short">سرور Snell نسخهٔ ۶ کلیدی بین ۱۲ تا ۲۵۵ بایت می‌خواهد.</string>
 </resources>
