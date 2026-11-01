@@ -48,7 +48,7 @@ class VpnNotifications(private val ctx: Context) {
 
     private fun themeColors(settings: dev.cluvex.zedsecure.domain.model.AppSettings, night: Boolean): Colors {
         val dynamic = settings.dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-        val seed = if (dynamic) {
+        val seed = if (settings.dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             androidx.compose.ui.graphics.Color(ctx.getColor(android.R.color.system_accent1_500))
         } else {
             dev.cluvex.zedsecure.ui.theme.accentSeed(settings.accentColor)
