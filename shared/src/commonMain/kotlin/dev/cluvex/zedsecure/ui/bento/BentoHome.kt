@@ -86,7 +86,6 @@ import dev.cluvex.zedsecure.shared.resources.fault_unknown
 import dev.cluvex.zedsecure.shared.resources.home_download
 import dev.cluvex.zedsecure.shared.resources.home_local_proxy
 import dev.cluvex.zedsecure.shared.resources.home_upload
-import dev.cluvex.zedsecure.shared.resources.ic_add
 import dev.cluvex.zedsecure.shared.resources.ic_chevron_right
 import dev.cluvex.zedsecure.shared.resources.ic_description
 import dev.cluvex.zedsecure.shared.resources.ic_download
@@ -97,7 +96,6 @@ import dev.cluvex.zedsecure.shared.resources.ic_upload
 import dev.cluvex.zedsecure.shared.resources.logs_title
 import dev.cluvex.zedsecure.shared.resources.map_title
 import dev.cluvex.zedsecure.shared.resources.pixel_other_server
-import dev.cluvex.zedsecure.shared.resources.servers_add
 import dev.cluvex.zedsecure.shared.resources.state_error
 import dev.cluvex.zedsecure.shared.resources.title_speedtest
 import dev.cluvex.zedsecure.ui.components.NoteText
@@ -134,6 +132,7 @@ data class BentoServerPick(
 
 private const val SPARK_POINTS = 24
 private const val TITLE_TAPS = 5
+private const val BURST_TAPS = 3
 private const val TAP_WINDOW_MS = 1_200L
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -151,7 +150,6 @@ internal fun BentoHome(
     onToggleConnection: () -> Unit,
     onBrowseConfigs: () -> Unit,
     onPickServer: (String) -> Unit,
-    onAddServer: () -> Unit,
     onOpenSpeedTest: (() -> Unit)?,
     onOpenMap: (() -> Unit)?,
     onRefreshInfo: () -> Unit,
@@ -199,19 +197,11 @@ internal fun BentoHome(
                             onSecretUnlocked()
                         } else if (titleTaps > 1) {
                             haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            if (titleTaps == BURST_TAPS) onBurst()
                         }
                     },
                 ) {
                     BentoIconButton(Res.drawable.ic_description, stringResource(Res.string.logs_title), onShowLogs)
-                    MotifButton(
-                        shape = MaterialShapes.Clover4Leaf,
-                        container = c.lime,
-                        content = c.onLime,
-                        icon = Res.drawable.ic_add,
-                        label = stringResource(Res.string.servers_add),
-                        onClick = onAddServer,
-                        onLongClick = onBurst,
-                    )
                 }
 
                 Column(

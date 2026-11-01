@@ -92,7 +92,6 @@ fun MainScaffold(
     var pendingSettingsPage by rememberSaveable {
         mutableStateOf(dev.cluvex.zedsecure.ui.settings.SettingsPage.Root)
     }
-    var serversAddRequest by rememberSaveable { mutableStateOf(false) }
     val bento = settings.appDesign == dev.cluvex.zedsecure.domain.model.AppDesign.Bento
     val tabs = androidx.compose.runtime.remember(settings.navTabs, platform.supportsPerAppProxy) {
         val available = dev.cluvex.zedsecure.domain.model.NavTab.entries
@@ -336,10 +335,6 @@ fun MainScaffold(
                         configRepository.setActive(id)
                         onActiveServerChanged()
                     },
-                    onAddServer = {
-                        serversAddRequest = true
-                        current = TopDestination.Servers
-                    },
                     onOpenSpeedTest = {
                         if (TopDestination.SpeedTest in tabs) {
                             current = TopDestination.SpeedTest
@@ -379,8 +374,6 @@ fun MainScaffold(
                         onActiveServerChanged()
                     },
                     detectServerLocation = settings.detectServerLocation,
-                    addRequest = serversAddRequest,
-                    onAddRequestConsumed = { serversAddRequest = false },
                 )
                 TopDestination.Vault -> VaultScreen(
                     repository = configRepository,

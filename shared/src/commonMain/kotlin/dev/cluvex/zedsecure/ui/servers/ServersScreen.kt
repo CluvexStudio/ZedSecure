@@ -139,8 +139,6 @@ fun ServersScreen(
     personalization: Personalization = Personalization.Default,
     reduceMotion: Boolean = false,
     detectServerLocation: Boolean = false,
-    addRequest: Boolean = false,
-    onAddRequestConsumed: () -> Unit = {},
 ) {
     val platform = LocalPlatform.current
     val scope = rememberCoroutineScope()
@@ -303,12 +301,6 @@ fun ServersScreen(
     val activeId by repository.activeId.collectAsStateWithLifecycle()
 
     var showAddSheet by remember { mutableStateOf(false) }
-    LaunchedEffect(addRequest) {
-        if (addRequest) {
-            showAddSheet = true
-            onAddRequestConsumed()
-        }
-    }
     var showManual by remember { mutableStateOf(false) }
 
     var fanOpen by remember { mutableStateOf(false) }

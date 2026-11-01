@@ -183,7 +183,6 @@ fun HomeScreen(
     bentoActive: dev.cluvex.zedsecure.ui.bento.BentoActiveServer? = null,
     bentoPicks: List<dev.cluvex.zedsecure.ui.bento.BentoServerPick> = emptyList(),
     onPickServer: (String) -> Unit = {},
-    onAddServer: () -> Unit = onBrowseConfigs,
     onOpenSpeedTest: (() -> Unit)? = null,
     onOpenMap: (() -> Unit)? = null,
 ) {
@@ -224,7 +223,6 @@ fun HomeScreen(
                     onToggleConnection = onToggleConnection,
                     onBrowseConfigs = onBrowseConfigs,
                     onPickServer = onPickServer,
-                    onAddServer = onAddServer,
                     onOpenSpeedTest = onOpenSpeedTest,
                     onOpenMap = onOpenMap,
                     onRefreshInfo = { homeVm.refresh(force = true) },
