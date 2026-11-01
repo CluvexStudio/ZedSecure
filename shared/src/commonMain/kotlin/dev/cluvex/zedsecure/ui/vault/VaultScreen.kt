@@ -89,7 +89,9 @@ fun VaultScreen(
     val activeId by repository.activeId.collectAsStateWithLifecycle()
     val locked = profiles.filter { it.isLocked }
 
-    val sources = profiles.filterNot { it.isLocked || it.isManagedTunnel || it.isProxyChain }
+    val sources = profiles.filter { p ->
+        !p.isLocked && !p.isProxyChain && !p.isCrossChain && !p.isAutoSelect && p.rawPayload() != null
+    }
     var showCreate by remember { mutableStateOf(false) }
     var sealing by remember { mutableStateOf(false) }
     val sealScope = rememberCoroutineScope()

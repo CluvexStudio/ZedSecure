@@ -213,6 +213,13 @@ data class VpnProfile(
 
     val isEditable: Boolean get() = !isLocked
 
+    fun unsealed(): VpnProfile {
+        val src = source as? ProfileSource.Sealed ?: return this
+        val payload = runCatching { ZsxCrypto.open(Base64.decode(src.zsxBase64), password = null) }.getOrNull() ?: return this
+        val inner = sourceOfPayload(payload) ?: return this
+        return copy(source = inner)
+    }
+
     fun rawPayload(): String? = when (val src = source) {
         is ProfileSource.Link -> src.link
         is ProfileSource.RawJson -> src.json
@@ -533,12 +540,38 @@ data class VpnProfile(
             addedAt = addedAt,
         )
 
+        fun sourceOfPayload(payload: String): ProfileSource? {
+            val text = payload.trim()
+            if (text.isEmpty()) return null
+            if (ZedLink.isZedLink(text)) {
+                return ZedLink.parse(text)?.source?.takeIf { ZedLink.handles(it) && it !is ProfileSource.ProxyChain && it !is ProfileSource.CrossChain }
+            }
+            if (SniSpoofLink.isSniSpoofLink(text)) {
+                return SniSpoofLink.parse(text)?.second?.let { ProfileSource.SniSpoof(it) }
+            }
+            when (SingBoxJson.shapeOf(text)) {
+                SingBoxJson.Shape.FullConfig -> return ProfileSource.SingBoxConfig(text)
+                SingBoxJson.Shape.None -> Unit
+                else -> {
+                    val server = SingBoxJson.servers(text).firstOrNull() ?: return null
+                    return ProfileSource.SingBox(json = server.fragment, carrier = server.tag)
+                }
+            }
+            if (CustomConfig.looksLikeCustomJson(text)) return ProfileSource.RawJson(text)
+            return runCatching { fromAnyLink(text, id = "sealed", addedAt = 0).source }.getOrNull()
+        }
+
         internal fun configJsonFromPayload(
             payload: String,
             options: XrayJsonBuilder.BuildOptions = XrayJsonBuilder.BuildOptions(),
             forSpeedtest: Boolean = false,
         ): String {
             val trimmed = payload.trim()
+            val shape = SingBoxJson.shapeOf(trimmed)
+            if (shape != SingBoxJson.Shape.None && shape != SingBoxJson.Shape.FullConfig) {
+                val server = SingBoxJson.servers(trimmed).firstOrNull() ?: throw IllegalStateException("The locked sing-box config has no server")
+                return XrayJsonBuilder.buildSingBox(server.fragment, server.tag, options = options, forSpeedtest = forSpeedtest)
+            }
             return if (CustomConfig.looksLikeCustomJson(trimmed)) {
                 XrayJsonBuilder.normalizeRawJson(
                     trimmed,

@@ -188,6 +188,15 @@ object RoutingPresets {
         val proxyAll: Boolean = false,
     )
 
+    data class RegionDns(val name: String, val address: String)
+
+    fun regionDirectDns(code: String): RegionDns? = when (code.trim().uppercase()) {
+        "IR" -> RegionDns("Shecan", "178.22.122.100")
+        "CN" -> RegionDns("AliDNS", "223.5.5.5")
+        "RU" -> RegionDns("Yandex", "77.88.8.8")
+        else -> null
+    }
+
     fun forRegion(code: String, options: RegionOptions = RegionOptions()): List<RulesetItem> {
         val cc = code.trim().lowercase().takeIf { it.length == 2 && it.all { ch -> ch in 'a'..'z' } }
         return buildList {

@@ -25,6 +25,7 @@ import dev.cluvex.zedsecure.domain.config.ConfigParser
 import dev.cluvex.zedsecure.domain.config.AwgConfig
 import dev.cluvex.zedsecure.domain.config.ShareLink
 import dev.cluvex.zedsecure.domain.config.CustomConfig
+import dev.cluvex.zedsecure.domain.config.ConfigParseException
 import dev.cluvex.zedsecure.domain.config.ProfileSource
 import dev.cluvex.zedsecure.domain.config.OvpnConfig
 import dev.cluvex.zedsecure.domain.config.Protocol
@@ -1412,7 +1413,10 @@ class ConfigRepository(private val store: KeyValueStore) {
             isLocked = true,
             note = meta.note.takeIf { it.isNotBlank() },
         )
-        profile.toXrayConfigJson()
+        when (VpnProfile.sourceOfPayload(payload) ?: throw ConfigParseException("This locked config holds a format ZedSecure cannot run")) {
+            is ProfileSource.Link, is ProfileSource.RawJson, is ProfileSource.SingBox -> profile.toXrayConfigJson()
+            else -> Unit
+        }
         _profiles.value = _profiles.value + profile
         persistProfiles()
         if (_activeId.value == null) setActive(profile.id)
@@ -1471,7 +1475,7 @@ class ConfigRepository(private val store: KeyValueStore) {
 
         val ALT_UA = "ZedSecure/${AppInfo.versionName}"
 
-        const val SING_BOX_UA = "SFA/1.14.0"
+        const val SING_BOX_UA = "SFA/1.14.4 (sing-box 1.14.4)"
 
         const val V2RAYNG_UA_PREFIX = "v2rayNG/"
 

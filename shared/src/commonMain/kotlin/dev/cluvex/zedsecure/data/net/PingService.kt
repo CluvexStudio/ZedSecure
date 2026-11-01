@@ -128,7 +128,10 @@ object PingService {
         val customPermits = Semaphore(minOf(realPermits, CUSTOM_PROBE_CONCURRENCY))
         val geoPermits = Semaphore(GEO_CONCURRENCY)
 
-        val targets = profiles.filterNot { (it.isManagedTunnel && !it.isSingBoxConfig) || it.isDnsBasedTunnel }
+        val targets = profiles.filterNot { p ->
+            val real = p.unsealed()
+            (real.isManagedTunnel && !real.isSingBoxConfig) || real.isDnsBasedTunnel
+        }
         val total = targets.size
         var done = 0
         val doneLock = Semaphore(1)
@@ -169,7 +172,7 @@ object PingService {
                 if (tcpConnectMillis(profile.address, profile.port, PRECHECK_TIMEOUT_MS) < 0) return -1L
             }
 
-            runCatching { profile.toXrayConfigJson(options = probeOptions(), forSpeedtest = true) }.getOrElse { return -1L }
+            runCatching { profile.unsealed().toXrayConfigJson(options = probeOptions(), forSpeedtest = true) }.getOrElse { return -1L }
         }
         val started = currentTimeMillis()
         val first = probeWithTimeout(profile, config, url)

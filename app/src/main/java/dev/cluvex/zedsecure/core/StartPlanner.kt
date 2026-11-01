@@ -52,9 +52,10 @@ class StartPlanner(context: Context) {
 
     fun planActive(allowProxyOnly: Boolean): Plan = plan(configRepository.activeProfile(), allowProxyOnly)
 
-    fun plan(profile: VpnProfile?, allowProxyOnly: Boolean = true): Plan {
+    fun plan(chosen: VpnProfile?, allowProxyOnly: Boolean = true): Plan {
         AutoSelect.clearPrepared()
-        if (profile == null) return Plan.Failure(appContext.getString(R.string.select_config_first))
+        if (chosen == null) return Plan.Failure(appContext.getString(R.string.select_config_first))
+        val profile = chosen.unsealed()
         profile.ikev2Settings()?.let { return Plan.Ikev2(profile.name, it) }
         val kind = engineKindOf(profile)
         val configJson = try {

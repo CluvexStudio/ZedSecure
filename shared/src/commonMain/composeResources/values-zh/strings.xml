@@ -1744,4 +1744,6 @@
     <string name="onb_region_from_network">当前连接（Wi-Fi 或移动数据）</string>
     <string name="onb_region_from_language">手机的语言和地区</string>
     <string name="sb_snell_psk_short">Snell v6 服务器需要 12 到 255 字节的密钥。</string>
+    <string name="onb_rules_dns">直连网站使用本地 DNS</string>
+    <string name="onb_rules_dns_sum">国内网站通过 %1$s 解析，获得本地服务器</string>
 </resources>

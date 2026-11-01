@@ -1744,4 +1744,6 @@
     <string name="onb_region_from_network">текущее подключение (Wi-Fi или мобильные данные)</string>
     <string name="onb_region_from_language">язык и регион телефона</string>
     <string name="sb_snell_psk_short">Серверу Snell v6 нужен ключ длиной от 12 до 255 байт.</string>
+    <string name="onb_rules_dns">Местный DNS для прямых сайтов</string>
+    <string name="onb_rules_dns_sum">Местные сайты разрешаются через %1$s и получают местные серверы</string>
 </resources>

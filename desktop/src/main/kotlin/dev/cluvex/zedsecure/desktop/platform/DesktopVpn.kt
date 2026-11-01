@@ -93,7 +93,7 @@ object DesktopVpn {
     fun toggle(config: ConfigRepository) {
         val state = VpnManager.status.value.state
         if (state.isActive || state.isTransitioning) { stop(); return }
-        val profile = config.activeProfile() ?: run { VpnManager.onError("Select a config first"); return }
+        val profile = config.activeProfile()?.unsealed() ?: run { VpnManager.onError("Select a config first"); return }
 
         runMode = settingsProvider().runMode
 

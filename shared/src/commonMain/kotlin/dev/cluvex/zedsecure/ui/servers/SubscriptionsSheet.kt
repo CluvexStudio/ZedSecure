@@ -418,9 +418,11 @@ private fun PresetField(label: StringResource, value: String, singleLine: Boolea
 private fun UserAgentPicker(value: String, onChange: (String) -> Unit) {
     val default = ConfigRepository.DEFAULT_UA
     val alt = ConfigRepository.ALT_UA
+    val singBox = ConfigRepository.SING_BOX_UA
     val isDefault = value.isBlank() || value == default
     val isAlt = value == alt
-    var custom by remember(value) { mutableStateOf(!isDefault && !isAlt) }
+    val isSingBox = value == singBox
+    var custom by remember(value) { mutableStateOf(!isDefault && !isAlt && !isSingBox) }
 
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(
@@ -442,6 +444,11 @@ private fun UserAgentPicker(value: String, onChange: (String) -> Unit) {
                 selected = isAlt && !custom,
                 onClick = { custom = false; onChange(alt) },
                 label = { Text(stringResource(Res.string.subs_ua_zedsecure), maxLines = 1) },
+            )
+            FilterChip(
+                selected = isSingBox && !custom,
+                onClick = { custom = false; onChange(singBox) },
+                label = { Text("sing-box", maxLines = 1) },
             )
             FilterChip(
                 selected = custom,
