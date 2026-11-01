@@ -34,6 +34,11 @@ internal actual fun httpGetResponse(
     connectTimeoutMs: Int,
     readTimeoutMs: Int,
 ): HttpTextResponse {
+    if (socksPort != null && JvmRuntime.resolvesThroughProxy) {
+        val response = rawHttpViaSocks("GET", url, mapOf("User-Agent" to userAgent), null, socksPort, connectTimeoutMs, readTimeoutMs)
+        if (response.code !in 200..299) throw IllegalStateException("HTTP ${response.code}")
+        return HttpTextResponse(response.code, response.body, response.headers)
+    }
     val target = URL(url)
     val connection = (
         if (socksPort != null) {
@@ -79,6 +84,10 @@ internal actual suspend fun httpJson(
     readTimeoutMs: Int,
     socksPort: Int?,
 ): HttpTextResponse = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+    if (socksPort != null && JvmRuntime.resolvesThroughProxy) {
+        val response = rawHttpViaSocks(method, url, headers, body?.encodeToByteArray(), socksPort, connectTimeoutMs, readTimeoutMs)
+        return@withContext HttpTextResponse(response.code, response.body, response.headers)
+    }
     val target = URL(url)
 
     val raw = if (socksPort != null) {

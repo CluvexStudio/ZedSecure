@@ -17,6 +17,11 @@ internal actual suspend fun httpGetViaSocks(
     readTimeoutMs: Int,
     closeConnection: Boolean,
 ): String = withContext(Dispatchers.IO) {
+    if (socksPort != null && JvmRuntime.resolvesThroughProxy) {
+        val response = rawHttpViaSocks("GET", url, mapOf("User-Agent" to userAgent), null, socksPort, connectTimeoutMs, readTimeoutMs)
+        if (response.code !in 200..299) throw IllegalStateException("HTTP ${response.code}")
+        return@withContext response.body
+    }
     val connection = if (socksPort != null) {
         val proxy = Proxy(Proxy.Type.SOCKS, InetSocketAddress.createUnresolved("127.0.0.1", socksPort))
         URL(url).openConnection(proxy) as HttpURLConnection

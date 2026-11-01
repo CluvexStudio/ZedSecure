@@ -214,7 +214,7 @@ private class JvmSpeedLink(private val host: String, private val socksPort: Int?
         try {
             if (socksPort != null) {
                 raw.connect(InetSocketAddress("127.0.0.1", socksPort), CONNECT_TIMEOUT_MS)
-                socksConnect(raw, host, 443, LocalProxyAuth.current)
+                dev.cluvex.zedsecure.platform.socks5Handshake(raw, host, 443, LocalProxyAuth.current)
             } else {
                 raw.connect(InetSocketAddress(host, 443), CONNECT_TIMEOUT_MS)
             }
@@ -233,50 +233,6 @@ private class JvmSpeedLink(private val host: String, private val socksPort: Int?
             runCatching { raw.close() }
             throw e
         }
-    }
-
-    private fun socksConnect(raw: Socket, host: String, port: Int, auth: LocalProxyAuth.Credentials?) {
-        val out = raw.getOutputStream()
-        val inp = raw.getInputStream()
-        out.write(if (auth != null) byteArrayOf(5, 2, 0, 2) else byteArrayOf(5, 1, 0))
-        out.flush()
-        val method = readExactly(inp, 2)
-        if (method[0].toInt() != 5) throw IOException("not a SOCKS5 proxy")
-        when (method[1].toInt() and 0xff) {
-            0 -> Unit
-            2 -> {
-                val credentials = auth ?: throw IOException("the local proxy wants a password")
-                val user = credentials.user.encodeToByteArray()
-                val pass = credentials.pass.encodeToByteArray()
-                out.write(byteArrayOf(1, user.size.toByte()) + user + byteArrayOf(pass.size.toByte()) + pass)
-                out.flush()
-                val reply = readExactly(inp, 2)
-                if (reply[1].toInt() != 0) throw IOException("the local proxy refused the password")
-            }
-            else -> throw IOException("the local proxy offered no usable login")
-        }
-        val name = host.encodeToByteArray()
-        out.write(byteArrayOf(5, 1, 0, 3, name.size.toByte()) + name + byteArrayOf((port shr 8).toByte(), port.toByte()))
-        out.flush()
-        val reply = readExactly(inp, 4)
-        if (reply[1].toInt() != 0) throw IOException("the tunnel could not reach $host (SOCKS ${reply[1].toInt() and 0xff})")
-        when (reply[3].toInt()) {
-            1 -> readExactly(inp, 4 + 2)
-            3 -> readExactly(inp, (readExactly(inp, 1)[0].toInt() and 0xff) + 2)
-            4 -> readExactly(inp, 16 + 2)
-            else -> throw IOException("bad SOCKS reply")
-        }
-    }
-
-    private fun readExactly(inp: InputStream, count: Int): ByteArray {
-        val bytes = ByteArray(count)
-        var read = 0
-        while (read < count) {
-            val n = inp.read(bytes, read, count - read)
-            if (n < 0) throw EOFException("the proxy closed the connection")
-            read += n
-        }
-        return bytes
     }
 
     private fun readLine(inp: InputStream, first: Int): String {
