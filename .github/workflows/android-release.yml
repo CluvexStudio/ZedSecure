@@ -4,15 +4,15 @@ on:
   workflow_dispatch:
     inputs:
       signing_key:
-        description: "play = the key Google Play already knows; upload = the CA key"
+        description: "main = the original ZedSecure key (Tehran, 38cecf37); upload = the second key (Toronto)"
         type: choice
-        default: play
-        options: [play, upload]
+        default: main
+        options: [main, upload]
   workflow_call:
     inputs:
       signing_key:
         type: string
-        default: play
+        default: main
 
 permissions:
   contents: read
