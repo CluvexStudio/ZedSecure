@@ -102,6 +102,8 @@ fun SettingsScreen(
 
     onReplayTour: (() -> Unit)? = null,
 
+    onReplaySetup: (() -> Unit)? = null,
+
     mtuHint: dev.cluvex.zedsecure.data.net.MtuServerHint? = null,
 
     ai: dev.cluvex.zedsecure.ui.settings.AiSection? = null,
@@ -183,6 +185,7 @@ fun SettingsScreen(
                     onOpen = { page = it },
                     onAbout = { showAbout = true },
                     onReplayTour = onReplayTour,
+                    onReplaySetup = onReplaySetup,
                     hasAi = ai != null,
                     onUpdate = onUpdate,
                 )
@@ -194,6 +197,7 @@ fun SettingsScreen(
                     onOpen = { page = it },
                     onAbout = { showAbout = true },
                     onReplayTour = onReplayTour,
+                    onReplaySetup = onReplaySetup,
                     hasAi = ai != null,
                 )
             }
@@ -304,6 +308,7 @@ private fun RootPage(
     onOpen: (SettingsPage) -> Unit,
     onAbout: () -> Unit,
     onReplayTour: (() -> Unit)?,
+    onReplaySetup: (() -> Unit)?,
 
     hasAi: Boolean,
 ) {
@@ -365,6 +370,13 @@ private fun RootPage(
                     stringResource(Res.string.tour_replay_subtitle),
                     art = SettingsArts.Tour,
                 ) { onReplayTour() }
+            }
+            if (onReplaySetup != null) {
+                SettingsMenuRow(
+                    stringResource(Res.string.onb_replay_title),
+                    stringResource(Res.string.onb_replay_sub),
+                    art = SettingsArts.Routing,
+                ) { onReplaySetup() }
             }
         }
 
@@ -524,6 +536,7 @@ private fun BentoRoot(
     onOpen: (SettingsPage) -> Unit,
     onAbout: () -> Unit,
     onReplayTour: (() -> Unit)?,
+    onReplaySetup: (() -> Unit)?,
     hasAi: Boolean,
     onUpdate: ((AppSettings) -> AppSettings) -> Unit,
 ) {
@@ -778,6 +791,15 @@ private fun BentoRoot(
                 summary = stringResource(Res.string.tour_replay_subtitle),
                 art = SettingsArts.Tour,
             ) { onReplayTour() })
+        }
+        if (onReplaySetup != null) {
+            add(dev.cluvex.zedsecure.ui.bento.BentoHubEntry(
+                key = "setup",
+                title = stringResource(Res.string.onb_replay_title),
+                summary = stringResource(Res.string.onb_replay_sub),
+                art = SettingsArts.Routing,
+                keywords = listOf(stringResource(Res.string.onb_region_change), stringResource(Res.string.onb_region_title)),
+            ) { onReplaySetup() })
         }
         add(dev.cluvex.zedsecure.ui.bento.BentoHubEntry(
             key = "update",
@@ -1220,6 +1242,22 @@ private fun UiPage(
                     enabled = s.liveNotification,
                     onSelected = { v -> onUpdate { it.copy(notifChip = v) } },
                 )
+                SettingsListRow(
+                    title = stringResource(Res.string.notif_style_title),
+                    options = listOf(
+                        dev.cluvex.zedsecure.domain.model.NotifStyle.Bento to stringResource(Res.string.notif_style_bento),
+                        dev.cluvex.zedsecure.domain.model.NotifStyle.System to stringResource(Res.string.notif_style_system),
+                    ),
+                    selected = s.notifStyle,
+                    enabled = !s.liveNotification,
+                    onSelected = { v -> onUpdate { it.copy(notifStyle = v) } },
+                )
+                if (s.liveNotification) {
+                    SettingsInfoRow(
+                        title = stringResource(Res.string.notif_style_title),
+                        body = stringResource(Res.string.notif_style_note),
+                    )
+                }
                 SettingsSwitchRow(
                     title = stringResource(Res.string.title_pref_speed_enabled),
                     summary = stringResource(Res.string.summary_pref_speed_enabled),

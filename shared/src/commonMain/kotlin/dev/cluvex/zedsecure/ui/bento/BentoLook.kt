@@ -41,6 +41,10 @@ import dev.cluvex.zedsecure.domain.model.BentoPrefs
 import dev.cluvex.zedsecure.domain.model.BentoTitle
 import dev.cluvex.zedsecure.shared.resources.Res
 import dev.cluvex.zedsecure.shared.resources.bento_connect_button
+import dev.cluvex.zedsecure.shared.resources.bento_connect_hold
+import dev.cluvex.zedsecure.shared.resources.bento_connect_morph
+import dev.cluvex.zedsecure.shared.resources.bento_connect_rail
+import dev.cluvex.zedsecure.shared.resources.bento_connect_tile
 import dev.cluvex.zedsecure.shared.resources.bento_connect_slide
 import dev.cluvex.zedsecure.shared.resources.bento_connect_title
 import dev.cluvex.zedsecure.shared.resources.bento_corners_leaf
@@ -82,6 +86,7 @@ import dev.cluvex.zedsecure.shared.resources.bento_wave_sum
 import dev.cluvex.zedsecure.shared.resources.ic_check
 import dev.cluvex.zedsecure.ui.settings.SettingsActionRow
 import dev.cluvex.zedsecure.ui.settings.SettingsChoiceRow
+import dev.cluvex.zedsecure.ui.settings.SettingsListRow
 import dev.cluvex.zedsecure.ui.settings.SettingsGroup
 import dev.cluvex.zedsecure.ui.settings.SettingsSegment
 import dev.cluvex.zedsecure.ui.settings.SettingsSwitchRow
@@ -159,12 +164,15 @@ fun BentoLookSection(settings: AppSettings, onUpdate: ((AppSettings) -> AppSetti
     }
 
     SettingsGroup(stringResource(Res.string.bento_group_home)) {
-        SettingsChoiceRow(
+        SettingsListRow(
             title = stringResource(Res.string.bento_connect_title),
-            summary = null,
             options = listOf(
                 BentoConnect.Slide to stringResource(Res.string.bento_connect_slide),
                 BentoConnect.Button to stringResource(Res.string.bento_connect_button),
+                BentoConnect.Morph to stringResource(Res.string.bento_connect_morph),
+                BentoConnect.Rail to stringResource(Res.string.bento_connect_rail),
+                BentoConnect.Hold to stringResource(Res.string.bento_connect_hold),
+                BentoConnect.Tile to stringResource(Res.string.bento_connect_tile),
             ),
             selected = prefs.connect,
             onSelected = { v -> edit { it.copy(connect = v) } },
@@ -204,7 +212,7 @@ fun BentoLookSection(settings: AppSettings, onUpdate: ((AppSettings) -> AppSetti
 }
 
 @Composable
-private fun PalettePicker(settings: AppSettings, selected: BentoPalette, onSelect: (BentoPalette) -> Unit) {
+internal fun PalettePicker(settings: AppSettings, selected: BentoPalette, onSelect: (BentoPalette) -> Unit) {
     val dark = Bento.colors.dark
     val seed = accentSeed(settings.accentColor)
     val options = listOf(

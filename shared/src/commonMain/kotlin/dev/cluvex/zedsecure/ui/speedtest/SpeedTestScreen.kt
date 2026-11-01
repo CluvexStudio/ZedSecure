@@ -79,7 +79,10 @@ fun SpeedTestScreen(
     val socksPort = if (connected) VpnManager.activeSocksPort else null
     val viaDefaultRoute = connected && socksPort == null
 
-    val engine = remember(connected, socksPort) { SpeedTestEngine(socksPort) }
+    var saveData by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    val engine = remember(connected, socksPort, saveData) {
+        SpeedTestEngine(socksPort, dataLimitBytes = if (saveData) SpeedTestEngine.SAVER_LIMIT_BYTES else null)
+    }
     val st by engine.state.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     var job by remember(engine) { mutableStateOf<Job?>(null) }
@@ -90,6 +93,22 @@ fun SpeedTestScreen(
             engine.cancel()
             job?.cancel()
         }
+    }
+
+    if (dev.cluvex.zedsecure.ui.bento.Bento.active) {
+        BentoSpeedTestLayout(
+            st = st,
+            contentPadding = contentPadding,
+            modifier = modifier,
+            connected = connected,
+            viaDefaultRoute = viaDefaultRoute,
+            unsupported = unsupported,
+            saveData = saveData,
+            onSaveData = { saveData = it },
+            onStart = { job = scope.launch { engine.run() } },
+            onStop = { engine.cancel() },
+        )
+        return
     }
 
     BoxWithConstraints(
@@ -137,7 +156,11 @@ fun SpeedTestScreen(
                 text = if (st.bytesUsed > 0) {
                     stringResource(Res.string.speedtest_data_used, ltrIsolate(fmtMb(st.bytesUsed)))
                 } else {
-                    stringResource(Res.string.speedtest_data_note, ltrIsolate(MAX_RUN_MB.toString()))
+                    if (saveData) {
+                        stringResource(Res.string.speedtest_data_note, ltrIsolate(MAX_RUN_MB.toString()))
+                    } else {
+                        stringResource(Res.string.speedtest_data_full)
+                    }
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

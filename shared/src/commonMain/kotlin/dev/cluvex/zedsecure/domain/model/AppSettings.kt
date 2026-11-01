@@ -94,6 +94,8 @@ enum class NavBarStyle {
     Dock,
 }
 
+enum class NotifStyle { System, Bento }
+
 enum class NotifChip {
     Speed,
 
@@ -272,6 +274,8 @@ data class AppSettings(
 
     val notifChip: NotifChip = NotifChip.Speed,
 
+    val notifStyle: NotifStyle = NotifStyle.Bento,
+
     val onboardingVersion: Int = 0,
 
     val screenTransition: ScreenTransition = ScreenTransition.Push,
@@ -354,6 +358,8 @@ data class AppSettings(
     val customBlockRules: String = "",
 
     val rulesets: List<RulesetItem> = emptyList(),
+
+    val regionCode: String = "",
 
     val routingMigrated: Boolean = false,
 

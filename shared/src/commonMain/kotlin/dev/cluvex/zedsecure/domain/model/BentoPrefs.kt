@@ -18,7 +18,7 @@ enum class BentoDensity { Comfortable, Compact }
 enum class BentoDockLabels { Active, Always, Never }
 
 @Serializable
-enum class BentoConnect { Slide, Button }
+enum class BentoConnect { Slide, Button, Morph, Rail, Hold, Tile }
 
 @Serializable
 data class BentoPrefs(

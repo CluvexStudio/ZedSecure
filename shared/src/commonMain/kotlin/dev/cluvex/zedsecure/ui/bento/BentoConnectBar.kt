@@ -109,15 +109,21 @@ fun BentoConnectControl(
     onToggle: () -> Unit,
     animate: Boolean,
     modifier: Modifier = Modifier,
+    elapsedSeconds: Int = 0,
+    serverName: String? = null,
 ) {
     when (Bento.prefs.connect) {
         BentoConnect.Slide -> BentoConnectBar(state, onToggle, animate, modifier)
         BentoConnect.Button -> BentoConnectButton(state, onToggle, modifier)
+        BentoConnect.Morph -> BentoConnectMorph(state, onToggle, animate, elapsedSeconds, serverName, modifier)
+        BentoConnect.Rail -> BentoConnectRail(state, onToggle, animate, elapsedSeconds, modifier)
+        BentoConnect.Hold -> BentoConnectHold(state, onToggle, animate, elapsedSeconds, serverName, modifier)
+        BentoConnect.Tile -> BentoConnectTile(state, onToggle, animate, elapsedSeconds, serverName, modifier)
     }
 }
 
 @Composable
-private fun stateLabel(state: ConnectionState): String = stringResource(
+internal fun stateLabel(state: ConnectionState): String = stringResource(
     when (state) {
         ConnectionState.Connected -> Res.string.state_connected
         ConnectionState.Connecting -> Res.string.state_connecting
@@ -129,7 +135,7 @@ private fun stateLabel(state: ConnectionState): String = stringResource(
 )
 
 @Composable
-private fun actionLabel(state: ConnectionState): String = stringResource(
+internal fun actionLabel(state: ConnectionState): String = stringResource(
     when (state) {
         ConnectionState.Connected -> Res.string.action_disconnect
         ConnectionState.Connecting, ConnectionState.Reconnecting -> Res.string.action_cancel

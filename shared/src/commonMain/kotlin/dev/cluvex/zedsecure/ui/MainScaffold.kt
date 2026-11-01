@@ -84,6 +84,7 @@ fun MainScaffold(
         mutableStateOf(settings.onboardingVersion >= dev.cluvex.zedsecure.ui.onboarding.ONBOARDING_VERSION)
     }
     var tourStep by rememberSaveable { mutableStateOf(-1) }
+    var replaySetup by rememberSaveable { mutableStateOf(false) }
     var spaceUnlocked by rememberSaveable { mutableStateOf(false) }
 
     var deepLinkOrigin by rememberSaveable { mutableStateOf<TopDestination?>(null) }
@@ -174,11 +175,13 @@ fun MainScaffold(
             settings = settings,
             onUpdate = onUpdateSettings,
             onLanguage = onLanguage,
+            replay = replaySetup,
             onStartTour = {
                 onUpdateSettings {
                     it.copy(onboardingVersion = dev.cluvex.zedsecure.ui.onboarding.ONBOARDING_VERSION)
                 }
                 setupDone = true
+                replaySetup = false
                 current = TopDestination.Home
                 tourStep = 0
             },
@@ -187,6 +190,7 @@ fun MainScaffold(
                     it.copy(onboardingVersion = dev.cluvex.zedsecure.ui.onboarding.ONBOARDING_VERSION)
                 }
                 setupDone = true
+                replaySetup = false
             },
         )
         return
@@ -445,6 +449,10 @@ fun MainScaffold(
                     onReplayTour = {
                         current = TopDestination.Home
                         tourStep = 0
+                    },
+                    onReplaySetup = {
+                        replaySetup = true
+                        setupDone = false
                     },
 
                     mtuHint = mtuHint,

@@ -45,6 +45,7 @@ class ZedVpnService : VpnService() {
 
     private var showSpeed: Boolean = true
     private var livePromotion: Boolean = true
+    private var bentoCard: Boolean = false
     private var notifChip: dev.cluvex.zedsecure.domain.model.NotifChip =
         dev.cluvex.zedsecure.domain.model.NotifChip.Speed
     private var psiphon: PsiphonController? = null
@@ -234,6 +235,7 @@ class ZedVpnService : VpnService() {
         showSpeed = settings.speedInNotification
         livePromotion = settings.liveNotification
         notifChip = settings.notifChip
+        bentoCard = !settings.liveNotification && settings.notifStyle == dev.cluvex.zedsecure.domain.model.NotifStyle.Bento
         val iface = settings.vpnInterfaceAddress
         hevIpv4 = iface.ipv4Client
         hevIpv6 = if (settings.enableIpv6) iface.ipv6Client else null
@@ -1121,6 +1123,7 @@ class ZedVpnService : VpnService() {
         showSpeed = showSpeed,
         livePromotion = livePromotion,
         chip = notifChip,
+        bentoCard = bentoCard,
     )
 
     private var lastUidRx = -1L

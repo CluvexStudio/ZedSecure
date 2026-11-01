@@ -346,6 +346,8 @@ internal fun BentoHome(
                 state = ui.state,
                 onToggle = onToggleConnection,
                 animate = animate,
+                elapsedSeconds = ui.elapsedSeconds,
+                serverName = active?.name,
                 modifier = Modifier
                     .widthIn(max = 640.dp)
                     .align(Alignment.CenterHorizontally)

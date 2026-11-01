@@ -75,6 +75,7 @@ class SettingsRepository(context: Context) {
             connectButtonStyle = prefs.enum("connect_button_style", d.connectButtonStyle),
             navBarStyle = prefs.enum("nav_bar_style", d.navBarStyle),
             navTabs = prefs.getString("nav_tabs", d.navTabs) ?: d.navTabs,
+            regionCode = prefs.getString("region_code", d.regionCode) ?: d.regionCode,
             themeProfileId = prefs.getString("theme_profile_id", null),
             cardCornerStyle = prefs.enum("card_corner_style", d.cardCornerStyle),
             listDensity = prefs.enum("list_density", d.listDensity),
@@ -87,6 +88,7 @@ class SettingsRepository(context: Context) {
             speedInNotification = prefs.getBoolean("speed_notif", d.speedInNotification),
             liveNotification = prefs.getBoolean("live_notif", d.liveNotification),
             notifChip = prefs.enum("notif_chip", d.notifChip),
+            notifStyle = prefs.enum("notif_style", d.notifStyle),
             onboardingVersion = prefs.getInt("onboarding_version", d.onboardingVersion),
             screenTransition = prefs.enum("screen_transition", d.screenTransition),
             confirmRemove = prefs.getBoolean("confirm_remove", d.confirmRemove),
@@ -297,6 +299,7 @@ class SettingsRepository(context: Context) {
             putString("connect_button_style", s.connectButtonStyle.name)
             putString("nav_bar_style", s.navBarStyle.name)
             putString("nav_tabs", s.navTabs)
+            putString("region_code", s.regionCode)
             putString("theme_profile_id", s.themeProfileId)
             putString("card_corner_style", s.cardCornerStyle.name)
             putString("list_density", s.listDensity.name)
@@ -309,6 +312,7 @@ class SettingsRepository(context: Context) {
             putBoolean("speed_notif", s.speedInNotification)
             putBoolean("live_notif", s.liveNotification)
             putString("notif_chip", s.notifChip.name)
+            putString("notif_style", s.notifStyle.name)
             putInt("onboarding_version", s.onboardingVersion)
             putString("screen_transition", s.screenTransition.name)
             putBoolean("confirm_remove", s.confirmRemove)
