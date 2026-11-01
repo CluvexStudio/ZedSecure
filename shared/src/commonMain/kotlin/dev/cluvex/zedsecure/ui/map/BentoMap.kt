@@ -28,7 +28,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -61,6 +60,7 @@ import dev.cluvex.zedsecure.ui.bento.BentoPill
 import dev.cluvex.zedsecure.ui.bento.BentoShapes
 import dev.cluvex.zedsecure.ui.bento.BentoTone
 import dev.cluvex.zedsecure.ui.bento.BentoType
+import dev.cluvex.zedsecure.ui.format.ltrIsolate
 import dev.cluvex.zedsecure.ui.platform.appVerticalScroll
 import dev.cluvex.zedsecure.ui.settings.SettingsArts
 import dev.cluvex.zedsecure.ui.settings.SettingsHeader
@@ -258,8 +258,8 @@ private fun FactTile(
                 Spacer(Modifier.width(8.dp))
             }
             Text(
-                value,
-                style = if (numeric) BentoType.number(19.sp).copy(textDirection = TextDirection.Ltr) else BentoType.title(19.sp),
+                if (numeric) ltrIsolate(value) else value,
+                style = BentoType.title(19.sp).let { if (numeric) it.copy(fontFeatureSettings = "tnum") else it },
                 color = tone.content,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,

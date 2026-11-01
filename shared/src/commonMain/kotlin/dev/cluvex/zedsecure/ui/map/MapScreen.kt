@@ -165,7 +165,7 @@ fun MapScreen(
                 else -> null
             },
             serverName = status.serverName,
-            onRefresh = { vm.refresh() },
+            onRefresh = { vm.refresh(force = true) },
         )
         return
     }

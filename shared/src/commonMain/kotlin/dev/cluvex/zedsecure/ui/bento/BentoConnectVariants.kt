@@ -63,7 +63,6 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -78,6 +77,7 @@ import dev.cluvex.zedsecure.shared.resources.bento_tap_disconnect
 import dev.cluvex.zedsecure.shared.resources.ic_fill_power
 import dev.cluvex.zedsecure.ui.components.MorphingBlob
 import dev.cluvex.zedsecure.ui.format.formatElapsed
+import dev.cluvex.zedsecure.ui.format.ltrIsolate
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -175,8 +175,8 @@ fun BentoConnectMorph(
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                if (connected) formatElapsed(elapsedSeconds) else serverName ?: tapHint(state),
-                style = BentoType.number(15.sp).copy(textDirection = if (connected) TextDirection.Ltr else TextDirection.Content),
+                if (connected) ltrIsolate(formatElapsed(elapsedSeconds)) else serverName ?: tapHint(state),
+                style = BentoType.number(15.sp),
                 color = ink.copy(alpha = 0.8f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -366,7 +366,7 @@ fun BentoConnectHold(
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, fontWeight = FontWeight.Bold), color = ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
             if (connected) {
-                Text(formatElapsed(elapsedSeconds), style = BentoType.number(26.sp).copy(textDirection = TextDirection.Ltr), color = ink, maxLines = 1)
+                Text(ltrIsolate(formatElapsed(elapsedSeconds)), style = BentoType.number(26.sp), color = ink, maxLines = 1)
             } else {
                 Text(
                     if (state.busy) stringResource(Res.string.bento_tap_cancel) else serverName ?: stringResource(Res.string.bento_hold_note),
@@ -423,7 +423,7 @@ fun BentoConnectTile(
         Column(Modifier.align(Alignment.TopStart).padding(end = 72.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(label, style = BentoType.caption(), color = ink.copy(alpha = 0.8f), maxLines = 1)
             if (connected) {
-                Text(formatElapsed(elapsedSeconds), style = BentoType.number(40.sp).copy(textDirection = TextDirection.Ltr), color = ink, maxLines = 1)
+                Text(ltrIsolate(formatElapsed(elapsedSeconds)), style = BentoType.number(40.sp), color = ink, maxLines = 1)
             } else {
                 Text(
                     actionLabel(state),

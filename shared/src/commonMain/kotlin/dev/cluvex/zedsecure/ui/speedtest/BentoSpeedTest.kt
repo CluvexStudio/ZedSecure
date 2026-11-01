@@ -36,7 +36,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -85,6 +84,7 @@ import dev.cluvex.zedsecure.ui.bento.BentoPill
 import dev.cluvex.zedsecure.ui.bento.BentoShapes
 import dev.cluvex.zedsecure.ui.bento.BentoTone
 import dev.cluvex.zedsecure.ui.bento.BentoType
+import dev.cluvex.zedsecure.ui.format.ltrIsolate
 import dev.cluvex.zedsecure.ui.platform.appVerticalScroll
 import dev.cluvex.zedsecure.ui.settings.SettingsArts
 import dev.cluvex.zedsecure.ui.settings.SettingsHeader
@@ -257,8 +257,8 @@ private fun LiveCard(st: SpeedTestState) {
         }
         Row(verticalAlignment = Alignment.Bottom) {
             Text(
-                if (pinging) "${shown.roundToInt()}" else mbps(shown.toDouble()),
-                style = BentoType.number(64.sp).copy(textDirection = TextDirection.Ltr),
+                ltrIsolate(if (pinging) "${shown.roundToInt()}" else mbps(shown.toDouble())),
+                style = BentoType.number(64.sp),
                 color = content,
                 maxLines = 1,
             )
@@ -350,7 +350,7 @@ private fun Results(st: SpeedTestState) {
 private fun BigStat(tone: BentoTone, caption: String, value: String, unit: String, modifier: Modifier) {
     BentoCard(tone = tone, modifier = modifier, shape = BentoShapes.small(), contentPadding = PaddingValues(14.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(caption, style = BentoType.caption(), color = tone.content.copy(alpha = 0.85f), maxLines = 1)
-        Text(value, style = BentoType.number(36.sp).copy(textDirection = TextDirection.Ltr), color = tone.content, maxLines = 1)
+        Text(ltrIsolate(value), style = BentoType.number(36.sp), color = tone.content, maxLines = 1)
         Text(unit, style = BentoType.body(), color = tone.content.copy(alpha = 0.85f))
     }
 }
@@ -360,7 +360,7 @@ private fun SmallStat(caption: String, ms: Double?, modifier: Modifier) {
     val c = Bento.colors
     BentoCard(tone = c.surfaceTone, modifier = modifier, shape = BentoShapes.small(), contentPadding = PaddingValues(14.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(caption, style = BentoType.body().copy(fontSize = 12.5.sp), color = c.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text(ms?.let { "%.1f ms".format(java.util.Locale.ROOT, it) } ?: "—", style = BentoType.number(22.sp).copy(textDirection = TextDirection.Ltr), color = c.ink, maxLines = 1)
+        Text(ltrIsolate(ms?.let { "%.1f ms".format(java.util.Locale.ROOT, it) } ?: "—"), style = BentoType.number(22.sp), color = c.ink, maxLines = 1)
     }
 }
 
@@ -423,8 +423,8 @@ private fun MetaRow(caption: String, value: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(caption, style = BentoType.body(), color = c.muted, modifier = Modifier.weight(0.4f))
         Text(
-            value,
-            style = BentoType.number(14.sp).copy(textDirection = TextDirection.Ltr),
+            ltrIsolate(value),
+            style = BentoType.number(14.sp),
             color = c.ink,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,

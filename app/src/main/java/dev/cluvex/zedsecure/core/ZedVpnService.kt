@@ -27,6 +27,9 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.withLock
@@ -36,6 +39,11 @@ class ZedVpnService : VpnService() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var tun: ParcelFileDescriptor? = null
     private var statsJob: Job? = null
+    private var notifSettingsJob: Job? = null
+    private var lastDownBps = 0L
+    private var lastUpBps = 0L
+    private var lastTotalDown = 0L
+    private var lastTotalUp = 0L
     private var remark: String = ""
     private val notifications by lazy { VpnNotifications(this) }
 
@@ -948,6 +956,7 @@ class ZedVpnService : VpnService() {
         }
         stage = VpnNotifications.Stage.Connected
         connectWhen = System.currentTimeMillis()
+        watchNotificationSettings()
         VpnManager.onConnected(remark)
         notify(connectedNotification(0, 0, 0, 0))
         ZedWidgetProvider.refresh(this, force = true)
@@ -1209,6 +1218,10 @@ class ZedVpnService : VpnService() {
 
                 val seconds = (waited / 1000L).coerceAtLeast(1L)
                 VpnManager.onMetrics(elapsed, down / seconds, up / seconds, totalDown, totalUp)
+                lastDownBps = down / seconds
+                lastUpBps = up / seconds
+                lastTotalDown = totalDown
+                lastTotalUp = totalUp
 
                 val repaint = elapsed - lastNotifySec >= cadence.notifySeconds
                 if (repaint) {
@@ -1371,9 +1384,32 @@ class ZedVpnService : VpnService() {
         }
     }
 
+    private fun watchNotificationSettings() {
+        notifSettingsJob?.cancel()
+        val repository = (application as dev.cluvex.zedsecure.ZedSecureApp).container.settingsRepository
+        notifSettingsJob = scope.launch {
+            repository.settings
+                .map { s ->
+                    listOf(s.speedInNotification, s.liveNotification, s.notifChip, s.notifStyle, s.appDesign, s.bento.palette, s.accentColor, s.dynamicColor)
+                }
+                .distinctUntilChanged()
+                .drop(1)
+                .collect {
+                    val s = repository.settings.value
+                    showSpeed = s.speedInNotification
+                    livePromotion = s.liveNotification
+                    notifChip = s.notifChip
+                    bentoCard = !s.liveNotification && s.notifStyle == dev.cluvex.zedsecure.domain.model.NotifStyle.Bento
+                    if (connected) notify(connectedNotification(lastDownBps, lastUpBps, lastTotalDown, lastTotalUp))
+                }
+        }
+    }
+
     private fun stopEngines() {
         geoReloadJob?.cancel()
         geoReloadJob = null
+        notifSettingsJob?.cancel()
+        notifSettingsJob = null
         statsJob?.cancel()
         stopNetworkTypeWatch()
         stopUnderlyingWatch()

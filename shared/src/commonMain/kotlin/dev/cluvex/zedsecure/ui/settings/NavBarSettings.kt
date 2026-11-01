@@ -29,6 +29,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -227,97 +228,109 @@ private fun TabList(
     val haptics = LocalHapticFeedback.current
     val rowHeight = 64.dp
     val rowPx = with(density) { rowHeight.toPx() }
-    val tabsNow by rememberUpdatedState(tabs)
+    var order by remember { mutableStateOf(tabs) }
     var dragging by remember { mutableStateOf<NavTab?>(null) }
     var offset by remember { mutableFloatStateOf(0f) }
+    androidx.compose.runtime.LaunchedEffect(tabs) { if (dragging == null) order = tabs }
+    val tabsNow by rememberUpdatedState(order)
     val earlier = stringResource(Res.string.bento_move_earlier)
     val later = stringResource(Res.string.bento_move_later)
 
     Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-        tabs.forEachIndexed { index, tab ->
-            val destination = TopDestination.of(tab)
-            val dragged = dragging == tab
-            val lift by animateFloatAsState(if (dragged) 1.03f else 1f, spring(dampingRatio = 0.6f, stiffness = Spring.StiffnessMedium), label = "tab-lift")
-            Row(
-                Modifier
-                    .zIndex(if (dragged) 1f else 0f)
-                    .graphicsLayer {
-                        translationY = if (dragged) offset else 0f
-                        scaleX = lift
-                        scaleY = lift
-                    }
-                    .fillMaxWidth()
-                    .height(rowHeight)
-                    .padding(horizontal = 8.dp)
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(if (dragged) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0f))
-                    .semantics {
-                        customActions = buildList {
-                            if (index > 0) add(CustomAccessibilityAction(earlier) { onReorder(tabsNow.moved(tab, -1)); true })
-                            if (index < tabs.lastIndex) add(CustomAccessibilityAction(later) { onReorder(tabsNow.moved(tab, 1)); true })
+        order.forEachIndexed { index, tab ->
+            key(tab) {
+                val destination = TopDestination.of(tab)
+                val dragged = dragging == tab
+                val lift by animateFloatAsState(if (dragged) 1.03f else 1f, spring(dampingRatio = 0.6f, stiffness = Spring.StiffnessMedium), label = "tab-lift")
+                Row(
+                    Modifier
+                        .zIndex(if (dragged) 1f else 0f)
+                        .graphicsLayer {
+                            translationY = if (dragged) offset else 0f
+                            scaleX = lift
+                            scaleY = lift
                         }
-                    }
-                    .padding(horizontal = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Icon(
-                    painterResource(Res.drawable.ic_drag_handle),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .size(40.dp)
-                        .pointerInput(tab) {
-                            detectDragGestures(
-                                onDragStart = {
-                                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    dragging = tab
-                                    offset = 0f
-                                },
-                                onDrag = { change, amount ->
-                                    change.consume()
-                                    offset += amount.y
-                                    val list = tabsNow
-                                    val at = list.indexOf(tab)
-                                    val steps = (offset / rowPx).roundToInt()
-                                    if (steps != 0) {
-                                        val target = (at + steps).coerceIn(0, list.lastIndex)
-                                        if (target != at) {
-                                            haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                            onReorder(list.toMutableList().apply { add(target, removeAt(at)) })
-                                            offset -= (target - at) * rowPx
-                                        }
-                                    }
-                                },
-                                onDragEnd = { dragging = null; offset = 0f },
-                                onDragCancel = { dragging = null; offset = 0f },
-                            )
+                        .fillMaxWidth()
+                        .height(rowHeight)
+                        .padding(horizontal = 8.dp)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(if (dragged) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0f))
+                        .semantics {
+                            customActions = buildList {
+                                if (index > 0) add(CustomAccessibilityAction(earlier) { onReorder(tabsNow.moved(tab, -1)); true })
+                                if (index < order.lastIndex) add(CustomAccessibilityAction(later) { onReorder(tabsNow.moved(tab, 1)); true })
+                            }
                         }
-                        .padding(8.dp),
-                )
-                Box(
-                    Modifier.size(40.dp).clip(RoundedCornerShape(14.dp)).background(MaterialTheme.colorScheme.primaryContainer),
-                    contentAlignment = Alignment.Center,
+                        .padding(horizontal = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Icon(painterResource(destination.icon), contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(22.dp))
-                }
-                Column(Modifier.weight(1f)) {
-                    Text(stringResource(destination.labelRes), style = MaterialTheme.typography.bodyLargeEmphasized)
-                    if (!NavTabs.canRemove(tab)) {
-                        Text(stringResource(Res.string.navbar_fixed), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-                if (NavTabs.canRemove(tab)) {
-                    val label = stringResource(Res.string.navbar_remove, stringResource(destination.labelRes))
-                    Box(
-                        Modifier
+                    Icon(
+                        painterResource(Res.drawable.ic_drag_handle),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
                             .size(40.dp)
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(MaterialTheme.colorScheme.errorContainer)
-                            .clickable(role = Role.Button, onClickLabel = label) { onRemove(tab) },
+                            .pointerInput(tab) {
+                                detectDragGestures(
+                                    onDragStart = {
+                                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        dragging = tab
+                                        offset = 0f
+                                    },
+                                    onDrag = { change, amount ->
+                                        change.consume()
+                                        offset += amount.y
+                                        val list = order
+                                        val at = list.indexOf(tab)
+                                        val steps = (offset / rowPx).roundToInt()
+                                        if (at >= 0 && steps != 0) {
+                                            val target = (at + steps).coerceIn(0, list.lastIndex)
+                                            if (target != at) {
+                                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                order = list.toMutableList().apply { add(target, removeAt(at)) }
+                                                offset -= (target - at) * rowPx
+                                            }
+                                        }
+                                    },
+                                    onDragEnd = {
+                                        dragging = null
+                                        offset = 0f
+                                        onReorder(order)
+                                    },
+                                    onDragCancel = {
+                                        dragging = null
+                                        offset = 0f
+                                        onReorder(order)
+                                    },
+                                )
+                            }
+                            .padding(8.dp),
+                    )
+                    Box(
+                        Modifier.size(40.dp).clip(RoundedCornerShape(14.dp)).background(MaterialTheme.colorScheme.primaryContainer),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Icon(painterResource(Res.drawable.ic_remove), contentDescription = label, tint = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.size(20.dp))
+                        Icon(painterResource(destination.icon), contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(22.dp))
+                    }
+                    Column(Modifier.weight(1f)) {
+                        Text(stringResource(destination.labelRes), style = MaterialTheme.typography.bodyLargeEmphasized)
+                        if (!NavTabs.canRemove(tab)) {
+                            Text(stringResource(Res.string.navbar_fixed), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                    if (NavTabs.canRemove(tab)) {
+                        val label = stringResource(Res.string.navbar_remove, stringResource(destination.labelRes))
+                        Box(
+                            Modifier
+                                .size(40.dp)
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(MaterialTheme.colorScheme.errorContainer)
+                                .clickable(role = Role.Button, onClickLabel = label) { onRemove(tab) },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(painterResource(Res.drawable.ic_remove), contentDescription = label, tint = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.size(20.dp))
+                        }
                     }
                 }
             }
