@@ -27,5 +27,13 @@ internal expect suspend fun httpTimedTransfer(
 
 internal expect suspend fun resolveHostAddress(host: String): String?
 
+internal expect suspend fun dnsOverTcp(
+    server: String,
+    port: Int,
+    query: ByteArray,
+    socksPort: Int?,
+    timeoutMs: Int,
+): ByteArray
+
 internal expect suspend fun tcpConnectMillis(host: String, port: Int, timeoutMs: Int): Long
 

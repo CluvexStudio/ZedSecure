@@ -142,6 +142,28 @@ fun MapScreen(
     }
 
     if (dev.cluvex.zedsecure.ui.bento.Bento.active) {
+        var showDetails by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+        if (showDetails) {
+            val details by vm.details.collectAsStateWithLifecycle()
+            LaunchedEffect(connected, status.sessionId, exitGeneration) { vm.loadDetails() }
+            dev.cluvex.zedsecure.ui.platform.BackHandler { showDetails = false }
+            dev.cluvex.zedsecure.ui.components.ProvidePageBack({ showDetails = false }) {
+                IpDetailsPage(
+                    contentPadding = contentPadding,
+                    details = details,
+                    originCode = originCode,
+                    connected = connected,
+                    serverName = status.serverName,
+                    pingMs = info.pingMs,
+                    onRefresh = {
+                        vm.loadDetails(force = true)
+                        vm.refresh(force = true)
+                    },
+                    modifier = modifier,
+                )
+            }
+            return
+        }
         BentoMapLayout(
             contentPadding = contentPadding,
             modifier = modifier,
@@ -166,6 +188,7 @@ fun MapScreen(
             },
             serverName = status.serverName,
             onRefresh = { vm.refresh(force = true) },
+            onDetails = { showDetails = true },
         )
         return
     }

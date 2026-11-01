@@ -34,7 +34,11 @@ import androidx.compose.ui.unit.sp
 import dev.cluvex.zedsecure.data.map.WorldMap
 import dev.cluvex.zedsecure.data.net.NetworkInfo
 import dev.cluvex.zedsecure.shared.resources.Res
+import dev.cluvex.zedsecure.shared.resources.ic_chevron_right
+import dev.cluvex.zedsecure.shared.resources.ic_fill_public
 import dev.cluvex.zedsecure.shared.resources.ic_restart_alt
+import dev.cluvex.zedsecure.shared.resources.ipd_open
+import dev.cluvex.zedsecure.shared.resources.ipd_open_sum
 import dev.cluvex.zedsecure.shared.resources.map_exit
 import dev.cluvex.zedsecure.shared.resources.map_ip
 import dev.cluvex.zedsecure.shared.resources.map_locating
@@ -88,6 +92,7 @@ internal fun BentoMapLayout(
     note: org.jetbrains.compose.resources.StringResource?,
     serverName: String?,
     onRefresh: () -> Unit,
+    onDetails: () -> Unit,
 ) {
     val c = Bento.colors
     val scroll = rememberScrollState()
@@ -213,6 +218,29 @@ internal fun BentoMapLayout(
             }
             note?.let {
                 Text(stringResource(it), style = BentoType.body(), color = c.muted, modifier = Modifier.padding(horizontal = 6.dp))
+            }
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(BentoShapes.small())
+                    .background(c.surface)
+                    .clickable(role = Role.Button, onClick = onDetails)
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    Modifier.size(40.dp).clip(RoundedCornerShape(14.dp)).background(c.violet.container),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(painterResource(Res.drawable.ic_fill_public), contentDescription = null, tint = c.violet.content, modifier = Modifier.size(22.dp))
+                }
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                    Text(stringResource(Res.string.ipd_open), style = BentoType.rowTitle(), color = c.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(stringResource(Res.string.ipd_open_sum), style = BentoType.body(), color = c.muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                }
+                Spacer(Modifier.width(8.dp))
+                Icon(painterResource(Res.drawable.ic_chevron_right), contentDescription = null, tint = c.muted, modifier = Modifier.size(20.dp))
             }
             Row(
                 Modifier
