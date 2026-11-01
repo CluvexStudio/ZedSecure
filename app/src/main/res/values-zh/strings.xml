@@ -92,7 +92,7 @@
     <string name="notif_chip_off">已关闭</string>
     <string name="notif_title_disconnected">隧道已停止</string>
     <string name="notif_kill_switch_body">隧道已断开。终止开关正在拦截流量，网络恢复后 ZedSecure 会自动重新连接。</string>
-    <string name="widget_description">连接或断开，并显示实时状态与本次流量。</string>
+    <string name="widget_description">连接或断开，并显示实时状态和速度。</string>
     <string name="widget_no_server">未选择服务器</string>
     <string name="chain_member_missing">代理链缺少：%1$s</string>
     <string name="chain_udp_hop_unsupported">%1$s 不能排在 %2$s 之后 — 它需要 UDP</string>
@@ -164,4 +164,8 @@
     <string name="auto_all_excluded">该组中的所有服务器都位于已从自动模式中排除的国家/地区。请手动选择服务器，或修改排除的国家/地区。</string>
     <string name="auto_group_all_short">全部服务器</string>
     <string name="auto_group_manual_short">手动</string>
+    <string name="widget_download">下载</string>
+    <string name="widget_upload">上传</string>
+    <string name="widget_toggle_label">ZedSecure 开关</string>
+    <string name="widget_toggle_description">轻点一下即可连接或断开。</string>
 </resources>

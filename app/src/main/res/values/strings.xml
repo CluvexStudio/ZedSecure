@@ -612,12 +612,10 @@
     <string name="notif_chip_off">Off</string>
     <string name="notif_title_disconnected">Tunnel stopped</string>
     <string name="notif_kill_switch_body">The tunnel dropped. The kill switch is holding traffic and ZedSecure reconnects as soon as the network is back.</string>
-    <string name="widget_description">Connect or disconnect, with live status and session traffic.</string>
+    <string name="widget_description">Connect or disconnect, with live status and speed.</string>
     <string name="widget_no_server">No server selected</string>
 
     <string name="widget_preview_server" translatable="false">Frankfurt · DE</string>
-    <string name="widget_preview_down" translatable="false">1.24 GB</string>
-    <string name="widget_preview_up" translatable="false">186 MB</string>
     <string name="chain_member_missing">Proxy chain is missing: %1$s</string>
     <string name="chain_udp_hop_unsupported">%1$s cannot follow %2$s in a chain — it needs UDP</string>
     <string name="chain_serverless_not_first">A serverless config can only be the first link of a chain</string>
@@ -688,4 +686,10 @@
     <string name="auto_all_excluded">Every server in this group is in a country excluded from Auto. Pick a server yourself or change Excluded countries.</string>
     <string name="auto_group_all_short">All servers</string>
     <string name="auto_group_manual_short">Manual</string>
+    <string name="widget_download">Download</string>
+    <string name="widget_upload">Upload</string>
+    <string name="widget_toggle_label">ZedSecure toggle</string>
+    <string name="widget_toggle_description">One tap to connect or disconnect.</string>
+    <string name="widget_preview_down_rate" translatable="false">12.4 MB/s</string>
+    <string name="widget_preview_up_rate" translatable="false">1.8 MB/s</string>
 </resources>

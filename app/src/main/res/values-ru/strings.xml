@@ -92,7 +92,7 @@
     <string name="notif_chip_off">Выкл</string>
     <string name="notif_title_disconnected">Туннель остановлен</string>
     <string name="notif_kill_switch_body">Туннель разорван. Аварийный выключатель блокирует трафик, а ZedSecure переподключится, как только сеть вернётся.</string>
-    <string name="widget_description">Подключение и отключение, статус и трафик сессии.</string>
+    <string name="widget_description">Подключение и отключение, с живым статусом и скоростью.</string>
     <string name="widget_no_server">Сервер не выбран</string>
     <string name="chain_member_missing">В цепочке отсутствуют: %1$s</string>
     <string name="chain_udp_hop_unsupported">%1$s не может идти после %2$s в цепочке — нужен UDP</string>
@@ -164,4 +164,8 @@
     <string name="auto_all_excluded">Все серверы этой группы находятся в странах, исключённых из «Авто». Выберите сервер вручную или измените список исключённых стран.</string>
     <string name="auto_group_all_short">Все серверы</string>
     <string name="auto_group_manual_short">Вручную</string>
+    <string name="widget_download">Загрузка</string>
+    <string name="widget_upload">Отдача</string>
+    <string name="widget_toggle_label">Переключатель ZedSecure</string>
+    <string name="widget_toggle_description">Подключение и отключение одним касанием.</string>
 </resources>

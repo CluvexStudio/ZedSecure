@@ -574,7 +574,7 @@
     <string name="notif_chip_off">Inactivo</string>
     <string name="notif_title_disconnected">Túnel detenido</string>
     <string name="notif_kill_switch_body">El túnel se cayó. El kill switch retiene el tráfico y ZedSecure se reconectará en cuanto vuelva la red.</string>
-    <string name="widget_description">Conecta o desconecta, con estado en tiempo real y tráfico de la sesión.</string>
+    <string name="widget_description">Conecta o desconecta, con estado y velocidad en vivo.</string>
     <string name="widget_no_server">Ningún servidor seleccionado</string>
     <string name="chain_member_missing">Falta un elemento de la cadena de proxy: %1$s</string>
     <string name="chain_udp_hop_unsupported">%1$s no puede ir después de %2$s en una cadena — necesita UDP</string>
@@ -646,4 +646,8 @@
     <string name="auto_all_excluded">Todos los servidores de este grupo están en países excluidos de Auto. Elige un servidor manualmente o cambia la opción Países excluidos.</string>
     <string name="auto_group_all_short">Todos los servidores</string>
     <string name="auto_group_manual_short">Manual</string>
+    <string name="widget_download">Descarga</string>
+    <string name="widget_upload">Subida</string>
+    <string name="widget_toggle_label">Interruptor de ZedSecure</string>
+    <string name="widget_toggle_description">Conecta o desconecta con un toque.</string>
 </resources>

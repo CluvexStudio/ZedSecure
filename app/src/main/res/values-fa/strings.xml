@@ -604,7 +604,7 @@
     <string name="notif_chip_off">خاموش</string>
     <string name="notif_title_disconnected">تونل متوقف شد</string>
     <string name="notif_kill_switch_body">تونل قطع شد. کلید محافظ جلوی ترافیک را گرفته و ZedSecure به محض برگشتن شبکه دوباره وصل می‌شود.</string>
-    <string name="widget_description">اتصال یا قطع، همراه با وضعیت زنده و مصرف این جلسه.</string>
+    <string name="widget_description">اتصال یا قطع، همراه با وضعیت و سرعت زنده.</string>
     <string name="widget_no_server">سروری انتخاب نشده</string>
     <string name="chain_member_missing">اعضای گم‌شدهٔ زنجیره: %1$s</string>
     <string name="chain_udp_hop_unsupported">%1$s نمی‌تواند بعد از %2$s در زنجیره باشد — به UDP نیاز دارد</string>
@@ -676,4 +676,8 @@
     <string name="auto_all_excluded">همهٔ سرورهای این گروه در کشورهایی هستند که از حالت خودکار کنار گذاشته‌اید. خودتان سروری انتخاب کنید یا فهرست کشورهای کنارگذاشته را تغییر دهید.</string>
     <string name="auto_group_all_short">همهٔ سرورها</string>
     <string name="auto_group_manual_short">دستی</string>
+    <string name="widget_download">دانلود</string>
+    <string name="widget_upload">آپلود</string>
+    <string name="widget_toggle_label">کلید ZedSecure</string>
+    <string name="widget_toggle_description">با یک لمس وصل یا قطع کنید.</string>
 </resources>

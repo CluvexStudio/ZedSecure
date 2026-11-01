@@ -1,12 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="widget_bg">#15131C</color>
-    <color name="widget_text">#E5E1EC</color>
-    <color name="widget_text_dim">#A9A5B4</color>
-    <color name="widget_accent">#B9B0FF</color>
-    <color name="widget_accent_off">#4A4757</color>
-    <color name="widget_on_accent">#221D4A</color>
-    <color name="widget_chip_bg">#221F2E</color>
-    <color name="widget_ok">#5BD99B</color>
-    <color name="widget_warn">#F2B8B5</color>
+    <color name="wb_surface">#18161F</color>
+    <color name="wb_ink">#EEEAF6</color>
+    <color name="wb_muted">#A6A0B8</color>
+    <color name="wb_stage">#311B6B</color>
+    <color name="wb_on_stage">#EFE8FF</color>
+    <color name="wb_chip">#1FFFFFFF</color>
+    <color name="wb_accent">#C7F24E</color>
+    <color name="wb_on_accent">#1A2200</color>
+    <color name="wb_tile_a">#15294A</color>
+    <color name="wb_on_tile_a">#CFE1FF</color>
+    <color name="wb_tile_b">#2A2352</color>
+    <color name="wb_on_tile_b">#DDD5FF</color>
 </resources>

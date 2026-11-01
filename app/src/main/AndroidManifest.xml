@@ -158,6 +158,18 @@
                 android:resource="@xml/appwidget_zed" />
         </receiver>
 
+        <receiver
+            android:name=".core.ZedWidgetToggleProvider"
+            android:exported="false"
+            android:label="@string/widget_toggle_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/appwidget_zed_toggle" />
+        </receiver>
+
         <service
             android:name=".core.ZedTileService"
             android:exported="true"

@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/wb_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <ImageView
+        android:id="@+id/wb_bg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="fitXY"
+        android:src="@drawable/wb_shape_card"
+        android:tint="@color/wb_accent" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="14dp">
+
+        <FrameLayout
+            android:id="@+id/wb_power"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:contentDescription="@string/action_disconnect">
+
+            <ImageView
+                android:id="@+id/wb_power_bg"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:importantForAccessibility="no"
+                android:scaleType="fitXY"
+                android:src="@drawable/wb_shape_circle"
+                android:tint="@color/wb_on_accent" />
+
+            <ImageView
+                android:id="@+id/wb_power_icon"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:layout_gravity="center"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_power"
+                android:tint="@color/wb_accent" />
+        </FrameLayout>
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/wb_state"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="@string/state_connected"
+            android:textColor="@color/wb_on_accent"
+            android:textSize="19sp"
+            android:textStyle="bold" />
+
+        <Chronometer
+            android:id="@+id/wb_timer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/wb_on_accent"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/wb_sub"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:alpha="0.85"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="@color/wb_on_accent"
+            android:textSize="13sp"
+            android:visibility="gone" />
+    </LinearLayout>
+</FrameLayout>
