@@ -66,7 +66,8 @@ class StartPlanner(context: Context) {
         }
         val settings = settingsRepository.settings.value
 
-        val proxyOnly = allowProxyOnly && settings.runMode == RunMode.ProxyOnly && kind == VpnManager.KIND_XRAY
+        val proxyOnly = allowProxyOnly && settings.runMode == RunMode.ProxyOnly &&
+            (kind == VpnManager.KIND_XRAY || kind in PROXY_ENGINES)
         return Plan.Start(
             configJson = configJson,
             remark = if (profile.isAutoSelect) autoSelectRemark(profile) else profile.name,
@@ -342,7 +343,15 @@ class StartPlanner(context: Context) {
         return (v6 + v4).distinct()
     }
 
-    private companion object {
-        const val RESOLVE_BUDGET_MS = 2_500L
+    companion object {
+        private const val RESOLVE_BUDGET_MS = 2_500L
+
+        val PROXY_ENGINES = setOf(
+            VpnManager.KIND_PSIPHON,
+            VpnManager.KIND_DNS_TUNNEL,
+            VpnManager.KIND_MASTERDNS,
+            VpnManager.KIND_TOR,
+            VpnManager.KIND_SSH,
+        )
     }
 }

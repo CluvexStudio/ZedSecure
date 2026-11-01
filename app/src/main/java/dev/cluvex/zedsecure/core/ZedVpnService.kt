@@ -260,6 +260,7 @@ class ZedVpnService : VpnService() {
 
         if (proxyOnly) {
             if (kind == VpnManager.KIND_XRAY) { startProxyOnly(configJson, socksPort); return }
+            if (kind in StartPlanner.PROXY_ENGINES) { startEngineProxyOnly(configJson, settings); return }
             proxyOnly = false
         }
 
@@ -422,7 +423,7 @@ class ZedVpnService : VpnService() {
 
     private fun startSsh(
         configJson: String,
-        descriptor: ParcelFileDescriptor,
+        descriptor: ParcelFileDescriptor?,
         tunMtu: Int,
         appSettings: AppSettings,
     ) {
@@ -453,7 +454,7 @@ class ZedVpnService : VpnService() {
         }
     }
 
-    private fun startTor(settings: AppSettings, descriptor: ParcelFileDescriptor, tunMtu: Int) {
+    private fun startTor(settings: AppSettings, descriptor: ParcelFileDescriptor?, tunMtu: Int) {
         val bridged = java.util.concurrent.atomic.AtomicBoolean(false)
         val torPort = LocalPortPicker.pick(LocalPorts.TOR_SOCKS)
         val controller = dev.cluvex.zedsecure.core.tor.TorController(
@@ -474,7 +475,7 @@ class ZedVpnService : VpnService() {
 
     private fun startDnsTunnel(
         configJson: String,
-        descriptor: ParcelFileDescriptor,
+        descriptor: ParcelFileDescriptor?,
         tunMtu: Int,
         appSettings: AppSettings,
     ) {
@@ -543,7 +544,7 @@ class ZedVpnService : VpnService() {
 
     private fun startMasterDns(
         configJson: String,
-        descriptor: ParcelFileDescriptor,
+        descriptor: ParcelFileDescriptor?,
         tunMtu: Int,
         appSettings: AppSettings,
     ) {
@@ -675,6 +676,20 @@ class ZedVpnService : VpnService() {
         return getString(R.string.core_start_failed_reason, raw.take(240))
     }
 
+    private fun startEngineProxyOnly(configJson: String, settings: AppSettings) {
+        killSwitchEnabled = false
+        VpnManager.setActiveKind(kind)
+        val dns = kind == VpnManager.KIND_DNS_TUNNEL || kind == VpnManager.KIND_MASTERDNS
+        val mtu = if (dns) 1280 else settings.vpnMtu.coerceIn(1000, 9000)
+        when (kind) {
+            VpnManager.KIND_PSIPHON -> startPsiphon(configJson, null, mtu)
+            VpnManager.KIND_DNS_TUNNEL -> startDnsTunnel(configJson, null, mtu, settings)
+            VpnManager.KIND_MASTERDNS -> startMasterDns(configJson, null, mtu, settings)
+            VpnManager.KIND_TOR -> startTor(settings, null, mtu)
+            VpnManager.KIND_SSH -> startSsh(configJson, null, mtu, settings)
+        }
+    }
+
     private fun startProxyOnly(configJson: String, socksPort: Int) {
         killSwitchEnabled = false
         VpnManager.setActiveKind(kind)
@@ -783,7 +798,7 @@ class ZedVpnService : VpnService() {
         autoSelectSession = false
     }
 
-    private fun startPsiphon(configJson: String, descriptor: ParcelFileDescriptor, tunMtu: Int) {
+    private fun startPsiphon(configJson: String, descriptor: ParcelFileDescriptor?, tunMtu: Int) {
         val socksPort = java.util.concurrent.atomic.AtomicInteger(0)
         val bridged = java.util.concurrent.atomic.AtomicBoolean(false)
         val controller = PsiphonController(
@@ -802,7 +817,7 @@ class ZedVpnService : VpnService() {
     }
 
     private fun bridgeEngine(
-        descriptor: ParcelFileDescriptor,
+        descriptor: ParcelFileDescriptor?,
         enginePort: Int,
         tunMtu: Int,
         onion: Boolean = false,
@@ -820,7 +835,11 @@ class ZedVpnService : VpnService() {
             VpnManager.onError(coreStartError(FrontCore.lastError))
             stopEverything(); return
         }
-        if (!bridge(descriptor, port, tunMtu, pipeline = true)) return
+        if (descriptor != null) {
+            if (!bridge(descriptor, port, tunMtu, pipeline = true)) return
+        } else {
+            advance(VpnNotifications.Stage.Engine)
+        }
         if (unreachable != null && !TunnelReadiness.verify(port)) {
             VpnManager.onError(getString(unreachable))
             stopEverything(); return
@@ -919,20 +938,23 @@ class ZedVpnService : VpnService() {
             livePromotion = livePromotion,
         )
 
-    private fun protocolLabel(): String = when (kind) {
-        VpnManager.KIND_PSIPHON -> "Psiphon"
-        VpnManager.KIND_DNS_TUNNEL -> "DNS"
-        VpnManager.KIND_MASTERDNS -> "MasterDNS"
-        VpnManager.KIND_TOR -> "Tor"
-        VpnManager.KIND_SSH -> "SSH"
-        VpnManager.KIND_OPENCONNECT -> "OpenConnect"
-        VpnManager.KIND_SINGBOX -> "sing-box"
-        VpnManager.KIND_IKEV2 -> "IKEv2"
-        VpnManager.KIND_SNISPOOF -> "Xray · SNI"
+    private fun protocolLabel(): String {
+        val label = when (kind) {
+            VpnManager.KIND_PSIPHON -> "Psiphon"
+            VpnManager.KIND_DNS_TUNNEL -> "DNS"
+            VpnManager.KIND_MASTERDNS -> "MasterDNS"
+            VpnManager.KIND_TOR -> "Tor"
+            VpnManager.KIND_SSH -> "SSH"
+            VpnManager.KIND_OPENCONNECT -> "OpenConnect"
+            VpnManager.KIND_SINGBOX -> "sing-box"
+            VpnManager.KIND_IKEV2 -> "IKEv2"
+            VpnManager.KIND_SNISPOOF -> "Xray · SNI"
 
-        VpnManager.KIND_CROSS_CHAIN ->
-            "${engineLabel(crossInnerKind)} → ${engineLabel(crossOuterKind)}"
-        else -> if (proxyOnly) "$engineName · Proxy" else engineName
+            VpnManager.KIND_CROSS_CHAIN ->
+                "${engineLabel(crossInnerKind)} → ${engineLabel(crossOuterKind)}"
+            else -> engineName
+        }
+        return if (proxyOnly) "$label · Proxy" else label
     }
 
     private fun engineLabel(k: String?): String = when (k) {
