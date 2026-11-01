@@ -81,8 +81,6 @@ interface Platform {
 
     val hasStatusNotification: Boolean get() = false
 
-    val regionHint: String? get() = null
-
     val geoAssets: GeoAssets? get() = null
 
     suspend fun pickFileBytes(): FilePick? = null

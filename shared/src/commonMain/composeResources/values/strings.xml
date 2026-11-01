@@ -1735,4 +1735,5 @@
     <string name="onb_ready_kept">Your routing rules stay as they were</string>
     <string name="onb_replay_title">Run setup again</string>
     <string name="onb_replay_sub">Language, country rules and look, step by step</string>
+    <string name="onb_region_needed">Choose your country from the list to continue.</string>
 </resources>

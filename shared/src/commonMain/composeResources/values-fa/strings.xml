@@ -1728,4 +1728,5 @@
     <string name="onb_ready_kept">قانون‌های مسیریابی شما همان‌طور ماند</string>
     <string name="onb_replay_title">راه‌اندازی دوباره</string>
     <string name="onb_replay_sub">زبان، قانون‌های کشور و ظاهر، قدم به قدم</string>
+    <string name="onb_region_needed">برای ادامه، کشورتان را از فهرست انتخاب کنید.</string>
 </resources>

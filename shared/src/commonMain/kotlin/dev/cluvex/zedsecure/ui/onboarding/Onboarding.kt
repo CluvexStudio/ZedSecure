@@ -99,9 +99,8 @@ fun OnboardingFlow(
     replay: Boolean = false,
 ) {
     val c = Bento.colors
-    val hint = dev.cluvex.zedsecure.ui.platform.LocalPlatform.current.regionHint
     var step by rememberSaveable { mutableIntStateOf(0) }
-    var region by rememberSaveable { mutableStateOf(settings.regionCode.ifBlank { guessRegion(hint) }) }
+    var region by rememberSaveable { mutableStateOf(settings.regionCode) }
     var directLocal by rememberSaveable { mutableStateOf(true) }
     var blockAds by rememberSaveable { mutableStateOf(true) }
     var blockQuic by rememberSaveable { mutableStateOf(true) }
@@ -200,18 +199,11 @@ fun OnboardingFlow(
                         onStartTour()
                     }
                 } else {
-                    FlowButton(stringResource(Res.string.onb_next), primary = true) { step++ }
+                    FlowButton(stringResource(Res.string.onb_next), primary = true, enabled = step != 1 || region.isNotBlank()) { step++ }
                 }
             }
         }
     }
-}
-
-private fun guessRegion(hint: String?): String {
-    hint?.uppercase()?.takeIf { it.length == 2 }?.let { return it }
-    val country = java.util.Locale.getDefault().country.uppercase()
-    if (country.length == 2) return country
-    return if (java.util.Locale.getDefault().language == "fa") "IR" else ""
 }
 
 @Composable
@@ -227,18 +219,34 @@ private fun StepTrail(current: Int, total: Int, modifier: Modifier) {
 }
 
 @Composable
-private fun FlowButton(label: String, primary: Boolean, onClick: () -> Unit) {
+private fun FlowButton(label: String, primary: Boolean, enabled: Boolean = true, onClick: () -> Unit) {
     val c = Bento.colors
+    val container by animateColorAsState(
+        when {
+            !enabled -> c.surface2
+            primary -> c.lime
+            else -> c.surface
+        },
+        label = "flow-button-bg",
+    )
     Box(
         Modifier
             .heightIn(min = 54.dp)
             .clip(RoundedCornerShape(27.dp))
-            .background(if (primary) c.lime else c.surface)
-            .clickable(role = Role.Button, onClick = onClick)
+            .background(container)
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
             .padding(horizontal = 26.dp, vertical = 15.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Text(label, style = MaterialTheme.typography.titleMedium, color = if (primary) c.onLime else c.ink)
+        Text(
+            label,
+            style = MaterialTheme.typography.titleMedium,
+            color = when {
+                !enabled -> c.muted
+                primary -> c.onLime
+                else -> c.ink
+            },
+        )
     }
 }
 
@@ -327,7 +335,15 @@ private fun RegionStep(region: String, onPick: (String) -> Unit) {
     Column(Modifier.fillMaxSize()) {
         StepTitle(stringResource(Res.string.onb_region_title), stringResource(Res.string.onb_region_body))
         Spacer(Modifier.height(12.dp))
-        if (region.isNotBlank()) {
+        if (region.isBlank()) {
+            Text(
+                stringResource(Res.string.onb_region_needed),
+                style = BentoType.body(),
+                color = c.lime,
+                modifier = Modifier.padding(horizontal = 20.dp),
+            )
+            Spacer(Modifier.height(10.dp))
+        } else {
             BentoCard(
                 tone = c.stageTone,
                 modifier = Modifier.padding(horizontal = 20.dp),

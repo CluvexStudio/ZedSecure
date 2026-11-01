@@ -155,14 +155,6 @@ class AndroidPlatform(
 
     override val hasStatusNotification: Boolean get() = true
 
-    override val regionHint: String?
-        get() = runCatching {
-            val telephony = context.getSystemService(android.telephony.TelephonyManager::class.java)
-            listOf(telephony?.networkCountryIso, telephony?.simCountryIso)
-                .firstOrNull { !it.isNullOrBlank() && it.length == 2 }
-                ?.uppercase()
-        }.getOrNull()
-
     override val supportsQrScan: Boolean
         get() = context.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_CAMERA_ANY)
 
