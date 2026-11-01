@@ -297,7 +297,7 @@
     <string name="mode_vpn_explained">VPN</string>
     <string name="mode_vpn_explained_body">Создаёт системный туннель, через который проходит трафик всех приложений. Обычный выбор.</string>
     <string name="mode_proxy_explained">Только прокси</string>
-    <string name="mode_proxy_explained_body">Запускает локальный SOCKS-прокси (и HTTP, если включён) без туннеля. Проходит трафик только приложений, направленных на порт. Работает с конфигами Xray; остальные движки всегда запускаются как VPN.</string>
+    <string name="mode_proxy_explained_body">Запускает локальный SOCKS-прокси (и HTTP, если включён) без туннеля. Проходит трафик только приложений, направленных на порт. Работает с Xray, Psiphon, Tor, SSH, DNSTT, VayDNS и MasterDNS; sing-box, OpenConnect, IKEv2 и цепочки всегда запускаются как VPN.</string>
 
     <string name="mode_system_proxy">Системный прокси</string>
     <string name="mode_system_proxy_body">Настраивает системный прокси в GNOME, KDE, Windows или macOS. Браузеры и большинство приложений используют его, права администратора не нужны. Режим по умолчанию.</string>
@@ -618,7 +618,7 @@
     <string name="dns_tunnel_max_labels">Макс. меток</string>
     <string name="dns_tunnel_client_id">Размер Client ID (байты)</string>
     <string name="title_tunnels_settings">Туннели</string>
-    <string name="title_dns_protocols">DNS-протоколы (VayDNS и DNSTT)</string>
+    <string name="title_dns_protocols">DNS-туннели</string>
     <string name="summary_dns_protocols">Глобальные настройки резолвера для DNS-туннелей</string>
     <string name="title_tor_settings">Tor</string>
     <string name="summary_tor_settings">Мосты, Snowflake, узлы</string>

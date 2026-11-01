@@ -614,7 +614,7 @@ private fun PixelFacts(info: NetworkInfo, onOpen: (InfoFocus) -> Unit) {
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        info.pingMs?.let { FactChip({ onOpen(InfoFocus.Ping) }) { Text("%d ms".format(it), maxLines = 1) } }
+        info.pingMs?.let { FactChip({ onOpen(InfoFocus.Ping) }) { Text(dev.cluvex.zedsecure.ui.format.ltrIsolate("%d ms".format(it)), maxLines = 1) } }
         info.ipv4?.let { FactChip({ onOpen(InfoFocus.Place) }) { Text(ltrIsolate(it), maxLines = 1) } }
     }
 }

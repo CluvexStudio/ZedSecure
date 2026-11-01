@@ -140,7 +140,7 @@ internal fun BentoSpeedTestLayout(
             ActionPill(st, onStart, onStop)
             Text(
                 if (st.bytesUsed > 0) {
-                    stringResource(Res.string.speedtest_data_used, mb(st.bytesUsed)) + " · " + seconds(st.elapsedMs)
+                    stringResource(Res.string.speedtest_data_used, mb(st.bytesUsed)) + " · " + ltrIsolate(seconds(st.elapsedMs))
                 } else {
                     stringResource(Res.string.speedtest_data_full)
                 },
@@ -188,7 +188,7 @@ private fun PhaseChips(st: SpeedTestState) {
             val done = finished || (at >= 0 && i < at)
             val now = i == at
             val label = when (phase) {
-                SpeedTestPhase.Ping -> stringResource(Res.string.speedtest_ping) + (st.pingMs?.let { " · ${it.roundToInt()} ms" } ?: "")
+                SpeedTestPhase.Ping -> stringResource(Res.string.speedtest_ping) + (st.pingMs?.let { " · " + ltrIsolate("${it.roundToInt()} ms") } ?: "")
                 SpeedTestPhase.Download -> stringResource(Res.string.speedtest_download)
                 else -> stringResource(Res.string.speedtest_upload)
             }
@@ -252,7 +252,7 @@ private fun LiveCard(st: SpeedTestState) {
                 modifier = Modifier.weight(1f),
             )
             st.step?.let { step ->
-                Text("${size(step.bytes)} · ${step.done}/${step.count}", style = BentoType.number(13.sp), color = content.copy(alpha = 0.85f))
+                Text(ltrIsolate("${size(step.bytes)} · ${step.done}/${step.count}"), style = BentoType.number(13.sp), color = content.copy(alpha = 0.85f))
             }
         }
         Row(verticalAlignment = Alignment.Bottom) {
@@ -312,7 +312,7 @@ private fun StepTrack(st: SpeedTestState) {
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
-                        size(bytes),
+                        ltrIsolate(size(bytes)),
                         style = BentoType.number(12.sp),
                         color = when {
                             active -> c.onLime

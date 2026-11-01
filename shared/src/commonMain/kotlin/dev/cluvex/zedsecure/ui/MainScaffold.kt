@@ -447,6 +447,7 @@ fun MainScaffold(
                         replaySetup = true
                         setupDone = false
                     },
+                    onOpenVault = if (TopDestination.Vault in tabs) null else ({ current = TopDestination.Vault }),
 
                     mtuHint = mtuHint,
                     ai = aiBridge?.let { bridge ->

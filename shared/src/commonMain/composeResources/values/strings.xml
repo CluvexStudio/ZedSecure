@@ -296,7 +296,7 @@
     <string name="mode_vpn_explained">VPN</string>
     <string name="mode_vpn_explained_body">Creates a system tunnel so every app is routed. This is the normal choice.</string>
     <string name="mode_proxy_explained">Proxy only</string>
-    <string name="mode_proxy_explained_body">Runs the local SOCKS proxy (and HTTP, if enabled) without a tunnel. Only apps you point at the port are routed. Works with Xray configs; other engines always run as a VPN.</string>
+    <string name="mode_proxy_explained_body">Runs the local SOCKS proxy (and HTTP, if enabled) without a tunnel. Only apps you point at the port are routed. Works with Xray, Psiphon, Tor, SSH, DNSTT, VayDNS and MasterDNS; sing-box, OpenConnect, IKEv2 and chains always run as a VPN.</string>
 
     <string name="mode_system_proxy">System proxy</string>
     <string name="mode_system_proxy_body">Sets the system proxy on GNOME, KDE, Windows or macOS. Browsers and most apps follow it, and no administrator rights are needed. This is the default.</string>
@@ -617,7 +617,7 @@
     <string name="dns_tunnel_max_labels">Max labels</string>
     <string name="dns_tunnel_client_id">Client ID size (bytes)</string>
     <string name="title_tunnels_settings">Tunnels</string>
-    <string name="title_dns_protocols">DNS-based protocols (VayDNS &amp; DNSTT)</string>
+    <string name="title_dns_protocols">DNS tunnels</string>
     <string name="summary_dns_protocols">Global resolver settings for DNS tunnels</string>
     <string name="title_tor_settings">Tor</string>
     <string name="summary_tor_settings">Bridges, Snowflake, nodes</string>

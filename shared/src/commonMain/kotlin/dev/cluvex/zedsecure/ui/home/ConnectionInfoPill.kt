@@ -89,7 +89,7 @@ fun ConnectionInfoPill(
                 } else {
                     info.pingMs?.let { ping ->
                         Text(
-                            text = "$ping ms",
+                            text = dev.cluvex.zedsecure.ui.format.ltrIsolate("$ping ms"),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
 

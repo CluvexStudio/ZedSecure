@@ -102,6 +102,7 @@ import dev.cluvex.zedsecure.ui.components.NoteText
 import dev.cluvex.zedsecure.ui.connection.ConnectionUiState
 import dev.cluvex.zedsecure.ui.format.formatBytes
 import dev.cluvex.zedsecure.ui.format.formatElapsed
+import dev.cluvex.zedsecure.ui.format.ltrIsolate
 import dev.cluvex.zedsecure.ui.format.formatRate
 import dev.cluvex.zedsecure.ui.home.faultHint
 import dev.cluvex.zedsecure.ui.home.faultTitle
@@ -360,7 +361,6 @@ private fun ServerCard(
 ) {
     val c = Bento.colors
     val tone = c.stageTone
-    val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     BentoCard(
         tone = tone,
         modifier = modifier.fillMaxWidth(),
@@ -408,7 +408,7 @@ private fun ServerCard(
                 painterResource(Res.drawable.ic_chevron_right),
                 contentDescription = null,
                 tint = tone.content,
-                modifier = Modifier.size(22.dp).graphicsLayer { scaleX = if (rtl) -1f else 1f },
+                modifier = Modifier.size(22.dp),
             )
         }
         if (active != null) {
@@ -417,7 +417,7 @@ private fun ServerCard(
                     val ping = info.pingMs
                     Box(Modifier.clip(RoundedCornerShape(15.dp)).clickable(role = Role.Button, onClick = onRefreshInfo)) {
                         BentoPill(
-                            text = ping?.let { "%d ms".format(it) } ?: "…",
+                            text = ping?.let { ltrIsolate("%d ms".format(it)) } ?: "…",
                             container = c.chipOnStage,
                             content = tone.content,
                             dot = when {
@@ -536,7 +536,7 @@ private fun FactTile(label: String, value: String, modifier: Modifier = Modifier
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
         Text(label, style = BentoType.body().copy(fontSize = 12.5.sp), color = c.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text(value, style = BentoType.number(20.sp), color = c.ink, maxLines = 1)
+        Text(ltrIsolate(value), style = BentoType.number(20.sp), color = c.ink, maxLines = 1)
     }
 }
 
@@ -581,7 +581,7 @@ private fun PickRow(pick: BentoServerPick, index: Int, count: Int, onClick: () -
         }
         pick.pingMs?.let { ms ->
             Spacer(Modifier.width(8.dp))
-            Text(if (ms > 0) "%d ms".format(ms) else "—", style = BentoType.number(13.5.sp), color = c.pingColor(ms))
+            Text(if (ms > 0) ltrIsolate("%d ms".format(ms)) else "—", style = BentoType.number(13.5.sp), color = c.pingColor(ms))
         }
     }
 }

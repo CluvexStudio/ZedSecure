@@ -127,7 +127,7 @@ fun BentoServerRow(
         if (showPing && pingMs != null) {
             Spacer(Modifier.width(8.dp))
             Text(
-                if (pingMs > 0) "%d ms".format(pingMs) else "—",
+                if (pingMs > 0) dev.cluvex.zedsecure.ui.format.ltrIsolate("%d ms".format(pingMs)) else "—",
                 style = BentoType.number(13.5.sp),
                 color = c.pingColor(pingMs),
                 maxLines = 1,

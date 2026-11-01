@@ -611,7 +611,9 @@ private fun LookStep(settings: AppSettings, onUpdate: ((AppSettings) -> AppSetti
                 }
             }
         }
-        PalettePicker(settings, settings.bento.palette) { palette -> onUpdate { it.copy(bento = it.bento.copy(palette = palette)) } }
+        Box(Modifier.padding(horizontal = 20.dp).clip(RoundedCornerShape(22.dp))) {
+            PalettePicker(settings, settings.bento.palette) { palette -> onUpdate { it.copy(bento = it.bento.copy(palette = palette)) } }
+        }
         Column(Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             BentoCaption(stringResource(Res.string.bento_connect_title))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp), maxItemsInEachRow = 3) {

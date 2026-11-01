@@ -276,7 +276,7 @@
     <string name="mode_vpn_explained">VPN</string>
     <string name="mode_vpn_explained_body">Crea un túnel del sistema por el que pasan todas las apps. Es la opción habitual.</string>
     <string name="mode_proxy_explained">Solo proxy</string>
-    <string name="mode_proxy_explained_body">Ejecuta el proxy SOCKS local (y HTTP, si está activado) sin túnel. Solo se enrutan las apps que configures para usar el puerto. Funciona con configuraciones de Xray; los demás motores siempre funcionan como VPN.</string>
+    <string name="mode_proxy_explained_body">Ejecuta el proxy SOCKS local (y HTTP, si está activado) sin túnel. Solo se enrutan las apps que configures para usar el puerto. Funciona con Xray, Psiphon, Tor, SSH, DNSTT, VayDNS y MasterDNS; sing-box, OpenConnect, IKEv2 y las cadenas siempre funcionan como VPN.</string>
     <string name="mode_system_proxy">Proxy del sistema</string>
     <string name="mode_system_proxy_body">Configura el proxy del sistema en GNOME, KDE, Windows o macOS. Los navegadores y la mayoría de las apps lo usan, y no se necesitan permisos de administrador. Es la opción predeterminada.</string>
     <string name="mode_socks">Solo SOCKS</string>
@@ -582,7 +582,7 @@
     <string name="dns_tunnel_max_labels">Máximo de etiquetas</string>
     <string name="dns_tunnel_client_id">Tamaño del ID de cliente (bytes)</string>
     <string name="title_tunnels_settings">Túneles</string>
-    <string name="title_dns_protocols">Protocolos basados en DNS (VayDNS y DNSTT)</string>
+    <string name="title_dns_protocols">Túneles DNS</string>
     <string name="summary_dns_protocols">Ajustes globales del resolvedor para túneles DNS</string>
     <string name="title_tor_settings">Tor</string>
     <string name="summary_tor_settings">Puentes, Snowflake, nodos</string>

@@ -285,11 +285,18 @@ private fun FactTile(
                 BentoFlag(flag, size = 30.dp, corner = 10.dp)
                 Spacer(Modifier.width(8.dp))
             }
+            val size = when {
+                !numeric -> 19.sp
+                value.contains(':') -> 14.sp
+                value.length > 12 -> 16.sp
+                else -> 19.sp
+            }
             Text(
                 if (numeric) ltrIsolate(value) else value,
-                style = BentoType.title(19.sp).let { if (numeric) it.copy(fontFeatureSettings = "tnum") else it },
+                style = BentoType.title(size).let { if (numeric) it.copy(fontFeatureSettings = "tnum") else it },
                 color = tone.content,
-                maxLines = 2,
+                maxLines = if (numeric && !value.contains(':')) 1 else 2,
+                softWrap = !numeric || value.contains(':'),
                 overflow = TextOverflow.Ellipsis,
             )
         }

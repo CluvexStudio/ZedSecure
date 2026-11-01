@@ -570,7 +570,7 @@ private fun humanBps(bps: Long): String {
     val units = arrayOf("B/s", "KB/s", "MB/s", "GB/s")
     var v = bps.toDouble(); var i = 0
     while (v >= 1024 && i < units.size - 1) { v /= 1024; i++ }
-    return (if (v >= 100 || i == 0) "%.0f".format(v) else "%.1f".format(v)) + " " + units[i]
+    return (if (v >= 100 || i == 0) "%.0f".format(java.util.Locale.ROOT, v) else "%.1f".format(java.util.Locale.ROOT, v)) + " " + units[i]
 }
 
 private const val MOUSE_BACK_BUTTON = 4

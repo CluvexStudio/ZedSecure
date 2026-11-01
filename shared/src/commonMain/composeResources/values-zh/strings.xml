@@ -297,7 +297,7 @@
     <string name="mode_vpn_explained">VPN</string>
     <string name="mode_vpn_explained_body">创建系统隧道，路由所有应用的流量。这是常规选择。</string>
     <string name="mode_proxy_explained">仅代理</string>
-    <string name="mode_proxy_explained_body">运行本地 SOCKS 代理（开启后还有 HTTP），不建立隧道。只有指向该端口的应用才会走代理。仅适用于 Xray 配置；其他引擎始终以 VPN 方式运行。</string>
+    <string name="mode_proxy_explained_body">运行本地 SOCKS 代理（开启后还有 HTTP），不建立隧道。只有指向该端口的应用才会走代理。适用于 Xray、Psiphon、Tor、SSH、DNSTT、VayDNS 和 MasterDNS；sing-box、OpenConnect、IKEv2 和链式连接始终以 VPN 方式运行。</string>
 
     <string name="mode_system_proxy">系统代理</string>
     <string name="mode_system_proxy_body">在 GNOME、KDE、Windows 或 macOS 上设置系统代理。浏览器和大多数应用会遵循它，无需管理员权限。这是默认模式。</string>
@@ -618,7 +618,7 @@
     <string name="dns_tunnel_max_labels">最大标签数</string>
     <string name="dns_tunnel_client_id">客户端 ID 大小 (字节)</string>
     <string name="title_tunnels_settings">隧道</string>
-    <string name="title_dns_protocols">基于 DNS 的协议 (VayDNS 和 DNSTT)</string>
+    <string name="title_dns_protocols">DNS 隧道</string>
     <string name="summary_dns_protocols">DNS 隧道的全局解析器设置</string>
     <string name="title_tor_settings">Tor</string>
     <string name="summary_tor_settings">网桥、Snowflake、节点</string>

@@ -104,6 +104,8 @@ fun SettingsScreen(
 
     onReplaySetup: (() -> Unit)? = null,
 
+    onOpenVault: (() -> Unit)? = null,
+
     mtuHint: dev.cluvex.zedsecure.data.net.MtuServerHint? = null,
 
     ai: dev.cluvex.zedsecure.ui.settings.AiSection? = null,
@@ -186,6 +188,7 @@ fun SettingsScreen(
                     onAbout = { showAbout = true },
                     onReplayTour = onReplayTour,
                     onReplaySetup = onReplaySetup,
+                    onOpenVault = onOpenVault,
                     hasAi = ai != null,
                     onUpdate = onUpdate,
                 )
@@ -537,6 +540,7 @@ private fun BentoRoot(
     onAbout: () -> Unit,
     onReplayTour: (() -> Unit)?,
     onReplaySetup: (() -> Unit)?,
+    onOpenVault: (() -> Unit)?,
     hasAi: Boolean,
     onUpdate: ((AppSettings) -> AppSettings) -> Unit,
 ) {
@@ -718,6 +722,14 @@ private fun BentoRoot(
             art = SettingsArts.Map,
             tourKey = TourTargets.SETTINGS_TOOLS,
         ) { onOpen(SettingsPage.Map) })
+        onOpenVault?.let { open ->
+            add(dev.cluvex.zedsecure.ui.bento.BentoHubEntry(
+                key = "vault",
+                title = stringResource(Res.string.vault_title),
+                summary = stringResource(Res.string.vault_intro_title),
+                art = SettingsArts.Vault,
+            ) { open() })
+        }
         add(dev.cluvex.zedsecure.ui.bento.BentoHubEntry(
             key = "mux",
             title = stringResource(Res.string.title_mux_settings),

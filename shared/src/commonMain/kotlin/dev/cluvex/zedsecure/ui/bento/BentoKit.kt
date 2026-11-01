@@ -524,7 +524,7 @@ fun BentoPill(text: String, container: Color, content: Color, modifier: Modifier
     ) {
         if (dot != null) Box(Modifier.size(8.dp).clip(CircleShape).background(dot))
         Text(
-            text,
+            if (numeric) dev.cluvex.zedsecure.ui.format.ltrIsolate(text) else text,
             style = if (numeric) BentoType.number(13.sp) else MaterialTheme.typography.labelLarge.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
             color = content,
             maxLines = 1,

@@ -67,6 +67,7 @@ object SettingsArts {
     val Observatory = SettingsArt("observatory", Res.drawable.ic_fill_radar, MaterialShapes.VerySunny, 4)
     val Advanced = SettingsArt("advanced", Res.drawable.ic_fill_tune, MaterialShapes.Puffy, 0)
     val Map = SettingsArt("map", Res.drawable.ic_fill_map, MaterialShapes.Oval, 2)
+    val Vault = SettingsArt("vault", Res.drawable.ic_encrypted, MaterialShapes.Cookie6Sided, 1)
     val SpeedTest = SettingsArt("speed-test", Res.drawable.ic_fill_speed, MaterialShapes.Slanted, 3)
     val Update = SettingsArt("update", Res.drawable.ic_fill_sync, MaterialShapes.SoftBoom, 5)
     val Rate = SettingsArt("rate", Res.drawable.ic_fill_star, MaterialShapes.Burst, 1)

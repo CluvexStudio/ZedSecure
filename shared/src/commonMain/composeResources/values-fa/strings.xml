@@ -415,7 +415,7 @@
     <string name="mode_vpn_explained">VPN</string>
     <string name="mode_vpn_explained_body">یک تونل سیستمی می‌سازد تا همهٔ برنامه‌ها از آن عبور کنند. انتخاب معمول همین است.</string>
     <string name="mode_proxy_explained">فقط پروکسی</string>
-    <string name="mode_proxy_explained_body">پروکسی محلی SOCKS (و در صورت فعال بودن، HTTP) را بدون تونل اجرا می‌کند. فقط برنامه‌هایی که به این پورت وصلشان کنید عبور می‌کنند. برای کانفیگ‌های Xray کار می‌کند؛ هسته‌های دیگر همیشه به‌صورت VPN اجرا می‌شوند.</string>
+    <string name="mode_proxy_explained_body">پروکسی محلی SOCKS (و در صورت فعال بودن، HTTP) را بدون تونل اجرا می‌کند. فقط برنامه‌هایی که به این پورت وصلشان کنید عبور می‌کنند. با Xray، سایفون، Tor، SSH، DNSTT، VayDNS و MasterDNS کار می‌کند؛ sing-box، OpenConnect، IKEv2 و زنجیره‌ها همیشه به‌صورت VPN اجرا می‌شوند.</string>
     <string name="mode_system_proxy">پروکسی سیستم</string>
     <string name="mode_system_proxy_body">پروکسی سیستم را روی GNOME، KDE، ویندوز یا مک تنظیم می‌کند. مرورگرها و بیشتر برنامه‌ها از آن پیروی می‌کنند و دسترسی مدیر لازم نیست. حالت پیش‌فرض همین است.</string>
     <string name="mode_socks">فقط SOCKS</string>
@@ -610,7 +610,7 @@
     <string name="dns_tunnel_max_labels">حداکثر لیبل</string>
     <string name="dns_tunnel_client_id">اندازهٔ شناسهٔ کلاینت (بایت)</string>
     <string name="title_tunnels_settings">تونل‌ها</string>
-    <string name="title_dns_protocols">پروتکل‌های مبتنی بر DNS (VayDNS و DNSTT)</string>
+    <string name="title_dns_protocols">تونل DNS</string>
     <string name="summary_dns_protocols">تنظیمات سراسری رزالور برای تونل‌های DNS</string>
     <string name="title_tor_settings">تور</string>
     <string name="summary_tor_settings">پل‌ها، Snowflake، نودها</string>
@@ -1049,7 +1049,7 @@
     <string name="cert_error_install_failed">این دستگاه امکان نصب گواهی را ندارد.</string>
 
     <string name="map_title">نقشه</string>
-    <string name="map_subtitle">از کجا وصل می‌شوی و از کجا بیرون می‌آیی</string>
+    <string name="map_subtitle">از کجا وصل می‌شوید و از کجا بیرون می‌آیید</string>
     <string name="map_you">تو اینجایی</string>
     <string name="map_exit">خروجی</string>
     <string name="map_unknown">نامشخص</string>
@@ -1303,7 +1303,7 @@
     <string name="onb_preset_title">یک پوسته انتخاب کن</string>
     <string name="onb_preset_body">یک ست رنگ آماده. بعداً همهٔ رنگ‌ها قابل تغییرند.</string>
     <string name="onb_preset_stock">پیش‌فرض</string>
-    <string name="onb_lang_title">زبان تو</string>
+    <string name="onb_lang_title">زبان شما</string>
     <string name="onb_lang_body">کل برنامه همان لحظه عوض می‌شود.</string>
     <string name="onb_traffic_title">کارت‌های سرعت</string>
     <string name="onb_traffic_body">دانلود و آپلود در صفحهٔ اصلی: کجا باشند و چه اندازه‌ای.</string>
