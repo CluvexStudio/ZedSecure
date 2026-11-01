@@ -1737,4 +1737,10 @@
     <string name="onb_replay_title">Пройти настройку снова</string>
     <string name="onb_replay_sub">Язык, правила страны и внешний вид по шагам</string>
     <string name="onb_region_needed">Чтобы продолжить, выберите свою страну в списке.</string>
+    <string name="onb_region_detected">Определено по: %1$s</string>
+    <string name="onb_region_change_hint">Не так? Выберите свою страну ниже.</string>
+    <string name="onb_region_from_sim">SIM-карта</string>
+    <string name="onb_region_from_mobile">мобильная сеть</string>
+    <string name="onb_region_from_network">текущее подключение (Wi-Fi или мобильные данные)</string>
+    <string name="onb_region_from_language">язык и регион телефона</string>
 </resources>

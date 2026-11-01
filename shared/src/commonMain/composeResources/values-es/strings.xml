@@ -1690,4 +1690,10 @@
     <string name="onb_replay_title">Repetir la configuración</string>
     <string name="onb_replay_sub">Idioma, reglas del país y aspecto, paso a paso</string>
     <string name="onb_region_needed">Elige tu país en la lista para continuar.</string>
+    <string name="onb_region_detected">Detectado por %1$s</string>
+    <string name="onb_region_change_hint">¿No es correcto? Elige tu país abajo.</string>
+    <string name="onb_region_from_sim">la tarjeta SIM</string>
+    <string name="onb_region_from_mobile">la red móvil</string>
+    <string name="onb_region_from_network">la conexión actual (Wi-Fi o datos)</string>
+    <string name="onb_region_from_language">el idioma y la región del teléfono</string>
 </resources>

@@ -1737,4 +1737,10 @@
     <string name="onb_replay_title">重新设置</string>
     <string name="onb_replay_sub">语言、国家规则和外观，逐步完成</string>
     <string name="onb_region_needed">请从列表中选择你的国家以继续。</string>
+    <string name="onb_region_detected">根据%1$s识别</string>
+    <string name="onb_region_change_hint">不对？请在下方选择你的国家。</string>
+    <string name="onb_region_from_sim">SIM 卡</string>
+    <string name="onb_region_from_mobile">移动网络</string>
+    <string name="onb_region_from_network">当前连接（Wi-Fi 或移动数据）</string>
+    <string name="onb_region_from_language">手机的语言和地区</string>
 </resources>

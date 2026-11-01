@@ -1729,4 +1729,10 @@
     <string name="onb_replay_title">راه‌اندازی دوباره</string>
     <string name="onb_replay_sub">زبان، قانون‌های کشور و ظاهر، قدم به قدم</string>
     <string name="onb_region_needed">برای ادامه، کشورتان را از فهرست انتخاب کنید.</string>
+    <string name="onb_region_detected">تشخیص از روی %1$s</string>
+    <string name="onb_region_change_hint">درست نیست؟ کشورتان را از پایین انتخاب کنید.</string>
+    <string name="onb_region_from_sim">سیم‌کارت</string>
+    <string name="onb_region_from_mobile">شبکهٔ موبایل</string>
+    <string name="onb_region_from_network">اتصال فعلی (وای‌فای یا دیتا)</string>
+    <string name="onb_region_from_language">زبان و منطقهٔ گوشی</string>
 </resources>

@@ -89,6 +89,39 @@ const val ONBOARDING_VERSION = 1
 
 private const val LAST_STEP = 4
 
+private enum class RegionSource { Sim, MobileNetwork, Network, Language }
+
+private data class RegionGuess(val code: String, val source: RegionSource)
+
+private fun localGuesses(platform: dev.cluvex.zedsecure.ui.platform.Platform): List<RegionGuess> = buildList {
+    platform.simCountry?.let { add(RegionGuess(it, RegionSource.Sim)) }
+    platform.mobileNetworkCountry?.let { add(RegionGuess(it, RegionSource.MobileNetwork)) }
+    java.util.Locale.getDefault().country.uppercase()
+        .takeIf { it.length == 2 && it.all { ch -> ch in 'A'..'Z' } }
+        ?.let { add(RegionGuess(it, RegionSource.Language)) }
+}
+
+@Composable
+private fun rememberRegionGuesses(): List<RegionGuess> {
+    val platform = dev.cluvex.zedsecure.ui.platform.LocalPlatform.current
+    var guesses by remember { mutableStateOf(localGuesses(platform)) }
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        val viaVpn = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+            dev.cluvex.zedsecure.core.VpnManager.deviceVpnActive()
+        }
+        if (viaVpn) return@LaunchedEffect
+        val info = kotlinx.coroutines.withTimeoutOrNull(NETWORK_LOOKUP_MS) {
+            runCatching { dev.cluvex.zedsecure.data.net.NetworkInfoRepository().fetchInfo(force = true) }.getOrNull()
+        } ?: return@LaunchedEffect
+        if (info.underVpn) return@LaunchedEffect
+        val code = info.countryCode?.trim()?.uppercase()?.takeIf { it.length == 2 } ?: return@LaunchedEffect
+        guesses = guesses + RegionGuess(code, RegionSource.Network)
+    }
+    return guesses
+}
+
+private const val NETWORK_LOOKUP_MS = 8_000L
+
 @Composable
 fun OnboardingFlow(
     settings: AppSettings,
@@ -101,6 +134,12 @@ fun OnboardingFlow(
     val c = Bento.colors
     var step by rememberSaveable { mutableIntStateOf(0) }
     var region by rememberSaveable { mutableStateOf(settings.regionCode) }
+    var picked by rememberSaveable { mutableStateOf(settings.regionCode.isNotBlank()) }
+    val guesses = rememberRegionGuesses()
+    val best = guesses.minByOrNull { it.source.ordinal }
+    androidx.compose.runtime.LaunchedEffect(best) {
+        if (!picked && best != null) region = best.code
+    }
     var directLocal by rememberSaveable { mutableStateOf(true) }
     var blockAds by rememberSaveable { mutableStateOf(true) }
     var blockQuic by rememberSaveable { mutableStateOf(true) }
@@ -157,7 +196,14 @@ fun OnboardingFlow(
             ) { current ->
                 when (current) {
                     0 -> WelcomeStep(settings, onLanguage)
-                    1 -> RegionStep(region) { region = it }
+                    1 -> RegionStep(
+                        region = region,
+                        detectedBy = if (picked) null else guesses.filter { it.code == region }.minByOrNull { it.source.ordinal }?.source,
+                        guesses = guesses,
+                    ) {
+                        region = it
+                        picked = true
+                    }
                     2 -> RulesStep(
                         region = region,
                         preview = preview,
@@ -325,7 +371,17 @@ private fun ChoiceTile(label: String, selected: Boolean, modifier: Modifier = Mo
 }
 
 @Composable
-private fun RegionStep(region: String, onPick: (String) -> Unit) {
+private fun regionSourceLabel(source: RegionSource): String = stringResource(
+    when (source) {
+        RegionSource.Sim -> Res.string.onb_region_from_sim
+        RegionSource.MobileNetwork -> Res.string.onb_region_from_mobile
+        RegionSource.Network -> Res.string.onb_region_from_network
+        RegionSource.Language -> Res.string.onb_region_from_language
+    },
+)
+
+@Composable
+private fun RegionStep(region: String, detectedBy: RegionSource?, guesses: List<RegionGuess>, onPick: (String) -> Unit) {
     val c = Bento.colors
     var query by rememberSaveable { mutableStateOf("") }
     val all = remember { java.util.Locale.getISOCountries().toList() }
@@ -355,10 +411,45 @@ private fun RegionStep(region: String, onPick: (String) -> Unit) {
                     BentoFlag(region, size = 46.dp, corner = 15.dp)
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
-                        Text(stringResource(Res.string.onb_region_picked), style = BentoType.caption(), color = c.onStage.copy(alpha = 0.8f))
+                        Text(
+                            detectedBy?.let { stringResource(Res.string.onb_region_detected, regionSourceLabel(it)) }
+                                ?: stringResource(Res.string.onb_region_picked),
+                            style = BentoType.caption(),
+                            color = c.onStage.copy(alpha = 0.8f),
+                        )
                         Text(dev.cluvex.zedsecure.ui.servers.countryName(region), style = BentoType.title(22.sp), color = c.onStage, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        if (detectedBy != null) {
+                            Text(stringResource(Res.string.onb_region_change_hint), style = BentoType.body().copy(fontSize = 12.5.sp), color = c.onStage.copy(alpha = 0.75f))
+                        }
                     }
                     BentoPill(region, c.lime, c.onLime, numeric = true)
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+        }
+        val others = guesses.distinctBy { it.code }.filter { it.code != region }
+        if (others.isNotEmpty()) {
+            FlowRow(
+                Modifier.padding(horizontal = 20.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                others.forEach { guess ->
+                    Row(
+                        Modifier
+                            .clip(RoundedCornerShape(18.dp))
+                            .background(c.surface)
+                            .clickable(role = Role.Button) { onPick(guess.code) }
+                            .padding(start = 6.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        BentoFlag(guess.code, size = 26.dp, corner = 9.dp)
+                        Spacer(Modifier.width(8.dp))
+                        Column {
+                            Text(dev.cluvex.zedsecure.ui.servers.countryName(guess.code), style = MaterialTheme.typography.labelLarge, color = c.ink, maxLines = 1)
+                            Text(regionSourceLabel(guess.source), style = MaterialTheme.typography.labelSmall, color = c.muted, maxLines = 1)
+                        }
+                    }
                 }
             }
             Spacer(Modifier.height(10.dp))

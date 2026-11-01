@@ -81,6 +81,10 @@ interface Platform {
 
     val hasStatusNotification: Boolean get() = false
 
+    val simCountry: String? get() = null
+
+    val mobileNetworkCountry: String? get() = null
+
     val geoAssets: GeoAssets? get() = null
 
     suspend fun pickFileBytes(): FilePick? = null
