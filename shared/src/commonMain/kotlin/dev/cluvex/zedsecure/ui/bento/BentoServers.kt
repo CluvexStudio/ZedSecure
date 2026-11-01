@@ -69,71 +69,11 @@ import org.jetbrains.compose.resources.stringResource
 
 private const val SING_BOX_SUFFIX = " · sing-box"
 
-fun bentoProtocolCode(protocol: String): String = when (protocol.trim().uppercase()) {
-    "VLESS" -> "VL"
-    "VMESS" -> "VM"
-    "TROJAN" -> "TR"
-    "SHADOWSOCKS" -> "SS"
-    "SOCKS" -> "S5"
-    "HTTP" -> "HT"
-    "WIREGUARD" -> "WG"
-    "AMNEZIAWG" -> "AW"
-    "HYSTERIA", "HYSTERIA2" -> "HY"
-    "MASQUE" -> "MQ"
-    "TUIC" -> "TU"
-    "ANYTLS" -> "AT"
-    "NAIVE" -> "NV"
-    "TOR" -> "TOR"
-    "SSH" -> "SSH"
-    "PSIPHON" -> "PS"
-    "OPENCONNECT" -> "OC"
-    "IKEV2" -> "IK"
-    "MASTERDNS" -> "MD"
-    "DNSTT", "DNS", "VAYDNS" -> "DNS"
-    "SNI-SPOOF" -> "SNI"
-    "SING-BOX" -> "SB"
-    "CHAIN", "CROSSCHAIN" -> "CH"
-    "CUSTOM" -> "{ }"
-    "AUTO" -> "AU"
-    "LOCKED" -> "LK"
-    else -> protocol.filter { it.isLetterOrDigit() }.take(2).uppercase().ifEmpty { "··" }
-}
-
-@Composable
-fun BentoProtocolBadge(
-    protocol: String,
-    modifier: Modifier = Modifier,
-    size: androidx.compose.ui.unit.Dp = 38.dp,
-    corner: androidx.compose.ui.unit.Dp = 13.dp,
-    container: Color? = null,
-    content: Color? = null,
-) {
-    val c = Bento.colors
-    val code = bentoProtocolCode(protocol)
-    val tones = listOf(c.blue, c.violet, c.cyan, c.pink, c.coral)
-    val tone = tones[(code.hashCode() and 0x7fffffff) % tones.size]
-    Box(
-        modifier.size(size).clip(RoundedCornerShape(corner)).background(container ?: tone.container),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            code,
-            style = MaterialTheme.typography.labelLarge.copy(
-                fontSize = (size.value * if (code.length > 2) 0.27f else 0.33f).sp,
-                fontWeight = FontWeight.Bold,
-            ),
-            color = content ?: tone.content,
-            maxLines = 1,
-        )
-    }
-}
-
 @Composable
 fun BentoServerRow(
     name: String,
     detail: String,
     country: String?,
-    protocol: String,
     pingMs: Int?,
     showPing: Boolean,
     active: Boolean,
@@ -159,8 +99,10 @@ fun BentoServerRow(
             .padding(start = 14.dp, end = 2.dp, top = 8.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (country != null) BentoFlag(country, size = 38.dp, corner = 13.dp) else BentoProtocolBadge(protocol)
-        Spacer(Modifier.width(12.dp))
+        if (country != null) {
+            BentoFlag(country, size = 38.dp, corner = 13.dp)
+            Spacer(Modifier.width(12.dp))
+        }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(name, style = BentoType.rowTitle(), color = c.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {

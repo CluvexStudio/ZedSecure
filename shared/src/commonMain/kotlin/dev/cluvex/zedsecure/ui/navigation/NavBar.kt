@@ -50,21 +50,23 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun ZedNavBar(
     style: NavBarStyle,
+    tabs: List<TopDestination>,
     current: TopDestination,
     onSelect: (TopDestination) -> Unit,
 ) {
     when (style) {
-        NavBarStyle.FloatingPill -> FloatingPillBar(current, onSelect, compact = false)
-        NavBarStyle.CompactDock -> FloatingPillBar(current, onSelect, compact = true)
-        NavBarStyle.ExpressivePill -> ExpressivePillBar(current, onSelect)
-        NavBarStyle.FullBar -> MaterialBar(current, onSelect, underline = false)
-        NavBarStyle.Underline -> MaterialBar(current, onSelect, underline = true)
-        NavBarStyle.Minimal -> MinimalBar(current, onSelect)
+        NavBarStyle.FloatingPill, NavBarStyle.Dock -> FloatingPillBar(tabs, current, onSelect, compact = false)
+        NavBarStyle.CompactDock -> FloatingPillBar(tabs, current, onSelect, compact = true)
+        NavBarStyle.ExpressivePill -> ExpressivePillBar(tabs, current, onSelect)
+        NavBarStyle.FullBar -> MaterialBar(tabs, current, onSelect, underline = false)
+        NavBarStyle.Underline -> MaterialBar(tabs, current, onSelect, underline = true)
+        NavBarStyle.Minimal -> MinimalBar(tabs, current, onSelect)
     }
 }
 
 @Composable
 private fun FloatingPillBar(
+    tabs: List<TopDestination>,
     current: TopDestination,
     onSelect: (TopDestination) -> Unit,
     compact: Boolean,
@@ -80,7 +82,7 @@ private fun FloatingPillBar(
             expanded = true,
             colors = FloatingToolbarDefaults.standardFloatingToolbarColors(),
         ) {
-            TopDestination.entries.forEach { dest ->
+            tabs.forEach { dest ->
                 NavPill(
                     destination = dest,
                     selected = current == dest,
@@ -94,7 +96,7 @@ private fun FloatingPillBar(
 }
 
 @Composable
-private fun ExpressivePillBar(current: TopDestination, onSelect: (TopDestination) -> Unit) {
+private fun ExpressivePillBar(tabs: List<TopDestination>, current: TopDestination, onSelect: (TopDestination) -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -112,7 +114,7 @@ private fun ExpressivePillBar(current: TopDestination, onSelect: (TopDestination
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                TopDestination.entries.forEach { dest ->
+                tabs.forEach { dest ->
                     val selected = current == dest
                     val bg by animateColorAsState(
                         if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainer,
@@ -165,12 +167,13 @@ private fun ExpressivePillBar(current: TopDestination, onSelect: (TopDestination
 
 @Composable
 private fun MaterialBar(
+    tabs: List<TopDestination>,
     current: TopDestination,
     onSelect: (TopDestination) -> Unit,
     underline: Boolean,
 ) {
     NavigationBar {
-        TopDestination.entries.forEach { dest ->
+        tabs.forEach { dest ->
             val selected = current == dest
             NavigationBarItem(
                 modifier = Modifier.tourTarget(TourTargets.nav(dest.name)),
@@ -210,7 +213,7 @@ private fun MaterialBar(
 }
 
 @Composable
-private fun MinimalBar(current: TopDestination, onSelect: (TopDestination) -> Unit) {
+private fun MinimalBar(tabs: List<TopDestination>, current: TopDestination, onSelect: (TopDestination) -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -219,7 +222,7 @@ private fun MinimalBar(current: TopDestination, onSelect: (TopDestination) -> Un
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        TopDestination.entries.forEach { dest ->
+        tabs.forEach { dest ->
             val selected = current == dest
             val tint by animateColorAsState(
                 if (selected) MaterialTheme.colorScheme.primary

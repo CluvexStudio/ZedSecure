@@ -34,6 +34,7 @@ enum class SingBoxKind(val label: String) {
     HYSTERIA("Hysteria v1"),
     NAIVE("NaïveProxy"),
     SOCKS4("SOCKS4 / 4a"),
+    SNELL("Snell"),
 }
 
 @Stable
@@ -59,6 +60,7 @@ class SingBoxDraft(link: String?) {
             "hysteria" -> SingBoxKind.HYSTERIA
             "naive+https", "naive+quic" -> SingBoxKind.NAIVE
             "socks4", "socks4a" -> SingBoxKind.SOCKS4
+            "snell" -> SingBoxKind.SNELL
             else -> SingBoxKind.TUIC
         }
         quic = scheme == "naive+quic"
@@ -69,7 +71,7 @@ class SingBoxDraft(link: String?) {
         port = parts.port?.toString() ?: if (kind == SingBoxKind.SOCKS4) "1080" else "443"
         val info = parts.userInfo
         when (kind) {
-            SingBoxKind.ANYTLS -> password = info
+            SingBoxKind.ANYTLS, SingBoxKind.SNELL -> password = info
             SingBoxKind.SOCKS4 -> user = info.substringBefore(':')
             else -> {
                 user = info.substringBefore(':')
@@ -79,12 +81,17 @@ class SingBoxDraft(link: String?) {
         params.clear()
         parts.query.forEach { (k, v) -> params[k] = v }
         if (kind == SingBoxKind.HYSTERIA) params.remove("auth")?.let { user = it }
+        if (kind == SingBoxKind.SNELL) {
+            params.remove("psk")?.let { if (password.isBlank()) password = it }
+            if (params["version"].isNullOrBlank()) params["version"] = "4"
+        }
     }
 
     fun select(newKind: SingBoxKind) {
         if (newKind == kind) return
         kind = newKind
         params.clear()
+        if (newKind == SingBoxKind.SNELL) params["version"] = "4"
         if (newKind == SingBoxKind.SOCKS4 && port == "443") port = "1080"
         if (newKind != SingBoxKind.SOCKS4 && port == "1080") port = "443"
     }
@@ -98,7 +105,7 @@ class SingBoxDraft(link: String?) {
     val ready: Boolean
         get() = server.isNotBlank() && port.toIntOrNull() in 1..65535 && when (kind) {
             SingBoxKind.TUIC -> user.isNotBlank()
-            SingBoxKind.ANYTLS -> password.isNotBlank()
+            SingBoxKind.ANYTLS, SingBoxKind.SNELL -> password.isNotBlank()
             else -> true
         }
 
@@ -109,11 +116,12 @@ class SingBoxDraft(link: String?) {
             SingBoxKind.HYSTERIA -> "hysteria"
             SingBoxKind.NAIVE -> if (quic) "naive+quic" else "naive+https"
             SingBoxKind.SOCKS4 -> if (socks4a) "socks4a" else "socks4"
+            SingBoxKind.SNELL -> "snell"
         }
         val enc = ShareLink::enc
         val credentials = when (kind) {
             SingBoxKind.TUIC -> "${enc(user.trim())}:${enc(password)}@"
-            SingBoxKind.ANYTLS -> "${enc(password)}@"
+            SingBoxKind.ANYTLS, SingBoxKind.SNELL -> "${enc(password)}@"
             SingBoxKind.HYSTERIA -> ""
             SingBoxKind.NAIVE -> when {
                 user.isNotBlank() && password.isNotEmpty() -> "${enc(user.trim())}:${enc(password)}@"
@@ -142,6 +150,10 @@ class SingBoxDraft(link: String?) {
 private val TUIC_CONGESTION = listOf("" to "—", "cubic" to "cubic", "new_reno" to "new_reno", "bbr" to "bbr")
 private val TUIC_RELAY = listOf("" to "—", "native" to "native", "quic" to "quic")
 private val NAIVE_CONGESTION = listOf("" to "—", "bbr" to "bbr", "bbr2" to "bbr2", "cubic" to "cubic", "reno" to "reno")
+private val SNELL_VERSIONS = listOf("4" to "v4", "6" to "v6")
+private val SNELL_OBFS = listOf("" to "—") + SingBoxLinks.SNELL_OBFS.map { it to it }
+private val SNELL_MODES = listOf("" to "—") + SingBoxLinks.SNELL_MODES.map { it to it }
+private val SNELL_NETWORKS = listOf("" to "TCP + UDP", "tcp" to "TCP", "udp" to "UDP")
 
 @Composable
 fun SingBoxFields(draft: SingBoxDraft) {
@@ -203,6 +215,29 @@ fun SingBoxFields(draft: SingBoxDraft) {
         SingBoxKind.SOCKS4 -> {
             SbField(draft.user, { draft.user = it }, Res.string.manual_username)
             LabeledToggle(stringResource(Res.string.sb_socks4a), draft.socks4a) { draft.socks4a = it }
+        }
+        SingBoxKind.SNELL -> {
+            SbField(draft.password, { draft.password = it }, Res.string.sb_snell_psk)
+            PickerField(stringResource(Res.string.sb_snell_version), SNELL_VERSIONS, draft["version"].ifEmpty { "4" }, { version ->
+                if (version != draft["version"]) {
+                    listOf("obfs", "obfs-host", "mode").forEach { draft[it] = "" }
+                    draft["version"] = version
+                }
+            })
+            if (draft["version"] == "6") {
+                PickerField(stringResource(Res.string.manual_mode), SNELL_MODES, draft["mode"], { draft["mode"] = it })
+            } else {
+                PickerField(stringResource(Res.string.sb_snell_obfs), SNELL_OBFS, draft["obfs"], {
+                    draft["obfs"] = it
+                    if (it.isEmpty() || it == "none") draft["obfs-host"] = ""
+                })
+                if (draft["obfs"] == "http" || draft["obfs"] == "tls") {
+                    SbField(draft["obfs-host"], { draft["obfs-host"] = it.trim() }, Res.string.sb_snell_obfs_host)
+                }
+            }
+            SbField(draft["userkey"], { draft["userkey"] = it }, Res.string.sb_snell_userkey)
+            PickerField(stringResource(Res.string.sb_network), SNELL_NETWORKS, draft["network"], { draft["network"] = it })
+            SbSwitch(Res.string.sb_snell_reuse, draft, "reuse")
         }
     }
 }

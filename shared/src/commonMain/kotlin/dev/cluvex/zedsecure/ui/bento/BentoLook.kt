@@ -36,7 +36,6 @@ import dev.cluvex.zedsecure.domain.model.AppSettings
 import dev.cluvex.zedsecure.domain.model.BentoConnect
 import dev.cluvex.zedsecure.domain.model.BentoCorners
 import dev.cluvex.zedsecure.domain.model.BentoDensity
-import dev.cluvex.zedsecure.domain.model.BentoDockLabels
 import dev.cluvex.zedsecure.domain.model.BentoPalette
 import dev.cluvex.zedsecure.domain.model.BentoPrefs
 import dev.cluvex.zedsecure.domain.model.BentoTitle
@@ -51,14 +50,7 @@ import dev.cluvex.zedsecure.shared.resources.bento_corners_title
 import dev.cluvex.zedsecure.shared.resources.bento_density_comfortable
 import dev.cluvex.zedsecure.shared.resources.bento_density_compact
 import dev.cluvex.zedsecure.shared.resources.bento_density_title
-import dev.cluvex.zedsecure.shared.resources.bento_dock_autohide
-import dev.cluvex.zedsecure.shared.resources.bento_dock_autohide_sum
-import dev.cluvex.zedsecure.shared.resources.bento_dock_labels_active
-import dev.cluvex.zedsecure.shared.resources.bento_dock_labels_always
-import dev.cluvex.zedsecure.shared.resources.bento_dock_labels_never
-import dev.cluvex.zedsecure.shared.resources.bento_dock_labels_title
 import dev.cluvex.zedsecure.shared.resources.bento_group_board
-import dev.cluvex.zedsecure.shared.resources.bento_group_dock
 import dev.cluvex.zedsecure.shared.resources.bento_group_home
 import dev.cluvex.zedsecure.shared.resources.bento_group_look
 import dev.cluvex.zedsecure.shared.resources.bento_home_chips
@@ -164,26 +156,6 @@ fun BentoLookSection(settings: AppSettings, onUpdate: ((AppSettings) -> AppSetti
             onCheckedChange = { v -> edit { it.copy(liveTiles = v) } },
         )
         SettingsActionRow(title = stringResource(Res.string.bento_reset_tiles)) { edit { it.copy(tiles = "") } }
-    }
-
-    SettingsGroup(stringResource(Res.string.bento_group_dock)) {
-        SettingsChoiceRow(
-            title = stringResource(Res.string.bento_dock_labels_title),
-            summary = null,
-            options = listOf(
-                BentoDockLabels.Active to stringResource(Res.string.bento_dock_labels_active),
-                BentoDockLabels.Always to stringResource(Res.string.bento_dock_labels_always),
-                BentoDockLabels.Never to stringResource(Res.string.bento_dock_labels_never),
-            ),
-            selected = prefs.dockLabels,
-            onSelected = { v -> edit { it.copy(dockLabels = v) } },
-        )
-        SettingsSwitchRow(
-            title = stringResource(Res.string.bento_dock_autohide),
-            summary = stringResource(Res.string.bento_dock_autohide_sum),
-            checked = prefs.dockAutoHide,
-            onCheckedChange = { v -> edit { it.copy(dockAutoHide = v) } },
-        )
     }
 
     SettingsGroup(stringResource(Res.string.bento_group_home)) {

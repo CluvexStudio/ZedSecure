@@ -47,6 +47,10 @@ fun ZedSecureTheme(
     languageTag: String = "en",
 
     fontScale: Float = 1f,
+
+    font: dev.cluvex.zedsecure.domain.model.UiFont = dev.cluvex.zedsecure.domain.model.UiFont.Auto,
+
+    uiScale: Float = 1f,
     content: @Composable () -> Unit,
 ) {
     val system = if (dynamicColor) dynamicColorSchemeOrNull(darkTheme) else null
@@ -68,14 +72,15 @@ fun ZedSecureTheme(
     }
 
     val density = LocalDensity.current
-    val scaled = remember(density, fontScale) {
-        if (fontScale == 1f) density else Density(density.density, density.fontScale * fontScale)
+    val scale = dev.cluvex.zedsecure.domain.model.UiScale.clamp(uiScale)
+    val scaled = remember(density, fontScale, scale) {
+        if (fontScale == 1f && scale == 1f) density else Density(density.density * scale, density.fontScale * fontScale)
     }
     MaterialExpressiveTheme(
         colorScheme = colorScheme,
         motionScheme = MotionScheme.expressive(),
         shapes = ZedShapes,
-        typography = typographyFor(languageTag, design),
+        typography = typographyFor(languageTag, design, font),
     ) {
         CompositionLocalProvider(
             LocalDensity provides scaled,

@@ -79,6 +79,8 @@ interface Platform {
 
     val supportsDynamicColor: Boolean get() = false
 
+    val hasStatusNotification: Boolean get() = false
+
     val geoAssets: GeoAssets? get() = null
 
     suspend fun pickFileBytes(): FilePick? = null

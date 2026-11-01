@@ -33,6 +33,7 @@ data class BentoPrefs(
     val tiles: String = "",
     val dockLabels: BentoDockLabels = BentoDockLabels.Active,
     val dockAutoHide: Boolean = true,
+    val navStyle: NavBarStyle = NavBarStyle.Dock,
     val connect: BentoConnect = BentoConnect.Slide,
     val wave: Boolean = true,
     val homeSpeed: Boolean = true,

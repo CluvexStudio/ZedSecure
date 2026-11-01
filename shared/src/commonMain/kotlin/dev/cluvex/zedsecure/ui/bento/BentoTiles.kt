@@ -160,4 +160,27 @@ object BentoTiles {
     }
 
     fun rowsOf(placed: List<BentoPlaced>): Int = placed.maxOfOrNull { it.row + it.rows } ?: 0
+
+    fun dropIndex(layout: BentoTileLayout, key: String, columns: Int, gridX: Float, gridY: Float, stickiness: Float = 0.2f): Int {
+        val current = layout.visible.indexOfFirst { it.key == key }
+        if (current < 0) return -1
+        fun distanceAt(index: Int): Float {
+            val me = pack(layout.moved(key, index).visible, columns).first { it.slot.key == key }
+            val dx = me.col + me.cols / 2f - gridX
+            val dy = me.row + me.rows / 2f - gridY
+            return dx * dx + dy * dy
+        }
+        val stay = distanceAt(current)
+        var best = current
+        var bestDistance = stay
+        for (index in layout.visible.indices) {
+            if (index == current) continue
+            val d = distanceAt(index)
+            if (d < bestDistance) {
+                best = index
+                bestDistance = d
+            }
+        }
+        return if (best != current && bestDistance < stay - stickiness) best else current
+    }
 }

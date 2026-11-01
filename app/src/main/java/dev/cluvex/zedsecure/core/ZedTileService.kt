@@ -83,6 +83,7 @@ class ZedTileService : TileService() {
                     plan.remark,
                     plan.socksPort,
                     plan.kind,
+                    plan.engine,
                     proxyOnly = plan.proxyOnly,
                 )
             }.isSuccess

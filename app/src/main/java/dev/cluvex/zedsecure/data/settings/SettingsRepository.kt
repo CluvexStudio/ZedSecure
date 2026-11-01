@@ -74,10 +74,13 @@ class SettingsRepository(context: Context) {
             customConfigCardTextColor = prefs.argb("custom_color_config_card_text"),
             connectButtonStyle = prefs.enum("connect_button_style", d.connectButtonStyle),
             navBarStyle = prefs.enum("nav_bar_style", d.navBarStyle),
+            navTabs = prefs.getString("nav_tabs", d.navTabs) ?: d.navTabs,
             themeProfileId = prefs.getString("theme_profile_id", null),
             cardCornerStyle = prefs.enum("card_corner_style", d.cardCornerStyle),
             listDensity = prefs.enum("list_density", d.listDensity),
             uiFontScale = prefs.enum("ui_font_scale", d.uiFontScale),
+            uiFont = prefs.enum("ui_font", d.uiFont),
+            uiScale = dev.cluvex.zedsecure.domain.model.UiScale.clamp(prefs.getFloat("ui_scale", d.uiScale)),
             showServerPing = prefs.getBoolean("show_server_ping", d.showServerPing),
             showServerUsage = prefs.getBoolean("show_server_usage", d.showServerUsage),
             monospaceAddress = prefs.getBoolean("monospace_address", d.monospaceAddress),
@@ -293,10 +296,13 @@ class SettingsRepository(context: Context) {
             putArgb("custom_color_config_card_text", s.customConfigCardTextColor)
             putString("connect_button_style", s.connectButtonStyle.name)
             putString("nav_bar_style", s.navBarStyle.name)
+            putString("nav_tabs", s.navTabs)
             putString("theme_profile_id", s.themeProfileId)
             putString("card_corner_style", s.cardCornerStyle.name)
             putString("list_density", s.listDensity.name)
             putString("ui_font_scale", s.uiFontScale.name)
+            putString("ui_font", s.uiFont.name)
+            putFloat("ui_scale", s.uiScale)
             putBoolean("show_server_ping", s.showServerPing)
             putBoolean("show_server_usage", s.showServerUsage)
             putBoolean("monospace_address", s.monospaceAddress)

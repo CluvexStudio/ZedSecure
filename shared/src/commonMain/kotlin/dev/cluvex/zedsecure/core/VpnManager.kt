@@ -45,6 +45,7 @@ object VpnManager {
     const val EXTRA_REMARK = "zed.remark"
     const val EXTRA_SOCKS_PORT = "zed.socksPort"
     const val EXTRA_KIND = "zed.kind"
+    const val EXTRA_ENGINE = "zed.engine"
 
     const val EXTRA_PROXY_ONLY = "zed.proxyOnly"
     const val CMD_START = "start"

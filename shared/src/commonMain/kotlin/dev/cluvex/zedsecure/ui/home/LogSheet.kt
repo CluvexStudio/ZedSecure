@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -121,6 +123,13 @@ private fun categoryLabel(category: LogCategory): String = when (category) {
 
 @Composable
 fun LogSheet(onDismiss: () -> Unit) {
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberAppSheetState()) {
+        LogPanel(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 20.dp), fill = false)
+    }
+}
+
+@Composable
+fun LogPanel(modifier: Modifier, fill: Boolean, showTitle: Boolean = true) {
     val platform = LocalPlatform.current
     val logsCopied = stringResource(Res.string.logs_copied)
     val allLines by LogBus.lines.collectAsStateWithLifecycle()
@@ -171,19 +180,23 @@ fun LogSheet(onDismiss: () -> Unit) {
         if (lines.isNotEmpty() && atBottom) listState.scrollToItem(lines.lastIndex)
     }
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberAppSheetState()) {
-        Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 20.dp)) {
+    run {
+        Column(modifier) {
             Row(
                 Modifier.fillMaxWidth().padding(bottom = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text(
-                    stringResource(Res.string.logs_title),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f),
-                )
+                if (showTitle) {
+                    Text(
+                        stringResource(Res.string.logs_title),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.weight(1f),
+                    )
+                } else {
+                    Spacer(Modifier.weight(1f))
+                }
                 Text(
                     "${lines.size}",
                     style = MaterialTheme.typography.labelMedium,
@@ -263,7 +276,7 @@ fun LogSheet(onDismiss: () -> Unit) {
                 }
             }
 
-            Box(Modifier.fillMaxWidth().height(420.dp)) {
+            Box(if (fill) Modifier.fillMaxWidth().weight(1f) else Modifier.fillMaxWidth().height(420.dp)) {
                 androidx.compose.runtime.CompositionLocalProvider(
                     LocalLayoutDirection provides LayoutDirection.Ltr,
                 ) {
@@ -280,7 +293,7 @@ fun LogSheet(onDismiss: () -> Unit) {
                         Surface(
                             color = MaterialTheme.colorScheme.surfaceContainerLowest,
                             shape = RoundedCornerShape(14.dp),
-                            modifier = Modifier.fillMaxWidth().height(420.dp),
+                            modifier = if (fill) Modifier.fillMaxSize() else Modifier.fillMaxWidth().height(420.dp),
                         ) {
                             LazyColumn(
                                 state = listState,

@@ -70,7 +70,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.cluvex.zedsecure.core.ConnectionFault
 import dev.cluvex.zedsecure.data.net.NetworkInfo
-import dev.cluvex.zedsecure.domain.config.VpnProfile
 import dev.cluvex.zedsecure.domain.model.ConnectionState
 import dev.cluvex.zedsecure.shared.resources.Res
 import dev.cluvex.zedsecure.shared.resources.action_retry
@@ -120,7 +119,6 @@ data class BentoActiveServer(
     val name: String,
     val detail: String?,
     val country: String?,
-    val protocol: String,
     val engine: String,
     val locked: Boolean,
 )
@@ -131,20 +129,8 @@ data class BentoServerPick(
     val name: String,
     val detail: String,
     val country: String?,
-    val protocol: String,
     val pingMs: Int?,
 )
-
-fun bentoEngineOf(profile: VpnProfile): String = when {
-    profile.isSingBox || profile.isSingBoxConfig -> "sing-box"
-    profile.isTor -> "Tor"
-    profile.isPsiphon -> "Psiphon"
-    profile.isDnsTunnel -> "DNSTT"
-    profile.isMasterDns -> "MasterDNS"
-    profile.isSsh -> "SSH"
-    profile.isOpenConnect -> "OpenConnect"
-    else -> "Xray"
-}
 
 private const val SPARK_POINTS = 24
 private const val TITLE_TAPS = 5
@@ -404,10 +390,8 @@ private fun ServerCard(
                     container = c.chipOnStage,
                     content = tone.content,
                 )
-            } else {
-                BentoProtocolBadge(active.protocol, size = 50.dp, corner = 17.dp, container = c.chipOnStage, content = tone.content)
+                Spacer(Modifier.width(14.dp))
             }
-            Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     active?.name ?: stringResource(Res.string.bento_no_server),
@@ -595,8 +579,10 @@ private fun PickRow(pick: BentoServerPick, index: Int, count: Int, onClick: () -
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (pick.country != null) BentoFlag(pick.country, size = 38.dp, corner = 13.dp) else BentoProtocolBadge(pick.protocol)
-        Spacer(Modifier.width(12.dp))
+        if (pick.country != null) {
+            BentoFlag(pick.country, size = 38.dp, corner = 13.dp)
+            Spacer(Modifier.width(12.dp))
+        }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
             Text(pick.name, style = BentoType.rowTitle(), color = c.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(pick.detail, style = BentoType.body().copy(fontSize = 12.5.sp), color = c.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)

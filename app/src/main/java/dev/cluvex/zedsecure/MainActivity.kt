@@ -57,7 +57,7 @@ class MainActivity : ComponentActivity() {
             val start = pendingStart
             pendingStart = null
             if (result.resultCode == RESULT_OK && start != null) {
-                AndroidVpn.start(this, start.configJson, start.remark, start.socksPort, start.kind)
+                AndroidVpn.start(this, start.configJson, start.remark, start.socksPort, start.kind, start.engine)
             } else if (result.resultCode != RESULT_OK) {
                 toast(getString(R.string.vpn_permission_denied))
             }
@@ -302,6 +302,8 @@ class MainActivity : ComponentActivity() {
                 animateColors = !settings.reduceMotion,
                 languageTag = langTag,
                 fontScale = settings.uiFontScale.scale,
+                font = settings.uiFont,
+                uiScale = settings.uiScale,
             ) {
                 CompositionLocalProvider(LocalPlatform provides androidPlatform) {
                     val aiBridge = androidx.compose.runtime.remember {
@@ -406,7 +408,7 @@ class MainActivity : ComponentActivity() {
                 is StartPlanner.Plan.Failure -> toast(plan.message)
                 is StartPlanner.Plan.Start -> {
                     if (plan.proxyOnly) {
-                        AndroidVpn.start(this@MainActivity, plan.configJson, plan.remark, plan.socksPort, plan.kind, proxyOnly = true)
+                        AndroidVpn.start(this@MainActivity, plan.configJson, plan.remark, plan.socksPort, plan.kind, plan.engine, proxyOnly = true)
                         return@launch
                     }
                     val consent = VpnService.prepare(this@MainActivity)
@@ -414,7 +416,7 @@ class MainActivity : ComponentActivity() {
                         pendingStart = plan
                         vpnPermissionLauncher.launch(consent)
                     } else {
-                        AndroidVpn.start(this@MainActivity, plan.configJson, plan.remark, plan.socksPort, plan.kind)
+                        AndroidVpn.start(this@MainActivity, plan.configJson, plan.remark, plan.socksPort, plan.kind, plan.engine)
                     }
                 }
             }

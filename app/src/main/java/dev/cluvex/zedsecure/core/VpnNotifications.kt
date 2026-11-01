@@ -6,6 +6,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import androidx.compose.ui.graphics.toArgb
 import androidx.core.app.NotificationCompat
 import dev.cluvex.zedsecure.domain.model.NotifChip
 import androidx.core.graphics.drawable.IconCompat
@@ -15,6 +16,54 @@ import dev.cluvex.zedsecure.ui.format.formatRate
 
 class VpnNotifications(private val ctx: Context) {
     enum class Stage { Preparing, Interface, Engine, Tunnel, Connected }
+
+    data class Colors(val accent: Int, val deep: Int, val good: Int, val error: Int)
+
+    private var colorsKey: Any? = null
+    private var colorsCache: Colors? = null
+
+    private fun colors(): Colors {
+        val settings = runCatching { (ctx.applicationContext as dev.cluvex.zedsecure.ZedSecureApp).container.settingsRepository.settings.value }
+            .getOrNull() ?: return FALLBACK
+        val night = (ctx.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
+            android.content.res.Configuration.UI_MODE_NIGHT_YES
+        val key = listOf(settings.appDesign, settings.bento.palette, settings.accentColor, settings.colorStyle, settings.colorContrast, settings.dynamicColor, night)
+        colorsCache?.takeIf { key == colorsKey }?.let { return it }
+        val computed = runCatching { themeColors(settings, night) }.getOrDefault(FALLBACK)
+        colorsKey = key
+        colorsCache = computed
+        return computed
+    }
+
+    private fun themeColors(settings: dev.cluvex.zedsecure.domain.model.AppSettings, night: Boolean): Colors {
+        val dynamic = settings.dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+        val seed = if (dynamic) {
+            androidx.compose.ui.graphics.Color(ctx.getColor(android.R.color.system_accent1_500))
+        } else {
+            dev.cluvex.zedsecure.ui.theme.accentSeed(settings.accentColor)
+        }
+        if (settings.appDesign == dev.cluvex.zedsecure.domain.model.AppDesign.Bento) {
+            val c = dev.cluvex.zedsecure.ui.bento.BentoPalettes.of(settings.bento.palette, night, seed, false)
+            return Colors(c.lime.toArgb(), c.stage.toArgb(), c.good.toArgb(), c.bad.toArgb())
+        }
+        val scheme = dev.cluvex.zedsecure.ui.theme.zedColorScheme(night, settings.accentColor, settings.colorStyle, settings.colorContrast)
+        val primary = if (dynamic) seed else scheme.primary
+        return Colors(primary.toArgb(), scheme.primaryContainer.toArgb(), scheme.tertiary.toArgb(), scheme.error.toArgb())
+    }
+
+    private fun String.latin(): String = buildString(length) {
+        for (ch in this@latin) {
+            append(
+                when (ch) {
+                    in '\u06F0'..'\u06F9' -> '0' + (ch - '\u06F0')
+                    in '\u0660'..'\u0669' -> '0' + (ch - '\u0660')
+                    '\u066B' -> '.'
+                    '\u066C' -> ','
+                    else -> ch
+                },
+            )
+        }
+    }
 
     sealed interface Phase {
         data class Connecting(val stage: Stage) : Phase
@@ -53,10 +102,11 @@ class VpnNotifications(private val ctx: Context) {
         chip: NotifChip = NotifChip.Speed,
     ): android.app.Notification {
         val title = BidiText.auto(server.ifBlank { ctx.getString(R.string.app_name) })
+        val colors = colors()
         val b = NotificationCompat.Builder(ctx, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_tile_zed)
             .setContentTitle(title)
-            .setColor(BRAND)
+            .setColor(colors.accent)
             .setOngoing(true)
             .setSilent(true)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
@@ -67,18 +117,19 @@ class VpnNotifications(private val ctx: Context) {
             .setRequestPromotedOngoing(livePromotion)
 
         return when (phase) {
-            is Phase.Connecting -> b.applyConnecting(phase.stage, protocolLabel).build()
+            is Phase.Connecting -> b.applyConnecting(phase.stage, protocolLabel, colors).build()
             Phase.Connected -> b.applyConnected(
                 protocolLabel, downBps, upBps, totalDown, totalUp, connectedAt, showSpeed, chip,
                 title,
             ).build()
-            is Phase.Failed -> b.applyFailed(phase).build()
+            is Phase.Failed -> b.applyFailed(phase, colors).build()
         }
     }
 
     private fun NotificationCompat.Builder.applyConnecting(
         stage: Stage,
         protocolLabel: String,
+        colors: Colors,
     ): NotificationCompat.Builder {
         val step = stage.ordinal.coerceIn(0, STAGE_COUNT)
         val progress = step * SEGMENT_LEN
@@ -86,11 +137,12 @@ class VpnNotifications(private val ctx: Context) {
 
         val style = NotificationCompat.ProgressStyle()
             .setProgressSegments(
-                SEGMENT_COLORS.map { NotificationCompat.ProgressStyle.Segment(SEGMENT_LEN).setColor(it) },
+                listOf(colors.deep, colors.deep, colors.accent, colors.good)
+                    .map { NotificationCompat.ProgressStyle.Segment(SEGMENT_LEN).setColor(it) },
             )
             .setProgressPoints(
                 (1 until STAGE_COUNT).map { i ->
-                    NotificationCompat.ProgressStyle.Point(i * SEGMENT_LEN).setColor(POINT_COLOR)
+                    NotificationCompat.ProgressStyle.Point(i * SEGMENT_LEN).setColor(colors.accent)
                 },
             )
             .setProgress(progress)
@@ -118,15 +170,15 @@ class VpnNotifications(private val ctx: Context) {
         chip: NotifChip,
         configName: String,
     ): NotificationCompat.Builder {
-        val (dl, dlU) = formatRate(downBps)
-        val (ul, ulU) = formatRate(upBps)
+        val (dl, dlU) = formatRate(downBps).let { (n, u) -> n.latin() to u }
+        val (ul, ulU) = formatRate(upBps).let { (n, u) -> n.latin() to u }
 
         val speeds = BidiText.ltr(ctx.getString(R.string.notif_speeds, "$dl $dlU", "$ul $ulU"))
 
         val totals = ctx.getString(
             R.string.notif_totals,
-            BidiText.ltr(formatBytes(totalDown)),
-            BidiText.ltr(formatBytes(totalUp)),
+            BidiText.ltr(formatBytes(totalDown).latin()),
+            BidiText.ltr(formatBytes(totalUp).latin()),
         )
         val headline = if (showSpeed) speeds else ctx.getString(R.string.state_connected)
 
@@ -158,7 +210,7 @@ class VpnNotifications(private val ctx: Context) {
             if (showSpeed) BidiText.ltr("↓ $downRate").toString() else ctx.getString(R.string.notif_chip_on)
         NotifChip.ConfigName -> BidiText.auto(shorten(configName)).toString()
         NotifChip.Duration -> BidiText.ltr(elapsedShort(connectedAt)).toString()
-        NotifChip.Total -> BidiText.ltr(formatBytes(totalBytes)).toString()
+        NotifChip.Total -> BidiText.ltr(formatBytes(totalBytes).latin()).toString()
         NotifChip.None -> ctx.getString(R.string.notif_chip_on)
     }
 
@@ -181,6 +233,7 @@ class VpnNotifications(private val ctx: Context) {
 
     private fun NotificationCompat.Builder.applyFailed(
         phase: Phase.Failed,
+        colors: Colors,
     ): NotificationCompat.Builder {
         val reason = BidiText.auto(phase.reason)
         val b = setContentTitle(ctx.getString(R.string.notif_title_disconnected))
@@ -188,7 +241,7 @@ class VpnNotifications(private val ctx: Context) {
             .setStyle(NotificationCompat.BigTextStyle().bigText(reason))
             .setShortCriticalText(ctx.getString(R.string.notif_chip_off))
             .setShowWhen(false)
-            .setColor(ERROR_COLOR)
+            .setColor(colors.error)
         if (phase.retryable) {
             b.addAction(R.drawable.ic_sync, ctx.getString(R.string.action_retry), reconnect())
         }
@@ -242,14 +295,11 @@ class VpnNotifications(private val ctx: Context) {
         private const val STAGE_COUNT = 4
         private const val SEGMENT_LEN = 25
 
-        private const val BRAND = 0xFF5646D6.toInt()
-        private const val ERROR_COLOR = 0xFFB3261E.toInt()
-        private const val POINT_COLOR = 0xFFFFFFFF.toInt()
-        private val SEGMENT_COLORS = listOf(
-            0xFF3B3193.toInt(),
-            0xFF5646D6.toInt(),
-            0xFF7C6BFF.toInt(),
-            0xFF35C48C.toInt(),
+        private val FALLBACK = Colors(
+            accent = 0xFFC7F24E.toInt(),
+            deep = 0xFF311B6B.toInt(),
+            good = 0xFF7BE495.toInt(),
+            error = 0xFFB3261E.toInt(),
         )
     }
 }

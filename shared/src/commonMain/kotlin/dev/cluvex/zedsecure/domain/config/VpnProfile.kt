@@ -123,6 +123,23 @@ data class VpnProfile(
 
     val isSingBoxConfig: Boolean get() = source is ProfileSource.SingBoxConfig
 
+    val engineLabel: String
+        get() = when (val src = source) {
+            is ProfileSource.SingBox, is ProfileSource.SingBoxConfig -> ENGINE_SINGBOX
+            is ProfileSource.Link -> if (SingBoxLinks.handles(src.link)) ENGINE_SINGBOX else ENGINE_XRAY
+            is ProfileSource.Tor -> "Tor"
+            is ProfileSource.Psiphon -> "Psiphon"
+            is ProfileSource.DnsTunnel -> if (src.settings.isVaydns) "VayDNS" else "DNSTT"
+            is ProfileSource.MasterDns -> "MasterDNS"
+            is ProfileSource.Ssh -> "SSH"
+            is ProfileSource.OpenConnect -> "OpenConnect"
+            is ProfileSource.Ikev2 -> "IKEv2"
+            is ProfileSource.SniSpoof -> "Xray · SNI"
+            is ProfileSource.CrossChain -> ENGINE_CHAIN
+            is ProfileSource.AutoSelect -> ENGINE_AUTO
+            is ProfileSource.RawJson, is ProfileSource.Sealed, is ProfileSource.ProxyChain -> ENGINE_XRAY
+        }
+
     fun autoSelectSettings(): ProfileSource.AutoSelect? = source as? ProfileSource.AutoSelect
 
     val standardLink: String?
@@ -293,6 +310,11 @@ data class VpnProfile(
     }
 
     companion object {
+        const val ENGINE_XRAY = "Xray"
+        const val ENGINE_SINGBOX = "sing-box"
+        const val ENGINE_CHAIN = "Chain"
+        const val ENGINE_AUTO = "Auto"
+
         fun fromPsiphon(
             settings: PsiphonProfile,
             id: String,

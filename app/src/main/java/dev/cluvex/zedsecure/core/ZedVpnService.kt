@@ -62,6 +62,7 @@ class ZedVpnService : VpnService() {
     private var singBoxLastUp = 0L
     private var singBoxLastDown = 0L
     private var kind: String = VpnManager.KIND_XRAY
+    private var engineName: String = dev.cluvex.zedsecure.domain.config.VpnProfile.ENGINE_XRAY
 
     private var outerPsiphon: PsiphonController? = null
     private var outerTor: dev.cluvex.zedsecure.core.tor.TorController? = null
@@ -151,6 +152,7 @@ class ZedVpnService : VpnService() {
                 remark = intent.getStringExtra(VpnManager.EXTRA_REMARK).orEmpty()
                 val socksPort = intent.getIntExtra(VpnManager.EXTRA_SOCKS_PORT, LocalPorts.XRAY_SOCKS)
                 kind = intent.getStringExtra(VpnManager.EXTRA_KIND) ?: VpnManager.KIND_XRAY
+                engineName = intent.getStringExtra(VpnManager.EXTRA_ENGINE) ?: dev.cluvex.zedsecure.domain.config.VpnProfile.ENGINE_XRAY
                 proxyOnly = intent.getBooleanExtra(VpnManager.EXTRA_PROXY_ONLY, false)
                 if (config.isNullOrBlank()) {
                     VpnManager.onError(getString(R.string.engine_missing_config))
@@ -193,8 +195,10 @@ class ZedVpnService : VpnService() {
         if (Ikev2Controller.isActive) Ikev2Controller.stop(this)
         resetSessionState()
         val container = (application as dev.cluvex.zedsecure.ZedSecureApp).container
-        remark = container.configRepository.activeProfile()?.name.orEmpty()
+        val activeProfile = container.configRepository.activeProfile()
+        remark = activeProfile?.name.orEmpty()
         kind = VpnManager.KIND_XRAY
+        engineName = activeProfile?.engineLabel ?: dev.cluvex.zedsecure.domain.config.VpnProfile.ENGINE_XRAY
         proxyOnly = false
         stage = VpnNotifications.Stage.Preparing
 
@@ -205,6 +209,7 @@ class ZedVpnService : VpnService() {
                     VpnManager.onStarting(plan.remark)
                     remark = plan.remark
                     kind = plan.kind
+                    engineName = plan.engine
                     proxyOnly = plan.proxyOnly
                     startTunnel(plan.configJson, plan.socksPort, plan.kind)
                 }
@@ -719,10 +724,11 @@ class ZedVpnService : VpnService() {
         val container = (application as dev.cluvex.zedsecure.ZedSecureApp).container
         val selectedId = session.selectedProfileId ?: return
         container.configRepository.rememberAutoSelectPick(session.profileId, selectedId)
-        val name = container.configRepository.profile(selectedId)?.name ?: return
-        val label = getString(R.string.auto_notif_remark, name)
-        if (label != remark) {
+        val picked = container.configRepository.profile(selectedId) ?: return
+        val label = getString(R.string.auto_notif_remark, picked.name)
+        if (label != remark || picked.engineLabel != engineName) {
             remark = label
+            engineName = picked.engineLabel
             VpnManager.onConnected(remark)
         }
         events.forEach { e ->
@@ -916,7 +922,7 @@ class ZedVpnService : VpnService() {
 
         VpnManager.KIND_CROSS_CHAIN ->
             "${engineLabel(crossInnerKind)} → ${engineLabel(crossOuterKind)}"
-        else -> if (proxyOnly) "Xray · Proxy" else "Xray"
+        else -> if (proxyOnly) "$engineName · Proxy" else engineName
     }
 
     private fun engineLabel(k: String?): String = when (k) {
@@ -1583,6 +1589,7 @@ class ZedVpnService : VpnService() {
                 VpnManager.onStarting(plan.remark)
                 remark = plan.remark
                 kind = plan.kind
+                engineName = plan.engine
                 proxyOnly = plan.proxyOnly
                 startTunnel(plan.configJson, plan.socksPort, plan.kind)
             }

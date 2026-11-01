@@ -8,7 +8,13 @@ package dev.cluvex.zedsecure.ui.bento
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.animateIntOffsetAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.VectorConverter
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -18,7 +24,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.drag
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -58,6 +66,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -66,6 +75,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
@@ -316,6 +326,7 @@ private fun TileBoard(
     val density = LocalDensity.current
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     val haptics = LocalHapticFeedback.current
+    val playful = Bento.prefs.playfulTouch
     var boardTop by remember { mutableFloatStateOf(0f) }
 
     BoxWithConstraints(
@@ -330,6 +341,8 @@ private fun TileBoard(
         val gapPx = with(density) { gap.toPx() }
         val rowPx = with(density) { rowHeight.toPx() }
         val colPx = (with(density) { maxWidth.toPx() } - gapPx * (columns - 1)) / columns
+        val unitX = colPx + gapPx
+        val unitY = rowPx + gapPx
         val placed = remember(layout, columns) { BentoTiles.pack(layout.visible, columns) }
         val rows = BentoTiles.rowsOf(placed)
         val height = with(density) { (rowPx * rows + gapPx * (rows - 1).coerceAtLeast(0)).toDp() }
@@ -339,8 +352,21 @@ private fun TileBoard(
         var dragKey by remember { mutableStateOf<String?>(null) }
         var dragPos by remember { mutableStateOf(Offset.Zero) }
 
-        fun originOf(p: BentoPlaced) = Offset((colPx + gapPx) * p.col, (rowPx + gapPx) * p.row)
+        fun originOf(p: BentoPlaced) = Offset(unitX * p.col, unitY * p.row)
         fun sizeOf(p: BentoPlaced) = Offset(colPx * p.cols + gapPx * (p.cols - 1), rowPx * p.rows + gapPx * (p.rows - 1))
+
+        fun follow(key: String) {
+            val me = placedNow.firstOrNull { it.slot.key == key } ?: return
+            val size = sizeOf(me)
+            val gridX = (dragPos.x + size.x / 2f + gapPx / 2f) / unitX
+            val gridY = (dragPos.y + size.y / 2f + gapPx / 2f) / unitY
+            val from = layoutNow.visible.indexOfFirst { it.key == key }
+            val to = BentoTiles.dropIndex(layoutNow, key, columns, gridX, gridY)
+            if (to >= 0 && to != from) {
+                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                onReorder(layoutNow.moved(key, to))
+            }
+        }
 
         LaunchedEffect(dragKey) {
             if (dragKey == null) return@LaunchedEffect
@@ -359,37 +385,52 @@ private fun TileBoard(
                 }
                 if (speed != 0f) {
                     val moved = scroll.scrollBy(speed)
-                    if (moved != 0f) dragPos = dragPos.copy(y = dragPos.y + moved)
+                    if (moved != 0f) {
+                        dragPos = dragPos.copy(y = dragPos.y + moved)
+                        follow(key)
+                    }
                 }
             }
         }
+
+        val wiggle = if (editing && playful) rememberInfiniteTransition(label = "tile-wiggle") else null
 
         Box(Modifier.fillMaxWidth().height(height)) {
             placed.forEachIndexed { index, p ->
                 val entry = entries[p.slot.key] ?: return@forEachIndexed
                 key(p.slot.key) {
                     val target = originOf(p)
-                    val animated by animateIntOffsetAsState(
-                        IntOffset(target.x.roundToInt(), target.y.roundToInt()),
-                        spring(dampingRatio = 0.78f, stiffness = Spring.StiffnessMediumLow),
-                        label = "tile-move",
-                    )
+                    val targetInt = IntOffset(target.x.roundToInt(), target.y.roundToInt())
                     val size = sizeOf(p)
                     val dragged = dragKey == p.slot.key
-                    val lift by animateFloatAsState(if (dragged) 1.04f else 1f, spring(dampingRatio = 0.6f), label = "tile-lift")
+                    val position = remember { Animatable(targetInt, IntOffset.VectorConverter) }
+                    LaunchedEffect(targetInt, dragged) {
+                        if (dragged) {
+                            snapshotFlow { dragPos }.collect { position.snapTo(IntOffset(it.x.roundToInt(), it.y.roundToInt())) }
+                        } else {
+                            position.animateTo(targetInt, spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow))
+                        }
+                    }
+                    val lift by animateFloatAsState(if (dragged) 1.05f else 1f, spring(dampingRatio = 0.6f), label = "tile-lift")
+                    val tilt = wiggle?.animateFloat(
+                        initialValue = -0.6f,
+                        targetValue = 0.6f,
+                        animationSpec = infiniteRepeatable(tween(150 + (index % 5) * 18), RepeatMode.Reverse),
+                        label = "tile-tilt",
+                    )
                     val order = layout.visible.indexOfFirst { it.key == p.slot.key }
                     val earlier = stringResource(Res.string.bento_move_earlier)
                     val later = stringResource(Res.string.bento_move_later)
                     Box(
                         Modifier
                             .zIndex(if (dragged) 2f else 0f)
-                            .offset {
-                                if (dragged) IntOffset(dragPos.x.roundToInt(), dragPos.y.roundToInt()) else animated
-                            }
+                            .offset { position.value }
                             .size(with(density) { size.x.toDp() }, with(density) { size.y.toDp() })
                             .graphicsLayer {
                                 scaleX = lift
                                 scaleY = lift
+                                rotationZ = if (dragged) 0f else tilt?.value ?: 0f
+                                shadowElevation = if (dragged) 18f else 0f
                             }
                             .then(
                                 if (editing) {
@@ -407,42 +448,35 @@ private fun TileBoard(
                                             )
                                         }
                                         .pointerInput(p.slot.key) {
-                                            detectDragGesturesAfterLongPress(
-                                                onDragStart = {
-                                                    val me = placedNow.firstOrNull { it.slot.key == p.slot.key } ?: return@detectDragGesturesAfterLongPress
-                                                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                    dragPos = originOf(me)
-                                                    dragKey = p.slot.key
-                                                },
-                                                onDrag = { change, amount ->
-                                                    change.consume()
-                                                    dragPos += Offset(if (rtl) -amount.x else amount.x, amount.y)
-                                                    val me = placedNow.firstOrNull { it.slot.key == p.slot.key } ?: return@detectDragGesturesAfterLongPress
-                                                    val mySize = sizeOf(me)
-                                                    val center = dragPos + Offset(mySize.x / 2f, mySize.y / 2f)
-                                                    val over = placedNow.firstOrNull { q ->
-                                                        if (q.slot.key == p.slot.key) return@firstOrNull false
-                                                        val o = originOf(q)
-                                                        val s = sizeOf(q)
-                                                        center.x in o.x..(o.x + s.x) && center.y in o.y..(o.y + s.y)
+                                            awaitEachGesture {
+                                                val down = awaitFirstDown(requireUnconsumed = false)
+                                                var travelled = Offset.Zero
+                                                val held = withTimeoutOrNull(PICK_UP_MS) {
+                                                    while (true) {
+                                                        val change = awaitPointerEvent().changes.firstOrNull { it.id == down.id } ?: break
+                                                        if (!change.pressed) break
+                                                        travelled += change.positionChange()
+                                                        if (travelled.getDistance() > viewConfiguration.touchSlop) break
                                                     }
-                                                    if (over != null) {
-                                                        val to = layoutNow.visible.indexOfFirst { it.key == over.slot.key }
-                                                        if (to >= 0) {
-                                                            haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                            onReorder(layoutNow.moved(p.slot.key, to))
-                                                        }
+                                                    false
+                                                }
+                                                if (held != null) return@awaitEachGesture
+                                                val me = placedNow.firstOrNull { it.slot.key == p.slot.key } ?: return@awaitEachGesture
+                                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                dragPos = originOf(me)
+                                                dragKey = p.slot.key
+                                                try {
+                                                    drag(down.id) { change ->
+                                                        val amount = change.positionChange()
+                                                        change.consume()
+                                                        dragPos += Offset(if (rtl) -amount.x else amount.x, amount.y)
+                                                        follow(p.slot.key)
                                                     }
-                                                },
-                                                onDragEnd = {
+                                                } finally {
                                                     dragKey = null
                                                     onCommit(layoutNow)
-                                                },
-                                                onDragCancel = {
-                                                    dragKey = null
-                                                    onCommit(layoutNow)
-                                                },
-                                            )
+                                                }
+                                            }
                                         }
                                 } else {
                                     Modifier
@@ -466,6 +500,8 @@ private fun TileBoard(
         }
     }
 }
+
+private const val PICK_UP_MS = 160L
 
 @Composable
 private fun HubTile(

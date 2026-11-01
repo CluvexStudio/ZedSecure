@@ -42,6 +42,7 @@ class StartPlanner(context: Context) {
             val kind: String,
             val socksPort: Int,
             val proxyOnly: Boolean,
+            val engine: String,
         ) : Plan
 
         data class Ikev2(val remark: String, val profile: Ikev2Profile) : Plan
@@ -71,6 +72,7 @@ class StartPlanner(context: Context) {
             kind = kind,
             socksPort = settings.effectiveLocalProxyPort,
             proxyOnly = proxyOnly,
+            engine = profile.engineLabel,
         )
     }
 

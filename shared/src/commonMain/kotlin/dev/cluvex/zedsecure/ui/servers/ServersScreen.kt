@@ -1026,7 +1026,6 @@ fun ServersScreen(
                                 typeLabel
                             },
                             country = if (detectServerLocation) dev.cluvex.zedsecure.domain.config.ProfileCountry.of(profile) else null,
-                            protocol = profile.protocol,
                             pingMs = profile.lastPingMs,
                             showPing = personalization.showServerPing,
                             active = profile.id == activeId,

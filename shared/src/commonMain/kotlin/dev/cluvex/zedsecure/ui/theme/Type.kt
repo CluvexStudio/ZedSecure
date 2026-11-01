@@ -1,6 +1,7 @@
 package dev.cluvex.zedsecure.ui.theme
 
 import dev.cluvex.zedsecure.domain.model.AppDesign
+import dev.cluvex.zedsecure.domain.model.UiFont
 
 import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
@@ -157,8 +158,7 @@ private fun latinTypography(d: FontFamily = interDisplayFamily(), b: FontFamily 
 }
 
 @Composable
-private fun persianTypography(): Typography {
-    val f = estedadFamily()
+private fun persianTypography(f: FontFamily = estedadFamily()): Typography {
     return expressiveTypography(
         displayLarge = style(f, FontWeight.Bold, 54.sp, 68.sp),
         displayMedium = style(f, FontWeight.Bold, 43.sp, 56.sp),
@@ -179,8 +179,40 @@ private fun persianTypography(): Typography {
 }
 
 @Composable
-fun typographyFor(language: String, design: AppDesign = AppDesign.Old): Typography = when {
-    language == "fa" -> persianTypography()
-    (design == AppDesign.Pixel || design == AppDesign.Bento) && language != "ru" -> googleSansFamily().let { latinTypography(it, it) }
-    else -> latinTypography()
+fun vazirmatnFamily() = FontFamily(
+    Font(Res.font.vazirmatn_regular, FontWeight.Normal),
+    Font(Res.font.vazirmatn_medium, FontWeight.Medium),
+    Font(Res.font.vazirmatn_semibold, FontWeight.SemiBold),
+    Font(Res.font.vazirmatn_bold, FontWeight.Bold),
+)
+
+@Composable
+fun nunitoFamily() = FontFamily(
+    Font(Res.font.nunito_regular, FontWeight.Normal),
+    Font(Res.font.nunito_medium, FontWeight.Medium),
+    Font(Res.font.nunito_semibold, FontWeight.SemiBold),
+    Font(Res.font.nunito_bold, FontWeight.Bold),
+)
+
+@Composable
+fun fontFamilyOf(font: UiFont): FontFamily? = when (font) {
+    UiFont.Auto -> null
+    UiFont.GoogleSans -> googleSansFamily()
+    UiFont.Inter -> interFamily()
+    UiFont.Vazirmatn -> vazirmatnFamily()
+    UiFont.Estedad -> estedadFamily()
+    UiFont.Nunito -> nunitoFamily()
+    UiFont.System -> FontFamily.Default
+}
+
+@Composable
+fun typographyFor(language: String, design: AppDesign = AppDesign.Old, font: UiFont = UiFont.Auto): Typography {
+    fontFamilyOf(font)?.let { family ->
+        return if (language == "fa") persianTypography(family) else latinTypography(family, family)
+    }
+    return when {
+        language == "fa" -> persianTypography()
+        (design == AppDesign.Pixel || design == AppDesign.Bento) && language != "ru" -> googleSansFamily().let { latinTypography(it, it) }
+        else -> latinTypography()
+    }
 }

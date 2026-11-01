@@ -25,6 +25,23 @@ object SpeedTestMath {
         return sum / (values.size - 1)
     }
 
+    fun serverTimeMs(header: String?): Double? {
+        if (header.isNullOrBlank()) return null
+        Regex("(?:^|,\\s*)cfReq(?:uest)?Dur(?:ation)?;\\s*dur=([0-9.]+)", RegexOption.IGNORE_CASE).find(header)
+            ?.groupValues?.get(1)?.toDoubleOrNull()?.takeIf { it > SERVER_TIME_MIN }?.let { return it }
+        val sum = Regex("(?:^|,\\s*)cfSpeed[a-zA-Z]*;\\s*dur=([0-9.]+)", RegexOption.IGNORE_CASE).findAll(header)
+            .sumOf { it.groupValues[1].toDoubleOrNull() ?: 0.0 }
+        return sum.takeIf { it > SERVER_TIME_MIN }
+    }
+
+    fun scale(value: Double, domain: DoubleArray, range: IntArray): Int {
+        var i = 0
+        while (i < domain.size && value >= domain[i]) i++
+        return range[i]
+    }
+
+    private const val SERVER_TIME_MIN = 0.01
+
     fun bandwidthBps(
         samples: List<BandwidthSample>,
         perc: Double,

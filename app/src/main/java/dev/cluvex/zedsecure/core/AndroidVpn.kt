@@ -11,7 +11,7 @@ object AndroidVpn {
         remark: String,
         socksPort: Int,
         kind: String = VpnManager.KIND_XRAY,
-
+        engine: String = dev.cluvex.zedsecure.domain.config.VpnProfile.ENGINE_XRAY,
         proxyOnly: Boolean = false,
     ) {
         VpnManager.onStarting(remark)
@@ -31,6 +31,7 @@ object AndroidVpn {
             putExtra(VpnManager.EXTRA_REMARK, remark)
             putExtra(VpnManager.EXTRA_SOCKS_PORT, socksPort)
             putExtra(VpnManager.EXTRA_KIND, kind)
+            putExtra(VpnManager.EXTRA_ENGINE, engine)
             putExtra(VpnManager.EXTRA_PROXY_ONLY, proxyOnly)
         }
         ContextCompat.startForegroundService(context, intent)

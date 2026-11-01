@@ -1,8 +1,6 @@
 package dev.cluvex.zedsecure.platform
 
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.InetAddress
@@ -134,77 +132,3 @@ internal actual suspend fun tcpConnectMillis(host: String, port: Int, timeoutMs:
         }
     }
 
-internal actual suspend fun httpStreamTransfer(
-    url: String,
-    socksPort: Int?,
-    upload: Boolean,
-    uploadBytes: Long,
-    connectTimeoutMs: Int,
-    readTimeoutMs: Int,
-    onChunk: (deltaBytes: Long) -> Boolean,
-): HttpTiming = withContext(Dispatchers.IO) {
-    val connection = if (socksPort != null) {
-        val proxy = Proxy(Proxy.Type.SOCKS, InetSocketAddress.createUnresolved("127.0.0.1", socksPort))
-        URL(url).openConnection(proxy) as HttpURLConnection
-    } else {
-        URL(url).openConnection() as HttpURLConnection
-    }
-    connection.apply {
-        connectTimeout = connectTimeoutMs
-        readTimeout = readTimeoutMs
-        instanceFollowRedirects = true
-        setRequestProperty("User-Agent", "ZedSecure-SpeedTest")
-        setRequestProperty("Accept-Encoding", "identity")
-    }
-
-    val cancelHandle = coroutineContext[Job]?.invokeOnCompletion {
-        connection.disconnectQuietly()
-    }
-    var bytes = 0L
-    val t0 = System.nanoTime()
-    try {
-        val buf = ByteArray(CHUNK)
-        if (upload) {
-            connection.requestMethod = "POST"
-            connection.doOutput = true
-
-            connection.setFixedLengthStreamingMode(uploadBytes)
-            connection.setRequestProperty("Content-Type", "application/octet-stream")
-            connection.outputStream.use { os ->
-                while (bytes < uploadBytes) {
-                    val n = minOf(buf.size.toLong(), uploadBytes - bytes).toInt()
-                    os.write(buf, 0, n)
-                    bytes += n
-
-                    if (!onChunk(n.toLong())) break
-                }
-                os.flush()
-            }
-        }
-
-        val code = connection.responseCode
-        val ttfb = System.nanoTime() - t0
-        if (code !in 200..299) throw IllegalStateException("HTTP $code")
-        connection.inputStream.use { ins ->
-            while (true) {
-                val n = ins.read(buf)
-                if (n < 0) break
-                if (!upload) {
-                    bytes += n
-                    if (!onChunk(n.toLong())) break
-                }
-            }
-        }
-        val wall = System.nanoTime() - t0
-        val server = parseServerTimingMillis(connection.getHeaderField("server-timing"))
-        HttpTiming(bytes = bytes, wallNanos = wall, ttfbNanos = ttfb, serverMillis = server)
-    } catch (e: NullPointerException) {
-        ensureActive()
-        throw platformHttpFailure(e)
-    } finally {
-        cancelHandle?.dispose()
-        connection.disconnectQuietly()
-    }
-}
-
-private const val CHUNK = 64 * 1024

@@ -14,9 +14,12 @@ import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
 
 object SingBoxLinks {
-    private val SCHEMES = setOf("tuic", "anytls", "hysteria", "naive+https", "naive+quic", "socks4", "socks4a")
+    private val SCHEMES = setOf("tuic", "anytls", "hysteria", "naive+https", "naive+quic", "socks4", "socks4a", "snell")
 
-    private val FORM_TYPES = setOf("tuic", "anytls", "hysteria", "naive", "socks")
+    private val FORM_TYPES = setOf("tuic", "anytls", "hysteria", "naive", "socks", "snell")
+
+    val SNELL_OBFS = listOf("none", "http", "tls")
+    val SNELL_MODES = listOf("default", "unshaped", "unsafe-raw")
 
     private const val ECH_BEGIN = "-----BEGIN ECH CONFIGS-----"
     private const val ECH_END = "-----END ECH CONFIGS-----"
@@ -125,6 +128,35 @@ object SingBoxLinks {
                 put("version", if (scheme == "socks4a") "4a" else "4")
                 parts.userInfo.substringBefore(':').takeIf { it.isNotBlank() }?.let { put("username", it) }
             }
+            "snell" -> buildJsonObject {
+                put("type", "snell")
+                put("tag", name)
+                server(parts, 443)
+                val psk = parts.userInfo.ifBlank { q["psk"].orEmpty() }
+                if (psk.isBlank()) throw ConfigParseException("Invalid snell link: no psk")
+                val version = q["version"]?.trim()?.ifEmpty { null }?.let { it.toIntOrNull() ?: -1 } ?: 4
+                if (version != 4 && version != 6) throw ConfigParseException("Snell version $version is not supported, use 4 or 6")
+                put("version", version)
+                put("psk", psk)
+                q["userkey"]?.takeIf { it.isNotBlank() }?.let { put("userkey", it) }
+                if (q["reuse"]?.truthy() == true) put("reuse", true)
+                q["network"]?.lowercase()?.split(',')?.map { it.trim() }?.filter { it == "tcp" || it == "udp" }?.distinct()
+                    ?.takeIf { it.isNotEmpty() }?.let { networks ->
+                        if (networks.size == 1) put("network", networks.single()) else putJsonArray("network") { networks.forEach { add(it) } }
+                    }
+                if (version == 4) {
+                    (q["obfs"] ?: q["obfs_mode"])?.trim()?.lowercase()?.takeIf { it.isNotEmpty() }?.let { mode ->
+                        if (mode !in SNELL_OBFS) throw ConfigParseException("Unknown snell obfs \"$mode\"")
+                        put("obfs_mode", mode)
+                    }
+                    (q["obfs-host"] ?: q["obfs_host"])?.takeIf { it.isNotBlank() }?.let { put("obfs_host", it.trim()) }
+                } else {
+                    q["mode"]?.trim()?.lowercase()?.takeIf { it.isNotEmpty() }?.let { mode ->
+                        if (mode !in SNELL_MODES) throw ConfigParseException("Unknown snell mode \"$mode\"")
+                        put("mode", mode)
+                    }
+                }
+            }
             else -> throw ConfigParseException("Unsupported link scheme")
         }
         return Parsed(name, outbound)
@@ -215,6 +247,27 @@ object SingBoxLinks {
                 }
                 val user = outbound.str("username")?.let { "${encode(it)}@" }.orEmpty()
                 "$scheme://$user$host:$port$fragment"
+            }
+            "snell" -> {
+                val psk = outbound.str("psk") ?: return null
+                val version = outbound.int("version") ?: return null
+                if (version != 4 && version != 6) return null
+                val query = mutableListOf("version" to version.toString())
+                outbound.str("userkey")?.let { query += "userkey" to it }
+                if (outbound.bool("reuse") == true) query += "reuse" to "1"
+                when (val network = outbound["network"]) {
+                    is JsonPrimitive -> network.contentOrNull?.takeIf { it.isNotBlank() }?.let { query += "network" to it }
+                    is JsonArray -> network.mapNotNull { (it as? JsonPrimitive)?.contentOrNull }.takeIf { it.isNotEmpty() }
+                        ?.let { query += "network" to it.joinToString(",") }
+                    else -> Unit
+                }
+                if (version == 4) {
+                    outbound.str("obfs_mode")?.let { query += "obfs" to it }
+                    outbound.str("obfs_host")?.let { query += "obfs-host" to it }
+                } else {
+                    outbound.str("mode")?.let { query += "mode" to it }
+                }
+                "snell://${encode(psk)}@$host:$port${queryString(query)}$fragment"
             }
             else -> null
         }

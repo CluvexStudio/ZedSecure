@@ -29,12 +29,3 @@ internal expect suspend fun resolveHostAddress(host: String): String?
 
 internal expect suspend fun tcpConnectMillis(host: String, port: Int, timeoutMs: Int): Long
 
-internal expect suspend fun httpStreamTransfer(
-    url: String,
-    socksPort: Int?,
-    upload: Boolean,
-    uploadBytes: Long,
-    connectTimeoutMs: Int,
-    readTimeoutMs: Int,
-    onChunk: (deltaBytes: Long) -> Boolean,
-): HttpTiming

@@ -153,6 +153,8 @@ class AndroidPlatform(
     override val supportsDynamicColor: Boolean
         get() = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S
 
+    override val hasStatusNotification: Boolean get() = true
+
     override val supportsQrScan: Boolean
         get() = context.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_CAMERA_ANY)
 

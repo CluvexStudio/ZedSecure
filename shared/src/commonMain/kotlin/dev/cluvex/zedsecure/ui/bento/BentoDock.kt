@@ -60,6 +60,7 @@ val BentoDockMargin: Dp = 20.dp
 
 @Composable
 fun BentoDock(
+    tabs: List<TopDestination>,
     current: TopDestination,
     onSelect: (TopDestination) -> Unit,
     visible: Boolean,
@@ -91,7 +92,7 @@ fun BentoDock(
                 horizontalArrangement = Arrangement.spacedBy(2.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                TopDestination.entries.forEach { dest ->
+                tabs.forEach { dest ->
                     val active = dest == current
                     DockItem(
                         destination = dest,

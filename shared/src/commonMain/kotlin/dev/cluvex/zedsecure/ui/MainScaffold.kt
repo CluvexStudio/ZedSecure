@@ -93,6 +93,15 @@ fun MainScaffold(
     }
     var serversAddRequest by rememberSaveable { mutableStateOf(false) }
     val bento = settings.appDesign == dev.cluvex.zedsecure.domain.model.AppDesign.Bento
+    val tabs = androidx.compose.runtime.remember(settings.navTabs, platform.supportsPerAppProxy) {
+        val available = dev.cluvex.zedsecure.domain.model.NavTab.entries
+            .filter { it != dev.cluvex.zedsecure.domain.model.NavTab.Apps || platform.supportsPerAppProxy }
+            .toSet()
+        dev.cluvex.zedsecure.domain.model.NavTabs.parse(settings.navTabs, available).map { TopDestination.of(it) }
+    }
+    fun orderOf(destination: TopDestination): Int = tabs.indexOf(destination).takeIf { it >= 0 } ?: (tabs.size + destination.ordinal)
+    val barStyle = if (bento) settings.bento.navStyle else settings.navBarStyle
+    val dock = bento && barStyle == dev.cluvex.zedsecure.domain.model.NavBarStyle.Dock
     var dockShown by rememberSaveable { mutableStateOf(true) }
     androidx.compose.runtime.LaunchedEffect(current) { dockShown = true }
     val autoHide = settings.bento.dockAutoHide
@@ -183,12 +192,23 @@ fun MainScaffold(
         return
     }
 
+    val serverTargets = androidx.compose.runtime.remember(profiles) {
+        profiles.filter { it.standardLink != null }.map { it.id to it.name }
+    }
+    val groupTargets = listOf(
+        dev.cluvex.zedsecure.domain.config.AutoSelectIds.ALL to
+            stringResource(Res.string.auto_title_for, stringResource(Res.string.auto_group_all)),
+    ) + subscriptions.map { sub ->
+        dev.cluvex.zedsecure.domain.config.AutoSelectIds.of(sub.id) to stringResource(Res.string.auto_title_for, sub.name)
+    }
+
     Box(Modifier.fillMaxSize()) {
     Scaffold(
         bottomBar = {
-            if (!bento) {
+            if (!dock) {
                 dev.cluvex.zedsecure.ui.navigation.ZedNavBar(
-                    style = settings.navBarStyle,
+                    style = barStyle,
+                    tabs = tabs,
                     current = current,
                     onSelect = { current = it },
                 )
@@ -196,7 +216,7 @@ fun MainScaffold(
         },
     ) { scaffoldPadding ->
       val layoutDirection = androidx.compose.ui.platform.LocalLayoutDirection.current
-      val innerPadding = if (bento) {
+      val innerPadding = if (dock) {
           PaddingValues(
               start = scaffoldPadding.calculateStartPadding(layoutDirection),
               top = scaffoldPadding.calculateTopPadding(),
@@ -210,7 +230,7 @@ fun MainScaffold(
       androidx.compose.foundation.layout.Box(
           Modifier
               .fillMaxSize()
-              .then(if (bento) Modifier.nestedScroll(dockScroll) else Modifier),
+              .then(if (dock) Modifier.nestedScroll(dockScroll) else Modifier),
       ) {
         val sign = dev.cluvex.zedsecure.ui.motion.layoutSign()
         AnimatedContent(
@@ -218,7 +238,7 @@ fun MainScaffold(
             transitionSpec = {
                 dev.cluvex.zedsecure.ui.motion.screenTransition(
                     style = settings.screenTransition,
-                    forward = targetState.ordinal >= initialState.ordinal,
+                    forward = orderOf(targetState) >= orderOf(initialState),
                     direction = sign,
                     reduceMotion = settings.reduceMotion,
                 ).using(SizeTransform(clip = false))
@@ -229,7 +249,7 @@ fun MainScaffold(
 
             val decoration = transitionDecoration(
                 style = settings.screenTransition,
-                forward = dest.ordinal >= current.ordinal,
+                forward = orderOf(dest) >= orderOf(current),
                 direction = sign,
                 reduceMotion = settings.reduceMotion,
             )
@@ -284,8 +304,12 @@ fun MainScaffold(
                             name = homeName ?: p.name,
                             detail = homeDetail ?: p.transportLabel.removeSuffix(" · sing-box"),
                             country = if (settings.detectServerLocation) dev.cluvex.zedsecure.domain.config.ProfileCountry.of(p) else null,
-                            protocol = p.protocol,
-                            engine = dev.cluvex.zedsecure.ui.bento.bentoEngineOf(p),
+                            engine = autoSession
+                                ?.takeIf { p.isAutoSelect && it.profileId == p.id }
+                                ?.selectedProfileId
+                                ?.let { id -> profiles.firstOrNull { it.id == id } }
+                                ?.engineLabel
+                                ?: p.engineLabel,
                             locked = p.isLocked,
                         )
                     },
@@ -300,7 +324,6 @@ fun MainScaffold(
                                     name = it.name,
                                     detail = it.transportLabel.removeSuffix(" · sing-box"),
                                     country = if (settings.detectServerLocation) dev.cluvex.zedsecure.domain.config.ProfileCountry.of(it) else null,
-                                    protocol = it.protocol,
                                     pingMs = it.lastPingMs,
                                 )
                             }
@@ -314,14 +337,22 @@ fun MainScaffold(
                         current = TopDestination.Servers
                     },
                     onOpenSpeedTest = {
-                        deepLinkOrigin = current
-                        pendingSettingsPage = dev.cluvex.zedsecure.ui.settings.SettingsPage.SpeedTest
-                        current = TopDestination.Settings
+                        if (TopDestination.SpeedTest in tabs) {
+                            current = TopDestination.SpeedTest
+                        } else {
+                            deepLinkOrigin = current
+                            pendingSettingsPage = dev.cluvex.zedsecure.ui.settings.SettingsPage.SpeedTest
+                            current = TopDestination.Settings
+                        }
                     },
                     onOpenMap = {
-                        deepLinkOrigin = current
-                        pendingSettingsPage = dev.cluvex.zedsecure.ui.settings.SettingsPage.Map
-                        current = TopDestination.Settings
+                        if (TopDestination.Map in tabs) {
+                            current = TopDestination.Map
+                        } else {
+                            deepLinkOrigin = current
+                            pendingSettingsPage = dev.cluvex.zedsecure.ui.settings.SettingsPage.Map
+                            current = TopDestination.Settings
+                        }
                     },
                   )
                 }
@@ -352,6 +383,42 @@ fun MainScaffold(
                     contentPadding = innerPadding,
                     onImportRequested = onImportZsx,
                 )
+                TopDestination.Subscriptions -> dev.cluvex.zedsecure.ui.navigation.SubscriptionsTabPage(configRepository, innerPadding)
+                TopDestination.Logs -> dev.cluvex.zedsecure.ui.navigation.LogsTabPage(innerPadding)
+                TopDestination.SpeedTest -> dev.cluvex.zedsecure.ui.components.ProvidePageBack(null) {
+                    dev.cluvex.zedsecure.ui.speedtest.SpeedTestScreen(
+                        contentPadding = innerPadding,
+                        unsupported = activeProfile?.isDnsBasedTunnel == true,
+                    )
+                }
+                TopDestination.Map -> dev.cluvex.zedsecure.ui.components.ProvidePageBack(null) {
+                    dev.cluvex.zedsecure.ui.map.MapScreen(
+                        contentPadding = innerPadding,
+                        reduceMotion = settings.reduceMotion,
+                        ipApiUrl = settings.ipApiUrl,
+                        personalization = settings.toPersonalization(),
+                        savedOriginCode = settings.verifiedOriginCode,
+                        savedOriginLabel = settings.verifiedOriginLabel,
+                        onRealLocation = { code, label ->
+                            if (code != settings.verifiedOriginCode || label != settings.verifiedOriginLabel) {
+                                onUpdateSettings { it.copy(verifiedOriginCode = code, verifiedOriginLabel = label) }
+                            }
+                        },
+                    )
+                }
+                TopDestination.Routing -> dev.cluvex.zedsecure.ui.components.ProvidePageBack(null) {
+                    dev.cluvex.zedsecure.ui.settings.RoutingScreen(
+                        settings,
+                        innerPadding,
+                        onUpdateSettings,
+                        Modifier,
+                        serverTargets,
+                        groupTargets,
+                    )
+                }
+                TopDestination.Apps -> dev.cluvex.zedsecure.ui.components.ProvidePageBack(null) {
+                    dev.cluvex.zedsecure.ui.settings.PerAppProxyScreen(settings, innerPadding, onUpdateSettings, Modifier)
+                }
                 TopDestination.Settings -> SettingsScreen(
                     settings = settings,
                     contentPadding = innerPadding,
@@ -368,18 +435,11 @@ fun MainScaffold(
                         pendingSettingsPage = dev.cluvex.zedsecure.ui.settings.SettingsPage.Root
                     },
 
-                    serverTargets = profiles
-                        .filter { it.standardLink != null }
-                        .map { it.id to it.name },
+                    serverTargets = serverTargets,
                     autoCountries = androidx.compose.runtime.remember(profiles) {
                         profiles.mapNotNull { dev.cluvex.zedsecure.domain.config.ProfileCountry.of(it) }.distinct()
                     },
-                    groupTargets = listOf(
-                        dev.cluvex.zedsecure.domain.config.AutoSelectIds.ALL to
-                            stringResource(Res.string.auto_title_for, stringResource(Res.string.auto_group_all)),
-                    ) + subscriptions.map { sub ->
-                        dev.cluvex.zedsecure.domain.config.AutoSelectIds.of(sub.id) to stringResource(Res.string.auto_title_for, sub.name)
-                    },
+                    groupTargets = groupTargets,
                     dnsTunnelActive = activeProfile?.isDnsBasedTunnel == true,
 
                     onReplayTour = {
@@ -432,8 +492,9 @@ fun MainScaffold(
       }
     }
 
-    if (bento) {
+    if (dock) {
         dev.cluvex.zedsecure.ui.bento.BentoDock(
+            tabs = tabs,
             current = current,
             onSelect = { current = it },
             visible = dockShown || !autoHide,
