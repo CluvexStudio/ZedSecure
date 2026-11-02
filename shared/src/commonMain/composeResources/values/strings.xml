@@ -1806,4 +1806,11 @@
     <string name="ipd_ipv6_on">Active</string>
     <string name="ipd_ipv6_off">None</string>
     <string name="manual_edit_title">Edit server</string>
+    <string name="bento_palette_citrus">Citrus</string>
+    <string name="bento_palette_matcha">Matcha</string>
+    <string name="bento_palette_neon">Neon</string>
+    <string name="bento_palette_pistachio">Pistachio</string>
+    <string name="bento_palette_ocean">Ocean</string>
+    <string name="bento_palette_sunset">Sunset</string>
+    <string name="bento_palette_berry">Berry</string>
 </resources>

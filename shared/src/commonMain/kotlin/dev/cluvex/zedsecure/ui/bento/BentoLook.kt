@@ -70,6 +70,13 @@ import dev.cluvex.zedsecure.shared.resources.bento_motifs_sum
 import dev.cluvex.zedsecure.shared.resources.bento_palette_accent
 import dev.cluvex.zedsecure.shared.resources.bento_palette_brand
 import dev.cluvex.zedsecure.shared.resources.bento_palette_mono
+import dev.cluvex.zedsecure.shared.resources.bento_palette_citrus
+import dev.cluvex.zedsecure.shared.resources.bento_palette_matcha
+import dev.cluvex.zedsecure.shared.resources.bento_palette_neon
+import dev.cluvex.zedsecure.shared.resources.bento_palette_pistachio
+import dev.cluvex.zedsecure.shared.resources.bento_palette_ocean
+import dev.cluvex.zedsecure.shared.resources.bento_palette_sunset
+import dev.cluvex.zedsecure.shared.resources.bento_palette_berry
 import dev.cluvex.zedsecure.shared.resources.bento_palette_pastel
 import dev.cluvex.zedsecure.shared.resources.bento_palette_title
 import dev.cluvex.zedsecure.shared.resources.bento_palette_vivid
@@ -221,6 +228,13 @@ internal fun PalettePicker(settings: AppSettings, selected: BentoPalette, onSele
         BentoPalette.Pastel to stringResource(Res.string.bento_palette_pastel),
         BentoPalette.Vivid to stringResource(Res.string.bento_palette_vivid),
         BentoPalette.Mono to stringResource(Res.string.bento_palette_mono),
+        BentoPalette.Citrus to stringResource(Res.string.bento_palette_citrus),
+        BentoPalette.Matcha to stringResource(Res.string.bento_palette_matcha),
+        BentoPalette.Neon to stringResource(Res.string.bento_palette_neon),
+        BentoPalette.Pistachio to stringResource(Res.string.bento_palette_pistachio),
+        BentoPalette.Ocean to stringResource(Res.string.bento_palette_ocean),
+        BentoPalette.Sunset to stringResource(Res.string.bento_palette_sunset),
+        BentoPalette.Berry to stringResource(Res.string.bento_palette_berry),
     )
     SettingsSegment {
         Column(Modifier.fillMaxWidth().padding(top = 14.dp, bottom = 16.dp)) {

@@ -3,7 +3,7 @@ package dev.cluvex.zedsecure.domain.model
 import kotlinx.serialization.Serializable
 
 @Serializable
-enum class BentoPalette { Brand, Accent, Pastel, Vivid, Mono }
+enum class BentoPalette { Brand, Accent, Pastel, Vivid, Mono, Citrus, Matcha, Neon, Pistachio, Ocean, Sunset, Berry }
 
 @Serializable
 enum class BentoCorners { Leaf, Round, Soft }

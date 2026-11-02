@@ -1807,4 +1807,11 @@
     <string name="ipd_ipv6_on">可用</string>
     <string name="ipd_ipv6_off">无</string>
     <string name="manual_edit_title">编辑服务器</string>
+    <string name="bento_palette_citrus">柑橘</string>
+    <string name="bento_palette_matcha">抹茶</string>
+    <string name="bento_palette_neon">霓虹</string>
+    <string name="bento_palette_pistachio">开心果</string>
+    <string name="bento_palette_ocean">海洋</string>
+    <string name="bento_palette_sunset">日落</string>
+    <string name="bento_palette_berry">莓果</string>
 </resources>

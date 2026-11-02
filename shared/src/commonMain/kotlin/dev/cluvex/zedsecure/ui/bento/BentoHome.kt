@@ -262,11 +262,13 @@ internal fun BentoHome(
                                 label = stringResource(Res.string.bento_connected_for),
                                 value = if (live) formatElapsed(ui.elapsedSeconds) else "--:--",
                                 onClick = onStatusTap,
+                                tone = c.coral.takeIf { c.colorful },
                                 modifier = Modifier.weight(1f),
                             )
                             FactTile(
                                 label = stringResource(Res.string.bento_data_session),
                                 value = formatBytes(ui.totalDownload + ui.totalUpload),
+                                tone = c.cyan.takeIf { c.colorful },
                                 modifier = Modifier.weight(1f),
                             )
                         }
@@ -279,10 +281,10 @@ internal fun BentoHome(
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             if (onOpenSpeedTest != null && live) {
-                                ActionChip(stringResource(Res.string.title_speedtest), Res.drawable.ic_fill_speed, onOpenSpeedTest)
+                                ActionChip(stringResource(Res.string.title_speedtest), Res.drawable.ic_fill_speed, onOpenSpeedTest, c.pink.takeIf { c.colorful })
                             }
                             if (onOpenMap != null) {
-                                ActionChip(stringResource(Res.string.map_title), Res.drawable.ic_fill_map, onOpenMap)
+                                ActionChip(stringResource(Res.string.map_title), Res.drawable.ic_fill_map, onOpenMap, c.violet.takeIf { c.colorful })
                             }
                         }
                     }
@@ -521,13 +523,19 @@ private fun Sparkline(values: List<Float>, color: Color, modifier: Modifier) {
 }
 
 @Composable
-private fun FactTile(label: String, value: String, modifier: Modifier = Modifier, onClick: (() -> Unit)? = null) {
+private fun FactTile(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+    tone: BentoTone? = null,
+) {
     val c = Bento.colors
     Column(
         modifier
             .height(70.dp)
             .clip(BentoShapes.small())
-            .background(c.surface)
+            .background(tone?.container ?: c.surface)
             .then(
                 if (onClick != null) {
                     Modifier.clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClick)
@@ -538,26 +546,32 @@ private fun FactTile(label: String, value: String, modifier: Modifier = Modifier
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
-        Text(label, style = BentoType.body().copy(fontSize = 12.5.sp), color = c.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text(ltrIsolate(value), style = BentoType.number(20.sp), color = c.ink, maxLines = 1)
+        Text(label, style = BentoType.body().copy(fontSize = 12.5.sp), color = tone?.content?.copy(alpha = 0.8f) ?: c.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(ltrIsolate(value), style = BentoType.number(20.sp), color = tone?.content ?: c.ink, maxLines = 1)
     }
 }
 
 @Composable
-private fun ActionChip(label: String, icon: org.jetbrains.compose.resources.DrawableResource, onClick: () -> Unit) {
+private fun ActionChip(
+    label: String,
+    icon: org.jetbrains.compose.resources.DrawableResource,
+    onClick: () -> Unit,
+    tone: BentoTone? = null,
+) {
     val c = Bento.colors
+    val ink = tone?.content ?: c.ink
     Row(
         Modifier
             .height(40.dp)
             .clip(RoundedCornerShape(20.dp))
-            .background(c.surface)
+            .background(tone?.container ?: c.surface)
             .clickable(role = Role.Button, onClick = onClick)
             .padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Icon(painterResource(icon), contentDescription = null, tint = c.ink, modifier = Modifier.size(18.dp))
-        Text(label, style = MaterialTheme.typography.labelLarge.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold), color = c.ink, maxLines = 1)
+        Icon(painterResource(icon), contentDescription = null, tint = ink, modifier = Modifier.size(18.dp))
+        Text(label, style = MaterialTheme.typography.labelLarge.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold), color = ink, maxLines = 1)
     }
 }
 

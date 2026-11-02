@@ -1799,4 +1799,11 @@
     <string name="ipd_ipv6_on">فعال</string>
     <string name="ipd_ipv6_off">ندارد</string>
     <string name="manual_edit_title">ویرایش سرور</string>
+    <string name="bento_palette_citrus">سیتروس</string>
+    <string name="bento_palette_matcha">ماچا</string>
+    <string name="bento_palette_neon">نئون</string>
+    <string name="bento_palette_pistachio">پسته‌ای</string>
+    <string name="bento_palette_ocean">اقیانوس</string>
+    <string name="bento_palette_sunset">غروب</string>
+    <string name="bento_palette_berry">توت</string>
 </resources>

@@ -563,6 +563,13 @@ private fun BentoRoot(
             dev.cluvex.zedsecure.domain.model.BentoPalette.Pastel -> Res.string.bento_palette_pastel
             dev.cluvex.zedsecure.domain.model.BentoPalette.Vivid -> Res.string.bento_palette_vivid
             dev.cluvex.zedsecure.domain.model.BentoPalette.Mono -> Res.string.bento_palette_mono
+            dev.cluvex.zedsecure.domain.model.BentoPalette.Citrus -> Res.string.bento_palette_citrus
+            dev.cluvex.zedsecure.domain.model.BentoPalette.Matcha -> Res.string.bento_palette_matcha
+            dev.cluvex.zedsecure.domain.model.BentoPalette.Neon -> Res.string.bento_palette_neon
+            dev.cluvex.zedsecure.domain.model.BentoPalette.Pistachio -> Res.string.bento_palette_pistachio
+            dev.cluvex.zedsecure.domain.model.BentoPalette.Ocean -> Res.string.bento_palette_ocean
+            dev.cluvex.zedsecure.domain.model.BentoPalette.Sunset -> Res.string.bento_palette_sunset
+            dev.cluvex.zedsecure.domain.model.BentoPalette.Berry -> Res.string.bento_palette_berry
         },
     )
     val modeName = stringResource(

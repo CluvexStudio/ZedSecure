@@ -1760,4 +1760,11 @@
     <string name="ipd_ipv6_on">Activa</string>
     <string name="ipd_ipv6_off">No</string>
     <string name="manual_edit_title">Editar servidor</string>
+    <string name="bento_palette_citrus">Cítrico</string>
+    <string name="bento_palette_matcha">Matcha</string>
+    <string name="bento_palette_neon">Neón</string>
+    <string name="bento_palette_pistachio">Pistacho</string>
+    <string name="bento_palette_ocean">Océano</string>
+    <string name="bento_palette_sunset">Atardecer</string>
+    <string name="bento_palette_berry">Bayas</string>
 </resources>

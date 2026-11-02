@@ -1807,4 +1807,11 @@
     <string name="ipd_ipv6_on">Есть</string>
     <string name="ipd_ipv6_off">Нет</string>
     <string name="manual_edit_title">Изменить сервер</string>
+    <string name="bento_palette_citrus">Цитрус</string>
+    <string name="bento_palette_matcha">Матча</string>
+    <string name="bento_palette_neon">Неон</string>
+    <string name="bento_palette_pistachio">Фисташка</string>
+    <string name="bento_palette_ocean">Океан</string>
+    <string name="bento_palette_sunset">Закат</string>
+    <string name="bento_palette_berry">Ягода</string>
 </resources>
