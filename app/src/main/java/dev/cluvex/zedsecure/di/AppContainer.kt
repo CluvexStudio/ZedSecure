@@ -70,8 +70,16 @@ class AppContainer(context: Context) {
         }
 
         runCatching {
+            val region = runCatching {
+                val telephony = context.getSystemService(Context.TELEPHONY_SERVICE) as? android.telephony.TelephonyManager
+                listOfNotNull(
+                    telephony?.simCountryIso,
+                    telephony?.networkCountryIso,
+                    android.content.res.Resources.getSystem().configuration.locales[0]?.country,
+                ).map { it.trim().uppercase() }.firstOrNull { it.length == 2 }
+            }.getOrNull()
             dev.cluvex.zedsecure.domain.config.RoutingMigration
-                .seedIfFresh(settingsRepository.settings.value)
+                .seedIfFresh(settingsRepository.settings.value, region)
                 ?.let { seeded -> settingsRepository.update { seeded } }
         }
 

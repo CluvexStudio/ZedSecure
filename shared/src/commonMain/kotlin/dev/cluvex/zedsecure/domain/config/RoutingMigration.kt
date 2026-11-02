@@ -10,14 +10,19 @@ object RoutingMigration {
         if (settings.routingMigrated) settings.rulesets
         else settings.rulesets.ifEmpty { fromLegacy(settings) }
 
-    fun seedIfFresh(settings: AppSettings): AppSettings? {
+    fun seedIfFresh(settings: AppSettings, region: String? = null): AppSettings? {
         if (settings.routingSeeded) return null
+        val preset = when (region?.trim()?.uppercase()) {
+            "CN" -> RoutingPresetType.ChinaWhitelist
+            "RU" -> RoutingPresetType.RussiaWhitelist
+            else -> RoutingPresetType.IranWhitelist
+        }
         val untouched = settings.rulesets.isEmpty() &&
             settings.customProxyRules.isBlank() &&
             settings.customDirectRules.isBlank() &&
             settings.customBlockRules.isBlank()
         return settings.copy(
-            rulesets = if (untouched) RoutingPresets.rules(RoutingPresetType.IranWhitelist)
+            rulesets = if (untouched) RoutingPresets.rules(preset)
             else settings.rulesets,
 
             routingSeeded = true,
