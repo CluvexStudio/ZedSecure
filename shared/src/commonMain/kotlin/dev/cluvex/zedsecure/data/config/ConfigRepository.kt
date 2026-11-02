@@ -1267,7 +1267,7 @@ class ConfigRepository(private val store: KeyValueStore) {
             var added = first.getOrElse { 0 }
             if (added == 0) {
                 val fallbackUas = listOf(
-                    if (primaryUa.startsWith(COMPAT_UA_PREFIX)) ALT_UA else DEFAULT_UA,
+                    if (primaryUa.startsWith(V2RAYNG_UA_PREFIX)) ALT_UA else DEFAULT_UA,
                     SING_BOX_UA,
                 ).filter { it != primaryUa }
                 val seenBodies = mutableSetOf(body)
@@ -1477,7 +1477,7 @@ class ConfigRepository(private val store: KeyValueStore) {
 
         const val SING_BOX_UA = "SFA/1.14.4 (sing-box 1.14.4)"
 
-        const val COMPAT_UA_PREFIX = "v2rayNG/"
+        const val V2RAYNG_UA_PREFIX = "v2rayNG/"
 
         private val URL_IN_TEXT = Regex("""https?://[^\s<>"'«»]+""", RegexOption.IGNORE_CASE)
 

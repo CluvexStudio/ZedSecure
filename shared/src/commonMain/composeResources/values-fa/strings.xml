@@ -927,10 +927,10 @@
     <string name="personalize_upload_tile">آپلود — پس‌زمینهٔ کاشی</string>
     <string name="personalize_upload_tile_sub">رنگ مستطیلی که پشت آن‌هاست</string>
     <string name="subs_ua_preset">یوزر ایجنت</string>
-    <string name="subs_ua_compat">سازگار (پیشنهادی)</string>
+    <string name="subs_ua_v2rayng">v2rayNG (پیشنهادی)</string>
     <string name="subs_ua_zedsecure">ZedSecure</string>
     <string name="subs_ua_custom">دلخواه</string>
-    <string name="subs_ua_hint">خیلی از ارائه‌دهنده‌ها کانفیگ‌های JSON سفارشی خود را فقط به یوزر ایجنت رایج‌ترین کلاینت می‌دهند و به بقیه لینک ساده می‌دهند. گزینهٔ «سازگار» همان یوزر ایجنت را می‌فرستد.</string>
+    <string name="subs_ua_hint">خیلی از ارائه‌دهنده‌ها کانفیگ‌های JSON سفارشی خود را فقط به یوزر ایجنت v2rayNG می‌دهند و به بقیه لینک ساده می‌دهند.</string>
     <string name="subs_edit">ویرایش سابسکریپشن</string>
     <string name="subs_preset_title">تغییر همهٔ سرورهای این اشتراک</string>
     <string name="subs_preset_hint">هر بار که اشتراک به‌روز می‌شود اعمال می‌شود. فیلدی را خالی بگذارید تا همان مقداری که سرور می‌فرستد بماند.</string>

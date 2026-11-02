@@ -935,10 +935,10 @@
     <string name="personalize_upload_tile">上传 — 卡片背景</string>
     <string name="personalize_upload_tile_sub">为它们后面的矩形着色</string>
     <string name="subs_ua_preset">User-Agent</string>
-    <string name="subs_ua_compat">兼容（推荐）</string>
+    <string name="subs_ua_v2rayng">v2rayNG（推荐）</string>
     <string name="subs_ua_zedsecure">ZedSecure</string>
     <string name="subs_ua_custom">自定义</string>
-    <string name="subs_ua_hint">许多提供商只向最常见客户端的 User-Agent 返回其 JSON 自定义配置，对其他客户端则返回普通链接。“兼容”会发送该 User-Agent。</string>
+    <string name="subs_ua_hint">许多提供商只向 v2rayNG User-Agent 返回其 JSON 自定义配置，对其他客户端则返回普通链接。</string>
     <string name="subs_edit">编辑订阅</string>
     <string name="subs_preset_title">修改此订阅中的所有服务器</string>
     <string name="subs_preset_hint">每次订阅更新时应用。留空的字段将保留服务器提供的值。</string>

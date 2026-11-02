@@ -439,7 +439,7 @@ private fun UserAgentPicker(value: String, onChange: (String) -> Unit) {
             FilterChip(
                 selected = isDefault && !custom,
                 onClick = { custom = false; onChange("") },
-                label = { Text(stringResource(Res.string.subs_ua_compat), maxLines = 1) },
+                label = { Text(stringResource(Res.string.subs_ua_v2rayng), maxLines = 1) },
             )
             FilterChip(
                 selected = isAlt && !custom,

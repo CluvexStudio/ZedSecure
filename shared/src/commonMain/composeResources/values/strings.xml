@@ -934,10 +934,10 @@
     <string name="personalize_upload_tile">Upload — tile background</string>
     <string name="personalize_upload_tile_sub">Colours the rectangle behind them</string>
     <string name="subs_ua_preset">User-Agent</string>
-    <string name="subs_ua_compat">Compatible (recommended)</string>
+    <string name="subs_ua_v2rayng">v2rayNG (recommended)</string>
     <string name="subs_ua_zedsecure">ZedSecure</string>
     <string name="subs_ua_custom">Custom</string>
-    <string name="subs_ua_hint">Many providers only send their JSON custom configs to the User-Agent of the most common client, and send plain links to anything else. Compatible sends that User-Agent.</string>
+    <string name="subs_ua_hint">Many providers only send their JSON custom configs to the v2rayNG User-Agent, and send plain links to anything else.</string>
     <string name="subs_edit">Edit subscription</string>
     <string name="subs_preset_title">Change every server in this subscription</string>
     <string name="subs_preset_hint">Applied each time the subscription updates. Leave a field empty to keep what the server sends.</string>

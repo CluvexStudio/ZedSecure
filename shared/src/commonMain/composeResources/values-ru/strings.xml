@@ -935,10 +935,10 @@
     <string name="personalize_upload_tile">Отдача — фон плитки</string>
     <string name="personalize_upload_tile_sub">Цвет прямоугольника за ними</string>
     <string name="subs_ua_preset">User-Agent</string>
-    <string name="subs_ua_compat">Совместимый (рекомендуется)</string>
+    <string name="subs_ua_v2rayng">v2rayNG (рекомендуется)</string>
     <string name="subs_ua_zedsecure">ZedSecure</string>
     <string name="subs_ua_custom">Свой</string>
-    <string name="subs_ua_hint">Многие провайдеры отдают свои JSON-конфигурации только User-Agent самого распространённого клиента, а всем остальным — обычные ссылки. «Совместимый» отправляет именно его.</string>
+    <string name="subs_ua_hint">Многие провайдеры отдают свои JSON-конфигурации только User-Agent v2rayNG, а всем остальным — обычные ссылки.</string>
     <string name="subs_edit">Изменить подписку</string>
     <string name="subs_preset_title">Изменить все серверы этой подписки</string>
     <string name="subs_preset_hint">Применяется при каждом обновлении подписки. Оставьте поле пустым, чтобы сохранить значение сервера.</string>
