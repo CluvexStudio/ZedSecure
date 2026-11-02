@@ -120,6 +120,7 @@ data class BentoActiveServer(
     val country: String?,
     val engine: String,
     val locked: Boolean,
+    val subscription: dev.cluvex.zedsecure.domain.config.Subscription? = null,
 )
 
 @Immutable
@@ -226,6 +227,8 @@ internal fun BentoHome(
                         onRefreshInfo = onRefreshInfo,
                         modifier = Modifier.tourTarget(TourTargets.CONFIG_CARD),
                     )
+
+                    active?.subscription?.let { sub -> BentoSubscriptionStrip(sub, onClick = onBrowseConfigs) }
 
                     if (prefs.homeSpeed) {
                         Row(

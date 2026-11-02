@@ -64,6 +64,7 @@ import dev.cluvex.zedsecure.shared.resources.subs_usage
 import dev.cluvex.zedsecure.shared.resources.subs_usage_unlimited
 import dev.cluvex.zedsecure.shared.resources.subs_website
 import dev.cluvex.zedsecure.ui.format.formatBytes
+import dev.cluvex.zedsecure.ui.format.ltrIsolate
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -157,6 +158,77 @@ fun BentoServerRow(
     }
 }
 
+@Composable
+fun BentoSubscriptionStrip(sub: Subscription, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val c = Bento.colors
+    val now = dev.cluvex.zedsecure.platform.currentTimeMillis()
+    val used = sub.used
+    val total = sub.total
+    val fraction = if (used != null && total != null && total > 0) (used.toDouble() / total).toFloat().coerceIn(0f, 1f) else null
+    val expireAt = sub.expireAt
+    val expired = expireAt != null && expireAt <= now
+    val daysLeft = expireAt?.let { ((it - now) / 86_400_000L).toInt() }
+    val exhausted = fraction != null && fraction >= 1f
+    val usageText = when {
+        used != null && total != null -> stringResource(Res.string.subs_usage, ltrIsolate(formatBytes(used)), ltrIsolate(formatBytes(total)))
+        used != null -> stringResource(Res.string.subs_usage_unlimited, ltrIsolate(formatBytes(used)))
+        else -> null
+    }
+    val expiryText = when {
+        expired -> stringResource(Res.string.subs_expired)
+        exhausted -> stringResource(Res.string.subs_quota_exhausted)
+        daysLeft == null -> null
+        daysLeft <= 0 -> stringResource(Res.string.subs_expires_today)
+        daysLeft == 1 -> stringResource(Res.string.subs_one_day_left)
+        else -> stringResource(Res.string.subs_days_left, daysLeft)
+    }
+    if (usageText == null && expiryText == null) return
+    val alert = expired || exhausted || (daysLeft != null && daysLeft <= 3) || (fraction != null && fraction >= 0.9f)
+    val alertInk = if (c.dark) c.danger else c.bad
+    BentoCard(
+        tone = c.surfaceTone,
+        modifier = modifier.fillMaxWidth(),
+        shape = BentoShapes.small(),
+        onClick = onClick,
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                sub.title?.takeIf { it.isNotBlank() } ?: sub.name,
+                style = BentoType.rowTitle(),
+                color = c.ink,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            if (expiryText != null) {
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    expiryText,
+                    style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold),
+                    color = if (alert) alertInk else c.muted,
+                    maxLines = 1,
+                )
+            }
+        }
+        if (fraction != null) {
+            Box(Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)).background(c.surface2)) {
+                Box(
+                    Modifier
+                        .fillMaxWidth(fraction.coerceAtLeast(0.02f))
+                        .height(6.dp)
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(if (exhausted || fraction >= 0.9f) c.bad else c.lime),
+                )
+            }
+        }
+        if (usageText != null) {
+            Text(usageText, style = BentoType.body(), color = c.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+    }
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun BentoProviderCard(
@@ -229,8 +301,8 @@ fun BentoProviderCard(
             }
         }
         val usageText = when {
-            used != null && total != null -> stringResource(Res.string.subs_usage, formatBytes(used), formatBytes(total))
-            used != null -> stringResource(Res.string.subs_usage_unlimited, formatBytes(used))
+            used != null && total != null -> stringResource(Res.string.subs_usage, ltrIsolate(formatBytes(used)), ltrIsolate(formatBytes(total)))
+            used != null -> stringResource(Res.string.subs_usage_unlimited, ltrIsolate(formatBytes(used)))
             else -> null
         }
         val expiryText = when {

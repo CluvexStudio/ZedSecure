@@ -314,6 +314,9 @@ fun MainScaffold(
                                 ?.engineLabel
                                 ?: p.engineLabel,
                             locked = p.isLocked,
+                            subscription = p.subscriptionId.ifBlank { p.autoSelectSettings()?.subscriptionId.orEmpty() }
+                                .takeIf { it.isNotBlank() }
+                                ?.let { id -> subscriptions.firstOrNull { it.id == id } },
                         )
                     },
                     bentoPicks = androidx.compose.runtime.remember(profiles, activeId, settings.detectServerLocation) {

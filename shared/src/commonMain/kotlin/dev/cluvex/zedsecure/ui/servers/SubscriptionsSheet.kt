@@ -57,6 +57,7 @@ import dev.cluvex.zedsecure.ui.platform.LocalPlatform
 import org.jetbrains.compose.resources.getString
 import dev.cluvex.zedsecure.ui.components.SectionTitle
 import dev.cluvex.zedsecure.ui.format.formatBytes
+import dev.cluvex.zedsecure.ui.format.ltrIsolate
 import androidx.compose.ui.graphics.luminance
 import kotlinx.coroutines.launch
 import dev.cluvex.zedsecure.ui.platform.appVerticalScroll
@@ -504,8 +505,8 @@ private fun SubscriptionUsage(
         Row(verticalAlignment = Alignment.CenterVertically) {
             val usageText = when {
                 used != null && total != null ->
-                    stringResource(Res.string.subs_usage, formatBytes(used), formatBytes(total))
-                used != null -> stringResource(Res.string.subs_usage_unlimited, formatBytes(used))
+                    stringResource(Res.string.subs_usage, ltrIsolate(formatBytes(used)), ltrIsolate(formatBytes(total)))
+                used != null -> stringResource(Res.string.subs_usage_unlimited, ltrIsolate(formatBytes(used)))
                 else -> null
             }
             Text(
