@@ -85,7 +85,7 @@ import dev.cluvex.zedsecure.ui.platform.appVerticalScroll
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
-const val ONBOARDING_VERSION = 1
+const val ONBOARDING_VERSION = 2
 
 private const val LAST_STEP = 4
 

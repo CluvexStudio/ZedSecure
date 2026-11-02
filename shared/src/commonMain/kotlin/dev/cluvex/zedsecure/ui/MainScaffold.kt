@@ -174,7 +174,7 @@ fun MainScaffold(
             settings = settings,
             onUpdate = onUpdateSettings,
             onLanguage = onLanguage,
-            replay = replaySetup,
+            replay = replaySetup || settings.onboardingVersion > 0,
             onStartTour = {
                 onUpdateSettings {
                     it.copy(onboardingVersion = dev.cluvex.zedsecure.ui.onboarding.ONBOARDING_VERSION)
