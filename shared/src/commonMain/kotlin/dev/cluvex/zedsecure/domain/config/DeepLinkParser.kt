@@ -10,11 +10,11 @@ object DeepLinkParser {
     val SCHEMES: Set<String> = setOf(
         "zedsecure", "v2rayng", "hiddify", "sing-box", "clash", "clashmeta", "v2raytun", "streisand",
         "happ", "vless", "vmess", "trojan", "ss", "hysteria", "hysteria2", "hy2", "wireguard",
-        "socks", "socks5", "snispoof",
+        "wg", "awg", "socks", "socks5", "snispoof",
     )
 
     private val CONFIG_SCHEMES = setOf(
-        "vless", "vmess", "trojan", "ss", "hysteria", "hysteria2", "hy2", "wireguard", "socks", "socks5",
+        "vless", "vmess", "trojan", "ss", "hysteria", "hysteria2", "hy2", "wireguard", "wg", "awg", "socks", "socks5",
         "snispoof",
     )
 

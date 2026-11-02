@@ -400,7 +400,12 @@ object ConfigParser {
     private fun parseWireguard(link: String, protocol: Protocol = Protocol.WIREGUARD): ServerConfig {
         val p = parseLink(link.substringAfter("://"))
         if (p.host.isBlank()) throw ConfigParseException("Invalid wireguard link")
-        val addresses = (p.query["address"] ?: p.query["ip"])
+        val param = { names: List<String> ->
+            names.firstNotNullOfOrNull { name ->
+                p.query.entries.firstOrNull { linkKey(it.key) == name }?.value?.trim()?.takeIf { it.isNotEmpty() }
+            }
+        }
+        val addresses = param(listOf("address", "ip", "localaddress", "addresses"))
             ?.split(",")
             ?.map { it.trim() }
             ?.filter { it.isNotEmpty() }
@@ -412,17 +417,18 @@ object ConfigParser {
             remark = p.fragment,
             address = p.host,
             port = p.port ?: 51820,
-            secretKey = p.userInfo,
-            peerPublicKey = p.query["publickey"] ?: p.query["pbk"] ?: "",
-            preSharedKey = (p.query["presharedkey"] ?: p.query["psk"])?.takeIf { it.isNotBlank() },
+            secretKey = p.userInfo.ifBlank { param(listOf("privatekey", "secretkey", "key")).orEmpty() },
+            peerPublicKey = param(listOf("publickey", "pbk", "peerpublickey", "serverpublickey")).orEmpty(),
+            preSharedKey = param(listOf("presharedkey", "psk")),
             localAddresses = addresses,
-            reserved = p.query["reserved"]?.takeIf { it.isNotBlank() },
-            wireguardMtu = p.query["mtu"]?.toIntOrNull(),
-            wireguardKeepalive = (p.query["keepalive"] ?: p.query["persistentkeepalive"])
-                ?.toIntOrNull()?.takeIf { it > 0 },
-            allowedIps = (p.query["allowedips"] ?: p.query["allowed_ips"])
+            reserved = param(listOf("reserved")),
+            wireguardMtu = param(listOf("mtu"))?.toIntOrNull(),
+            wireguardKeepalive = keepaliveSeconds(
+                param(listOf("keepalive", "persistentkeepalive", "persistentkeepaliveinterval")),
+            ),
+            allowedIps = param(listOf("allowedips"))
                 ?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() }.orEmpty(),
-            dnsServers = p.query["dns"]?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() }.orEmpty(),
+            dnsServers = param(listOf("dns"))?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() }.orEmpty(),
             awg = awg,
             transport = TransportConfig(finalMask = p.query["fm"]?.takeIf { it.isNotBlank() }),
             runOnSingBox = wantsSingBox(p.query["core"]),
@@ -431,18 +437,24 @@ object ConfigParser {
 
     fun parseWireguardConf(text: String, remark: String = ""): ServerConfig {
         var section = ""
+        var peers = 0
         val iface = LinkedHashMap<String, String>()
         val peer = LinkedHashMap<String, String>()
         text.lineSequence().forEach { rawLine ->
             val line = rawLine.substringBefore('#').substringBefore(';').trim()
             when {
                 line.isEmpty() -> Unit
-                line.startsWith("[") && line.endsWith("]") -> section = line.trim('[', ']').lowercase()
+                line.startsWith("[") && line.endsWith("]") -> {
+                    section = line.trim('[', ']').lowercase()
+                    if (section == "peer") peers++
+                }
                 else -> {
-                    val k = line.substringBefore('=', "").trim()
+                    val k = line.substringBefore('=', "").trim().lowercase()
                     val v = line.substringAfter('=', "").trim()
-                    if (k.isNotEmpty() && v.isNotEmpty()) {
-                        if (section == "peer") peer[k.lowercase()] = v else iface[k.lowercase()] = v
+                    if (k.isNotEmpty() && v.isNotEmpty() && !(section == "peer" && peers > 1)) {
+                        val target = if (section == "peer") peer else iface
+                        val previous = target[k]
+                        target[k] = if (previous != null && k in REPEATABLE_WG_KEYS) "$previous, $v" else v
                     }
                 }
             }
@@ -473,11 +485,18 @@ object ConfigParser {
             localAddresses = iface["address"]?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() }.orEmpty(),
             dnsServers = iface["dns"]?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() }.orEmpty(),
             wireguardMtu = iface["mtu"]?.toIntOrNull(),
-            wireguardKeepalive = peer["persistentkeepalive"]?.toIntOrNull()?.takeIf { it > 0 },
+            wireguardKeepalive = keepaliveSeconds(peer["persistentkeepalive"]),
             allowedIps = peer["allowedips"]?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() }.orEmpty(),
             awg = awg,
         )
     }
+
+    private val REPEATABLE_WG_KEYS = setOf("address", "allowedips", "dns")
+
+    private fun linkKey(raw: String): String = raw.trim().lowercase().replace("_", "").replace("-", "")
+
+    fun keepaliveSeconds(value: String?): Int? =
+        value?.trim()?.substringBefore('-')?.trim()?.toIntOrNull()?.takeIf { it > 0 }
 
     fun looksLikeWireguardConf(text: String): Boolean {
         var iface = false

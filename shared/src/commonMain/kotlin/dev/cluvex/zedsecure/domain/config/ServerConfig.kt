@@ -1,5 +1,7 @@
 package dev.cluvex.zedsecure.domain.config
 
+const val DEFAULT_WIREGUARD_MTU = 1280
+
 enum class Protocol(val id: String, val label: String) {
     VLESS("vless", "VLESS"),
     VMESS("vmess", "VMess"),

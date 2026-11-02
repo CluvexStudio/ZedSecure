@@ -1,5 +1,7 @@
 package dev.cluvex.zedsecure.domain.config
 
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
 import dev.cluvex.zedsecure.platform.hasAesGcmHardware
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonObjectBuilder
@@ -219,7 +221,7 @@ object SingBoxConvert {
             Protocol.WIREGUARD -> buildJsonObject {
                 put("type", "wireguard")
                 put("tag", tag)
-                put("mtu", s.wireguardMtu ?: 1420)
+                put("mtu", s.wireguardMtu ?: DEFAULT_WIREGUARD_MTU)
                 putJsonArray("address") {
                     s.localAddresses.ifEmpty { listOf("172.16.0.2/32") }.forEach { add(prefixOf(it)!!) }
                 }
@@ -406,8 +408,16 @@ object SingBoxConvert {
         return "$ip/${bits ?: max}"
     }
 
+    @OptIn(ExperimentalEncodingApi::class)
     fun reservedOf(value: String): List<Int>? {
-        val bytes = value.split(',').map { it.trim().toIntOrNull() ?: return null }
-        return bytes.takeIf { it.size == 3 && it.all { b -> b in 0..255 } }
+        val text = value.trim()
+        if (text.contains(',') || text.all { it.isDigit() || it.isWhitespace() }) {
+            val bytes = text.split(',').map { it.trim().toIntOrNull() ?: return null }
+            return bytes.takeIf { it.size == 3 && it.all { b -> b in 0..255 } }
+        }
+        val decoded = runCatching { Base64.decode(text) }.getOrNull()
+            ?: runCatching { Base64.UrlSafe.decode(text) }.getOrNull()
+            ?: return null
+        return decoded.takeIf { it.size == 3 }?.map { it.toInt() and 0xff }
     }
 }

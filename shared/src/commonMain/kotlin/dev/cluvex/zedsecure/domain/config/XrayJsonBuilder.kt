@@ -9,6 +9,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.addJsonObject
+import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
@@ -138,7 +139,8 @@ object XrayJsonBuilder {
         val net = server.transport.network.lowercase()
         if (net in REMOVED_NETWORKS) throw UnsupportedTransportException(net)
 
-        val withDns = if (server.dnsServers.isEmpty()) options else options.copy(serverDns = server.dnsServers)
+        val configDns = server.dnsServers.mapNotNull(::dnsServerAddress)
+        val withDns = if (configDns.isEmpty()) options else options.copy(serverDns = configDns)
         return assemble(socksPort, withDns, forSpeedtest) { add(proxyOutbound(server, withDns)) }
     }
 
@@ -520,6 +522,10 @@ object XrayJsonBuilder {
             emittedTagFor(ruleTag) in groupOutbounds -> emittedTagFor(ruleTag)
             else -> "proxy"
         }
+        val serverOutbounds: List<JsonElement> = buildJsonArray { proxyOutbounds() } +
+            namedOutbounds.map { (tag, server) -> serverOutbound(server, options, tag) } +
+            groupOutbounds.values.flatten()
+        val endpointHosts = wireguardEndpointHosts(serverOutbounds)
         val config = buildJsonObject {
             putJsonObject("log") {
                 put("loglevel", options.logLevel)
@@ -549,10 +555,7 @@ object XrayJsonBuilder {
                 }
             }
             putJsonArray("outbounds") {
-                proxyOutbounds()
-
-                namedOutbounds.forEach { (tag, server) -> add(serverOutbound(server, options, tag)) }
-                groupOutbounds.values.forEach { group -> group.forEach { add(it) } }
+                serverOutbounds.forEach { add(it) }
                 add(directOutbound())
                 add(blockOutbound())
 
@@ -568,7 +571,7 @@ object XrayJsonBuilder {
 
             val rules = if (forSpeedtest) emptyList() else effectiveRules(options.rulesets, geo, options.networkType, options.geoCodes)
 
-            val dnsSplit = if (forSpeedtest) DnsSplit() else dnsSplit(rules, options)
+            val dnsSplit = if (forSpeedtest) DnsSplit() else dnsSplit(rules, options, endpointHosts)
             if (!forSpeedtest) put("dns", dns(options, dnsSplit))
             putJsonObject("routing") {
                 put("domainStrategy", options.domainStrategy)
@@ -829,6 +832,18 @@ object XrayJsonBuilder {
 
     private val HOST_HEADER_TRANSPORTS = setOf("ws", "websocket", "httpupgrade", "xhttp", "splithttp")
 
+    fun dnsServerAddress(entry: String): String? {
+        val v = entry.trim()
+        if (v.isEmpty() || v.contains('$')) return null
+        if (v.contains("://")) return v
+        val host = when {
+            v.startsWith("[") -> v.substringAfter('[').substringBefore(']')
+            v.count { it == ':' } == 1 -> v.substringBefore(':')
+            else -> v
+        }
+        return host.takeIf { isIpLiteral(it) }
+    }
+
     fun isIpLiteral(value: String): Boolean {
         val v = value.trim().removePrefix("[").removeSuffix("]")
         if (v.isEmpty()) return false
@@ -906,12 +921,25 @@ object XrayJsonBuilder {
         val enabled: Boolean = false,
     )
 
-    private fun dnsSplit(rules: List<EffectiveRule>, options: BuildOptions): DnsSplit {
+    private fun wireguardEndpointHosts(outbounds: List<JsonElement>): List<String> = outbounds
+        .mapNotNull { it as? JsonObject }
+        .filter { (it["protocol"] as? JsonPrimitive)?.content == "wireguard" }
+        .flatMap { outbound ->
+            val peers = ((outbound["settings"] as? JsonObject)?.get("peers") as? JsonArray).orEmpty()
+            peers.mapNotNull { peer -> ((peer as? JsonObject)?.get("endpoint") as? JsonPrimitive)?.content }
+        }
+        .mapNotNull { endpoint ->
+            val host = if (endpoint.startsWith("[")) "" else endpoint.substringBeforeLast(':', endpoint).trim()
+            host.takeIf { it.isNotEmpty() && !isIpLiteral(it) }?.let { "full:$it" }
+        }
+        .distinct()
+
+    private fun dnsSplit(rules: List<EffectiveRule>, options: BuildOptions, endpointHosts: List<String> = emptyList()): DnsSplit {
         val domestic = mutableListOf<Pair<String, List<String>>>()
         val proxied = mutableListOf<String>()
         val blocked = mutableListOf<String>()
 
-        domestic += "${TAG_DOMESTIC_DNS}-base" to lanDomains(options)
+        domestic += "${TAG_DOMESTIC_DNS}-base" to (lanDomains(options) + endpointHosts).distinct()
 
         rules.forEachIndexed { index, r ->
             if (r.domains.isEmpty()) return@forEachIndexed
@@ -1478,12 +1506,12 @@ private fun statsPolicy(slowUpstream: Boolean = false) = buildJsonObject {
                         val addresses = s.localAddresses.ifEmpty { listOf("172.16.0.2/32") }
                         addresses.forEach { add(it) }
                     }
-                    s.wireguardMtu?.let { put("mtu", it) }
+                    put("mtu", s.wireguardMtu ?: DEFAULT_WIREGUARD_MTU)
 
                     s.reserved
-                        ?.split(",")
-                        ?.mapNotNull { it.trim().toIntOrNull() }
-                        ?.takeIf { it.size == 3 && it.any { b -> b != 0 } }
+                        ?.takeIf { it.isNotBlank() }
+                        ?.let { SingBoxConvert.reservedOf(it) }
+                        ?.takeIf { it.any { b -> b != 0 } }
                         ?.let { bytes -> putJsonArray("reserved") { bytes.forEach { add(it) } } }
                     putJsonArray("peers") {
                         addJsonObject {
@@ -1501,7 +1529,7 @@ private fun statsPolicy(slowUpstream: Boolean = false) = buildJsonObject {
                         }
                     }
 
-                    val wgDns = s.dnsServers.filter { isIpLiteral(it) }.map { it.trim().removePrefix("[").removeSuffix("]") }
+                    val wgDns = s.dnsServers.mapNotNull(::dnsServerAddress).filter { !it.contains("://") }
                     if (wgDns.isNotEmpty()) putJsonArray("remoteDNS") { wgDns.forEach { add(it) } }
 
                     val awgEntries = s.awg.entries
@@ -1521,7 +1549,7 @@ private fun statsPolicy(slowUpstream: Boolean = false) = buildJsonObject {
                 Protocol.MASQUE -> {
                     put("address", address)
                     put("port", s.port)
-                    val dns = s.dnsServers.filter { isIpLiteral(it) }.map { it.trim().removePrefix("[").removeSuffix("]") }
+                    val dns = s.dnsServers.mapNotNull(::dnsServerAddress).filter { !it.contains("://") }
                     if (dns.isNotEmpty()) putJsonArray("remoteDNS") { dns.forEach { add(it) } }
                 }
             }

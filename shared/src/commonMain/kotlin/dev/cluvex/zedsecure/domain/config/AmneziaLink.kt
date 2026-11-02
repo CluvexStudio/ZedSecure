@@ -182,7 +182,10 @@ object AmneziaLink {
 
         if (lastJson != null) {
             if (lastJson.containsKey("outbounds") && !lastJson.containsKey("config")) return last
-            lastJson.string("config")?.takeIf { it.isNotBlank() }?.let { return it }
+            lastJson.string("config")?.takeIf { it.isNotBlank() }?.let { native ->
+                if (protoKey != "awg" && protoKey != "wireguard") return native
+                return completeNativeConf(native, lastJson, dns) ?: wireguardConfFrom(lastJson, proto, host, dns) ?: native
+            }
         } else if (last != null) {
             return last
         }
@@ -194,6 +197,37 @@ object AmneziaLink {
             "socks5proxy" -> socksLinkFrom(fields, host, label)
             else -> null
         }
+    }
+
+    private val PLACEHOLDER_KEYS = setOf("privatekey", "publickey", "presharedkey", "endpoint", "address")
+
+    private fun completeNativeConf(native: String, fields: JsonObject, dns: List<String>): String? {
+        val lines = native.lines()
+        val keyOf = { line: String -> line.substringBefore('=', "").trim().lowercase() }
+        if (lines.any { keyOf(it) in PLACEHOLDER_KEYS && it.substringAfter('=', "").contains('$') }) return null
+        val out = mutableListOf<String>()
+        var section = ""
+        var interfaceAt = -1
+        var hasMtu = false
+        lines.forEach { line ->
+            val trimmed = line.trim()
+            if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+                section = trimmed.lowercase()
+                out += line
+                if (section == "[interface]") interfaceAt = out.size
+                return@forEach
+            }
+            val key = keyOf(line)
+            if (section == "[interface]" && key == "mtu") hasMtu = true
+            if (section == "[interface]" && key == "dns" && line.substringAfter('=', "").contains('$')) {
+                if (dns.isNotEmpty()) out += "DNS = ${dns.joinToString(", ")}"
+                return@forEach
+            }
+            out += line
+        }
+        val mtu = fields.string("mtu")?.trim()?.takeIf { it.toIntOrNull() != null }
+        if (!hasMtu && mtu != null && interfaceAt >= 0) out.add(interfaceAt, "MTU = $mtu")
+        return out.joinToString("\n")
     }
 
     private fun wireguardConfFrom(

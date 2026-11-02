@@ -92,6 +92,8 @@
                 <data android:scheme="hysteria2" />
                 <data android:scheme="hy2" />
                 <data android:scheme="wireguard" />
+                <data android:scheme="wg" />
+                <data android:scheme="awg" />
                 <data android:scheme="socks" />
                 <data android:scheme="socks5" />
                 <data android:scheme="snispoof" />
