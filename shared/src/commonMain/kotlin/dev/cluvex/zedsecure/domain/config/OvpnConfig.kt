@@ -133,7 +133,33 @@ object OvpnConfig {
                 directives.number("reneg-sec")?.let {
                     if (it == 0) put("renegotiate_disabled", true) else put("renegotiate_interval", "${it}s")
                 }
+
+                if (directives.flag("route-nopull")) put("route_no_pull", true)
+                val pullFilters = directives.filter { it.name == "pull-filter" }.mapNotNull { d ->
+                    val action = d.args.getOrNull(0)?.lowercase()?.takeIf { it in PULL_FILTER_ACTIONS }
+                    val filterText = d.args.getOrNull(1)
+                    if (action == null || filterText == null) null else action to filterText
+                }
+                if (pullFilters.isNotEmpty()) {
+                    putJsonArray("pull_filters") {
+                        pullFilters.forEach { (action, filterText) ->
+                            add(buildJsonObject {
+                                put("action", action)
+                                put("text", filterText)
+                            })
+                        }
+                    }
+                }
             }
+
+            val routes = localRoutes(directives)
+            if (routes.isNotEmpty()) putJsonArray("routes") { routes.forEach { add(it) } }
+            directives.first("redirect-gateway")?.let { flags ->
+                put("redirect_gateway", true)
+                if (flags.isNotEmpty()) putJsonArray("redirect_gateway_flags") { flags.forEach { add(it) } }
+            }
+            if (directives.flag("redirect-private")) put("redirect_private", true)
+            if (directives.flag("block-ipv6")) put("block_ipv6", true)
 
             directives.first("auth")?.firstOrNull()?.let { put("auth", it) }
 
@@ -151,8 +177,6 @@ object OvpnConfig {
 
             directives.first("replay-window")?.getOrNull(1)?.toIntOrNull()
                 ?.let { put("replay_window_time", "${it}s") }
-
-            if (directives.flag("route-nopull")) put("route_no_pull", true)
 
             directives.first("auth-retry")?.firstOrNull()
                 ?.takeIf { it == "none" || it == "nointeract" || it == "interact" }
@@ -323,6 +347,51 @@ object OvpnConfig {
             }
         }
     }
+
+    private val PULL_FILTER_ACTIONS = setOf("accept", "ignore", "reject")
+
+    private val OUTSIDE_GATEWAYS = setOf("net_gateway", "remote_host")
+
+    private fun localRoutes(directives: List<Directive>): List<String> {
+        val out = mutableListOf<String>()
+        directives.forEach { d ->
+            when (d.name) {
+                "route" -> {
+                    if (d.args.getOrNull(2)?.lowercase() in OUTSIDE_GATEWAYS) return@forEach
+                    val network = ipv4(d.args.getOrNull(0)) ?: return@forEach
+                    val maskText = d.args.getOrNull(1)?.takeUnless { it.equals("default", ignoreCase = true) }
+                    val mask = if (maskText == null) -1L else ipv4(maskText) ?: return@forEach
+                    val bits = (mask and 0xffffffffL).countOneBits()
+                    if ((mask and 0xffffffffL) != ((0xffffffffL shl (32 - bits)) and 0xffffffffL)) return@forEach
+                    out += "${dotted(network and mask)}/$bits"
+                }
+                "route-ipv6" -> {
+                    if (d.args.getOrNull(1)?.lowercase() in OUTSIDE_GATEWAYS) return@forEach
+                    val value = d.args.getOrNull(0) ?: return@forEach
+                    val address = value.substringBefore('/')
+                    val bits = if ('/' in value) value.substringAfter('/').toIntOrNull() ?: return@forEach else 128
+                    val plausible = ':' in address && bits in 0..128 &&
+                        address.all { it.isDigit() || it in 'a'..'f' || it in 'A'..'F' || it == ':' || it == '.' }
+                    if (plausible) out += "$address/$bits"
+                }
+            }
+        }
+        return out.distinct()
+    }
+
+    private fun ipv4(value: String?): Long? {
+        val parts = value?.split('.') ?: return null
+        if (parts.size != 4) return null
+        var out = 0L
+        parts.forEach { part ->
+            val octet = part.toIntOrNull()?.takeIf { part.isNotEmpty() && part.length <= 3 && it in 0..255 } ?: return null
+            out = (out shl 8) or octet.toLong()
+        }
+        return out
+    }
+
+    private fun dotted(value: Long): String =
+        listOf(24, 16, 8, 0).joinToString(".") { ((value shr it) and 0xff).toString() }
 
     private fun ifconfig(directives: List<Directive>): Pair<String, String>? {
         val args = directives.first("ifconfig") ?: return null
