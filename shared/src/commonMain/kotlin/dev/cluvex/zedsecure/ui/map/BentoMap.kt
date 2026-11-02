@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -169,39 +171,55 @@ internal fun BentoMapLayout(
             verticalArrangement = Arrangement.spacedBy(BentoMetrics.gap()),
         ) {
             if (vpnOn) {
-                Row(horizontalArrangement = Arrangement.spacedBy(BentoMetrics.gap())) {
+                val exitValue = exitLabel.ifBlank { stringResource(if (info.loading) Res.string.map_locating else Res.string.map_unknown) }
+                val exitFlag = exitCode.takeIf { it.isNotBlank() }
+                val isp = info.isp?.takeIf { it.isNotBlank() }
+                if (isp != null) {
+                    Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(BentoMetrics.gap())) {
+                        FactTile(
+                            tone = c.blue,
+                            caption = stringResource(Res.string.map_exit),
+                            value = exitValue,
+                            flag = exitFlag,
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                        )
+                        FactTile(
+                            tone = c.cyan,
+                            caption = stringResource(Res.string.map_network),
+                            value = isp,
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                        )
+                    }
+                } else {
                     FactTile(
                         tone = c.blue,
                         caption = stringResource(Res.string.map_exit),
-                        value = exitLabel.ifBlank { stringResource(if (info.loading) Res.string.map_locating else Res.string.map_unknown) },
-                        flag = exitCode.takeIf { it.isNotBlank() },
-                        modifier = Modifier.weight(1f),
-                    )
-                    FactTile(
-                        tone = c.violet,
-                        caption = stringResource(Res.string.map_ip),
-                        value = info.ipv4 ?: info.ipv6 ?: "—",
-                        numeric = true,
-                        modifier = Modifier.weight(1f),
+                        value = exitValue,
+                        flag = exitFlag,
+                        modifier = Modifier.fillMaxWidth(),
                     )
                 }
-                info.isp?.takeIf { it.isNotBlank() }?.let { isp ->
-                    FactTile(tone = c.cyan, caption = stringResource(Res.string.map_network), value = isp, modifier = Modifier.fillMaxWidth())
-                }
+                FactTile(
+                    tone = c.violet,
+                    caption = stringResource(Res.string.map_ip),
+                    value = info.ipv4 ?: info.ipv6 ?: "—",
+                    numeric = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
                 if (connected) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(BentoMetrics.gap())) {
+                    Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(BentoMetrics.gap())) {
                         FactTile(
                             tone = c.coral,
                             caption = stringResource(Res.string.map_ping),
                             value = info.pingMs?.let { "$it ms" } ?: "—",
                             numeric = true,
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
                         )
                         FactTile(
                             tone = c.surfaceTone,
                             caption = stringResource(Res.string.map_server),
                             value = serverName ?: "—",
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
                         )
                     }
                 }
@@ -285,12 +303,7 @@ private fun FactTile(
                 BentoFlag(flag, size = 30.dp, corner = 10.dp)
                 Spacer(Modifier.width(8.dp))
             }
-            val size = when {
-                !numeric -> 19.sp
-                value.contains(':') -> 14.sp
-                value.length > 12 -> 16.sp
-                else -> 19.sp
-            }
+            val size = if (numeric && value.contains(':')) 15.sp else 19.sp
             Text(
                 if (numeric) ltrIsolate(value) else value,
                 style = BentoType.title(size).let { if (numeric) it.copy(fontFeatureSettings = "tnum") else it },
