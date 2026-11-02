@@ -110,7 +110,6 @@ jobs:
           "$BT/aapt2" dump badging "dist/ZedSecure-$V-universal.apk" | grep -q "native-code: 'arm64-v8a' 'armeabi-v7a'" \
             || { echo "::error::the universal APK does not carry both ARM ABIs"; exit 1; }
           ( cd dist && sha256sum ZedSecure-*.apk > SHA256SUMS-android.txt )
-          "$JAVA_HOME/bin/keytool" -printcert -jarfile "dist/ZedSecure-$V-arm64-v8a.apk" | grep -E 'Owner|SHA-256' | head -2
           ls -l dist
 
       - name: Forget the key

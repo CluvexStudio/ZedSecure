@@ -57,7 +57,6 @@ jobs:
           grep -q "base/lib/x86/" libs.txt && { echo "::error::the bundle has x86 libraries without the engines"; exit 1; } || true
           echo "$(wc -l < libs.txt) native libraries in the bundle"
           "$JAVA_HOME/bin/jarsigner" -verify "dist/ZedSecure-$V.aab" | tail -1
-          "$JAVA_HOME/bin/keytool" -printcert -jarfile "dist/ZedSecure-$V.aab" | grep -E 'Owner|SHA256' | head -2
           ( cd dist && sha256sum ZedSecure-*.aab > SHA256SUMS-aab.txt )
           ls -l dist
 
