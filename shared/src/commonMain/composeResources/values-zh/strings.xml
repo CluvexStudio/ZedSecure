@@ -935,10 +935,10 @@
     <string name="personalize_upload_tile">上传 — 卡片背景</string>
     <string name="personalize_upload_tile_sub">为它们后面的矩形着色</string>
     <string name="subs_ua_preset">User-Agent</string>
-    <string name="subs_ua_v2rayng">v2rayNG（推荐）</string>
+    <string name="subs_ua_compat">兼容（推荐）</string>
     <string name="subs_ua_zedsecure">ZedSecure</string>
     <string name="subs_ua_custom">自定义</string>
-    <string name="subs_ua_hint">许多提供商只向 v2rayNG User-Agent 返回其 JSON 自定义配置，对其他客户端则返回普通链接。</string>
+    <string name="subs_ua_hint">许多提供商只向最常见客户端的 User-Agent 返回其 JSON 自定义配置，对其他客户端则返回普通链接。“兼容”会发送该 User-Agent。</string>
     <string name="subs_edit">编辑订阅</string>
     <string name="subs_preset_title">修改此订阅中的所有服务器</string>
     <string name="subs_preset_hint">每次订阅更新时应用。留空的字段将保留服务器提供的值。</string>
@@ -1123,7 +1123,7 @@
     <string name="personalize_config_card_text">配置卡片文字</string>
     <string name="personalize_config_card_text_sub">标题、图标与箭头</string>
     <string name="openconnect_port">端口</string>
-    <string name="manual_final_mask">finalmask JSON (PattNG fm)</string>
+    <string name="manual_final_mask">finalmask JSON</string>
     <string name="subs_imported">已添加订阅「%1$s」— %2$d 个服务器</string>
     <string name="wg_obfuscate_title">要混淆 WireGuard 吗？</string>
     <string name="wg_obfuscate_body">已导入 %1$d 个普通 WireGuard 配置。混淆（AmneziaWG）可对 DPI 隐藏握手，但仅当服务器也以相同参数运行 AmneziaWG 时才有效。</string>

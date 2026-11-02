@@ -927,10 +927,10 @@
     <string name="personalize_upload_tile">آپلود — پس‌زمینهٔ کاشی</string>
     <string name="personalize_upload_tile_sub">رنگ مستطیلی که پشت آن‌هاست</string>
     <string name="subs_ua_preset">یوزر ایجنت</string>
-    <string name="subs_ua_v2rayng">v2rayNG (پیشنهادی)</string>
+    <string name="subs_ua_compat">سازگار (پیشنهادی)</string>
     <string name="subs_ua_zedsecure">ZedSecure</string>
     <string name="subs_ua_custom">دلخواه</string>
-    <string name="subs_ua_hint">خیلی از ارائه‌دهنده‌ها کانفیگ‌های JSON سفارشی خود را فقط به یوزر ایجنت v2rayNG می‌دهند و به بقیه لینک ساده می‌دهند.</string>
+    <string name="subs_ua_hint">خیلی از ارائه‌دهنده‌ها کانفیگ‌های JSON سفارشی خود را فقط به یوزر ایجنت رایج‌ترین کلاینت می‌دهند و به بقیه لینک ساده می‌دهند. گزینهٔ «سازگار» همان یوزر ایجنت را می‌فرستد.</string>
     <string name="subs_edit">ویرایش سابسکریپشن</string>
     <string name="subs_preset_title">تغییر همهٔ سرورهای این اشتراک</string>
     <string name="subs_preset_hint">هر بار که اشتراک به‌روز می‌شود اعمال می‌شود. فیلدی را خالی بگذارید تا همان مقداری که سرور می‌فرستد بماند.</string>
@@ -1115,7 +1115,7 @@
     <string name="personalize_config_card_text">متن کارت کانفیگ</string>
     <string name="personalize_config_card_text_sub">عنوان، آیکون و فلش آن</string>
     <string name="openconnect_port">پورت</string>
-    <string name="manual_final_mask">‏JSON فاینال‌ماسک (PattNG fm)</string>
+    <string name="manual_final_mask">‏JSON فاینال‌ماسک</string>
     <string name="subs_imported">سابسکریپشن «%1$s» اضافه شد — %2$d سرور</string>
     <string name="wg_obfuscate_title">وایرگارد مبهم‌سازی شود؟</string>
     <string name="wg_obfuscate_body">%1$d کانفیگ وایرگارد معمولی وارد شد. مبهم‌سازی (AmneziaWG) دست‌دادن اولیه را از DPI پنهان می‌کند، ولی فقط وقتی کار می‌کند که سرور هم AmneziaWG با همین پارامترها اجرا کند.</string>

@@ -895,10 +895,10 @@
     <string name="personalize_upload_tile">Subida — fondo del recuadro</string>
     <string name="personalize_upload_tile_sub">Colorea el rectángulo que hay detrás de ellos</string>
     <string name="subs_ua_preset">User-Agent</string>
-    <string name="subs_ua_v2rayng">v2rayNG (recomendado)</string>
+    <string name="subs_ua_compat">Compatible (recomendado)</string>
     <string name="subs_ua_zedsecure">ZedSecure</string>
     <string name="subs_ua_custom">Personalizado</string>
-    <string name="subs_ua_hint">Muchos proveedores solo envían sus configuraciones JSON personalizadas al User-Agent de v2rayNG, y a todo lo demás le envían enlaces simples.</string>
+    <string name="subs_ua_hint">Muchos proveedores solo envían sus configuraciones JSON personalizadas al User-Agent del cliente más común, y a todo lo demás le envían enlaces simples. «Compatible» envía ese User-Agent.</string>
     <string name="subs_edit">Editar suscripción</string>
     <string name="subs_preset_title">Cambiar todos los servidores de esta suscripción</string>
     <string name="subs_preset_hint">Se aplica cada vez que la suscripción se actualiza. Deja un campo vacío para conservar lo que envía el servidor.</string>
@@ -1078,7 +1078,7 @@
     <string name="personalize_config_card_text">Texto de la tarjeta de configuración</string>
     <string name="personalize_config_card_text_sub">Su título, icono y flecha</string>
     <string name="openconnect_port">Puerto</string>
-    <string name="manual_final_mask">JSON de finalmask (PattNG fm)</string>
+    <string name="manual_final_mask">JSON de finalmask</string>
     <string name="subs_imported">Suscripción "%1$s" añadida — %2$d servidores</string>
     <string name="wg_obfuscate_title">¿Ofuscar WireGuard?</string>
     <string name="wg_obfuscate_body">Se importaron %1$d configuración(es) de WireGuard sin ofuscar. La ofuscación (AmneziaWG) oculta el handshake a la DPI, pero solo funciona si el servidor también usa AmneziaWG con los mismos parámetros.</string>
