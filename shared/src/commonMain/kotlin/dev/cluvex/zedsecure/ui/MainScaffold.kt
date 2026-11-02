@@ -379,6 +379,7 @@ fun MainScaffold(
                     repository = configRepository,
                     contentPadding = innerPadding,
                     onImportRequested = onImportZsx,
+                    onActiveChanged = onActiveServerChanged,
                 )
                 TopDestination.Subscriptions -> dev.cluvex.zedsecure.ui.navigation.SubscriptionsTabPage(configRepository, innerPadding)
                 TopDestination.Logs -> dev.cluvex.zedsecure.ui.navigation.LogsTabPage(innerPadding)

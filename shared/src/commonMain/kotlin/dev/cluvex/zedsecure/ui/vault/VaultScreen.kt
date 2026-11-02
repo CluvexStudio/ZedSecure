@@ -82,6 +82,7 @@ fun VaultScreen(
     contentPadding: PaddingValues,
     onImportRequested: () -> Unit,
     modifier: Modifier = Modifier,
+    onActiveChanged: () -> Unit = {},
 ) {
     val platform = LocalPlatform.current
     val needConfigMsg = stringResource(Res.string.vault_need_config_first)
@@ -151,7 +152,9 @@ fun VaultScreen(
                             profile = profile,
                             active = profile.id == activeId,
                             onUse = {
+                                val changed = profile.id != activeId
                                 repository.setActive(profile.id)
+                                if (changed) onActiveChanged()
                                 platform.toast(selectedMsg)
                             },
                             onDelete = { repository.remove(profile.id) },
