@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       signing_key:
-        description: "main = the original ZedSecure key (Tehran, 38cecf37); upload = the second key (Toronto)"
+        description: "main = the original ZedSecure key; upload = the second key"
         type: choice
         default: main
         options: [main, upload]
