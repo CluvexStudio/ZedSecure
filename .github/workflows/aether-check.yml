@@ -21,6 +21,8 @@ jobs:
       - uses: actions/setup-java@v6
         with: { distribution: temurin, java-version: '21' }
       - uses: gradle/actions/setup-gradle@v5
+        with:
+          cache-read-only: false
       - name: Verify scripts and resources
         run: |
           bash -n tools/get-aether.sh tools/get-cores.sh
@@ -35,7 +37,7 @@ jobs:
           grep -q -- --tls-verify build/aether-help.txt
           grep -q -- --quick-reconnect build/aether-help.txt
       - name: Compile both apps and test lifecycle and profile sharing
-        run: ./gradlew --console=plain :desktop:test :app:assembleDebug
+        run: ./gradlew --console=plain --max-workers=2 -Pkotlin.daemon.jvmargs=-Xmx6144m :desktop:test :app:assembleDebug
       - name: Upload test results and debug APKs
         if: always()
         uses: actions/upload-artifact@v7
@@ -46,4 +48,5 @@ jobs:
             app/build/outputs/apk/debug/*.apk
             build/aether-help.txt
           retention-days: 14
+
 
