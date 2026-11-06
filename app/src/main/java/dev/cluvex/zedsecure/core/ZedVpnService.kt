@@ -56,6 +56,7 @@ class ZedVpnService : VpnService() {
     private var bentoCard: Boolean = false
     private var notifChip: dev.cluvex.zedsecure.domain.model.NotifChip =
         dev.cluvex.zedsecure.domain.model.NotifChip.Speed
+    @Volatile private var aether: AetherProcess? = null
     private var psiphon: PsiphonController? = null
     private var dnsTunnel: DnsTunnelController? = null
     private var masterDns: MasterDnsController? = null
@@ -323,6 +324,7 @@ class ZedVpnService : VpnService() {
         VpnManager.setActiveKind(kind)
 
         when (kind) {
+            VpnManager.KIND_AETHER -> startAether(configJson, descriptor, tunMtu)
             VpnManager.KIND_PSIPHON -> startPsiphon(configJson, descriptor, tunMtu)
             VpnManager.KIND_DNS_TUNNEL -> startDnsTunnel(configJson, descriptor, tunMtu, settings)
             VpnManager.KIND_MASTERDNS -> startMasterDns(configJson, descriptor, tunMtu, settings)
@@ -682,6 +684,7 @@ class ZedVpnService : VpnService() {
         val dns = kind == VpnManager.KIND_DNS_TUNNEL || kind == VpnManager.KIND_MASTERDNS
         val mtu = if (dns) 1280 else settings.vpnMtu.coerceIn(1000, 9000)
         when (kind) {
+            VpnManager.KIND_AETHER -> startAether(configJson, null, mtu)
             VpnManager.KIND_PSIPHON -> startPsiphon(configJson, null, mtu)
             VpnManager.KIND_DNS_TUNNEL -> startDnsTunnel(configJson, null, mtu, settings)
             VpnManager.KIND_MASTERDNS -> startMasterDns(configJson, null, mtu, settings)
@@ -796,6 +799,40 @@ class ZedVpnService : VpnService() {
         networkWatch = null
         if (autoSelectSession) AutoSelect.end()
         autoSelectSession = false
+    }
+
+    private fun startAether(configJson: String, descriptor: ParcelFileDescriptor?, tunMtu: Int) {
+        if (Build.VERSION.SDK_INT < 29) {
+            VpnManager.onError(getString(R.string.aether_android_requirement))
+            stopEverything()
+            return
+        }
+        val profile = runCatching {
+            kotlinx.serialization.json.Json.decodeFromString(
+                dev.cluvex.zedsecure.domain.config.AetherProfile.serializer(), configJson,
+            ).also { it.validate() }
+        }.getOrElse {
+            VpnManager.onError(getString(R.string.config_invalid))
+            stopEverything()
+            return
+        }
+        val process = AetherProcess(
+            java.io.File(applicationInfo.nativeLibraryDir, "libaether.so"),
+            java.io.File(filesDir, "aether"), profile,
+            LocalPortPicker.pick(LocalPorts.AETHER_SOCKS),
+            log = { Log.i("Aether", it) },
+        )
+        aether = process
+        scope.launch(Dispatchers.IO) {
+            val result = process.start()
+            if (aether !== process || userStop || VpnManager.status.value.state != dev.cluvex.zedsecure.domain.model.ConnectionState.Connecting) return@launch
+            result.exceptionOrNull()?.let {
+                VpnManager.onError(it.message ?: "Aether failed to start")
+                stopEverything()
+                return@launch
+            }
+            bridgeEngine(descriptor, process.socksPort, tunMtu)
+        }
     }
 
     private fun startPsiphon(configJson: String, descriptor: ParcelFileDescriptor?, tunMtu: Int) {
@@ -940,6 +977,7 @@ class ZedVpnService : VpnService() {
 
     private fun protocolLabel(): String {
         val label = when (kind) {
+            VpnManager.KIND_AETHER -> "Aether"
             VpnManager.KIND_PSIPHON -> "Psiphon"
             VpnManager.KIND_DNS_TUNNEL -> "DNS"
             VpnManager.KIND_MASTERDNS -> "MasterDNS"
@@ -958,6 +996,7 @@ class ZedVpnService : VpnService() {
     }
 
     private fun engineLabel(k: String?): String = when (k) {
+        VpnManager.KIND_AETHER -> "Aether"
         VpnManager.KIND_PSIPHON -> "Psiphon"
         VpnManager.KIND_DNS_TUNNEL -> "DNS"
         VpnManager.KIND_MASTERDNS -> "MasterDNS"
@@ -1194,6 +1233,7 @@ class ZedVpnService : VpnService() {
                 val waited = waitMs
                 delay(waited)
                 val running = when (kind) {
+                    VpnManager.KIND_AETHER -> aether?.isRunning == true
                     VpnManager.KIND_PSIPHON -> psiphon?.isRunning == true
                     VpnManager.KIND_DNS_TUNNEL -> dnsTunnel?.isRunning == true
                     VpnManager.KIND_MASTERDNS -> masterDns?.isRunning == true
@@ -1222,7 +1262,7 @@ class ZedVpnService : VpnService() {
                 val (down, up) = if (FrontCore.isRunning) FrontCore.readTrafficDelta() else when (kind) {
                     VpnManager.KIND_XRAY, VpnManager.KIND_SNISPOOF -> XrayController.readTrafficDelta()
 
-                    VpnManager.KIND_PSIPHON -> uidTrafficDelta()
+                    VpnManager.KIND_AETHER, VpnManager.KIND_PSIPHON -> uidTrafficDelta()
                     VpnManager.KIND_OPENCONNECT -> { openConnect?.pokeStats(); openConnect?.trafficDelta() ?: (0L to 0L) }
 
                     VpnManager.KIND_SINGBOX -> singBox?.let { engine ->
@@ -1270,12 +1310,18 @@ class ZedVpnService : VpnService() {
                 runCatching { addDisallowedApplication(pkg) }
             }
         } else {
+            var allowed = 0
             settings.perAppPackages.forEach { pkg ->
                 if (pkg == self && !selfInTunnel) return@forEach
-                runCatching { addAllowedApplication(pkg) }
+                if (runCatching { addAllowedApplication(pkg) }.isSuccess) allowed++
             }
             if (selfInTunnel && self !in settings.perAppPackages) {
                 runCatching { addAllowedApplication(self) }
+            }
+            // An empty allow-list means every UID. Aether has no protect(fd) callback,
+            // so keep our UID excluded even if every selected package was uninstalled.
+            if (kind == VpnManager.KIND_AETHER && !selfInTunnel && allowed == 0) {
+                addDisallowedApplication(self)
             }
         }
     }
@@ -1436,6 +1482,7 @@ class ZedVpnService : VpnService() {
         stopNetworkTypeWatch()
         stopUnderlyingWatch()
         stopAutoSelectSession()
+        aether?.let { aether = null; it.stop() }
         psiphon?.stop(); psiphon = null
         dnsTunnel?.stop(); dnsTunnel = null
         masterDns?.stop(); masterDns = null

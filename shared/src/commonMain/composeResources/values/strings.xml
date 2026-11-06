@@ -1813,4 +1813,18 @@
     <string name="bento_palette_ocean">Ocean</string>
     <string name="bento_palette_sunset">Sunset</string>
     <string name="bento_palette_berry">Berry</string>
+
+    <string name="aether_add_title">Aether (WARP)</string>
+    <string name="aether_description">Connect to WARP using MASQUE or WireGuard. On Android, version 10 or newer is required.</string>
+    <string name="aether_protocol">Protocol</string>
+    <string name="aether_http2">Use HTTP/2 (TCP)</string>
+    <string name="aether_scan">Endpoint scan mode</string>
+    <string name="aether_ip_version">IP version</string>
+    <string name="aether_noize">Obfuscation profile</string>
+    <string name="aether_peer">Endpoint (optional)</string>
+    <string name="aether_peer_hint">Leave empty to scan, or enter IP:port / [IPv6]:port.</string>
+    <string name="aether_fragment">Fragment TLS ClientHello</string>
+    <string name="aether_ech">Encrypted Client Hello (ECH)</string>
+    <string name="aether_tls_verify">Verify MASQUE gateway certificate</string>
+    <string name="aether_android_requirement">Aether requires Android 10 or newer. Other engines remain available.</string>
 </resources>

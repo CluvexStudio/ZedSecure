@@ -22,6 +22,10 @@ sealed interface ProfileSource {
     data class Sealed(val zsxBase64: String) : ProfileSource
 
     @Serializable
+    @SerialName("aether")
+    data class Aether(val settings: AetherProfile) : ProfileSource
+
+    @Serializable
     @SerialName("psiphon")
     data class Psiphon(val settings: PsiphonProfile) : ProfileSource
 
@@ -99,6 +103,8 @@ data class VpnProfile(
 
     val isServerless: Boolean by lazy { (source as? ProfileSource.RawJson)?.json?.let(CustomConfig::isServerless) == true }
 
+    val isAether: Boolean get() = source is ProfileSource.Aether
+
     val isPsiphon: Boolean get() = source is ProfileSource.Psiphon
 
     val isDnsTunnel: Boolean get() = source is ProfileSource.DnsTunnel
@@ -152,10 +158,12 @@ data class VpnProfile(
     fun sniSpoofSettings(): SniSpoofProfile? = (source as? ProfileSource.SniSpoof)?.settings
 
     val isManagedTunnel: Boolean
-        get() = isPsiphon || isDnsTunnel || isMasterDns || isTor || isSsh || isSniSpoof ||
+        get() = isAether || isPsiphon || isDnsTunnel || isMasterDns || isTor || isSsh || isSniSpoof ||
             isOpenConnect || isIkev2 || isCrossChain || isSingBoxConfig
 
     val isDnsBasedTunnel: Boolean get() = isDnsTunnel || isMasterDns
+
+    fun aetherSettings(): AetherProfile? = (source as? ProfileSource.Aether)?.settings
 
     fun psiphonSettings(): PsiphonProfile? = (source as? ProfileSource.Psiphon)?.settings
 
@@ -212,6 +220,7 @@ data class VpnProfile(
 
         is ProfileSource.Sealed -> null
 
+        is ProfileSource.Aether -> ZedLink.build(name, src)
         is ProfileSource.Psiphon -> ZedLink.build(name, src)
         is ProfileSource.DnsTunnel -> ZedLink.build(name, src)
         is ProfileSource.Tor -> ZedLink.build(name, src)
@@ -257,6 +266,7 @@ data class VpnProfile(
                 forSpeedtest,
             )
 
+        is ProfileSource.Aether -> throw IllegalStateException("Aether profiles run on the Aether engine")
         is ProfileSource.Psiphon -> throw IllegalStateException("Psiphon profiles do not build Xray config")
         is ProfileSource.DnsTunnel -> throw IllegalStateException("DNS-tunnel profiles do not build Xray config")
         is ProfileSource.MasterDns -> throw IllegalStateException("MasterDNS profiles do not build Xray config")
@@ -307,6 +317,16 @@ data class VpnProfile(
         const val ENGINE_SINGBOX = "sing-box"
         const val ENGINE_CHAIN = "Chain"
         const val ENGINE_AUTO = "Auto"
+
+        fun fromAether(settings: AetherProfile, id: String, addedAt: Long, name: String): VpnProfile {
+            settings.validate()
+            return VpnProfile(
+                id = id, name = name.ifBlank { "Aether" }, protocol = "AETHER",
+                address = settings.peer.ifBlank { "WARP" }, port = 0,
+                transportLabel = "Aether · ${settings.protocol}" + if (settings.usesMasque) { if (settings.http2) " · H2" else " · H3" } else "",
+                source = ProfileSource.Aether(settings), addedAt = addedAt,
+            )
+        }
 
         fun fromPsiphon(
             settings: PsiphonProfile,
@@ -530,6 +550,7 @@ data class VpnProfile(
             is ProfileSource.SingBox, is ProfileSource.SingBoxConfig -> ENGINE_SINGBOX
             is ProfileSource.Link -> if (SingBoxLinks.handles(src.link)) ENGINE_SINGBOX else ENGINE_XRAY
             is ProfileSource.Tor -> "Tor"
+            is ProfileSource.Aether -> "Aether"
             is ProfileSource.Psiphon -> "Psiphon"
             is ProfileSource.DnsTunnel -> if (src.settings.isVaydns) "VayDNS" else "DNSTT"
             is ProfileSource.MasterDns -> "MasterDNS"

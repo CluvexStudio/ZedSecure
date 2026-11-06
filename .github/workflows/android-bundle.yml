@@ -50,7 +50,7 @@ jobs:
           cp "$src" "dist/ZedSecure-$V.aab"
           unzip -l "dist/ZedSecure-$V.aab" | awk '/base\/lib\//{print $4}' | sort > libs.txt
           for abi in arm64-v8a armeabi-v7a x86_64; do
-            for lib in libgojni libtor libobfs4proxy libconjure libsnowflake libsnispoof libhev-socks5-tunnel libopenconnect libzeptun libzeptun-jni; do
+            for lib in libaether libgojni libtor libobfs4proxy libconjure libsnowflake libsnispoof libhev-socks5-tunnel libopenconnect libzeptun libzeptun-jni; do
               grep -qx "base/lib/$abi/$lib.so" libs.txt || { echo "::error::$abi/$lib.so is not in the bundle"; exit 1; }
             done
           done

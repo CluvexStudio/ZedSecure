@@ -1806,4 +1806,18 @@
     <string name="bento_palette_ocean">اقیانوس</string>
     <string name="bento_palette_sunset">غروب</string>
     <string name="bento_palette_berry">توت</string>
+
+    <string name="aether_add_title">Aether (وارپ)</string>
+    <string name="aether_description">اتصال به وارپ با MASQUE یا WireGuard. در اندروید، نسخهٔ ۱۰ یا جدیدتر لازم است.</string>
+    <string name="aether_protocol">پروتکل</string>
+    <string name="aether_http2">استفاده از HTTP/2 (TCP)</string>
+    <string name="aether_scan">روش اسکن سرورها</string>
+    <string name="aether_ip_version">نسخهٔ آی‌پی</string>
+    <string name="aether_noize">حالت مبهم‌سازی</string>
+    <string name="aether_peer">سرور (اختیاری)</string>
+    <string name="aether_peer_hint">برای اسکن خودکار خالی بگذارید، یا IP:port / [IPv6]:port وارد کنید.</string>
+    <string name="aether_fragment">خردکردن پیام آغاز TLS</string>
+    <string name="aether_ech">رمزنگاری نام دامنه (ECH)</string>
+    <string name="aether_tls_verify">بررسی گواهی سرور MASQUE</string>
+    <string name="aether_android_requirement">هستهٔ Aether به اندروید ۱۰ یا جدیدتر نیاز دارد. می‌توانید از هسته‌های دیگر استفاده کنید.</string>
 </resources>

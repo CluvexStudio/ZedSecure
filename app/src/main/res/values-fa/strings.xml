@@ -680,4 +680,5 @@
     <string name="widget_upload">آپلود</string>
     <string name="widget_toggle_label">کلید ZedSecure</string>
     <string name="widget_toggle_description">با یک لمس وصل یا قطع کنید.</string>
+    <string name="aether_android_requirement">هستهٔ Aether به اندروید ۱۰ یا جدیدتر نیاز دارد. می‌توانید از هسته‌های دیگر استفاده کنید.</string>
 </resources>

@@ -35,6 +35,7 @@ the connection to the fastest one.
 | Xray | VLESS with Reality, Vision and XHTTP, VMess, Trojan, Shadowsocks, Hysteria2, WireGuard, AmneziaWG |
 | sing-box | TUIC, Naive, AnyTLS, ShadowTLS, OpenVPN `.ovpn` files, and plain sing-box JSON |
 | Psiphon | Psiphon's own network; no server of yours needed |
+| Aether | Cloudflare WARP using MASQUE (HTTP/3 or HTTP/2), WireGuard and nested WARP tunnels; Android 10+ or desktop |
 | Tor | obfs4, Snowflake and Conjure bridges |
 | DNS tunnels | DNSTT, VayDNS and MasterDNS, over UDP, TCP, DoT or DoH |
 | OpenConnect | Cisco AnyConnect and compatible gateways |
@@ -80,6 +81,10 @@ Every engine is built in [ZedSecure-Cores](https://github.com/CluvexStudio/ZedSe
 workflow per engine, from the forks and exact commits in its `pins.txt`. [`tools/cores.txt`](tools/cores.txt)
 names the build each release takes. Pushing a `v*` tag builds Android and every desktop system in CI
 and puts them all in one release; Android and desktop share one version.
+
+Aether is taken from its checksum-pinned upstream v2.4.0 release. See
+[Aether integration](docs/aether-integration.md) for supported modes, Android
+requirements, desktop routing and validation.
 
 ## Credits
 
