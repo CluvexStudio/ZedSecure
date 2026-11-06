@@ -6,6 +6,7 @@ import dev.cluvex.zedsecure.core.VpnManager
 import dev.cluvex.zedsecure.data.config.ConfigRepository
 import dev.cluvex.zedsecure.desktop.core.DesktopDnsTunnel
 import dev.cluvex.zedsecure.desktop.core.DesktopIkev2
+import dev.cluvex.zedsecure.desktop.core.DesktopAether
 import dev.cluvex.zedsecure.desktop.core.DesktopPsiphon
 import dev.cluvex.zedsecure.desktop.core.DesktopTor
 import dev.cluvex.zedsecure.desktop.core.DesktopTun
@@ -51,6 +52,7 @@ object DesktopVpn {
     private var ssh: SshController? = null
     private var dnsTunnel: DesktopDnsTunnel? = null
     @Volatile private var tor: DesktopTor? = null
+    @Volatile private var aether: DesktopAether? = null
     @Volatile private var psiphon: DesktopPsiphon? = null
     @Volatile private var masterDns: dev.cluvex.zedsecure.desktop.core.DesktopMasterDns? = null
     @Volatile private var ikev2: DesktopIkev2? = null
@@ -102,6 +104,7 @@ object DesktopVpn {
                 VpnManager.onError("SNI spoofing needs a rooted Android device; it is not available on desktop yet")
             profile.ikev2Settings() != null -> startIkev2(profile.name, profile.ikev2Settings()!!)
             profile.openConnectSettings() != null -> startOpenConnect(profile.name, profile.openConnectSettings()!!)
+            profile.aetherSettings() != null -> startAether(profile.name, profile.aetherSettings()!!)
             profile.psiphonSettings() != null -> startPsiphon(profile.name, profile.psiphonSettings()!!)
             profile.isTor -> startTor(profile.name)
             profile.dnsTunnelSettings() != null -> startDns(profile.name, profile.dnsTunnelSettings()!!)
@@ -192,6 +195,36 @@ object DesktopVpn {
                 return@thread
             }
             VpnManager.onConnected(name)
+        }
+    }
+
+    private fun startAether(name: String, profile: dev.cluvex.zedsecure.domain.config.AetherProfile) {
+        VpnManager.onStarting(name)
+        VpnManager.setActiveKind(VpnManager.KIND_AETHER)
+        val engine = DesktopAether(profile, work, localPort(LocalPorts.AETHER_SOCKS), engineCgroupForTun())
+        aether = engine
+        thread(name = "desktop-aether") {
+            val result = engine.start()
+            synchronized(this) {
+                if (aether !== engine || VpnManager.status.value.state != dev.cluvex.zedsecure.domain.model.ConnectionState.Connecting) return@thread
+                result.exceptionOrNull()?.let {
+                    teardown()
+                    VpnManager.onError(it.message ?: "Aether failed to start")
+                    return@thread
+                }
+                if (!connectThrough(engine.socksPort, "Aether")) {
+                    teardown()
+                    return@thread
+                }
+                VpnManager.onConnected(name)
+            }
+            while (aether === engine && engine.isRunning) Thread.sleep(500)
+            synchronized(this) {
+                if (aether === engine) {
+                    teardown()
+                    VpnManager.onError("Aether disconnected")
+                }
+            }
         }
     }
 
@@ -791,6 +824,7 @@ object DesktopVpn {
         tor?.let { tor = null; it.stop() }
         ikev2?.let { ikev2 = null; it.disconnect() }
         openConnect?.let { openConnect = null; it.disconnect() }
+        aether?.let { aether = null; it.stop() }
         psiphon?.let { psiphon = null; it.stop() }
         masterDns?.let { masterDns = null; it.stop() }
         ssh?.stop(); ssh = null

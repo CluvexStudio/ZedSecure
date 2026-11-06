@@ -692,4 +692,5 @@
     <string name="widget_toggle_description">One tap to connect or disconnect.</string>
     <string name="widget_preview_down_rate" translatable="false">12.4 MB/s</string>
     <string name="widget_preview_up_rate" translatable="false">1.8 MB/s</string>
+    <string name="aether_android_requirement">Aether requires Android 10 or newer. Other engines remain available.</string>
 </resources>

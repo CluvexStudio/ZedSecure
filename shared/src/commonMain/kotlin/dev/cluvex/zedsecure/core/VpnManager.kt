@@ -54,6 +54,7 @@ object VpnManager {
     const val CMD_START_ACTIVE = "start_active"
 
     const val KIND_XRAY = "xray"
+    const val KIND_AETHER = "aether"
     const val KIND_PSIPHON = "psiphon"
 
     const val KIND_DNS_TUNNEL = "dns_tunnel"

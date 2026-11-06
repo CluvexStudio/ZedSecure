@@ -105,4 +105,5 @@ case "$TARGET" in
     exit 1
     ;;
 esac
+bash "$ROOT/tools/get-aether.sh" "$TARGET"
 echo "cores for $TARGET are in place"

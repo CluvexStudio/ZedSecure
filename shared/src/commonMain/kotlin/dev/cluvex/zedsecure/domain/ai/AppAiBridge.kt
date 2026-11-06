@@ -289,6 +289,7 @@ class AppAiBridge(
         "no server with the id \"$id\". Call list_servers for the current ones."
 
     private fun kindOf(p: VpnProfile): String = when (p.source) {
+        is ProfileSource.Aether -> "aether"
         is ProfileSource.Psiphon -> "psiphon"
         is ProfileSource.Tor -> "tor"
         is ProfileSource.Ssh -> "ssh"
