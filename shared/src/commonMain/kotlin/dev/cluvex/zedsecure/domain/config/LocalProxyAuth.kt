@@ -17,6 +17,8 @@ object LocalProxyAuth {
 
     private const val XRAY_SOCKS_TAG = "socks-in"
 
+    private val XRAY_SOCKS_PROTOCOLS = setOf("socks", "mixed")
+
     @Volatile
     var current: Credentials? = null
         private set
@@ -32,7 +34,7 @@ object LocalProxyAuth {
         current = null
     }
 
-    fun secureXray(json: String, credentials: Credentials): String {
+    fun secureXray(json: String, credentials: Credentials, port: Int? = null): String {
         val root = runCatching { Json.parseToJsonElement(json) as? JsonObject }.getOrNull() ?: return json
         val inbounds = root["inbounds"] as? JsonArray ?: return json
         var changed = false
@@ -40,8 +42,10 @@ object LocalProxyAuth {
             inbounds.forEach { element ->
                 val inbound = element as? JsonObject
                 val tag = (inbound?.get("tag") as? JsonPrimitive)?.contentOrNull
-                val protocol = (inbound?.get("protocol") as? JsonPrimitive)?.contentOrNull
-                if (inbound != null && tag == XRAY_SOCKS_TAG && protocol == "socks") {
+                val protocol = (inbound?.get("protocol") as? JsonPrimitive)?.contentOrNull?.lowercase()
+                val inboundPort = (inbound?.get("port") as? JsonPrimitive)?.contentOrNull?.trim()?.toIntOrNull()
+                val bridged = tag == XRAY_SOCKS_TAG || (port != null && inboundPort == port)
+                if (inbound != null && bridged && protocol in XRAY_SOCKS_PROTOCOLS) {
                     val settings = inbound["settings"] as? JsonObject ?: JsonObject(emptyMap())
                     add(JsonObject(inbound + ("settings" to JsonObject(settings + mapOf(
                         "auth" to JsonPrimitive("password"),

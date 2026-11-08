@@ -727,14 +727,20 @@ class ZedVpnService : VpnService() {
 
     private fun ported(json: String, port: Int): String {
         val moved = XrayJsonBuilder.withLocalPorts(json, LocalPorts.XRAY_SOCKS, port)
-        return localAuth?.let { dev.cluvex.zedsecure.domain.config.LocalProxyAuth.secureXray(moved, it) } ?: moved
+        return localAuth?.let { dev.cluvex.zedsecure.domain.config.LocalProxyAuth.secureXray(moved, it, port) } ?: moved
     }
 
-    private fun freePairFor(preferred: Int): Int =
-        if (LocalPortPicker.isFree(preferred) && LocalPortPicker.isFree(preferred + 1)) preferred
-        else LocalPortPicker.pickPair(preferred + 2).also {
-            LogBus.append("W/Engine port $preferred is taken, maybe by ZedSecure in another profile; using $it")
+    private fun freePairFor(preferred: Int): Int {
+        val deadline = System.currentTimeMillis() + PORT_WAIT_MS
+        while (true) {
+            if (LocalPortPicker.isFree(preferred) && LocalPortPicker.isFree(preferred + 1)) return preferred
+            if (System.currentTimeMillis() >= deadline) break
+            Thread.sleep(PORT_RETRY_MS)
         }
+        return LocalPortPicker.pickPair(preferred + 2).also {
+            LogBus.append("W/Engine port $preferred is taken by another app; using $it")
+        }
+    }
 
     private fun onXrayStarted() {
         autoSelectSession = AutoSelect.activate()
@@ -1679,6 +1685,7 @@ class ZedVpnService : VpnService() {
     }
 
     private fun startInForeground(notification: android.app.Notification) {
+        runCatching { notifications.createChannel() }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             startForeground(VpnNotifications.NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
         } else {
@@ -1942,6 +1949,8 @@ class ZedVpnService : VpnService() {
         private const val TAG = "ZedVpnService"
 
         private const val ZEPTUN_PROOF_MS = 6_000L
+        private const val PORT_WAIT_MS = 4_000L
+        private const val PORT_RETRY_MS = 200L
 
         private const val NETWORK_SETTLE_MS = 1_500L
         private const val RETRY_FIRST_MS = 3_000L
