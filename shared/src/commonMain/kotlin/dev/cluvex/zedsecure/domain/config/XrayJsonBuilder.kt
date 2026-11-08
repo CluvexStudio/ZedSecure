@@ -39,6 +39,29 @@ object XrayJsonBuilder {
 
     private val REMOVED_NETWORKS = setOf("h2", "h3", "http", "quic")
 
+    private val CORE_NETWORKS = setOf(
+        "tcp", "raw", "ws", "websocket", "grpc", "httpupgrade", "xhttp", "splithttp",
+        "kcp", "mkcp", "hysteria", "masque", "xdrive",
+    )
+
+    private val OWN_TRANSPORT = setOf(Protocol.WIREGUARD, Protocol.AMNEZIAWG, Protocol.HYSTERIA, Protocol.MASQUE)
+
+    private val CORE_SS_METHODS = setOf(
+        "aes-128-gcm", "aead_aes_128_gcm", "aes-256-gcm", "aead_aes_256_gcm",
+        "chacha20-poly1305", "aead_chacha20_poly1305", "chacha20-ietf-poly1305",
+        "xchacha20-poly1305", "aead_xchacha20_poly1305", "xchacha20-ietf-poly1305",
+        "2022-blake3-aes-128-gcm", "2022-blake3-aes-256-gcm", "2022-blake3-chacha20-poly1305",
+        "none", "plain",
+    )
+
+    private fun coreCanBuild(s: ServerConfig): Boolean {
+        val net = s.transport.network.lowercase()
+        if (s.protocol !in OWN_TRANSPORT && net !in CORE_NETWORKS) return false
+        if (s.protocol != Protocol.SHADOWSOCKS) return true
+        val method = s.shadowsocksMethod?.trim()?.lowercase()?.takeIf { it.isNotEmpty() } ?: "aes-256-gcm"
+        return method in CORE_SS_METHODS
+    }
+
     private val PRESET_FINGERPRINTS = setOf(
         "chrome", "firefox", "safari", "ios", "android", "edge", "360", "qq",
         "random", "randomized", "randomizednoalpn", "unsafe",
@@ -366,7 +389,7 @@ object XrayJsonBuilder {
             val lifted = runCatching {
                 when (m) {
                     is AutoMember.Server ->
-                        if (m.server.transport.network.lowercase() in REMOVED_NETWORKS) null
+                        if (!coreCanBuild(m.server)) null
 
                         else listOf(proxyOutbound(m.server, options, tag = tag))
                     is AutoMember.Custom -> liftCustomOutbounds(m.rawJson, tag)
@@ -498,7 +521,7 @@ object XrayJsonBuilder {
             options.ruleOutbounds
                 .mapNotNull { (ruleTag, server) ->
 
-                    if (server.transport.network.lowercase() in REMOVED_NETWORKS) null
+                    if (!coreCanBuild(server)) null
                     else emittedTagFor(ruleTag) to server
                 }
                 .toMap()

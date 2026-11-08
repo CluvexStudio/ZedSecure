@@ -87,7 +87,7 @@ object ConfigParser {
         }.getOrElse { throw ConfigParseException("Invalid vmess payload") }
 
         fun str(key: String): String? = obj[key]?.jsonPrimitive?.contentOrNull()
-        val net = str("net") ?: "tcp"
+        val net = str("net")?.substringBefore('#')?.trim()?.takeUnless { it.isEmpty() || it.equals("none", ignoreCase = true) } ?: "tcp"
         val type = str("type")
         val host = str("host")
         val path = str("path")
@@ -525,7 +525,7 @@ object ConfigParser {
     private const val BOM = '\uFEFF'
 
     private fun transportFrom(q: Map<String, String>) = TransportConfig(
-        network = q["type"] ?: "tcp",
+        network = q["type"]?.substringBefore('#')?.trim()?.takeUnless { it.isEmpty() } ?: "tcp",
         headerType = q["headerType"],
         host = q["host"] ?: q["sni"].takeIf { q["type"] == "ws" },
         path = q["path"],
