@@ -793,7 +793,8 @@ fun ServersScreen(
             if (subscriptions.isNotEmpty()) {
                 val counts = remember(servers) { servers.groupingBy { it.subscriptionId }.eachCount() }
 
-                LaunchedEffect(showAllGroup) { if (!showAllGroup && groupIndex == 0) groupIndex = 1 }
+                val manualCount = counts[""] ?: 0
+                LaunchedEffect(showAllGroup) { if (!showAllGroup && groupIndex == 0) groupIndex = if (manualCount > 0) 1 else 2 }
 
                 val groupRow = androidx.compose.foundation.lazy.rememberLazyListState()
                 androidx.compose.foundation.lazy.LazyRow(
@@ -814,13 +815,15 @@ fun ServersScreen(
                             )
                         }
                     }
-                    item(key = "group-manual") {
-                        GroupTab(
-                            label = stringResource(Res.string.group_manual),
-                            count = counts[""] ?: 0,
-                            selected = groupIndex == 1,
-                            onClick = { groupIndex = 1 },
-                        )
+                    if (manualCount > 0 || groupIndex == 1) {
+                        item(key = "group-manual") {
+                            GroupTab(
+                                label = stringResource(Res.string.group_manual),
+                                count = manualCount,
+                                selected = groupIndex == 1,
+                                onClick = { groupIndex = 1 },
+                            )
+                        }
                     }
                     if (bento) {
                         item(key = "group-subs") {
@@ -1013,7 +1016,7 @@ fun ServersScreen(
                     }
                     val subscriptionName = subscriptions.firstOrNull { it.id == profile.subscriptionId }?.name
                     if (bento) {
-                        val typeLabel = if (profile.isCustom) stringResource(Res.string.servers_custom_config) else profile.transportLabel
+                        val typeLabel = if (profile.isCustom && profile.transportLabel == dev.cluvex.zedsecure.domain.config.VpnProfile.CUSTOM_LABEL) stringResource(Res.string.servers_custom_config) else profile.transportLabel
                         dev.cluvex.zedsecure.ui.bento.BentoServerRow(
                             name = profile.name,
                             detail = if (groupIndex == 0 && subscriptionName != null) {

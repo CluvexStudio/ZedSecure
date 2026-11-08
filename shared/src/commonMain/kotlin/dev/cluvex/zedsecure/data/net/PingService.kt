@@ -150,7 +150,9 @@ object PingService {
                 onResult(profile.id, latency, profile.countryCode)
                 doneLock.withPermit { onProgress(++done, total) }
 
-                if (detectCountry && latency > 0 && profile.countryCode == null) {
+                if (detectCountry && latency > 0 && profile.countryCode == null &&
+                    dev.cluvex.zedsecure.domain.config.ProfileCountry.fromFlag(profile.name) == null
+                ) {
                     geoScope.launch {
                         val country = geoPermits.withPermit { GeoLookup.countryOf(profile.address) }
                         if (country != null) onResult(profile.id, latency, country)

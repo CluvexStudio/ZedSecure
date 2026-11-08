@@ -102,9 +102,16 @@ fun PerAppProxyScreen(
         }
     }
 
-    val apps by produceState<List<InstalledApp>?>(initialValue = null, showSystem) {
-        value = withContext(Dispatchers.IO) {
-            platform.installedApps().filter { showSystem || !it.isSystem }
+    val allApps by produceState<List<InstalledApp>?>(initialValue = null) {
+        value = withContext(Dispatchers.IO) { platform.installedApps() }
+    }
+    val apps = remember(allApps, showSystem) { allApps?.filter { showSystem || !it.isSystem } }
+
+    LaunchedEffect(allApps) {
+        val installed = allApps?.map { it.packageName }?.toSet()
+        if (installed.isNullOrEmpty()) return@LaunchedEffect
+        if (settings.perAppPackages.any { it !in installed }) {
+            onUpdate { it.copy(perAppPackages = it.perAppPackages.filterTo(mutableSetOf()) { pkg -> pkg in installed }) }
         }
     }
 
