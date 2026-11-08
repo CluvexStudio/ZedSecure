@@ -214,7 +214,7 @@ class AndroidPlatform(
     private val INLINE_SHARE_LIMIT = 64 * 1024
 
     override fun shareFiles(files: List<Pair<String, ByteArray>>) {
-        ZsxSharing.shareMany(context, files)
+        Thread({ runCatching { ZsxSharing.shareMany(context, files) } }, "zsx-share").start()
     }
 
     override fun saveFile(name: String, mime: String, bytes: ByteArray) {

@@ -98,6 +98,7 @@
     <string name="vault_pick_servers">سرورها را برای قفل کردن انتخاب کنید</string>
     <string name="vault_form_name">نام نمایشی</string>
     <string name="vault_name_numbered">اگر چند سرور انتخاب شود، خودکار شماره‌گذاری می‌شود</string>
+    <string name="vault_combine_one">همهٔ سرورهای انتخاب‌شده در یک کانفیگ قفل‌شده (انتخاب خودکار)</string>
     <string name="vault_password">رمز</string>
     <string name="vault_toggle_password">نمایش یا پنهان کردن رمز</string>
     <string name="nav_locked">گاوصندوق</string>

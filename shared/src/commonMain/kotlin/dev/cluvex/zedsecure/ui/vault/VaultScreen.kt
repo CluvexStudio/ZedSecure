@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -45,7 +46,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -90,8 +90,10 @@ fun VaultScreen(
     val activeId by repository.activeId.collectAsStateWithLifecycle()
     val locked = profiles.filter { it.isLocked }
 
-    val sources = profiles.filter { p ->
-        !p.isLocked && !p.isProxyChain && !p.isCrossChain && !p.isAutoSelect && p.rawPayload() != null
+    val sources = remember(profiles) {
+        profiles.filter { p ->
+            !p.isLocked && !p.isProxyChain && !p.isCrossChain && !p.isAutoSelect && p.rawPayload() != null
+        }
     }
     var showCreate by remember { mutableStateOf(false) }
     var sealing by remember { mutableStateOf(false) }
@@ -200,13 +202,13 @@ fun VaultScreen(
             sources = sources,
             sealing = sealing,
             onDismiss = { showCreate = false },
-            onCreate = { requests ->
-
+            onCreate = { chosen, form, combine ->
                 sealing = true
                 sealScope.launch {
                     val files = runCatching {
                         withContext(Dispatchers.Default) {
-                            requests.map { (request, fileName) -> fileName to repository.createLockedZsx(request) }
+                            repository.lockedRequests(chosen, form, combine)
+                                .map { (request, fileName) -> fileName to repository.createLockedZsx(request) }
                         }
                     }.getOrNull()
                     sealing = false
@@ -327,9 +329,10 @@ private fun CreateLockedSheet(
     sources: List<VpnProfile>,
     sealing: Boolean,
     onDismiss: () -> Unit,
-    onCreate: (List<Pair<ZsxSealRequest, String>>) -> Unit,
+    onCreate: (List<VpnProfile>, ZsxSealRequest, Boolean) -> Unit,
 ) {
-    val selected = remember { sources.take(1).map { it.id }.toMutableStateList() }
+    var selected by remember { mutableStateOf(sources.take(1).map { it.id }.toSet()) }
+    var combine by remember { mutableStateOf(false) }
     var displayName by remember { mutableStateOf("") }
     var note by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -356,12 +359,24 @@ private fun CreateLockedSheet(
                 color = MaterialTheme.colorScheme.primary,
             )
 
-            sources.forEach { profile ->
+            Row {
+                TextButton(onClick = { selected = sources.mapTo(LinkedHashSet()) { it.id } }) {
+                    Text(stringResource(Res.string.select_all))
+                }
+                TextButton(onClick = { selected = emptySet() }, enabled = selected.isNotEmpty()) {
+                    Text(stringResource(Res.string.select_none))
+                }
+            }
+            val listState = rememberLazyListState()
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxWidth().heightIn(max = 360.dp).mouseDragScrollVertical(listState),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+              items(sources, key = { it.id }) { profile ->
                 val checked = profile.id in selected
                 Surface(
-                    onClick = {
-                        if (checked) selected.remove(profile.id) else selected.add(profile.id)
-                    },
+                    onClick = { selected = if (checked) selected - profile.id else selected + profile.id },
                     shape = RoundedCornerShape(16.dp),
                     color = if (checked) MaterialTheme.colorScheme.primaryContainer
                     else MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -389,6 +404,13 @@ private fun CreateLockedSheet(
                         }
                     }
                 }
+              }
+            }
+            if (selected.size > 1) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = combine, onCheckedChange = { combine = it })
+                    Text(stringResource(Res.string.vault_combine_one), style = MaterialTheme.typography.bodyMedium)
+                }
             }
 
             OutlinedTextField(
@@ -396,7 +418,7 @@ private fun CreateLockedSheet(
                 onValueChange = { displayName = it },
                 label = { Text(stringResource(Res.string.vault_form_name)) },
                 supportingText = {
-                    if (selected.size > 1) Text(stringResource(Res.string.vault_name_numbered))
+                    if (selected.size > 1 && !combine) Text(stringResource(Res.string.vault_name_numbered))
                 },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
@@ -449,20 +471,15 @@ private fun CreateLockedSheet(
                     } else {
                         null
                     }
-                    val requests = chosen.mapIndexedNotNull { index, profile ->
-                        val payload = profile.rawPayload() ?: return@mapIndexedNotNull null
-                        val base = displayName.trim().ifBlank { profile.name }
-                        val finalName = if (chosen.size > 1) "$base ${index + 1}" else base
-                        ZsxSealRequest(
-                            configPayload = payload,
-                            nameEn = finalName,
-                            nameFa = finalName,
-                            note = note,
-                            expiresAt = expiresAt,
-                            password = password.ifBlank { null },
-                        ) to finalName
-                    }
-                    onCreate(requests)
+                    val form = ZsxSealRequest(
+                        configPayload = "",
+                        nameEn = displayName.trim(),
+                        nameFa = displayName.trim(),
+                        note = note,
+                        expiresAt = expiresAt,
+                        password = password.ifBlank { null },
+                    )
+                    onCreate(chosen, form, combine && chosen.size > 1)
                 },
 
                 enabled = !sealing && selected.isNotEmpty(),

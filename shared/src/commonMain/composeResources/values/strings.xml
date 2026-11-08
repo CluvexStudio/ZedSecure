@@ -87,6 +87,7 @@
     <string name="vault_pick_servers">Pick servers to lock</string>
     <string name="vault_form_name">Display name</string>
     <string name="vault_name_numbered">Multiple servers are numbered automatically</string>
+    <string name="vault_combine_one">Put all selected servers in one locked config (auto-select)</string>
     <string name="vault_password">Password</string>
     <string name="vault_toggle_password">Show or hide password</string>
     <string name="nav_locked">Vault</string>

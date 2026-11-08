@@ -88,6 +88,7 @@
     <string name="vault_pick_servers">Выберите серверы для блокировки</string>
     <string name="vault_form_name">Отображаемое имя</string>
     <string name="vault_name_numbered">Несколько серверов нумеруются автоматически</string>
+    <string name="vault_combine_one">Все выбранные серверы в одной заблокированной конфигурации (автовыбор)</string>
     <string name="vault_password">Пароль</string>
     <string name="vault_toggle_password">Показать или скрыть пароль</string>
     <string name="nav_locked">Хранилище</string>

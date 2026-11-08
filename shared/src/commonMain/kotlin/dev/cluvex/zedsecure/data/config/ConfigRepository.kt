@@ -1401,6 +1401,26 @@ class ConfigRepository(private val store: KeyValueStore) {
 
     fun createLockedZsx(request: ZsxSealRequest): ByteArray = ZsxCrypto.seal(request)
 
+    fun lockedRequests(chosen: List<VpnProfile>, form: ZsxSealRequest, combine: Boolean): List<Pair<ZsxSealRequest, String>> {
+        val members = if (combine) autoMembersOf(chosen) else emptyList()
+        val group = if (members.size > 1) {
+            runCatching { XrayJsonBuilder.buildAutoSelect(members, AutoSelectTuning()).json }.getOrNull()
+        } else {
+            null
+        }
+        if (group != null) {
+            val name = form.nameEn.ifBlank { chosen.first().name }
+            return listOf(form.copy(configPayload = group, nameEn = name, nameFa = name) to name)
+        }
+        return chosen.mapIndexedNotNull { index, profile ->
+            val payload = profile.rawPayload() ?: return@mapIndexedNotNull null
+            val base = form.nameEn.ifBlank { profile.name }
+            val name = if (chosen.size > 1) "$base ${index + 1}" else base
+            val fileName = if (chosen.size > 1) "${index + 1}_$base" else base
+            form.copy(configPayload = payload, nameEn = name, nameFa = name) to fileName
+        }
+    }
+
     fun peekLocked(bytes: ByteArray): ZsxMetadata = ZsxCrypto.peek(bytes)
 
     fun importLocked(bytes: ByteArray, password: String?): Result<VpnProfile> = runCatching {
@@ -1451,7 +1471,20 @@ class ConfigRepository(private val store: KeyValueStore) {
     private fun loadProfiles(): List<VpnProfile> {
         val raw = store.getString(KEY_PROFILES) ?: return emptyList()
         val loaded = runCatching { json.decodeFromString<List<VpnProfile>>(raw) }.getOrDefault(emptyList())
-        return repairOpenVpnType(loaded)
+        return labelCustomConfigs(repairOpenVpnType(loaded))
+    }
+
+    private fun labelCustomConfigs(profiles: List<VpnProfile>): List<VpnProfile> {
+        var changed = false
+        val labelled = profiles.map { profile ->
+            val source = profile.source as? ProfileSource.RawJson ?: return@map profile
+            if (profile.transportLabel != VpnProfile.CUSTOM_LABEL) return@map profile
+            val label = runCatching { CustomConfig.inspect(source.json).transportLabel }.getOrNull() ?: return@map profile
+            changed = true
+            profile.copy(transportLabel = label)
+        }
+        if (changed) store.putString(KEY_PROFILES, json.encodeToString(labelled))
+        return labelled
     }
 
     private fun repairOpenVpnType(profiles: List<VpnProfile>): List<VpnProfile> {

@@ -17,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -44,6 +45,7 @@ fun VaultImportHost(repository: ConfigRepository, onImported: () -> Unit) {
     val expiredMsg = stringResource(Res.string.zsx_expired)
     val legacyMsg = stringResource(Res.string.zsx_legacy)
     val pending by VaultImportBus.pending.collectAsStateWithLifecycle()
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
 
     pending?.let { p ->
         VaultUnlockDialog(
@@ -52,25 +54,27 @@ fun VaultImportHost(repository: ConfigRepository, onImported: () -> Unit) {
             passwordProtected = p.metadata.passwordProtected,
             onDismiss = { VaultImportBus.clear() },
             onUnlock = { password ->
-                repository.importLocked(p.bytes, password)
-                    .onSuccess {
-                        platform.toast(importedMsg)
-                        VaultImportBus.clear()
-                        onImported()
-                    }
-                    .onFailure { e ->
-
-                        platform.toast(
-                            when (e) {
-                                is ZsxLegacyException -> legacyMsg
-                                is ZsxExpiredException -> expiredMsg
-                                else -> wrongPwdMsg
-                            },
-                        )
-                        if (e is ZsxLegacyException || e is ZsxExpiredException) {
+                scope.launch {
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) { repository.importLocked(p.bytes, password) }
+                        .onSuccess {
+                            platform.toast(importedMsg)
                             VaultImportBus.clear()
+                            onImported()
                         }
-                    }
+                        .onFailure { e ->
+
+                            platform.toast(
+                                when (e) {
+                                    is ZsxLegacyException -> legacyMsg
+                                    is ZsxExpiredException -> expiredMsg
+                                    else -> wrongPwdMsg
+                                },
+                            )
+                            if (e is ZsxLegacyException || e is ZsxExpiredException) {
+                                VaultImportBus.clear()
+                            }
+                        }
+                }
             },
         )
     }

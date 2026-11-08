@@ -82,6 +82,7 @@
     <string name="vault_pick_servers">Elige qué servidores bloquear</string>
     <string name="vault_form_name">Nombre visible</string>
     <string name="vault_name_numbered">Si hay varios servidores, se numeran automáticamente</string>
+    <string name="vault_combine_one">Poner todos los servidores seleccionados en una configuración bloqueada (selección automática)</string>
     <string name="vault_password">Contraseña</string>
     <string name="vault_toggle_password">Mostrar u ocultar la contraseña</string>
     <string name="nav_locked">Bóveda</string>
