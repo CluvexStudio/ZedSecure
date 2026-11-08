@@ -378,7 +378,7 @@ private fun RootPage(
                 SettingsMenuRow(
                     stringResource(Res.string.onb_replay_title),
                     stringResource(Res.string.onb_replay_sub),
-                    art = SettingsArts.Routing,
+                    art = SettingsArts.Setup,
                 ) { onReplaySetup() }
             }
         }
@@ -817,7 +817,7 @@ private fun BentoRoot(
                 key = "setup",
                 title = stringResource(Res.string.onb_replay_title),
                 summary = stringResource(Res.string.onb_replay_sub),
-                art = SettingsArts.Routing,
+                art = SettingsArts.Setup,
                 keywords = listOf(stringResource(Res.string.onb_region_change), stringResource(Res.string.onb_region_title)),
             ) { onReplaySetup() })
         }

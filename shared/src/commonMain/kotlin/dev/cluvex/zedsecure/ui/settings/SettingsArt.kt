@@ -54,6 +54,7 @@ object SettingsArts {
     val Ai = SettingsArt("ai", Res.drawable.ic_fill_auto_awesome, MaterialShapes.SoftBurst, 4)
     val Tour = SettingsArt("tour", Res.drawable.ic_fill_explore, MaterialShapes.Arch, 5)
     val Routing = SettingsArt("routing", Res.drawable.ic_fill_alt_route, MaterialShapes.Diamond, 3)
+    val Setup = SettingsArt("setup", Res.drawable.ic_fill_alt_route, MaterialShapes.Diamond, 3)
     val PerApp = SettingsArt("per-app", Res.drawable.ic_fill_apps, MaterialShapes.Cookie4Sided, 0)
     val Assets = SettingsArt("assets", Res.drawable.ic_fill_database, MaterialShapes.Gem, 2)
     val Dns = SettingsArt("dns", Res.drawable.ic_fill_dns, MaterialShapes.Clover4Leaf, 5)

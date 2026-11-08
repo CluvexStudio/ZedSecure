@@ -2,8 +2,12 @@
 
 package dev.cluvex.zedsecure.ui.servers
 
-import androidx.compose.runtime.key
-import sh.calvin.reorderable.ReorderableColumn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.LaunchedEffect
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.KeyboardActions
@@ -104,6 +108,14 @@ fun SubscriptionsPanel(
     var renameTarget by remember { mutableStateOf<dev.cluvex.zedsecure.domain.config.Subscription?>(null) }
     var deleteTarget by remember { mutableStateOf<dev.cluvex.zedsecure.domain.config.Subscription?>(null) }
     var qrTarget by remember { mutableStateOf<Pair<String, String>?>(null) }
+    val listState = rememberLazyListState()
+    var order by remember { mutableStateOf(subs) }
+    LaunchedEffect(subs) { order = subs }
+    val reorderState = rememberReorderableLazyListState(listState) { from, to ->
+        val f = order.indexOfFirst { it.id == from.key }
+        val t = order.indexOfFirst { it.id == to.key }
+        if (f >= 0 && t >= 0) order = order.toMutableList().apply { add(t, removeAt(f)) }
+    }
 
     Column(modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         if (showTitle) {
@@ -185,17 +197,13 @@ fun SubscriptionsPanel(
 
         if (subs.isNotEmpty()) {
             SectionTitle(stringResource(Res.string.subs_existing))
-            ReorderableColumn(
-                list = subs,
-                onSettle = { from, to ->
-                    val moved = subs.getOrNull(from)
-                    val target = subs.getOrNull(to)
-                    if (moved != null && target != null) repository.moveSubscription(moved.id, target.id)
-                },
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxWidth().heightIn(max = 460.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) { _, sub, dragging ->
-                key(sub.id) {
-                    ReorderableItem {
+            ) {
+                items(order, key = { it.id }) { sub ->
+                    ReorderableItem(reorderState, key = sub.id) { dragging ->
                         Surface(
                             shape = RoundedCornerShape(18.dp),
                             color = if (dragging) MaterialTheme.colorScheme.surfaceContainerHighest
@@ -212,7 +220,12 @@ fun SubscriptionsPanel(
                                     painterResource(Res.drawable.ic_drag_handle),
                                     contentDescription = stringResource(Res.string.subs_reorder),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(end = 8.dp).size(20.dp).draggableHandle(),
+                                    modifier = Modifier.padding(end = 8.dp).size(20.dp).draggableHandle(
+                                        onDragStopped = {
+                                            val target = subs.getOrNull(order.indexOfFirst { it.id == sub.id })
+                                            if (target != null && target.id != sub.id) repository.moveSubscription(sub.id, target.id)
+                                        },
+                                    ),
                                 )
                                 Column(Modifier.weight(1f)) {
                                     Text(
@@ -423,7 +436,7 @@ private fun UserAgentPicker(value: String, onChange: (String) -> Unit) {
     val isDefault = value.isBlank() || value == default
     val isAlt = value == alt
     val isSingBox = value == singBox
-    var custom by remember(value) { mutableStateOf(!isDefault && !isAlt && !isSingBox) }
+    var custom by remember { mutableStateOf(!isDefault && !isAlt && !isSingBox) }
 
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(
