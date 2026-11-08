@@ -27,6 +27,7 @@ class ZedSecureApp : Application(), SingletonImageLoader.Factory {
 
     override fun onCreate() {
         super.onCreate()
+        dev.cluvex.zedsecure.core.PlatformHttpGuard.install()
 
         container = AppContainer(this)
 

@@ -43,11 +43,15 @@ import dev.cluvex.zedsecure.domain.config.SubscriptionSchedule
 import dev.cluvex.zedsecure.domain.config.VpnProfile
 import dev.cluvex.zedsecure.domain.config.XrayJsonBuilder
 import kotlin.io.encoding.Base64
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -71,6 +75,19 @@ class ConfigRepository(private val store: KeyValueStore) {
     private val json = Json { ignoreUnknownKeys = true }
     private val lenientJson = Json { ignoreUnknownKeys = true; isLenient = true }
     private val prettyJson = Json { prettyPrint = true }
+
+    private val writer = CoroutineScope(SupervisorJob() + Dispatchers.Default.limitedParallelism(1))
+    private val profileWrites = Channel<List<VpnProfile>>(Channel.CONFLATED)
+    private val subscriptionWrites = Channel<List<Subscription>>(Channel.CONFLATED)
+
+    init {
+        writer.launch {
+            for (snapshot in profileWrites) runCatching { store.putString(KEY_PROFILES, json.encodeToString(snapshot)) }
+        }
+        writer.launch {
+            for (snapshot in subscriptionWrites) runCatching { store.putString(KEY_SUBS, json.encodeToString(snapshot)) }
+        }
+    }
 
     private val _profiles = MutableStateFlow(loadProfiles())
     val profiles: StateFlow<List<VpnProfile>> = _profiles.asStateFlow()
@@ -1424,11 +1441,11 @@ class ConfigRepository(private val store: KeyValueStore) {
     }
 
     private fun persistProfiles() {
-        store.putString(KEY_PROFILES, json.encodeToString(_profiles.value))
+        profileWrites.trySend(_profiles.value)
     }
 
     private fun persistSubscriptions() {
-        store.putString(KEY_SUBS, json.encodeToString(_subscriptions.value))
+        subscriptionWrites.trySend(_subscriptions.value)
     }
 
     private fun loadProfiles(): List<VpnProfile> {
