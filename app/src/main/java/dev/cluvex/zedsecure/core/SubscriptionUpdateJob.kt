@@ -28,13 +28,12 @@ object SubscriptionUpdateScheduler {
             if (scheduler.getPendingJob(JOB_ID) != null) scheduler.cancel(JOB_ID)
             return
         }
-        val periodMs = SubscriptionSchedule.periodHours(subscriptions, settings.subscriptionUpdateIntervalHours) *
-            3_600_000L
+        val periodMs = (SubscriptionSchedule.periodHours(subscriptions, settings.subscriptionUpdateIntervalHours) * 900_000L)
+            .coerceAtLeast(JobInfo.getMinPeriodMillis())
 
         val pending = scheduler.getPendingJob(JOB_ID)
         if (pending != null && pending.intervalMillis == periodMs) return
         val job = JobInfo.Builder(JOB_ID, ComponentName(context, SubscriptionUpdateJobService::class.java))
-            .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
             .setPersisted(true)
             .setPeriodic(periodMs, (periodMs / 4).coerceAtLeast(JobInfo.getMinFlexMillis()))
             .build()
@@ -53,7 +52,7 @@ class SubscriptionUpdateJobService : JobService() {
         if (!settings.autoUpdateSubscriptions) return false
         running = scope.launch {
             val refreshed = runCatching {
-                container.configRepository.updateDueSubscriptions(settings.subscriptionUpdateIntervalHours)
+                dev.cluvex.zedsecure.data.config.SubscriptionAutoUpdate.runDue(container.configRepository, settings)
             }.getOrDefault(0)
             if (refreshed > 0) Log.i(TAG, "auto-updated $refreshed subscription(s)")
 

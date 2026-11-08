@@ -1207,8 +1207,8 @@
     <string name="settings_sub_interval_day">Every day</string>
     <string name="settings_sub_interval_days">Every %1$d days</string>
     <string name="settings_sub_interval_week">Every week</string>
-    <string name="settings_sub_interval_provider_title">Provider schedules come first</string>
-    <string name="settings_sub_interval_provider_body">If a provider sends its own update interval, that subscription follows it. While connected, updates are fetched through the tunnel.</string>
+    <string name="settings_sub_interval_provider_title">The shorter schedule wins</string>
+    <string name="settings_sub_interval_provider_body">If a provider sends its own update interval, the subscription uses whichever is shorter: the provider interval or yours. While connected, updates are fetched through the tunnel.</string>
     <string name="subs_usage">%1$s of %2$s used</string>
     <string name="subs_usage_unlimited">%1$s used</string>
     <string name="subs_expired">Expired</string>

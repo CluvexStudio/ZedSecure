@@ -104,7 +104,7 @@ object SubscriptionSchedule {
     private const val EARLY_SLACK_MS = 10 * 60 * 1000L
 
     fun intervalHours(sub: Subscription, globalHours: Int): Int =
-        (sub.updateIntervalHours ?: globalHours).coerceIn(1, 168)
+        minOf(sub.updateIntervalHours ?: globalHours, globalHours).coerceIn(1, 168)
 
     fun isDue(sub: Subscription, globalHours: Int, nowMs: Long): Boolean {
         if (!sub.enabled || sub.url.isBlank()) return false

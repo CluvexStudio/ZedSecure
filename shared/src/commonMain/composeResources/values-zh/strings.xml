@@ -1208,8 +1208,8 @@
     <string name="settings_sub_interval_day">每天</string>
     <string name="settings_sub_interval_days">每 %1$d 天</string>
     <string name="settings_sub_interval_week">每周</string>
-    <string name="settings_sub_interval_provider_title">优先采用服务商的更新间隔</string>
-    <string name="settings_sub_interval_provider_body">如果服务商提供了自己的更新间隔，该订阅会按其更新。已连接时，更新会通过隧道获取。</string>
+    <string name="settings_sub_interval_provider_title">采用较短的更新间隔</string>
+    <string name="settings_sub_interval_provider_body">如果服务商提供了自己的更新间隔，订阅会采用服务商间隔与你的设置中较短的那个。已连接时，更新会通过隧道获取。</string>
     <string name="subs_usage">已用 %1$s / 共 %2$s</string>
     <string name="subs_usage_unlimited">已用 %1$s</string>
     <string name="subs_expired">已过期</string>

@@ -381,12 +381,26 @@ fun ServersScreen(
         if (index >= 0 && index + 2 != groupIndex) groupIndex = index + 2
     }
 
+    fun afterUpdatePlan() = dev.cluvex.zedsecure.data.config.SubscriptionAutoUpdate.AfterUpdate(
+        test = autoTestAfterUpdate,
+        removeInvalid = autoRemoveInvalidAfterTest,
+        sort = autoSortAfterTest,
+        concurrency = realPingConcurrency,
+        delayUrl = delayTestUrl,
+        detectCountry = detectServerLocation,
+    )
+
     fun updateSubscription(sub: dev.cluvex.zedsecure.domain.config.Subscription) {
         if (updatingSubId != null) return
         updatingSubId = sub.id
         scope.launch {
             repository.updateSubscription(sub.id)
-                .onSuccess { platform.toast(getString(Res.string.servers_imported, it)) }
+                .onSuccess {
+                    platform.toast(getString(Res.string.servers_imported, it))
+                    if (autoTestAfterUpdate) {
+                        dev.cluvex.zedsecure.data.config.SubscriptionAutoUpdate.startTest(repository, afterUpdatePlan())
+                    }
+                }
                 .onFailure { platform.toast(getString(Res.string.subs_failed)) }
             updatingSubId = null
         }
@@ -502,7 +516,10 @@ fun ServersScreen(
                     onResult = { id, ms, cc -> repository.setPing(id, ms, cc, persist = false) },
                     flush = { repository.flushProfiles() },
 
-                    onFinished = { if (autoSortAfterTest) repository.sortByTestResults() },
+                    onFinished = {
+                        dev.cluvex.zedsecure.data.config.SubscriptionAutoUpdate
+                            .afterTest(repository, autoRemoveInvalidAfterTest, autoSortAfterTest)
+                    },
                 )
             },
         )
@@ -518,26 +535,11 @@ fun ServersScreen(
 
                 scope.launch(kotlinx.coroutines.Dispatchers.Default) {
                     val n = repository.updateAllSubscriptions()
-
-                    if (autoTestAfterUpdate) {
-                        val all = repository.profiles.value
-                        repository.clearPings(all.map { it.id }, persist = false)
-                        PingService.measureAll(
-                            all,
-                            useRealDelay = true,
-                            concurrency = realPingConcurrency,
-                            delayUrl = delayTestUrl,
-                            chainConfig = repository::chainProbeConfig,
-                            detectCountry = detectServerLocation,
-                        ) { id, ms, cc ->
-                            repository.setPing(id, ms, cc, persist = false)
-                        }
-                        repository.flushProfiles()
-                        if (autoRemoveInvalidAfterTest) repository.removeInvalid()
-                        if (autoSortAfterTest) repository.sortByTestResults()
-                    }
                     updating = false
                     toastRes(Res.string.subs_updated, n)
+                    if (autoTestAfterUpdate) {
+                        dev.cluvex.zedsecure.data.config.SubscriptionAutoUpdate.startTest(repository, afterUpdatePlan())
+                    }
                 }
             },
         )
@@ -574,8 +576,11 @@ fun ServersScreen(
             leadingIcon = { Icon(painterResource(Res.drawable.ic_delete), null) },
             onClick = {
                 overflowOpen = false
-
-                confirmDeleteInvalid = repository.invalidCount()
+                scope.launch {
+                    confirmDeleteInvalid = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+                        repository.invalidCount()
+                    }
+                }
             },
         )
         DropdownMenuItem(
@@ -1826,7 +1831,12 @@ fun ServersScreen(
                     enabled = count > 0,
                     onClick = {
                         confirmDeleteInvalid = null
-                        toastRes(Res.string.removed_count, repository.removeInvalid())
+                        scope.launch {
+                            val removed = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+                                repository.removeInvalid()
+                            }
+                            toastRes(Res.string.removed_count, removed)
+                        }
                     },
                 ) { Text(stringResource(Res.string.action_delete)) }
             },

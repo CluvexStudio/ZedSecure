@@ -1162,8 +1162,8 @@
     <string name="settings_sub_interval_day">Cada día</string>
     <string name="settings_sub_interval_days">Cada %1$d días</string>
     <string name="settings_sub_interval_week">Cada semana</string>
-    <string name="settings_sub_interval_provider_title">Los intervalos del proveedor tienen prioridad</string>
-    <string name="settings_sub_interval_provider_body">Si un proveedor envía su propio intervalo de actualización, esa suscripción lo sigue. Mientras estás conectado, las actualizaciones se descargan a través del túnel.</string>
+    <string name="settings_sub_interval_provider_title">Se usa el intervalo más corto</string>
+    <string name="settings_sub_interval_provider_body">Si un proveedor envía su propio intervalo de actualización, la suscripción usa el más corto: el del proveedor o el tuyo. Mientras estás conectado, las actualizaciones se descargan a través del túnel.</string>
     <string name="subs_usage">%1$s de %2$s usados</string>
     <string name="subs_usage_unlimited">%1$s usados</string>
     <string name="subs_expired">Expirada</string>

@@ -1200,8 +1200,8 @@
     <string name="settings_sub_interval_day">هر روز</string>
     <string name="settings_sub_interval_days">هر %1$d روز</string>
     <string name="settings_sub_interval_week">هر هفته</string>
-    <string name="settings_sub_interval_provider_title">زمان‌بندی ارائه‌دهنده در اولویت است</string>
-    <string name="settings_sub_interval_provider_body">اگر ارائه‌دهنده فاصلهٔ به‌روزرسانی خودش را بفرستد، آن سابسکریپشن طبق همان به‌روز می‌شود. وقتی وصل هستید، به‌روزرسانی از داخل تونل دریافت می‌شود.</string>
+    <string name="settings_sub_interval_provider_title">فاصلهٔ کوتاه‌تر اعمال می‌شود</string>
+    <string name="settings_sub_interval_provider_body">اگر ارائه‌دهنده فاصلهٔ به‌روزرسانی خودش را بفرستد، سابسکریپشن با هر کدام که کوتاه‌تر است به‌روز می‌شود: فاصلهٔ ارائه‌دهنده یا فاصلهٔ شما. وقتی وصل هستید، به‌روزرسانی از داخل تونل دریافت می‌شود.</string>
     <string name="subs_usage">%1$s از %2$s مصرف شده</string>
     <string name="subs_usage_unlimited">%1$s مصرف شده</string>
     <string name="subs_expired">منقضی شده</string>

@@ -101,6 +101,16 @@ class AppContainer(context: Context) {
         }
 
         scope.launch {
+            while (true) {
+                kotlinx.coroutines.delay(SUBSCRIPTION_CHECK_MS)
+                runCatching {
+                    dev.cluvex.zedsecure.data.config.SubscriptionAutoUpdate
+                        .runDue(configRepository, settingsRepository.settings.value)
+                }
+            }
+        }
+
+        scope.launch {
             var counted = -1
             VpnManager.status.collect { s ->
                 if (s.state == ConnectionState.Connected && s.sessionId != counted) {
@@ -109,6 +119,10 @@ class AppContainer(context: Context) {
                 }
             }
         }
+    }
+
+    private companion object {
+        const val SUBSCRIPTION_CHECK_MS = 15 * 60_000L
     }
 }
 

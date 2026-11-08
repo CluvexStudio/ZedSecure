@@ -1208,8 +1208,8 @@
     <string name="settings_sub_interval_day">Каждый день</string>
     <string name="settings_sub_interval_days">Каждые %1$d дн.</string>
     <string name="settings_sub_interval_week">Каждую неделю</string>
-    <string name="settings_sub_interval_provider_title">Расписание провайдера важнее</string>
-    <string name="settings_sub_interval_provider_body">Если провайдер присылает свой интервал обновления, подписка обновляется по нему. При активном подключении обновления загружаются через туннель.</string>
+    <string name="settings_sub_interval_provider_title">Действует более короткий интервал</string>
+    <string name="settings_sub_interval_provider_body">Если провайдер присылает свой интервал обновления, подписка обновляется по более короткому из двух: его или вашему. При активном подключении обновления загружаются через туннель.</string>
     <string name="subs_usage">Использовано %1$s из %2$s</string>
     <string name="subs_usage_unlimited">Использовано %1$s</string>
     <string name="subs_expired">Истекла</string>

@@ -151,10 +151,8 @@ fun main(args: Array<String>) {
     kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO).launch {
         while (true) {
             val s = desktopSettings.settings.value
-            if (s.autoUpdateSubscriptions) {
-                runCatching { configRepository.updateDueSubscriptions(s.subscriptionUpdateIntervalHours) }
-            }
-            kotlinx.coroutines.delay(30 * 60 * 1000L)
+            runCatching { dev.cluvex.zedsecure.data.config.SubscriptionAutoUpdate.runDue(configRepository, s) }
+            kotlinx.coroutines.delay(15 * 60 * 1000L)
         }
     }
     application {
