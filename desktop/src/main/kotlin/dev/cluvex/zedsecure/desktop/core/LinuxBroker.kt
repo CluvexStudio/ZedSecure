@@ -328,6 +328,7 @@ object LinuxBroker {
     private const val LAN_RANGES = "10.0.0.0/8, 100.64.0.0/10, 169.254.0.0/16, 172.16.0.0/12, 192.168.0.0/16"
     private const val ENGINE_MARK = "0x5ed0"
     private const val ENGINE_ROUTES = 5208
+    private const val TUNNEL_RULE = 9500
     private const val STOP_WAIT_SEC = 15L
     private const val JOB_STOP_WAIT_SEC = 25L
     private val POLL_NANOS = TimeUnit.MILLISECONDS.toNanos(500)
@@ -400,6 +401,8 @@ object LinuxBroker {
         |  RESOLVED=
         |  [ -n "${'$'}DNAT" ] && nft delete table ip $DNS_TABLE >/dev/null 2>&1
         |  DNAT=
+        |  while ip -4 rule del priority $TUNNEL_RULE lookup main suppress_prefixlength 0 >/dev/null 2>&1; do :; done
+        |  while ip -6 rule del priority $TUNNEL_RULE lookup main suppress_prefixlength 0 >/dev/null 2>&1; do :; done
         |  printf '%s\n' "${'$'}ROUTES" | while read -r f p rest; do
         |    [ -n "${'$'}p" ] && ip "${'$'}f" route del "${'$'}p" ${'$'}rest 2>/dev/null
         |  done
@@ -474,6 +477,8 @@ object LinuxBroker {
         |    add_route -6 ::/1 dev "${'$'}TUN"
         |    add_route -6 8000::/1 dev "${'$'}TUN"
         |  fi
+        |  ip -4 rule add priority $TUNNEL_RULE lookup main suppress_prefixlength 0 >/dev/null 2>&1
+        |  [ -n "${'$'}V6" ] && ip -6 rule add priority $TUNNEL_RULE lookup main suppress_prefixlength 0 >/dev/null 2>&1
         |  if [ "${'$'}dns" != - ] && command -v resolvectl >/dev/null 2>&1 && resolvectl --no-ask-password dns "${'$'}TUN" "${'$'}dns" >/dev/null 2>&1; then
         |    resolvectl --no-ask-password domain "${'$'}TUN" '~.' >/dev/null 2>&1
         |    resolvectl --no-ask-password default-route "${'$'}TUN" yes >/dev/null 2>&1
