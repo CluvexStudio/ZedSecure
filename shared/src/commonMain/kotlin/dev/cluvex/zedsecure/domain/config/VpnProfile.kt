@@ -303,7 +303,6 @@ data class VpnProfile(
     }
 
     companion object {
-        const val CUSTOM_LABEL = "Custom config"
         const val ENGINE_XRAY = "Xray"
         const val ENGINE_SINGBOX = "sing-box"
         const val ENGINE_CHAIN = "Chain"
@@ -682,7 +681,7 @@ data class VpnProfile(
                 protocol = "CUSTOM",
                 address = info.address ?: "-",
                 port = info.port ?: 0,
-                transportLabel = info.transportLabel ?: CUSTOM_LABEL,
+                transportLabel = "Custom config",
                 source = ProfileSource.RawJson(rawJson),
                 addedAt = addedAt,
                 subscriptionId = subscriptionId,

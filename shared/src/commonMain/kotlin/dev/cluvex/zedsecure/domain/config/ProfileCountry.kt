@@ -5,7 +5,7 @@ object ProfileCountry {
     private const val LAST_INDICATOR = 0x1F1FF
 
     fun of(profile: VpnProfile): String? =
-        fromFlag(profile.name) ?: profile.countryCode?.trim()?.uppercase()?.takeIf { it.length == 2 }
+        profile.countryCode?.trim()?.uppercase()?.takeIf { it.length == 2 } ?: fromFlag(profile.name)
 
     fun fromFlag(text: String): String? {
         var i = 0

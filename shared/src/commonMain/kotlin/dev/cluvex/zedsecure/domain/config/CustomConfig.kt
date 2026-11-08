@@ -10,32 +10,9 @@ data class CustomConfigInfo(
     val protocol: String?,
     val address: String?,
     val port: Int?,
-    val network: String? = null,
-    val security: String? = null,
 ) {
     val label: String
         get() = listOfNotNull(protocol?.uppercase(), "Custom").joinToString(" · ")
-
-    val transportLabel: String?
-        get() {
-            val id = protocol?.trim()?.lowercase() ?: return null
-            val kind = if (id == "hysteria2") Protocol.HYSTERIA else Protocol.entries.firstOrNull { it.id == id } ?: return null
-            return buildString {
-                append(kind.label)
-                if (kind in STREAM_PROTOCOLS) {
-                    append(" · ")
-                    append(network?.trim()?.takeIf { it.isNotEmpty() }?.uppercase() ?: "TCP")
-                    when (security?.trim()?.lowercase()) {
-                        "reality" -> append(" / REALITY")
-                        "tls" -> append(" / TLS")
-                    }
-                }
-            }
-        }
-
-    private companion object {
-        val STREAM_PROTOCOLS = setOf(Protocol.VLESS, Protocol.VMESS, Protocol.TROJAN, Protocol.SHADOWSOCKS)
-    }
 }
 
 object CustomConfig {
@@ -77,11 +54,8 @@ object CustomConfig {
 
         val address = runCatching { node?.get("address")?.jsonPrimitive?.content }.getOrNull()
         val port = runCatching { node?.get("port")?.jsonPrimitive?.content?.toIntOrNull() }.getOrNull()
-        val stream = outbound?.get("streamSettings") as? JsonObject
-        val network = runCatching { stream?.get("network")?.jsonPrimitive?.content }.getOrNull()
-        val security = runCatching { stream?.get("security")?.jsonPrimitive?.content }.getOrNull()
 
-        return CustomConfigInfo(remarks, protocol, address, port, network, security)
+        return CustomConfigInfo(remarks, protocol, address, port)
     }
 
     private val UDP_PROTOCOLS = setOf("wireguard", "hysteria2", "hysteria")

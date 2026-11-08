@@ -1016,7 +1016,7 @@ fun ServersScreen(
                     }
                     val subscriptionName = subscriptions.firstOrNull { it.id == profile.subscriptionId }?.name
                     if (bento) {
-                        val typeLabel = if (profile.isCustom && profile.transportLabel == dev.cluvex.zedsecure.domain.config.VpnProfile.CUSTOM_LABEL) stringResource(Res.string.servers_custom_config) else profile.transportLabel
+                        val typeLabel = if (profile.isCustom) stringResource(Res.string.servers_custom_config) else profile.transportLabel
                         dev.cluvex.zedsecure.ui.bento.BentoServerRow(
                             name = profile.name,
                             detail = if (groupIndex == 0 && subscriptionName != null) {
