@@ -92,6 +92,10 @@ class ConfigRepository(private val store: KeyValueStore) {
     private val _profiles = MutableStateFlow(loadProfiles())
     val profiles: StateFlow<List<VpnProfile>> = _profiles.asStateFlow()
 
+    init {
+        writer.launch { runCatching { labelCustomConfigs() } }
+    }
+
     private val _subscriptions = MutableStateFlow(loadSubscriptions())
     val subscriptions: StateFlow<List<Subscription>> = _subscriptions.asStateFlow()
 
@@ -1471,20 +1475,21 @@ class ConfigRepository(private val store: KeyValueStore) {
     private fun loadProfiles(): List<VpnProfile> {
         val raw = store.getString(KEY_PROFILES) ?: return emptyList()
         val loaded = runCatching { json.decodeFromString<List<VpnProfile>>(raw) }.getOrDefault(emptyList())
-        return labelCustomConfigs(repairOpenVpnType(loaded))
+        return repairOpenVpnType(loaded)
     }
 
-    private fun labelCustomConfigs(profiles: List<VpnProfile>): List<VpnProfile> {
-        var changed = false
-        val labelled = profiles.map { profile ->
-            val source = profile.source as? ProfileSource.RawJson ?: return@map profile
-            if (profile.transportLabel != VpnProfile.CUSTOM_LABEL) return@map profile
-            val label = runCatching { CustomConfig.inspect(source.json).transportLabel }.getOrNull() ?: return@map profile
-            changed = true
-            profile.copy(transportLabel = label)
+    private fun labelCustomConfigs() {
+        val labels = _profiles.value.mapNotNull { profile ->
+            val source = profile.source as? ProfileSource.RawJson ?: return@mapNotNull null
+            if (profile.transportLabel != VpnProfile.CUSTOM_LABEL) return@mapNotNull null
+            val label = runCatching { CustomConfig.inspect(source.json).transportLabel }.getOrNull() ?: return@mapNotNull null
+            profile.id to label
+        }.toMap()
+        if (labels.isEmpty()) return
+        _profiles.update { list ->
+            list.map { p -> labels[p.id]?.takeIf { p.transportLabel == VpnProfile.CUSTOM_LABEL }?.let { p.copy(transportLabel = it) } ?: p }
         }
-        if (changed) store.putString(KEY_PROFILES, json.encodeToString(labelled))
-        return labelled
+        persistProfiles()
     }
 
     private fun repairOpenVpnType(profiles: List<VpnProfile>): List<VpnProfile> {
