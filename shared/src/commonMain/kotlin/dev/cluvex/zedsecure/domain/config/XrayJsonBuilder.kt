@@ -11,6 +11,7 @@ import kotlinx.serialization.json.add
 import kotlinx.serialization.json.addJsonObject
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
@@ -548,7 +549,7 @@ object XrayJsonBuilder {
         val serverOutbounds: List<JsonElement> = buildJsonArray { proxyOutbounds() } +
             namedOutbounds.map { (tag, server) -> serverOutbound(server, options, tag) } +
             groupOutbounds.values.flatten()
-        val endpointHosts = wireguardEndpointHosts(serverOutbounds)
+        val endpointHosts = endpointHosts(serverOutbounds)
         val config = buildJsonObject {
             putJsonObject("log") {
                 put("loglevel", options.logLevel)
@@ -944,18 +945,34 @@ object XrayJsonBuilder {
         val enabled: Boolean = false,
     )
 
-    private fun wireguardEndpointHosts(outbounds: List<JsonElement>): List<String> = outbounds
+    private fun endpointHosts(outbounds: List<JsonElement>): List<String> = outbounds
         .mapNotNull { it as? JsonObject }
-        .filter { (it["protocol"] as? JsonPrimitive)?.content == "wireguard" }
         .flatMap { outbound ->
-            val peers = ((outbound["settings"] as? JsonObject)?.get("peers") as? JsonArray).orEmpty()
-            peers.mapNotNull { peer -> ((peer as? JsonObject)?.get("endpoint") as? JsonPrimitive)?.content }
+            when ((outbound["protocol"] as? JsonPrimitive)?.content) {
+                "wireguard" -> {
+                    val peers = ((outbound["settings"] as? JsonObject)?.get("peers") as? JsonArray).orEmpty()
+                    peers.mapNotNull { peer -> ((peer as? JsonObject)?.get("endpoint") as? JsonPrimitive)?.content }
+                        .map { endpoint -> if (endpoint.startsWith("[")) "" else endpoint.substringBeforeLast(':', endpoint).trim() }
+                }
+                "singbox" -> singBoxServerHosts((outbound["settings"] as? JsonObject)?.get("config") as? JsonObject)
+                else -> emptyList()
+            }
         }
-        .mapNotNull { endpoint ->
-            val host = if (endpoint.startsWith("[")) "" else endpoint.substringBeforeLast(':', endpoint).trim()
-            host.takeIf { it.isNotEmpty() && !isIpLiteral(it) }?.let { "full:$it" }
-        }
+        .mapNotNull { host -> host.trim().takeIf { it.isNotEmpty() && !isIpLiteral(it) }?.let { "full:$it" } }
         .distinct()
+
+    private fun singBoxServerHosts(config: JsonObject?): List<String> {
+        if (config == null) return emptyList()
+        val items = listOf("outbounds", "endpoints").flatMap { key -> (config[key] as? JsonArray).orEmpty() }
+            .mapNotNull { it as? JsonObject }
+        return items.flatMap { item ->
+            val server = (item["server"] as? JsonPrimitive)?.contentOrNull
+            val peers = (item["peers"] as? JsonArray).orEmpty().mapNotNull { peer ->
+                ((peer as? JsonObject)?.get("address") as? JsonPrimitive)?.contentOrNull
+            }
+            listOfNotNull(server) + peers
+        }
+    }
 
     private fun dnsSplit(rules: List<EffectiveRule>, options: BuildOptions, endpointHosts: List<String> = emptyList()): DnsSplit {
         val domestic = mutableListOf<Pair<String, List<String>>>()
