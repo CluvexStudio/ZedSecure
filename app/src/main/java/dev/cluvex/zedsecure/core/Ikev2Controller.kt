@@ -135,7 +135,7 @@ object Ikev2Controller {
 
     private fun awaitConnected(context: Context, remark: String) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-            VpnManager.onConnected(remark).also { startMetrics() }
+            awaitOwnVpnNetwork(context, remark)
             return
         }
         val deadline = System.currentTimeMillis() + CONNECT_TIMEOUT_MS
@@ -158,6 +158,32 @@ object Ikev2Controller {
             runCatching { Thread.sleep(POLL_INTERVAL_MS) }.onFailure { return }
         }
         fail(context, context.getString(R.string.ikev2_connect_timeout), null)
+    }
+
+    private fun awaitOwnVpnNetwork(context: Context, remark: String) {
+        val deadline = System.currentTimeMillis() + CONNECT_TIMEOUT_MS
+        while (System.currentTimeMillis() < deadline) {
+            if (activeRemark == null) return
+            if (ownVpnNetworkUp(context)) {
+                note("platform VPN network is up")
+                VpnManager.onConnected(remark).also { startMetrics() }
+                return
+            }
+            runCatching { Thread.sleep(POLL_INTERVAL_MS) }.onFailure { return }
+        }
+        fail(context, context.getString(R.string.ikev2_connect_timeout), null)
+    }
+
+    @Suppress("DEPRECATION")
+    private fun ownVpnNetworkUp(context: Context): Boolean {
+        val connectivity = context.getSystemService(android.net.ConnectivityManager::class.java) ?: return false
+        return runCatching {
+            connectivity.allNetworks.any { network ->
+                val caps = connectivity.getNetworkCapabilities(network)
+                caps != null && caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_VPN) &&
+                    caps.ownerUid == android.os.Process.myUid()
+            }
+        }.getOrDefault(false)
     }
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
