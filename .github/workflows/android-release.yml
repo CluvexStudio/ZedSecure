@@ -39,7 +39,7 @@ jobs:
           set -e
           ls -l app/libs/zedcore.aar
           for abi in arm64-v8a armeabi-v7a x86_64; do
-            for lib in libtor libobfs4proxy libsnowflake libconjure libsnispoof libhev-socks5-tunnel libopenconnect libzeptun-jni; do
+            for lib in libaether libtor libobfs4proxy libsnowflake libconjure libsnispoof libhev-socks5-tunnel libopenconnect libzeptun-jni; do
               [ -f "app/src/main/jniLibs/$abi/$lib.so" ] || echo "::warning::$abi/$lib.so is missing; that protocol will not work"
             done
             for lib in libhev-socks5-tunnel libopenconnect libzeptun-jni; do
@@ -48,7 +48,7 @@ jobs:
               readelf --dyn-syms -W "$so" | grep -qE ' (JNI_OnLoad|Java_)' || { echo "::error::$abi/$lib.so has no JNI entry points; the app would crash loading it"; exit 1; }
             done
             for so in app/src/main/jniLibs/$abi/*.so; do
-              case "$so" in */libzeptun*) continue ;; esac
+              case "$so" in */libzeptun*|*/libaether.so) continue ;; esac
               if readelf -d "$so" | grep -qE '\(RELR\)|0x0*6fffe000 '; then echo "::error::$so uses RELR relocations, which Android 7 and 8 cannot load"; exit 1; fi
             done
           done

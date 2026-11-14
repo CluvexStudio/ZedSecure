@@ -56,3 +56,6 @@ __pycache__/
 /app/src/androidTest/
 /desktop/src/test/
 /shared/src/*Test/
+
+# Generated Aether notices are copied from the checksum-pinned archives.
+/app/src/main/assets/aether/

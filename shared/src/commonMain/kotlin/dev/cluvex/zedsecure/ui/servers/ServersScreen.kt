@@ -325,6 +325,7 @@ fun ServersScreen(
 
     var qrTarget by remember { mutableStateOf<Pair<String, String>?>(null) }
     var showCustomJson by remember { mutableStateOf(false) }
+    var showAether by remember { mutableStateOf(false) }
     var showPsiphon by remember { mutableStateOf(false) }
     var showDnsTunnel by remember { mutableStateOf(false) }
     var showMasterDns by remember { mutableStateOf(false) }
@@ -1327,6 +1328,10 @@ fun ServersScreen(
                 showAddSheet = false
                 showCustomJson = true
             },
+            onAether = {
+                showAddSheet = false
+                showAether = true
+            },
             onPsiphon = {
                 showAddSheet = false
                 showPsiphon = true
@@ -1497,6 +1502,17 @@ fun ServersScreen(
         )
     }
 
+    if (showAether) {
+        AetherSheet(
+            onDismiss = { showAether = false },
+            onSave = { name, settings ->
+                repository.addAether(settings, name)
+                showAether = false
+                onServerActivated()
+            },
+        )
+    }
+
     if (showPsiphon) {
         PsiphonSheet(
             onDismiss = { showPsiphon = false },
@@ -1641,6 +1657,17 @@ fun ServersScreen(
                 )
             }
 
+            target.isAether -> {
+                AetherSheet(
+                    initial = target.aetherSettings(), initialName = target.name,
+                    onDismiss = { editTarget = null },
+                    onSave = { name, settings ->
+                        repository.addAether(settings, name, id = target.id)
+                        toastRes(Res.string.saved)
+                        editTarget = null
+                    },
+                )
+            }
             target.isPsiphon -> {
                 PsiphonSheet(
                     initial = target.psiphonSettings(),
@@ -2233,6 +2260,7 @@ private fun AddServerSheet(
     onScanQrImage: () -> Unit,
     onManual: () -> Unit,
     onCustom: () -> Unit,
+    onAether: () -> Unit,
     onPsiphon: () -> Unit,
     onDnsTunnel: () -> Unit,
     onMasterDns: () -> Unit,
@@ -2287,6 +2315,7 @@ private fun AddServerSheet(
             Option(Res.drawable.ic_description, Res.string.servers_add_custom, onCustom)
 
             OptionGroup(Res.string.add_group_tunnels)
+            Option(Res.drawable.ic_public, Res.string.aether_add_title, onAether, free = true)
             Option(Res.drawable.ic_bolt, Res.string.psiphon_add_title, onPsiphon, free = true)
             Option(Res.drawable.ic_lock, Res.string.tor_add_title, onTor, free = true)
             Option(Res.drawable.ic_speed, Res.string.ssh_add_title, onSsh)

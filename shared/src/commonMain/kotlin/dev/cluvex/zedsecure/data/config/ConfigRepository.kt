@@ -397,6 +397,28 @@ class ConfigRepository(private val store: KeyValueStore) {
             bytesUp = existing.bytesUp,
         )
 
+    fun addAether(
+        settings: dev.cluvex.zedsecure.domain.config.AetherProfile,
+        name: String,
+        id: String? = null,
+    ): VpnProfile {
+        val existing = id?.let { profile(it) }
+        val profile = VpnProfile.fromAether(
+            settings = settings,
+            id = existing?.id ?: newId(),
+            addedAt = existing?.addedAt ?: currentTimeMillis(),
+            name = name,
+        ).let { carryOver(existing, it) }
+        _profiles.value = if (existing != null) {
+            _profiles.value.map { if (it.id == profile.id) profile else it }
+        } else {
+            listOf(profile) + _profiles.value
+        }
+        persistProfiles()
+        if (_activeId.value == null) setActive(profile.id)
+        return profile
+    }
+
     fun addPsiphon(
         settings: dev.cluvex.zedsecure.domain.config.PsiphonProfile,
         name: String,
@@ -750,6 +772,7 @@ class ConfigRepository(private val store: KeyValueStore) {
             ?: throw IllegalArgumentException("invalid zedsecure:// link")
         val name = payload.name
         return when (val src = payload.source) {
+            is ProfileSource.Aether -> { addAether(src.settings, name); 1 }
             is ProfileSource.Psiphon -> { addPsiphon(src.settings, name); 1 }
             is ProfileSource.DnsTunnel -> { addDnsTunnel(src.settings, name); 1 }
             is ProfileSource.Tor -> { addTor(name); 1 }

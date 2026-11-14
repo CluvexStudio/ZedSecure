@@ -57,6 +57,9 @@ class StartPlanner(context: Context) {
         if (chosen == null) return Plan.Failure(appContext.getString(R.string.select_config_first))
         val profile = chosen.unsealed()
         profile.ikev2Settings()?.let { return Plan.Ikev2(profile.name, it) }
+        if (profile.isAether && android.os.Build.VERSION.SDK_INT < 29) {
+            return Plan.Failure(appContext.getString(R.string.aether_android_requirement))
+        }
         val kind = engineKindOf(profile)
         val configJson = try {
             if (kind == VpnManager.KIND_CROSS_CHAIN) buildCrossChainWrapper(profile)
@@ -121,6 +124,7 @@ class StartPlanner(context: Context) {
 
     fun engineKindOf(profile: VpnProfile): String = when {
         profile.isCrossChain -> VpnManager.KIND_CROSS_CHAIN
+        profile.isAether -> VpnManager.KIND_AETHER
         profile.psiphonSettings() != null -> VpnManager.KIND_PSIPHON
         profile.dnsTunnelSettings() != null -> VpnManager.KIND_DNS_TUNNEL
         profile.masterDnsSettings() != null -> VpnManager.KIND_MASTERDNS
@@ -164,6 +168,12 @@ class StartPlanner(context: Context) {
         profile.sshSettings()?.let {
             return kotlinx.serialization.json.Json.encodeToString(
                 dev.cluvex.zedsecure.domain.config.SshProfile.serializer(), it,
+            )
+        }
+        profile.aetherSettings()?.let {
+            it.validate()
+            return kotlinx.serialization.json.Json.encodeToString(
+                dev.cluvex.zedsecure.domain.config.AetherProfile.serializer(), it,
             )
         }
         profile.psiphonSettings()?.let { psiphon ->
@@ -347,6 +357,7 @@ class StartPlanner(context: Context) {
         private const val RESOLVE_BUDGET_MS = 2_500L
 
         val PROXY_ENGINES = setOf(
+            VpnManager.KIND_AETHER,
             VpnManager.KIND_PSIPHON,
             VpnManager.KIND_DNS_TUNNEL,
             VpnManager.KIND_MASTERDNS,
