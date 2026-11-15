@@ -130,11 +130,11 @@
 
     <string name="vault_title">保险库</string>
     <string name="vault_intro_title">锁定配置</string>
-    <string name="vault_intro_body">以 .zsx 文件分享服务器。应用连接时不会显示配置，但 ZX VPN 是开源的，所以这只是把配置藏起来，并不能让它保密。密码决定谁可以导入。</string>
+    <string name="vault_intro_body">以 .ZX 文件分享服务器。应用连接时不会显示配置，但 ZX VPN 是开源的，所以这只是把配置藏起来，并不能让它保密。密码决定谁可以导入。</string>
     <string name="vault_create">创建锁定配置</string>
-    <string name="vault_import">导入 .zsx 文件</string>
+    <string name="vault_import">导入 .ZX 文件</string>
     <string name="vault_empty_title">保险库为空</string>
-    <string name="vault_empty_body">创建锁定配置以私密分享，或导入他人发给你的 .zsx 文件。</string>
+    <string name="vault_empty_body">创建锁定配置以私密分享，或导入他人发给你的 .ZX 文件。</string>
 
     <string name="settings_title">设置</string>
     <string name="settings_appearance">外观</string>
@@ -268,7 +268,7 @@
     <string name="zsx_expired">此锁定配置已过期</string>
     <string name="zsx_wrong_password">密码错误</string>
     <string name="zsx_imported">已导入锁定配置</string>
-    <string name="zsx_invalid">不是有效的 .zsx 文件</string>
+    <string name="zsx_invalid">不是有效的 .ZX 文件</string>
     <string name="zsx_legacy">此锁定配置由旧版 ZX VPN 创建。请让分享者重新发送一份。</string>
 
     <string name="cd_app_logo">ZX VPN 标志</string>
@@ -321,6 +321,12 @@
     <string name="group_manual">手动</string>
 
     <string name="about_version">版本 %1$s</string>
+    <string name="about_overview_title">ZX VPN 概览</string>
+    <string name="about_overview_body">一款多协议 VPN 客户端，将连接工具和服务器管理集中在一处。可用协议和功能可能因平台和构建版本而异。</string>
+    <string name="about_privacy_title">隐私与连接控制</string>
+    <string name="about_privacy_body">选择设备的连接方式，并配置受支持的 DNS 和网络选项。VPN 不会让你完全匿名：VPN 服务提供商和你访问的服务仍可能处理连接数据。</string>
+    <string name="about_vault_title">ZX 保险库文件</string>
+    <string name="about_vault_body">可将选定的服务器配置创建为 .ZX 文件，并可选设置密码和有效期。若要加强保护，请使用独特密码，并与文件分开分享。</string>
     <string name="about_built_on">基于 Xray 核心构建，并集成 Psiphon、Tor、Snowflake、obfs4、Conjure、DNSTT、VayDNS、MasterDNS、AmneziaWG、OpenConnect 与 IKEv2。</string>
     <string name="about_source_title">开源核心</string>
     <string name="about_source_body">承载流量的核心基于采用 GPL-3.0、LGPL-3.0 和 MPL-2.0 许可的开源项目构建。我们已按这些许可的要求公开了修改后的源代码。</string>
