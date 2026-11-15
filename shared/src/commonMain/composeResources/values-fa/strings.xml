@@ -274,8 +274,6 @@
 
     <string name="about_version">نسخه %1$s</string>
     <string name="about_built_on">ساخته شده بر پایهٔ هستهٔ Xray، همراه با Psiphon، Tor، Snowflake، obfs4، Conjure، DNSTT، VayDNS، MasterDNS، AmneziaWG، OpenConnect و IKEv2.</string>
-    <string name="about_telegram">کانال تلگرام</string>
-    <string name="about_github">گیت‌هاب</string>
     <string name="about_source_title">هستهٔ اوپن‌سورس</string>
     <string name="about_source_body">هسته‌ای که ترافیک شما را می‌برد روی پروژه‌های اوپن‌سورس با لایسنس‌های GPL-3.0، LGPL-3.0 و MPL-2.0 ساخته شده. سورس پچ‌شدهٔ ما، همان‌طور که این لایسنس‌ها لازم دارند، منتشر شده است.</string>
     <string name="about_source_xray">هستهٔ Xray — پچ‌های ما</string>
@@ -870,14 +868,6 @@
 
     <string name="vault_experimental_badge">آزمایشی</string>
     <string name="vault_experimental_note">گاوصندوق هنوز در مراحل ابتدایی است — ممکن است قالبش تغییر کند و به‌مرور بهتر شود.</string>
-    <string name="support_title">حمایت مالی</string>
-    <string name="support_subtitle">کمک به توسعهٔ پروژه</string>
-    <string name="support_intro">برای کمک به توسعهٔ پروژه می‌توانید از هر یک از این راه‌ها حمایت کنید:</string>
-    <string name="support_usdt">تتر USDT (TRC20)</string>
-    <string name="support_ton">تون TON (Gram)</string>
-    <string name="support_tron">ترون TRON (TRX)</string>
-    <string name="support_usdt_note">توجه: این تتر روی شبکهٔ ترون (TRON) است، به همین دلیل آدرس USDT (TRC20) و TRON یکی هستند — این عمدی است و اشتباه نیست.</string>
-    <string name="support_copied">آدرس کپی شد</string>
     <string name="action_copy">کپی</string>
     <string name="servers_add_more">بیشتر…</string>
     <string name="title_speedtest">تست سرعت</string>
@@ -1392,8 +1382,6 @@
     <string name="monitor_thermal_severe">سیستم می‌گوید شدید throttle شده</string>
     <string name="crypto_accel_title">رمزنگاری سخت‌افزاری</string>
     <string name="crypto_accel_note">این‌که هسته از کدام دستورهای رمزنگاری خود گوشی استفاده می‌کند. بدون آن‌ها همان تونل چند برابر CPU می‌خورد، و داغ‌شدن گوشی معمولاً همین است.</string>
-    <string name="tour_set_support_title">حمایت و لینک‌ها</string>
-    <string name="tour_set_support_body">راه‌های کمک به ادامه‌ی کار. هیچ‌چیز در این صفحه روی نحوه‌ی کار برنامه اثر ندارد.</string>
     <string name="tour_set_look_title">ظاهر و حالت</string>
     <string name="tour_set_look_body">تم، رنگ، زبان و چیدمان لیست‌ها در «ظاهر» است. «حالت» بین VPN کامل و فقط پراکسی محلی سوییچ می‌کند. همین آموزش را هم از اینجا می‌شود دوباره دید.</string>
     <string name="tour_set_routing_title">مسیریابی</string>
