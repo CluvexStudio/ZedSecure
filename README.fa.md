@@ -9,8 +9,8 @@
 <p align="center">همهٔ راه‌های عبور، در یک برنامه.</p>
 
 <p align="center">
-  <a href="https://github.com/hajighmony-sudo/Zx/releases"><img src="https://img.shields.io/github/v/release/CluvexStudio/ZX VPN?style=flat-square&color=C7F24E&labelColor=15170B&label=release" alt="آخرین نسخه"></a>
-  <a href="https://github.com/hajighmony-sudo/Zx/releases"><img src="https://img.shields.io/badge/Google%20Play-install-C7F24E?style=flat-square&labelColor=15170B" alt="گوگل پلی"></a>
+  <a href="https://github.com/hajighmony-sudo/Zx/releases"><img src="https://img.shields.io/badge/ZX%20VPN-GitHub%20Releases-C7F24E?style=flat-square&labelColor=15170B" alt="آخرین نسخه"></a>
+  <a href="https://github.com/hajighmony-sudo/Zx/releases"><img src="https://img.shields.io/badge/دانلود-Android%20%7C%20Desktop-C7F24E?style=flat-square&labelColor=15170B" alt="دانلود ZX VPN"></a>
   <img src="https://img.shields.io/badge/Android%20%C2%B7%20Linux%20%C2%B7%20Windows%20%C2%B7%20macOS-C7F24E?style=flat-square&labelColor=15170B" alt="اندروید، لینوکس، ویندوز، مک">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-C7F24E?style=flat-square&labelColor=15170B" alt="AGPL-3.0"></a>
 </p>

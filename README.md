@@ -7,8 +7,8 @@
 <p align="center">Every way through, in one app.</p>
 
 <p align="center">
-  <a href="https://github.com/hajighmony-sudo/Zx/releases"><img src="https://img.shields.io/github/v/release/CluvexStudio/ZX VPN?style=flat-square&color=C7F24E&labelColor=15170B&label=release" alt="Latest release"></a>
-  <a href="https://github.com/hajighmony-sudo/Zx/releases"><img src="https://img.shields.io/badge/Google%20Play-install-C7F24E?style=flat-square&labelColor=15170B" alt="Google Play"></a>
+  <a href="https://github.com/hajighmony-sudo/Zx/releases"><img src="https://img.shields.io/badge/ZX%20VPN-GitHub%20Releases-C7F24E?style=flat-square&labelColor=15170B" alt="Latest release"></a>
+  <a href="https://github.com/hajighmony-sudo/Zx/releases"><img src="https://img.shields.io/badge/Download-Android%20%7C%20Desktop-C7F24E?style=flat-square&labelColor=15170B" alt="Download ZX VPN"></a>
   <img src="https://img.shields.io/badge/Android%20%C2%B7%20Linux%20%C2%B7%20Windows%20%C2%B7%20macOS-C7F24E?style=flat-square&labelColor=15170B" alt="Android, Linux, Windows, macOS">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-C7F24E?style=flat-square&labelColor=15170B" alt="AGPL-3.0"></a>
 </p>
@@ -55,13 +55,11 @@ Android has all of them. Linux, Windows and macOS carry Xray, sing-box, the DNS 
 
 ## Download
 
-**Android:** [Google Play](https://github.com/hajighmony-sudo/Zx/releases), or the
+**Android:** APK builds are published on [Releases](https://github.com/hajighmony-sudo/Zx/releases);
 APK for your device from [Releases](https://github.com/hajighmony-sudo/Zx/releases)
 (`arm64-v8a` for almost every phone, `armeabi-v7a` for older ones).
 
-**Linux:** `.deb`, `.rpm`, `.AppImage` or `.tar.gz` from Releases. On Arch Linux, the community
-package [Linux packages](https://aur.archlinux.org/packages/zedsecure-bin) is in the AUR:
-see the Releases page for Linux packages. On NixOS, .
+**Linux:** `.deb`, `.rpm`, `.AppImage` or `.tar.gz` packages are available on [Releases](https://github.com/hajighmony-sudo/Zx/releases).
 
 **Windows:** the `.msi` installer, or the portable `.zip`.
 
