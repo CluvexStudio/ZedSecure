@@ -16,17 +16,35 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import dev.cluvex.zedsecure.core.VpnManager
+import dev.cluvex.zedsecure.data.net.PingService
 import dev.cluvex.zedsecure.domain.model.ConnectionState
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withTimeoutOrNull
+
+private enum class AssistHealth {
+    Unknown,
+    Waiting,
+    Checking,
+    Healthy,
+    Degraded,
+    Unavailable,
+}
 
 private data class GhostAssistSnapshot(
     val state: ConnectionState = ConnectionState.Idle,
     val kind: String? = null,
+    val sessionId: Int = 0,
     val downloadBps: Long = 0L,
     val uploadBps: Long = 0L,
     val totalDownload: Long = 0L,
     val totalUpload: Long = 0L,
+    val health: AssistHealth = AssistHealth.Unknown,
+    val latencyMs: Long? = null,
 )
 
 @Composable
@@ -36,34 +54,76 @@ internal fun GhostAssistPanel(
 ) {
     var snapshot by remember { mutableStateOf(GhostAssistSnapshot()) }
 
+    // Live, read-only telemetry. This collector never sends commands to a VPN core.
     LaunchedEffect(enabled) {
         if (!enabled) {
             snapshot = GhostAssistSnapshot()
             return@LaunchedEffect
         }
-
         combine(VpnManager.status, VpnManager.activeKind) { status, kind ->
-            GhostAssistSnapshot(
+            snapshot = snapshot.copy(
                 state = status.state,
                 kind = kind,
+                sessionId = status.sessionId,
                 downloadBps = status.downloadBps,
                 uploadBps = status.uploadBps,
                 totalDownload = status.totalDownload,
                 totalUpload = status.totalUpload,
             )
-        }.collect { snapshot = it }
+        }.collect()
+    }
+
+    // State-aware health checks: pause during transitions and only probe an established tunnel.
+    // A failed probe is advisory; it never restarts, reroutes, or stops the user's VPN.
+    LaunchedEffect(enabled) {
+        if (!enabled) return@LaunchedEffect
+        combine(
+            VpnManager.status.map { it.state to it.sessionId }.distinctUntilChanged(),
+            VpnManager.activeKind,
+        ) { stateAndSession, kind -> Triple(stateAndSession.first, stateAndSession.second, kind) }
+            .collectLatest { (state, sessionId, _) ->
+                if (state != ConnectionState.Connected) {
+                    snapshot = snapshot.copy(
+                        health = if (state.isTransitioning) AssistHealth.Waiting else AssistHealth.Unknown,
+                        latencyMs = null,
+                    )
+                    return@collectLatest
+                }
+
+                while (true) {
+                    snapshot = snapshot.copy(health = AssistHealth.Checking, latencyMs = null)
+                    val result = withTimeoutOrNull(18_000L) {
+                        runCatching { PingService.activeConnectionHealth() }.getOrNull()
+                    }
+                    val current = VpnManager.status.value
+                    if (current.sessionId != sessionId || current.state != ConnectionState.Connected) {
+                        return@collectLatest
+                    }
+                    val latency = result?.takeIf { it.ok }?.ms
+                    snapshot = snapshot.copy(
+                        health = when {
+                            latency == null -> AssistHealth.Unavailable
+                            latency <= 180L -> AssistHealth.Healthy
+                            latency <= 500L -> AssistHealth.Degraded
+                            else -> AssistHealth.Degraded
+                        },
+                        latencyMs = latency,
+                    )
+                    delay(30_000L)
+                }
+            }
     }
 
     Card(modifier = modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(7.dp),
         ) {
             Text("GHOST Assist · لایه پشتیبان", style = MaterialTheme.typography.titleMedium)
             Text(
                 if (!enabled) "غیرفعال"
                 else when (snapshot.state) {
-                    ConnectionState.Connected -> "ناظر تونل فعال است؛ اتصال برقرار است"
+                    ConnectionState.Connected -> "تونل اصلی متصل است"
                     ConnectionState.Connecting -> "در انتظار برقراری تونل اصلی"
                     ConnectionState.Reconnecting -> "تونل اصلی در حال اتصال مجدد است"
                     ConnectionState.Disconnecting -> "تونل اصلی در حال قطع اتصال است"
@@ -72,7 +132,26 @@ internal fun GhostAssistPanel(
                 },
                 style = MaterialTheme.typography.bodyMedium,
             )
-            Text("هسته/مسیر فعال: ${snapshot.kind.toDisplayName()}", style = MaterialTheme.typography.bodySmall)
+            Text(
+                "هسته فعال: ${snapshot.kind.toDisplayName()}",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Text(
+                "شناسه نشست: ${snapshot.sessionId}",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Text(
+                "سلامت مسیر: ${snapshot.health.toPersianLabel()}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = when (snapshot.health) {
+                    AssistHealth.Healthy -> MaterialTheme.colorScheme.primary
+                    AssistHealth.Degraded, AssistHealth.Unavailable -> MaterialTheme.colorScheme.error
+                    else -> MaterialTheme.colorScheme.onSurface
+                },
+            )
+            snapshot.latencyMs?.let {
+                Text("تأخیر اندازه‌گیری‌شده: ${it} ms", style = MaterialTheme.typography.bodySmall)
+            }
             if (snapshot.state == ConnectionState.Connected) {
                 Text(
                     "دریافت: ${snapshot.downloadBps.toRateLabel()}  ·  ارسال: ${snapshot.uploadBps.toRateLabel()}",
@@ -84,12 +163,26 @@ internal fun GhostAssistPanel(
                 )
             }
             Text(
-                "حالت ایمن: فقط‌خواندنی؛ این لایه کانفیگ، مسیر ترافیک یا هسته را تغییر نمی‌دهد و فرمان قطع‌و‌وصل صادر نمی‌کند.",
+                "هماهنگی هوشمند: پایش فقط هنگام اتصال برقرار است؛ هنگام تغییر وضعیت، بررسی‌ها متوقف یا از نو آغاز می‌شوند.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                "حالت ایمن: فقط‌خواندنی. این بخش کانفیگ، مسیر ترافیک یا هسته را تغییر نمی‌دهد و فرمان قطع، وصل یا تعویض هسته صادر نمی‌کند. خطای GHOST نباید اتصال اصلی را متوقف کند.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
+}
+
+private fun AssistHealth.toPersianLabel(): String = when (this) {
+    AssistHealth.Unknown -> "هنوز بررسی نشده"
+    AssistHealth.Waiting -> "در انتظار وضعیت پایدار تونل"
+    AssistHealth.Checking -> "در حال بررسی اتصال"
+    AssistHealth.Healthy -> "پایدار"
+    AssistHealth.Degraded -> "کند یا ناپایدار"
+    AssistHealth.Unavailable -> "قابل تأیید نیست"
 }
 
 private fun String?.toDisplayName(): String = when (this) {
