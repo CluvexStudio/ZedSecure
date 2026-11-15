@@ -39,6 +39,9 @@ private data class GhostAssistSnapshot(
     val state: ConnectionState = ConnectionState.Idle,
     val kind: String? = null,
     val sessionId: Int = 0,
+    val serverName: String? = null,
+    val durationSeconds: Int = 0,
+    val hasTunnelError: Boolean = false,
     val downloadBps: Long = 0L,
     val uploadBps: Long = 0L,
     val totalDownload: Long = 0L,
@@ -65,6 +68,9 @@ internal fun GhostAssistPanel(
                 state = status.state,
                 kind = kind,
                 sessionId = status.sessionId,
+                serverName = status.serverName,
+                durationSeconds = status.durationSeconds,
+                hasTunnelError = status.error != null,
                 downloadBps = status.downloadBps,
                 uploadBps = status.uploadBps,
                 totalDownload = status.totalDownload,
@@ -140,6 +146,19 @@ internal fun GhostAssistPanel(
                 "شناسه نشست: ${snapshot.sessionId}",
                 style = MaterialTheme.typography.bodySmall,
             )
+            snapshot.serverName?.takeIf { it.isNotBlank() }?.let {
+                Text("پروفایل: $it", style = MaterialTheme.typography.bodySmall)
+            }
+            if (snapshot.state == ConnectionState.Connected) {
+                Text("مدت اتصال: ${snapshot.durationSeconds.toDurationLabel()}", style = MaterialTheme.typography.bodySmall)
+            }
+            if (snapshot.hasTunnelError || snapshot.state == ConnectionState.Error) {
+                Text(
+                    "تونل اصلی خطا گزارش کرده است؛ GHOST فقط وضعیت را نشان می‌دهد و اتصال را تغییر نمی‌دهد.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
             Text(
                 "سلامت مسیر: ${snapshot.health.toPersianLabel()}",
                 style = MaterialTheme.typography.bodyMedium,
@@ -168,12 +187,26 @@ internal fun GhostAssistPanel(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
+                snapshot.health.toGuidance(),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
                 "حالت ایمن: فقط‌خواندنی. این بخش کانفیگ، مسیر ترافیک یا هسته را تغییر نمی‌دهد و فرمان قطع، وصل یا تعویض هسته صادر نمی‌کند. خطای GHOST نباید اتصال اصلی را متوقف کند.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
+}
+
+private fun AssistHealth.toGuidance(): String = when (this) {
+    AssistHealth.Unknown -> "پایش تا زمان برقراری تونل اصلی غیرفعال می‌ماند."
+    AssistHealth.Waiting -> "هماهنگی موقتاً متوقف است تا وضعیت تونل اصلی پایدار شود."
+    AssistHealth.Checking -> "در حال سنجش دسترسی از مسیر اتصال فعلی؛ این بررسی ترافیک عادی را تغییر نمی‌دهد."
+    AssistHealth.Healthy -> "پیشنهاد GHOST: مسیر پاسخ‌گو است؛ فقط پایش ادامه می‌یابد."
+    AssistHealth.Degraded -> "پیشنهاد GHOST: تأخیر بالاست؛ کیفیت شبکه را بررسی کن. هیچ تغییری خودکار اعمال نمی‌شود."
+    AssistHealth.Unavailable -> "پاسخ آزمایش دریافت نشد؛ این نتیجه به‌تنهایی به معنی قطع تونل نیست."
 }
 
 private fun AssistHealth.toPersianLabel(): String = when (this) {
@@ -199,6 +232,14 @@ private fun String?.toDisplayName(): String = when (this) {
     VpnManager.KIND_CROSS_CHAIN -> "زنجیره ترکیبی"
     null -> "شناسایی نشده"
     else -> this
+}
+
+private fun Int.toDurationLabel(): String {
+    val safe = coerceAtLeast(0)
+    val hours = safe / 3600
+    val minutes = (safe % 3600) / 60
+    val seconds = safe % 60
+    return if (hours > 0) "${hours}h ${minutes}m" else "${minutes}m ${seconds}s"
 }
 
 private fun Long.toRateLabel(): String {
