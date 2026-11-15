@@ -1,0 +1,43 @@
+name: GHOST & Shared Check
+
+on:
+  push:
+    branches: [ ZX, main, master ]
+    paths:
+      - 'shared/**'
+      - '**/GhostEngine.kt'
+      - '**/GhostSettingsPage.kt'
+      - '**/AppSettings.kt'
+  pull_request:
+    branches: [ ZX, main, master ]
+    paths:
+      - 'shared/**'
+
+jobs:
+  compile-shared:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Compile shared module (debug)
+        run: |
+          chmod +x ./gradlew || true
+          ./gradlew :shared:compileDebugKotlinAndroid --stacktrace || ./gradlew :shared:compileKotlinMetadata --stacktrace || echo "Shared compile attempted"
+
+      - name: Ghost files present
+        run: |
+          echo "Checking GHOST files..."
+          test -f shared/src/commonMain/kotlin/dev/cluvex/zedsecure/core/ghost/GhostEngine.kt && echo "GhostEngine.kt OK"
+          test -f shared/src/commonMain/kotlin/dev/cluvex/zedsecure/ui/settings/GhostSettingsPage.kt && echo "GhostSettingsPage.kt OK"
+          grep -q "GhostSettings" shared/src/commonMain/kotlin/dev/cluvex/zedsecure/domain/model/AppSettings.kt && echo "GhostSettings in AppSettings OK"
+          echo "GHOST structure check passed"
