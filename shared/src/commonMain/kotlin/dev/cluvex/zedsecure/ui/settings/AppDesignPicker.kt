@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import dev.cluvex.zedsecure.domain.model.AppDesign
 import dev.cluvex.zedsecure.shared.resources.Res
 import dev.cluvex.zedsecure.shared.resources.*
+import dev.cluvex.zedsecure.ui.platform.LocalPlatform
 import dev.cluvex.zedsecure.ui.theme.ZedGradients
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -87,6 +88,14 @@ fun AppDesignPicker(selected: AppDesign, onSelect: (AppDesign) -> Unit) {
                     modifier = Modifier.weight(1f),
                     onClick = { onSelect(AppDesign.Old) },
                 ) { OldPreview() }
+                if (!LocalPlatform.current.isComputer) {
+                    DesignCard(
+                        name = stringResource(Res.string.home_design_zx),
+                        selected = selected == AppDesign.Zx,
+                        modifier = Modifier.weight(1f),
+                        onClick = { onSelect(AppDesign.Zx) },
+                    ) { dev.cluvex.zedsecure.ui.zx.ZxDesignPreview() }
+                }
             }
         }
     }

@@ -24,6 +24,12 @@ import dev.cluvex.zedsecure.ui.bento.BentoPalettes
 import dev.cluvex.zedsecure.ui.bento.BentoStyle
 import dev.cluvex.zedsecure.ui.bento.LocalBentoStyle
 import dev.cluvex.zedsecure.ui.bento.bentoColorScheme
+import dev.cluvex.zedsecure.domain.model.ZxAnim
+import dev.cluvex.zedsecure.ui.zx.LocalZxStyle
+import dev.cluvex.zedsecure.ui.zx.ZxPalettes
+import dev.cluvex.zedsecure.ui.zx.ZxShapes
+import dev.cluvex.zedsecure.ui.zx.ZxStyle
+import dev.cluvex.zedsecure.ui.zx.zxColorScheme
 import dev.cluvex.zedsecure.domain.model.ColorContrast
 import dev.cluvex.zedsecure.domain.model.ColorStyle
 
@@ -44,6 +50,8 @@ fun ZedSecureTheme(
 
     bento: BentoPrefs = BentoPrefs(),
 
+    zxAnim: ZxAnim = ZxAnim.Auto,
+
     languageTag: String = "en",
 
     fontScale: Float = 1f,
@@ -58,12 +66,16 @@ fun ZedSecureTheme(
     val bentoColors = remember(bento.palette, darkTheme, bentoSeed, amoledBlack) {
         BentoPalettes.of(bento.palette, darkTheme, bentoSeed, amoledBlack)
     }
-    val scheme = if (design == AppDesign.Bento) {
+    val zxColors = remember(darkTheme) { ZxPalettes.of(darkTheme) }
+    val scheme = if (design == AppDesign.Zx) {
+        remember(zxColors) { zxColorScheme(zxColors) }
+    } else if (design == AppDesign.Bento) {
         remember(bentoColors) { bentoColorScheme(bentoColors) }
     } else {
         (system ?: rememberZedColorScheme(darkTheme, accentColor, colorStyle, colorContrast))
             .let { if (amoledBlack) it.amoled(darkTheme) else it }
     }
+    val zxStyle = remember(zxColors, zxAnim) { ZxStyle(zxColors, zxAnim) }
     val bentoStyle = remember(bentoColors, bento, languageTag) { BentoStyle(bentoColors, bento, latin = languageTag != "fa") }
     val colorScheme = if (animateColors) {
         animateColorScheme(scheme, animationSpec = { spring(stiffness = Spring.StiffnessMediumLow) })
@@ -79,13 +91,14 @@ fun ZedSecureTheme(
     MaterialExpressiveTheme(
         colorScheme = colorScheme,
         motionScheme = MotionScheme.expressive(),
-        shapes = ZedShapes,
+        shapes = if (design == AppDesign.Zx) ZxShapes else ZedShapes,
         typography = typographyFor(languageTag, design, font),
     ) {
         CompositionLocalProvider(
             LocalDensity provides scaled,
             LocalAppDesign provides design,
             LocalBentoStyle provides bentoStyle,
+            LocalZxStyle provides zxStyle,
             content = content,
         )
     }

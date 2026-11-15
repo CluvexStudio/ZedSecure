@@ -476,6 +476,7 @@ fun MainScaffold(
         val detailsOpen by homeVm.expanded.collectAsStateWithLifecycle()
         HomeFabCluster(
             visible = current == TopDestination.Home && !bento &&
+                settings.appDesign != dev.cluvex.zedsecure.domain.model.AppDesign.Zx &&
                 !(detailsOpen && settings.appDesign == dev.cluvex.zedsecure.domain.model.AppDesign.Pixel),
             showSpeedTest = vpnStatus.state == dev.cluvex.zedsecure.domain.model.ConnectionState.Connected &&
                 activeProfile?.isDnsBasedTunnel != true,

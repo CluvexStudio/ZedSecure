@@ -1815,4 +1815,14 @@
     <string name="bento_palette_ocean">海洋</string>
     <string name="bento_palette_sunset">日落</string>
     <string name="bento_palette_berry">莓果</string>
+    <string name="home_design_zx">ZX</string>
+    <string name="zx_group">ZX 外观</string>
+    <string name="zx_anim_title">动画级别</string>
+    <string name="zx_anim_auto">自动</string>
+    <string name="zx_anim_min">最低</string>
+    <string name="zx_anim_balanced">均衡</string>
+    <string name="zx_anim_max">最高</string>
+    <string name="zx_anim_hint">自动会根据设备性能调整。最高会加入故障特效、扫描线、数字雨和发光网格；最低只保留简单过渡。日夜模式跟随主题模式。</string>
+    <string name="zx_node_device">你</string>
+    <string name="zx_node_internet">网络</string>
 </resources>

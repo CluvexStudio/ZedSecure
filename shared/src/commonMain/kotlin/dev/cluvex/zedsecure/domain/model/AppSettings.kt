@@ -8,7 +8,9 @@ enum class ColorStyle { ZedSecure, TonalSpot, Vibrant, Expressive, Rainbow, Frui
 
 enum class ColorContrast(val level: Double) { Standard(0.0), Medium(0.5), High(1.0) }
 
-enum class AppDesign { Bento, Pixel, Old }
+enum class AppDesign { Bento, Pixel, Old, Zx }
+
+enum class ZxAnim { Min, Balanced, Max, Auto }
 
 enum class ScreenTransition {
     Fade,
@@ -250,6 +252,8 @@ data class AppSettings(
     val customConfigCardTextColor: Long? = null,
 
     val appDesign: AppDesign = AppDesign.Bento,
+
+    val zxAnim: ZxAnim = ZxAnim.Auto,
 
     val bento: BentoPrefs = BentoPrefs(),
 

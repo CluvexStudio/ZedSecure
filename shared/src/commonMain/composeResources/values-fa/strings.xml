@@ -1807,4 +1807,14 @@
     <string name="bento_palette_ocean">اقیانوس</string>
     <string name="bento_palette_sunset">غروب</string>
     <string name="bento_palette_berry">توت</string>
+    <string name="home_design_zx">ZX</string>
+    <string name="zx_group">ظاهر ZX</string>
+    <string name="zx_anim_title">سطح انیمیشن</string>
+    <string name="zx_anim_auto">خودکار</string>
+    <string name="zx_anim_min">حداقل</string>
+    <string name="zx_anim_balanced">متعادل</string>
+    <string name="zx_anim_max">حداکثر</string>
+    <string name="zx_anim_hint">خودکار با توان دستگاه هماهنگ می‌شود. حداکثر گلیچ، اسکن‌لاین، باران دیجیتال و شبکهٔ درخشان اضافه می‌کند؛ حداقل فقط انتقال‌های ساده دارد. روز و شب از حالت تم پیروی می‌کند.</string>
+    <string name="zx_node_device">شما</string>
+    <string name="zx_node_internet">اینترنت</string>
 </resources>

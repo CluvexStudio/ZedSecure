@@ -58,6 +58,7 @@ class SettingsRepository(context: Context) {
             colorStyle = prefs.enum("color_style", d.colorStyle),
             colorContrast = prefs.enum("color_contrast", d.colorContrast),
             appDesign = prefs.enum("app_design", d.appDesign),
+            zxAnim = prefs.enum("zx_anim", d.zxAnim),
             amoledBlack = prefs.getBoolean("amoled_black", d.amoledBlack),
             language = prefs.enum("language", d.language),
 
@@ -283,6 +284,7 @@ class SettingsRepository(context: Context) {
             putString("color_style", s.colorStyle.name)
             putString("color_contrast", s.colorContrast.name)
             putString("app_design", s.appDesign.name)
+            putString("zx_anim", s.zxAnim.name)
             putBoolean("amoled_black", s.amoledBlack)
             putString("language", s.language.name)
             putArgb("custom_color_download", s.customDownloadColor)

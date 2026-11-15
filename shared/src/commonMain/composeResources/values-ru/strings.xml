@@ -1815,4 +1815,14 @@
     <string name="bento_palette_ocean">Океан</string>
     <string name="bento_palette_sunset">Закат</string>
     <string name="bento_palette_berry">Ягода</string>
+    <string name="home_design_zx">ZX</string>
+    <string name="zx_group">Вид ZX</string>
+    <string name="zx_anim_title">Уровень анимации</string>
+    <string name="zx_anim_auto">Авто</string>
+    <string name="zx_anim_min">Минимум</string>
+    <string name="zx_anim_balanced">Баланс</string>
+    <string name="zx_anim_max">Максимум</string>
+    <string name="zx_anim_hint">Авто подстраивается под устройство. Максимум добавляет глитч, линии развёртки, цифровой дождь и светящуюся сетку; Минимум оставляет только простые переходы. День и ночь зависят от режима темы.</string>
+    <string name="zx_node_device">Вы</string>
+    <string name="zx_node_internet">Сеть</string>
 </resources>

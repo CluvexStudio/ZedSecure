@@ -43,7 +43,10 @@ import dev.cluvex.zedsecure.ui.onboarding.tourTarget
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import dev.cluvex.zedsecure.domain.model.AppDesign
 import dev.cluvex.zedsecure.domain.model.NavBarStyle
+import dev.cluvex.zedsecure.ui.theme.LocalAppDesign
+import dev.cluvex.zedsecure.ui.zx.ZxNavBar
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -54,6 +57,10 @@ fun ZedNavBar(
     current: TopDestination,
     onSelect: (TopDestination) -> Unit,
 ) {
+    if (LocalAppDesign.current == AppDesign.Zx) {
+        ZxNavBar(tabs, current, onSelect)
+        return
+    }
     when (style) {
         NavBarStyle.FloatingPill, NavBarStyle.Dock -> FloatingPillBar(tabs, current, onSelect, compact = false)
         NavBarStyle.CompactDock -> FloatingPillBar(tabs, current, onSelect, compact = true)

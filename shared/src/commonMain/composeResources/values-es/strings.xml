@@ -1768,4 +1768,14 @@
     <string name="bento_palette_ocean">Océano</string>
     <string name="bento_palette_sunset">Atardecer</string>
     <string name="bento_palette_berry">Bayas</string>
+    <string name="home_design_zx">ZX</string>
+    <string name="zx_group">Aspecto ZX</string>
+    <string name="zx_anim_title">Nivel de animación</string>
+    <string name="zx_anim_auto">Auto</string>
+    <string name="zx_anim_min">Mínimo</string>
+    <string name="zx_anim_balanced">Equilibrado</string>
+    <string name="zx_anim_max">Máximo</string>
+    <string name="zx_anim_hint">Auto se adapta a tu dispositivo. Máximo añade glitch, líneas de escaneo, lluvia digital y una cuadrícula luminosa; Mínimo deja solo transiciones simples. Día y noche siguen el modo del tema.</string>
+    <string name="zx_node_device">Tú</string>
+    <string name="zx_node_internet">Red</string>
 </resources>
