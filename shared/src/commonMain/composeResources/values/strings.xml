@@ -321,8 +321,6 @@
 
     <string name="about_version">Version %1$s</string>
     <string name="about_built_on">Built on the Xray core, with Psiphon, Tor, Snowflake, obfs4, Conjure, DNSTT, VayDNS, MasterDNS, AmneziaWG, OpenConnect and IKEv2.</string>
-    <string name="about_telegram">Telegram channel</string>
-    <string name="about_github">GitHub</string>
     <string name="about_source_title">Open-source core</string>
     <string name="about_source_body">The core that carries your traffic is built on open-source projects licensed under GPL-3.0, LGPL-3.0 and MPL-2.0. Our patched sources are published, as those licences require.</string>
     <string name="about_source_xray">Xray core — our patches</string>
@@ -877,14 +875,6 @@
 
     <string name="vault_experimental_badge">Experimental</string>
     <string name="vault_experimental_note">The Vault is still early — the format may change and it will get better over time.</string>
-    <string name="support_title">Support the project</string>
-    <string name="support_subtitle">Help fund ongoing development</string>
-    <string name="support_intro">Help fund the project's development — you can support via any of these:</string>
-    <string name="support_usdt">USDT (TRC20)</string>
-    <string name="support_ton">TON (Gram)</string>
-    <string name="support_tron">TRON (TRX)</string>
-    <string name="support_usdt_note">Note: the USDT is on the TRON network, so the USDT (TRC20) and TRON addresses are the same wallet — that's intentional.</string>
-    <string name="support_copied">Address copied</string>
     <string name="action_copy">Copy</string>
     <string name="servers_add_more">More…</string>
     <string name="title_speedtest">Speed test</string>
@@ -1399,8 +1389,6 @@
     <string name="monitor_thermal_severe">System reports severe throttling</string>
     <string name="crypto_accel_title">Hardware crypto</string>
     <string name="crypto_accel_note">Which of the phone’s crypto instructions the core is using. Without them the same tunnel costs many times the CPU, which is what a warm phone usually is.</string>
-    <string name="tour_set_support_title">Support and links</string>
-    <string name="tour_set_support_body">Ways to help fund the work. Nothing on this page changes how the app runs.</string>
     <string name="tour_set_look_title">Interface and mode</string>
     <string name="tour_set_look_body">Theme, accent colour, language and how the lists are laid out live in Interface. Mode switches between a full VPN and a local proxy only. This tour can be replayed from here too.</string>
     <string name="tour_set_routing_title">Routing</string>
