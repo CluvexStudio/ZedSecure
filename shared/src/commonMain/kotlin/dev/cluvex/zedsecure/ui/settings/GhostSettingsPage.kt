@@ -11,15 +11,16 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import dev.cluvex.zedsecure.core.ghost.GhostEngine
 import dev.cluvex.zedsecure.domain.model.AppSettings
-import dev.cluvex.zedsecure.domain.model.GhostSettings
 import dev.cluvex.zedsecure.ui.platform.appVerticalScroll
-import org.jetbrains.compose.resources.stringResource
-import dev.cluvex.zedsecure.shared.resources.Res
-import dev.cluvex.zedsecure.shared.resources.*
+import kotlinx.coroutines.delay
 
 @Composable
 fun GhostSettingsPage(
@@ -35,6 +36,15 @@ fun GhostSettingsPage(
         GhostEngine.updateSettings(ghost)
     }
 
+    // Live debug status (refreshes every 2s)
+    var status by remember { mutableStateOf(GhostEngine.debugStatus()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            status = GhostEngine.debugStatus()
+            delay(2000)
+        }
+    }
+
     Column(
         modifier
             .fillMaxWidth()
@@ -44,7 +54,7 @@ fun GhostSettingsPage(
     ) {
         SettingsPageScaffold(
             title = "GHOST MOD",
-            art = SettingsArts.Monitor, // reuse a suitable art for now
+            art = SettingsArts.Monitor,
             subtitle = "ترافیک جعلی هوشمند برای سخت‌تر کردن شناسایی DPI",
             contentPadding = PaddingValues(0.dp),
             modifier = Modifier,
@@ -62,6 +72,30 @@ fun GhostSettingsPage(
             }
 
             if (ghost.enabled) {
+                // Live Debug Panel
+                SettingsGroup("وضعیت زنده (Debug)") {
+                    SettingsSegment {
+                        Column(Modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                if (status.running) "● در حال اجرا" else "○ متوقف",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = if (status.running)
+                                    MaterialTheme.colorScheme.primary
+                                else
+                                    MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Text("چرخه‌ها: ${status.cycles}", style = MaterialTheme.typography.bodyMedium)
+                            Text("درخواست‌ها: ${status.requests}  |  موفق: ${status.successes}  |  ناموفق: ${status.failures}",
+                                style = MaterialTheme.typography.bodySmall)
+                            Text("آخرین پروفایل: ${status.lastProfile}", style = MaterialTheme.typography.bodySmall)
+                            status.lastError?.let {
+                                Text("آخرین خطا: $it", style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error)
+                            }
+                        }
+                    }
+                }
+
                 // 1. App Behavior Profiles
                 SettingsGroup("۱. پروفایل‌های رفتاری اپ‌های ایرانی") {
                     SettingsSwitchRow(
@@ -159,7 +193,7 @@ fun GhostSettingsPage(
                 SettingsGroup("۶. Fallback هوشمند") {
                     SettingsSwitchRow(
                         title = "Adaptive Fallback",
-                        summary = "وقتی تحت فشار باشد، حجم ترافیک جعلی را بالا می‌برد",
+                        summary = "گاهی حجم ترافیک جعلی را به‌صورت تصادفی بالا می‌برد",
                         checked = ghost.adaptiveFallbackEnabled,
                         onCheckedChange = { v ->
                             onUpdate { it.copy(ghost = it.ghost.copy(adaptiveFallbackEnabled = v)) }
@@ -182,6 +216,8 @@ private fun ProfileChipRow(
         "neshan" to "نشان",
         "snapp" to "اسنپ",
         "aparat" to "آپارات",
+        "balad" to "بلد",
+        "torob" to "ترب",
     )
     val selected = current.split(",").map { it.trim().lowercase() }.toSet()
 
@@ -191,7 +227,6 @@ private fun ProfileChipRow(
             style = MaterialTheme.typography.labelLarge,
             modifier = Modifier.padding(bottom = 6.dp),
         )
-        // Simple text-based multi-select for maximum compatibility
         all.forEach { (key, label) ->
             val isOn = key in selected
             SettingsSwitchRow(
@@ -205,22 +240,4 @@ private fun ProfileChipRow(
             )
         }
     }
-}
-
-// Re-use existing switch row if available, otherwise a minimal implementation
-@Composable
-private fun SettingsSwitchRow(
-    title: String,
-    summary: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-) {
-    // This assumes the project already has a SettingsSwitchRow or similar.
-    // If the exact name differs, the build will tell us and we can adjust.
-    dev.cluvex.zedsecure.ui.settings.SettingsSwitchRow(
-        title = title,
-        summary = summary,
-        checked = checked,
-        onCheckedChange = onCheckedChange,
-    )
 }
