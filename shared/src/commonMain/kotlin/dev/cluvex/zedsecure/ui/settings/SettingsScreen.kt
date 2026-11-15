@@ -1216,6 +1216,7 @@ private fun UiPage(
     onLanguage: (AppLanguage) -> Unit,
     onOpen: (SettingsPage) -> Unit,
 ) {
+    val platform = LocalPlatform.current
     SettingsPageScaffold(
         title = stringResource(Res.string.title_ui_settings),
         art = SettingsArts.Appearance,
@@ -1246,12 +1247,12 @@ private fun UiPage(
             dev.cluvex.zedsecure.ui.zx.ZxLookSection(s, onUpdate)
         }
 
-        if (LocalPlatform.current.hasStatusNotification) {
+        if (platform.hasStatusNotification) {
             SettingsGroup(title = stringResource(Res.string.notif_sound_group_title)) {
                 SettingsActionRow(
                     title = stringResource(Res.string.notif_sound_action_title),
                     summary = stringResource(Res.string.notif_sound_action_summary),
-                    onClick = { LocalPlatform.current.openNotificationSettings() },
+                    onClick = { platform.openNotificationSettings() },
                 )
             }
             SettingsGroup(title = stringResource(Res.string.notif_custom_group_title)) {
