@@ -130,11 +130,11 @@
 
     <string name="vault_title">Хранилище</string>
     <string name="vault_intro_title">Закрытые конфигурации</string>
-    <string name="vault_intro_body">Поделитесь сервером в виде файла .zsx. Приложение подключается, не показывая конфигурацию, но у ZX VPN открытый исходный код, поэтому это лишь скрывает её от глаз, а не делает секретной. Пароль определяет, кто сможет её импортировать.</string>
+    <string name="vault_intro_body">Поделитесь сервером в виде файла .ZX. Приложение подключается, не показывая конфигурацию, но у ZX VPN открытый исходный код, поэтому это лишь скрывает её от глаз, а не делает секретной. Пароль определяет, кто сможет её импортировать.</string>
     <string name="vault_create">Создать закрытую конфигурацию</string>
-    <string name="vault_import">Импорт файла .zsx</string>
+    <string name="vault_import">Импорт файла .ZX</string>
     <string name="vault_empty_title">Хранилище пусто</string>
-    <string name="vault_empty_body">Создайте закрытую конфигурацию, чтобы поделиться приватно, или импортируйте присланный вам файл .zsx.</string>
+    <string name="vault_empty_body">Создайте закрытую конфигурацию, чтобы поделиться приватно, или импортируйте присланный вам файл .ZX.</string>
 
     <string name="settings_title">Настройки</string>
     <string name="settings_appearance">Оформление</string>
@@ -268,7 +268,7 @@
     <string name="zsx_expired">Срок действия этой закрытой конфигурации истёк</string>
     <string name="zsx_wrong_password">Неверный пароль</string>
     <string name="zsx_imported">Закрытая конфигурация импортирована</string>
-    <string name="zsx_invalid">Недопустимый файл .zsx</string>
+    <string name="zsx_invalid">Недопустимый файл .ZX</string>
     <string name="zsx_legacy">Эта закрытая конфигурация создана в старой версии ZX VPN. Попросите отправителя прислать новую копию.</string>
 
     <string name="cd_app_logo">Логотип ZX VPN</string>
@@ -321,6 +321,12 @@
     <string name="group_manual">Вручную</string>
 
     <string name="about_version">Версия %1$s</string>
+    <string name="about_overview_title">ZX VPN вкратце</string>
+    <string name="about_overview_body">Мультипротокольный VPN-клиент, объединяющий инструменты подключения и управление серверами. Доступные протоколы и функции могут различаться в зависимости от платформы и сборки.</string>
+    <string name="about_privacy_title">Конфиденциальность и управление подключением</string>
+    <string name="about_privacy_body">Выбирайте способ подключения устройства и настраивайте поддерживаемые параметры DNS и сети. VPN не делает вас анонимным: VPN-провайдер и посещаемые сервисы всё ещё могут обрабатывать данные о подключении.</string>
+    <string name="about_vault_title">Файлы хранилища ZX</string>
+    <string name="about_vault_body">Создавайте файлы .ZX из выбранных конфигураций серверов, при желании задавая пароль и срок действия. Для лучшей защиты используйте уникальный пароль и отправляйте его отдельно от файла.</string>
     <string name="about_built_on">Построено на ядре Xray, вместе с Psiphon, Tor, Snowflake, obfs4, Conjure, DNSTT, VayDNS, MasterDNS, AmneziaWG, OpenConnect и IKEv2.</string>
     <string name="about_source_title">Открытое ядро</string>
     <string name="about_source_body">Ядро, через которое идёт ваш трафик, построено на проектах с лицензиями GPL-3.0, LGPL-3.0 и MPL-2.0. Наши изменённые исходники опубликованы, как того требуют эти лицензии.</string>
