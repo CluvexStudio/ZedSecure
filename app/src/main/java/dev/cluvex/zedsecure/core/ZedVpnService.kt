@@ -986,6 +986,7 @@ class ZedVpnService : VpnService() {
         connectWhen = System.currentTimeMillis()
         watchNotificationSettings()
         VpnManager.onConnected(remark)
+        GhostTunnelBridge.onTunnelConnected(SettingsRepository(this).settings.value.ghost)
         notify(connectedNotification(0, 0, 0, 0))
         ZedWidgetProvider.refresh(this, force = true)
         startStatsLoop()
@@ -1434,6 +1435,7 @@ class ZedVpnService : VpnService() {
     }
 
     private fun stopEngines() {
+        GhostTunnelBridge.onTunnelStopped()
         geoReloadJob?.cancel()
         geoReloadJob = null
         notifSettingsJob?.cancel()
