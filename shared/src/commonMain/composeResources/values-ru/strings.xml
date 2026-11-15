@@ -322,8 +322,6 @@
 
     <string name="about_version">Версия %1$s</string>
     <string name="about_built_on">Построено на ядре Xray, вместе с Psiphon, Tor, Snowflake, obfs4, Conjure, DNSTT, VayDNS, MasterDNS, AmneziaWG, OpenConnect и IKEv2.</string>
-    <string name="about_telegram">Канал в Telegram</string>
-    <string name="about_github">GitHub</string>
     <string name="about_source_title">Открытое ядро</string>
     <string name="about_source_body">Ядро, через которое идёт ваш трафик, построено на проектах с лицензиями GPL-3.0, LGPL-3.0 и MPL-2.0. Наши изменённые исходники опубликованы, как того требуют эти лицензии.</string>
     <string name="about_source_xray">Ядро Xray — наши правки</string>
@@ -878,14 +876,6 @@
 
     <string name="vault_experimental_badge">Экспериментально</string>
     <string name="vault_experimental_note">Хранилище ещё в разработке — формат может измениться, и со временем оно станет лучше.</string>
-    <string name="support_title">Поддержать проект</string>
-    <string name="support_subtitle">Помочь развитию проекта</string>
-    <string name="support_intro">Помогите финансировать развитие проекта — вы можете поддержать любым из способов:</string>
-    <string name="support_usdt">USDT (TRC20)</string>
-    <string name="support_ton">TON (Gram)</string>
-    <string name="support_tron">TRON (TRX)</string>
-    <string name="support_usdt_note">Примечание: USDT находится в сети TRON, поэтому адреса USDT (TRC20) и TRON — это один и тот же кошелёк. Так и должно быть.</string>
-    <string name="support_copied">Адрес скопирован</string>
     <string name="action_copy">Копировать</string>
     <string name="servers_add_more">Ещё…</string>
     <string name="title_speedtest">Тест скорости</string>
@@ -1400,8 +1390,6 @@
     <string name="monitor_thermal_severe">Система сообщает о сильном троттлинге</string>
     <string name="crypto_accel_title">Аппаратная криптография</string>
     <string name="crypto_accel_note">Какие криптоинструкции телефона использует ядро. Без них тот же туннель стоит в разы больше процессора — обычно это и есть нагрев.</string>
-    <string name="tour_set_support_title">Поддержка и ссылки</string>
-    <string name="tour_set_support_body">Способы поддержать разработку. Ничто на этой странице не влияет на работу приложения.</string>
     <string name="tour_set_look_title">Интерфейс и режим</string>
     <string name="tour_set_look_body">Тема, акцентный цвет, язык и раскладка списков — в «Интерфейсе». «Режим» переключает полный VPN и только локальный прокси. Этот тур тоже можно запустить отсюда.</string>
     <string name="tour_set_routing_title">Маршрутизация</string>
