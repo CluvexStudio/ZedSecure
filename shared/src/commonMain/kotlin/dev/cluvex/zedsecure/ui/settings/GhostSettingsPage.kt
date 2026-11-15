@@ -96,6 +96,12 @@ fun GhostSettingsPage(
                     }
                 }
 
+                // Additive read-only tunnel assistance monitor; existing GHOST controls remain unchanged.
+                GhostAssistPanel(
+                    enabled = ghost.enabled,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                )
+
                 // 1. App Behavior Profiles
                 SettingsGroup("۱. پروفایل‌های رفتاری اپ‌های ایرانی") {
                     SettingsSwitchRow(
