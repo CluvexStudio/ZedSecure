@@ -35,6 +35,9 @@ interface Platform {
     fun shareText(text: String)
     fun openUri(url: String)
 
+    /** Opens this app's notification channels so users can choose their own sounds and alert behavior. */
+    fun openNotificationSettings() {}
+
     fun toast(message: String)
 
     fun shareFiles(files: List<Pair<String, ByteArray>>) {}

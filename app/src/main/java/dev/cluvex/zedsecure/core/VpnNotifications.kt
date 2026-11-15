@@ -142,7 +142,9 @@ class VpnNotifications(private val ctx: Context) {
             .setContentTitle(title)
             .setColor(colors.accent)
             .setOngoing(true)
-            .setSilent(true)
+            // Respect the sound/vibration selected by the user for this Android channel.
+            // Only the first post may alert; frequent live-stat updates stay quiet.
+            .setOnlyAlertOnce(true)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setPriority(NotificationCompat.PRIORITY_LOW)

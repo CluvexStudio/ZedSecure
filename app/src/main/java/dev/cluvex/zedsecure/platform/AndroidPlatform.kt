@@ -205,6 +205,25 @@ class AndroidPlatform(
         }
     }
 
+    override fun openNotificationSettings() {
+        runCatching {
+            val intent = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                Intent(AndroidSettings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(
+                    AndroidSettings.EXTRA_APP_PACKAGE,
+                    context.packageName,
+                )
+            } else {
+                Intent(
+                    AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                    Uri.parse("package:${context.packageName}"),
+                )
+            }.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(intent)
+        }.onFailure {
+            openUri("package:${context.packageName}")
+        }
+    }
+
     override fun toast(message: String) {
         mainHandler.post { Toast.makeText(context, message, Toast.LENGTH_SHORT).show() }
     }

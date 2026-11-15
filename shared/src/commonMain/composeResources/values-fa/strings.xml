@@ -1817,4 +1817,8 @@
     <string name="zx_anim_hint">خودکار با توان دستگاه هماهنگ می‌شود. حداکثر گلیچ، اسکن‌لاین، باران دیجیتال و شبکهٔ درخشان اضافه می‌کند؛ حداقل فقط انتقال‌های ساده دارد. روز و شب از حالت تم پیروی می‌کند.</string>
     <string name="zx_node_device">شما</string>
     <string name="zx_node_internet">اینترنت</string>
+    <string name="notif_sound_group_title">صدای اختصاصی اعلان</string>
+    <string name="notif_sound_action_title">انتخاب صدای دلخواه اعلان</string>
+    <string name="notif_sound_action_summary">برای انتخاب صدا و لرزش اختصاصی ZedSecure، تنظیمات اعلان اندروید را باز کنید.</string>
+    <string name="notif_custom_group_title">شخصی‌سازی اعلان‌ها</string>
 </resources>

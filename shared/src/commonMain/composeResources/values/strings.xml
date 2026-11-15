@@ -1824,4 +1824,8 @@
     <string name="zx_anim_hint">Auto adapts to your device. Maximum adds glitch, scanlines, digital rain and a glowing grid; Minimal keeps only simple transitions. Day and night follow the theme mode.</string>
     <string name="zx_node_device">You</string>
     <string name="zx_node_internet">Net</string>
+    <string name="notif_sound_group_title">Notification sound</string>
+    <string name="notif_sound_action_title">Choose a custom notification sound</string>
+    <string name="notif_sound_action_summary">Open Android notification settings to select a sound and vibration for ZedSecure.</string>
+    <string name="notif_custom_group_title">Customizable notifications</string>
 </resources>

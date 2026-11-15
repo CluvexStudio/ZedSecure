@@ -1247,12 +1247,26 @@ private fun UiPage(
         }
 
         if (LocalPlatform.current.hasStatusNotification) {
-            SettingsGroup(title = stringResource(Res.string.settings_group_notification)) {
+            SettingsGroup(title = stringResource(Res.string.notif_sound_group_title)) {
+                SettingsActionRow(
+                    title = stringResource(Res.string.notif_sound_action_title),
+                    summary = stringResource(Res.string.notif_sound_action_summary),
+                    onClick = { LocalPlatform.current.openNotificationSettings() },
+                )
+            }
+            SettingsGroup(title = stringResource(Res.string.notif_custom_group_title)) {
                 SettingsSwitchRow(
                     title = stringResource(Res.string.title_pref_live_notif),
                     summary = stringResource(Res.string.summary_pref_live_notif),
                     checked = s.liveNotification,
                     onCheckedChange = { v -> onUpdate { it.copy(liveNotification = v) } },
+                )
+                SettingsSwitchRow(
+                    title = stringResource(Res.string.title_pref_speed_enabled),
+                    summary = stringResource(Res.string.summary_pref_speed_enabled),
+                    checked = s.speedInNotification,
+                    enabled = s.liveNotification,
+                    onCheckedChange = { v -> onUpdate { it.copy(speedInNotification = v) } },
                 )
                 SettingsListRow(
                     title = stringResource(Res.string.title_pref_notif_chip),
@@ -1283,12 +1297,6 @@ private fun UiPage(
                         body = stringResource(Res.string.notif_style_note),
                     )
                 }
-                SettingsSwitchRow(
-                    title = stringResource(Res.string.title_pref_speed_enabled),
-                    summary = stringResource(Res.string.summary_pref_speed_enabled),
-                    checked = s.speedInNotification,
-                    onCheckedChange = { v -> onUpdate { it.copy(speedInNotification = v) } },
-                )
             }
         }
 
