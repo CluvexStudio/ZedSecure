@@ -105,11 +105,11 @@
 
     <string name="vault_title">Vault</string>
     <string name="vault_intro_title">Locked configs</string>
-    <string name="vault_intro_body">Share a server as an encrypted .zsx file. Recipients can connect but cannot read or edit the underlying config.</string>
+    <string name="vault_intro_body">Share a server as an encrypted .ZX file. Recipients can connect but cannot read or edit the underlying config.</string>
     <string name="vault_create">Create locked config</string>
-    <string name="vault_import">Import .zsx file</string>
+    <string name="vault_import">Import .ZX file</string>
     <string name="vault_empty_title">Your vault is empty</string>
-    <string name="vault_empty_body">Create a locked config to share privately, or import a .zsx someone sent you.</string>
+    <string name="vault_empty_body">Create a locked config to share privately, or import a .ZX someone sent you.</string>
 
     <string name="settings_title">Settings</string>
     <string name="settings_appearance">Appearance</string>
@@ -232,7 +232,7 @@
     <string name="zsx_expired">This locked config has expired</string>
     <string name="zsx_wrong_password">Incorrect password</string>
     <string name="zsx_imported">Locked config imported</string>
-    <string name="zsx_invalid">Not a valid .zsx file</string>
+    <string name="zsx_invalid">Not a valid .ZX file</string>
     <string name="zsx_legacy">This locked config was made by an older version of ZX VPN. Ask whoever shared it for a new copy.</string>
 
     <string name="cd_app_logo">ZX VPN logo</string>
