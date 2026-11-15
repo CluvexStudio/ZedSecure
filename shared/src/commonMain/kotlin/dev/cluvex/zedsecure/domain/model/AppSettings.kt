@@ -218,6 +218,41 @@ enum class GeoFilesSource(val repo: String) {
     Chocolate4U("Chocolate4U/Iran-v2ray-rules"),
 }
 
+/**
+ * GHOST MOD – Generated Harmless Obfuscated Session Traffic
+ * Makes VPN traffic harder to detect by mixing real traffic with
+ * realistic Iranian app decoy traffic (Rubika, Digikala, Neshan, etc.).
+ */
+@Serializable
+data class GhostSettings(
+    /** Master switch for the whole GHOST system */
+    val enabled: Boolean = false,
+
+    /** 1. App Behavior Profiles – use realistic traffic patterns of popular Iranian apps */
+    val appProfilesEnabled: Boolean = true,
+
+    /** Which profiles are active (comma separated keys: rubika,neshan,digikala,snapp,aparat) */
+    val activeProfiles: String = "rubika,neshan,digikala",
+
+    /** 2. Smart Decoy Engine – generate background decoy traffic */
+    val decoyEngineEnabled: Boolean = true,
+
+    /** Decoy volume as percentage of total traffic (30-70 recommended) */
+    val decoyVolumePercent: Int = 40,
+
+    /** 3. Application-Layer Mimicry – craft requests that look like real app API calls */
+    val appLayerMimicryEnabled: Boolean = true,
+
+    /** 5. Multi-App Concurrent Mimicry – run several app profiles at the same time */
+    val multiAppConcurrent: Boolean = true,
+
+    /** 6. Adaptive Fallback – increase decoy / reduce real traffic when under pressure */
+    val adaptiveFallbackEnabled: Boolean = true,
+
+    /** Minimum interval between decoy bursts in seconds */
+    val decoyIntervalSeconds: Int = 12,
+)
+
 @Serializable
 data class AppSettings(
 
@@ -513,6 +548,9 @@ data class AppSettings(
     val localProxyAuth: Boolean = true,
 
     val reconnectOnNetworkChange: Boolean = true,
+
+    /** GHOST MOD – anti-DPI decoy & mimicry system */
+    val ghost: GhostSettings = GhostSettings(),
 ) {
     val useHevTun: Boolean get() = true
 
@@ -523,6 +561,6 @@ data class AppSettings(
     val isVpnMode: Boolean get() = runMode == RunMode.Vpn
 
     companion object {
-        val DURATION_PATTERN = Regex("""[1-9]\d*(ms|s|m|h)""")
+        val DURATION_PATTERN = Regex("""[1-9]\\d*(ms|s|m|h)""")
     }
 }
