@@ -75,7 +75,7 @@ fun GhostSettingsPage(
                 // Live Debug Panel
                 SettingsGroup("وضعیت زنده (Debug)") {
                     SettingsSegment {
-                        Column(Modifier = Modifier.padding(16.dp)) {
+                        Column(modifier = Modifier.padding(16.dp)) {
                             Text(
                                 if (status.running) "● در حال اجرا" else "○ متوقف",
                                 style = MaterialTheme.typography.titleMedium,
@@ -227,7 +227,7 @@ private fun ProfileChipRow(
     )
     val selected = current.split(",").map { it.trim().lowercase() }.toSet()
 
-    Column(Modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
         Text(
             "اپ‌های فعال:",
             style = MaterialTheme.typography.labelLarge,
