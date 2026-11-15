@@ -129,11 +129,11 @@
 
     <string name="vault_title">Vault</string>
     <string name="vault_intro_title">Locked configs</string>
-    <string name="vault_intro_body">Share a server as a .zsx file. The app connects without showing the config, but ZX VPN is open source, so this keeps it out of sight rather than secret. A password decides who can import it.</string>
+    <string name="vault_intro_body">Share a server as a .ZX file. The app connects without showing the config, but ZX VPN is open source, so this keeps it out of sight rather than secret. A password decides who can import it.</string>
     <string name="vault_create">Create locked config</string>
-    <string name="vault_import">Import .zsx file</string>
+    <string name="vault_import">Import .ZX file</string>
     <string name="vault_empty_title">Your vault is empty</string>
-    <string name="vault_empty_body">Create a locked config to share privately, or import a .zsx someone sent you.</string>
+    <string name="vault_empty_body">Create a locked config to share privately, or import a .ZX someone sent you.</string>
 
     <string name="settings_title">Settings</string>
     <string name="settings_appearance">Appearance</string>
@@ -267,7 +267,7 @@
     <string name="zsx_expired">This locked config has expired</string>
     <string name="zsx_wrong_password">Incorrect password</string>
     <string name="zsx_imported">Locked config imported</string>
-    <string name="zsx_invalid">Not a valid .zsx file</string>
+    <string name="zsx_invalid">Not a valid .ZX file</string>
     <string name="zsx_legacy">This locked config was made by an older version of ZX VPN. Ask whoever shared it for a new copy.</string>
 
     <string name="cd_app_logo">ZX VPN logo</string>
@@ -320,6 +320,12 @@
     <string name="group_manual">Manual</string>
 
     <string name="about_version">Version %1$s</string>
+    <string name="about_overview_title">ZX VPN at a glance</string>
+    <string name="about_overview_body">A multi-protocol VPN client that brings connection tools and server controls together in one place. Available protocols and features can vary by platform and build.</string>
+    <string name="about_privacy_title">Privacy and connection control</string>
+    <string name="about_privacy_body">Choose how your device connects and configure supported DNS and network options. A VPN does not make you anonymous: the VPN provider and the services you visit may still process connection data.</string>
+    <string name="about_vault_title">ZX Vault files</string>
+    <string name="about_vault_body">Create .ZX files from selected server configs, with an optional password and expiry. For stronger protection, set a unique password and share it separately from the file.</string>
     <string name="about_built_on">Built on the Xray core, with Psiphon, Tor, Snowflake, obfs4, Conjure, DNSTT, VayDNS, MasterDNS, AmneziaWG, OpenConnect and IKEv2.</string>
     <string name="about_source_title">Open-source core</string>
     <string name="about_source_body">The core that carries your traffic is built on open-source projects licensed under GPL-3.0, LGPL-3.0 and MPL-2.0. Our patched sources are published, as those licences require.</string>
