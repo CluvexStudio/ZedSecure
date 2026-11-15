@@ -1444,7 +1444,7 @@ class ConfigRepository(private val store: KeyValueStore) {
             protocol = "LOCKED",
             address = "•••",
             port = 0,
-            transportLabel = "Locked · .zsx",
+            transportLabel = "Locked · .ZX",
             source = ProfileSource.Sealed(Base64.encode(resealed)),
             addedAt = currentTimeMillis(),
             isLocked = true,
