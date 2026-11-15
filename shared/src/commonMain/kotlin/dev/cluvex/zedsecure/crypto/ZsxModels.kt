@@ -24,7 +24,7 @@ data class ZsxSealRequest(
 )
 
 sealed class ZsxException(message: String) : Exception(message)
-class ZsxVersionException : ZsxException("Unsupported .zsx version")
+class ZsxVersionException : ZsxException("Unsupported .ZX version")
 class ZsxTamperException : ZsxException("File is corrupt or has been tampered with")
 class ZsxWrongPasswordException : ZsxException("Incorrect password")
 class ZsxExpiredException : ZsxException("This locked config has expired")
@@ -35,5 +35,9 @@ fun zsxFileName(name: String): String {
     val base = name.trim().ifBlank { "config" }
         .replace(Regex("[^A-Za-z0-9._-]"), "_")
         .take(48)
-    return if (base.endsWith(".zsx")) base else "$base.zsx"
+    return when {
+        base.endsWith(".ZX") -> base
+        base.endsWith(".zsx", ignoreCase = true) -> base.dropLast(4) + ".ZX"
+        else -> "$base.ZX"
+    }
 }
