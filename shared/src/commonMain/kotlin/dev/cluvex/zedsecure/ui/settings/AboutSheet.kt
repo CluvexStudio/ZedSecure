@@ -8,8 +8,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -32,7 +34,7 @@ fun AboutSheet(onDismiss: () -> Unit) {
         Column(
             Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, bottom = 28.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             MorphingBlob(
                 progress = 0.5f,
@@ -56,26 +58,58 @@ fun AboutSheet(onDismiss: () -> Unit) {
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+
+            AboutInfoCard(
+                title = stringResource(Res.string.about_overview_title),
+                body = stringResource(Res.string.about_overview_body),
+            )
+            AboutInfoCard(
+                title = stringResource(Res.string.about_privacy_title),
+                body = stringResource(Res.string.about_privacy_body),
+            )
+            AboutInfoCard(
+                title = stringResource(Res.string.about_vault_title),
+                body = stringResource(Res.string.about_vault_body),
+            )
+
             Text(
                 stringResource(Res.string.about_built_on),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 4.dp),
             )
 
-            Spacer(Modifier.size(4.dp))
-            Spacer(Modifier.size(8.dp))
+            Spacer(Modifier.size(2.dp))
+            AboutInfoCard(
+                title = stringResource(Res.string.about_source_title),
+                body = stringResource(Res.string.about_source_body),
+            )
+        }
+    }
+}
 
+@Composable
+private fun AboutInfoCard(title: String, body: String) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
             Text(
-                stringResource(Res.string.about_source_title),
+                title,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
-                stringResource(Res.string.about_source_body),
+                body,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
             )
         }
     }
