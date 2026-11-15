@@ -299,8 +299,6 @@
     <string name="group_manual">Manual</string>
     <string name="about_version">Versión %1$s</string>
     <string name="about_built_on">Basado en el núcleo de Xray, con Psiphon, Tor, Snowflake, obfs4, Conjure, DNSTT, VayDNS, MasterDNS, AmneziaWG, OpenConnect e IKEv2.</string>
-    <string name="about_telegram">Canal de Telegram</string>
-    <string name="about_github">GitHub</string>
     <string name="about_source_title">Núcleo de código abierto</string>
     <string name="about_source_body">El núcleo que transporta tu tráfico se basa en proyectos de código abierto con licencias GPL-3.0, LGPL-3.0 y MPL-2.0. Publicamos nuestro código fuente modificado, como exigen esas licencias.</string>
     <string name="about_source_xray">Núcleo de Xray — nuestros parches</string>
@@ -839,14 +837,6 @@
     <string name="personalize_hex">Hex</string>
     <string name="vault_experimental_badge">Experimental</string>
     <string name="vault_experimental_note">La Bóveda aún está en una fase temprana — el formato puede cambiar e irá mejorando con el tiempo.</string>
-    <string name="support_title">Apoyar el proyecto</string>
-    <string name="support_subtitle">Ayuda a financiar el desarrollo continuo</string>
-    <string name="support_intro">Ayuda a financiar el desarrollo del proyecto — puedes apoyarlo con cualquiera de estas opciones:</string>
-    <string name="support_usdt">USDT (TRC20)</string>
-    <string name="support_ton">TON (Gram)</string>
-    <string name="support_tron">TRON (TRX)</string>
-    <string name="support_usdt_note">Nota: el USDT está en la red TRON, así que las direcciones de USDT (TRC20) y TRON son la misma billetera — es intencionado.</string>
-    <string name="support_copied">Dirección copiada</string>
     <string name="action_copy">Copiar</string>
     <string name="servers_add_more">Más…</string>
     <string name="title_speedtest">Prueba de velocidad</string>
@@ -1353,8 +1343,6 @@
     <string name="monitor_thermal_severe">El sistema indica una limitación térmica grave</string>
     <string name="crypto_accel_title">Cifrado por hardware</string>
     <string name="crypto_accel_note">Qué instrucciones criptográficas del teléfono usa el núcleo. Sin ellas, el mismo túnel consume muchas veces más CPU, que es lo que suele haber detrás de un teléfono caliente.</string>
-    <string name="tour_set_support_title">Apoyo y enlaces</string>
-    <string name="tour_set_support_body">Formas de ayudar a financiar el proyecto. Nada de esta página cambia cómo funciona la app.</string>
     <string name="tour_set_look_title">Interfaz y modo</string>
     <string name="tour_set_look_body">El tema, el color de acento, el idioma y la disposición de las listas están en Interfaz. Modo cambia entre una VPN completa y solo un proxy local. Este recorrido también se puede repetir desde aquí.</string>
     <string name="tour_set_routing_title">Enrutamiento</string>
