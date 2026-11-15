@@ -77,7 +77,7 @@ import dev.cluvex.zedsecure.ui.platform.appVerticalScroll
 
 enum class SettingsPage {
     Root, Ui, Vpn, Core, Routing, PerApp, Mux, Fragment, Observatory, Advanced, Mode, Assets, SingBox,
-    DnsProtocols, Tor, TorBridges, Ssh, Support, SpeedTest, Map, Privacy, Monitor, Ai, AiChat, NavBar,
+    DnsProtocols, Tor, TorBridges, Ssh, SpeedTest, Map, Privacy, Monitor, Ai, AiChat, NavBar,
 }
 
 @Composable
