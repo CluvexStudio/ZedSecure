@@ -35,9 +35,6 @@ import dev.cluvex.zedsecure.ui.components.MorphingBlob
 import dev.cluvex.zedsecure.ui.theme.ZedGradients
 import dev.cluvex.zedsecure.ui.platform.rememberAppSheetState
 
-private const val TELEGRAM_URL = "https://t.me/CluvexStudio"
-private const val GITHUB_URL = "https://github.com/CluvexStudio"
-
 private const val XRAY_SOURCE_URL = "https://github.com/CluvexStudio/Xray-core"
 private const val LIB_SOURCE_URL = "https://github.com/CluvexStudio/AndroidLibXrayLite"
 
@@ -82,19 +79,6 @@ fun AboutSheet(onDismiss: () -> Unit) {
 
             Spacer(Modifier.size(4.dp))
 
-            LinkRow(
-                iconRes = Res.drawable.ic_add_link,
-                title = stringResource(Res.string.about_telegram),
-                subtitle = "t.me/CluvexStudio",
-                onClick = { platform.openUri(TELEGRAM_URL) },
-            )
-            LinkRow(
-                iconRes = Res.drawable.ic_description,
-                title = stringResource(Res.string.about_github),
-                subtitle = "github.com/CluvexStudio",
-                onClick = { platform.openUri(GITHUB_URL) },
-            )
-
             Spacer(Modifier.size(8.dp))
 
             Text(
@@ -107,18 +91,6 @@ fun AboutSheet(onDismiss: () -> Unit) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
-            )
-            LinkRow(
-                iconRes = Res.drawable.ic_description,
-                title = stringResource(Res.string.about_source_xray),
-                subtitle = "github.com/CluvexStudio/Xray-core",
-                onClick = { platform.openUri(XRAY_SOURCE_URL) },
-            )
-            LinkRow(
-                iconRes = Res.drawable.ic_description,
-                title = stringResource(Res.string.about_source_lib),
-                subtitle = "github.com/CluvexStudio/AndroidLibXrayLite",
-                onClick = { platform.openUri(LIB_SOURCE_URL) },
             )
         }
     }
