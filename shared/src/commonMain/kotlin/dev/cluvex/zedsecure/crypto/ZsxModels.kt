@@ -36,7 +36,7 @@ fun zsxFileName(name: String): String {
         .replace(Regex("[^A-Za-z0-9._-]"), "_")
         .take(48)
     return when {
-        base.endsWith(".ZX") -> base
+        base.endsWith(".ZX", ignoreCase = true) -> base.dropLast(3) + ".ZX"
         base.endsWith(".zsx", ignoreCase = true) -> base.dropLast(4) + ".ZX"
         else -> "$base.ZX"
     }
