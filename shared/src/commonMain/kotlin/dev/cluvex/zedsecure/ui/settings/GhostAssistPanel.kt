@@ -111,8 +111,8 @@ private fun String?.toDisplayName(): String = when (this) {
 private fun Long.toRateLabel(): String {
     val value = coerceAtLeast(0L).toDouble()
     return when {
-        value >= 1_000_000 -> "${"%.2f".format(value / 1_000_000)} MB/s"
-        value >= 1_000 -> "${"%.1f".format(value / 1_000)} KB/s"
+        value >= 1_000_000 -> "${(value / 1_000_000).toLong()} MB/s"
+        value >= 1_000 -> "${(value / 1_000).toLong()} KB/s"
         else -> "${value.toLong()} B/s"
     }
 }
@@ -120,9 +120,9 @@ private fun Long.toRateLabel(): String {
 private fun Long.toByteLabel(): String {
     val value = coerceAtLeast(0L).toDouble()
     return when {
-        value >= 1_073_741_824 -> "${"%.2f".format(value / 1_073_741_824)} GB"
-        value >= 1_048_576 -> "${"%.1f".format(value / 1_048_576)} MB"
-        value >= 1_024 -> "${"%.1f".format(value / 1_024)} KB"
+        value >= 1_073_741_824 -> "${(value / 1_073_741_824).toLong()} GB"
+        value >= 1_048_576 -> "${(value / 1_048_576).toLong()} MB"
+        value >= 1_024 -> "${(value / 1_024).toLong()} KB"
         else -> "${value.toLong()} B"
     }
 }
