@@ -90,7 +90,7 @@ import dev.cluvex.zedsecure.ui.MainScaffold
 import dev.cluvex.zedsecure.ui.platform.LocalPlatform
 import dev.cluvex.zedsecure.ui.theme.LocalMotionBudget
 import dev.cluvex.zedsecure.ui.theme.MotionBudget
-import dev.cluvex.zedsecure.ui.theme.ZedSecureTheme
+import dev.cluvex.zedsecure.ui.theme.ZX VPNTheme
 import androidx.compose.ui.platform.LocalWindowInfo
 import java.awt.GraphicsEnvironment
 
@@ -119,11 +119,11 @@ fun main(args: Array<String>) {
         return
     }
     if (args.firstOrNull() == "--version") {
-        println("ZedSecure $BUILD_VERSION")
+        println("ZX VPN $BUILD_VERSION")
         return
     }
     if (!SingleInstance.claim()) {
-        println("ZedSecure is already running; its window was brought to the front")
+        println("ZX VPN is already running; its window was brought to the front")
         return
     }
     AppInfo.versionName = BUILD_VERSION
@@ -251,15 +251,15 @@ fun main(args: Array<String>) {
                 previous = status.state
                 val notice = when {
                     status.state == ConnectionState.Connected && was != ConnectionState.Connected ->
-                        Notification("ZedSecure", "Connected · ${status.serverName ?: "tunnel up"}", Notification.Type.Info)
+                        Notification("ZX VPN", "Connected · ${status.serverName ?: "tunnel up"}", Notification.Type.Info)
                     status.state == ConnectionState.Error ->
                         Notification(
-                            "ZedSecure",
+                            "ZX VPN",
                             "Could not connect" + (status.error?.takeIf { it.isNotBlank() }?.let { ": ${it.take(140)}" } ?: ""),
                             Notification.Type.Error,
                         )
                     status.state == ConnectionState.Idle && was == ConnectionState.Disconnecting ->
-                        Notification("ZedSecure", "Disconnected", Notification.Type.None)
+                        Notification("ZX VPN", "Disconnected", Notification.Type.None)
                     else -> null
                 }
                 notice?.let {
@@ -307,7 +307,7 @@ fun main(args: Array<String>) {
                 }
             }
             val tip = buildString {
-                append("ZedSecure · ").append(statusLine)
+                append("ZX VPN · ").append(statusLine)
                 if (connected && speeds.isNotEmpty()) append("\n").append(speeds)
             }
             val active = profiles.firstOrNull { it.id == activeId }
@@ -417,7 +417,7 @@ fun main(args: Array<String>) {
                             LogBus.append("W/Desktop there is no system tray here; the window was minimized because a connection is open")
                             if (Os.current == Os.LINUX) {
                                 val gnome = System.getenv("XDG_CURRENT_DESKTOP").orEmpty().contains("GNOME", ignoreCase = true)
-                                LinuxDesktop.notify("ZedSecure", if (gnome) "$noTrayNotice $noTrayGnomeHint" else noTrayNotice)
+                                LinuxDesktop.notify("ZX VPN", if (gnome) "$noTrayNotice $noTrayGnomeHint" else noTrayNotice)
                             }
                         }
                     }
@@ -425,7 +425,7 @@ fun main(args: Array<String>) {
                 }
             },
             visible = windowVisible,
-            title = "ZedSecure",
+            title = "ZX VPN",
             icon = painterResource(Res.drawable.ic_zed_mark),
             resizable = false,
             state = windowState,
@@ -460,7 +460,7 @@ fun main(args: Array<String>) {
             val langTag = languageTagFor(settings.language)
 
             ProvideAppLanguage(langTag) {
-                ZedSecureTheme(
+                ZX VPNTheme(
                     darkTheme = dark,
                     dynamicColor = false,
                     accentColor = settings.accentColor,

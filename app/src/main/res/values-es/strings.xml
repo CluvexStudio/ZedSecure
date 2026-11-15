@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">ZedSecure</string>
+    <string name="app_name">ZX VPN</string>
     <string name="brand_tagline">Privado. Rápido. Tuyo.</string>
     <string name="nav_home">Inicio</string>
     <string name="nav_servers">Servidores</string>
@@ -215,8 +215,8 @@
     <string name="zsx_wrong_password">Contraseña incorrecta</string>
     <string name="zsx_imported">Configuración bloqueada importada</string>
     <string name="zsx_invalid">No es un archivo .zsx válido</string>
-    <string name="zsx_legacy">Esta configuración bloqueada se creó con una versión anterior de ZedSecure. Pide una copia nueva a quien la compartió.</string>
-    <string name="cd_app_logo">Logotipo de ZedSecure</string>
+    <string name="zsx_legacy">Esta configuración bloqueada se creó con una versión anterior de ZX VPN. Pide una copia nueva a quien la compartió.</string>
+    <string name="cd_app_logo">Logotipo de ZX VPN</string>
     <string name="cd_connection_status">Estado de la conexión</string>
     <string name="cd_settings">Abrir ajustes</string>
     <string name="manual_encryption">Cifrado</string>
@@ -573,7 +573,7 @@
     <string name="notif_chip_on">Activo</string>
     <string name="notif_chip_off">Inactivo</string>
     <string name="notif_title_disconnected">Túnel detenido</string>
-    <string name="notif_kill_switch_body">El túnel se cayó. El kill switch retiene el tráfico y ZedSecure se reconectará en cuanto vuelva la red.</string>
+    <string name="notif_kill_switch_body">El túnel se cayó. El kill switch retiene el tráfico y ZX VPN se reconectará en cuanto vuelva la red.</string>
     <string name="widget_description">Conecta o desconecta, con estado y velocidad en vivo.</string>
     <string name="widget_no_server">Ningún servidor seleccionado</string>
     <string name="chain_member_missing">Falta un elemento de la cadena de proxy: %1$s</string>
@@ -623,7 +623,7 @@
     <string name="snispoof_no_ack">El servidor edge nunca confirmó el paquete falso, así que se reiniciaron todas las conexiones. Esta red o esta IP limpia no permite la suplantación — prueba otra IP limpia.</string>
     <string name="qr_scan_hint">Apunta la cámara a un código QR</string>
     <string name="qr_scan_chunk_progress">Parte %1$d de %2$d — mantén la cámara quieta para leer el resto</string>
-    <string name="tile_label">ZedSecure VPN</string>
+    <string name="tile_label">ZX VPN</string>
     <string name="switch_server_timeout">No se pudo cambiar de servidor — la conexión anterior no se detuvo.</string>
     <string name="engine_failed_with_reason">%1$s: %2$s</string>
     <string name="engine_failed_ssh">No se pudo conectar por SSH</string>
@@ -639,8 +639,8 @@
     <string name="engine_invalid_config_dnstunnel">La configuración del túnel DNS no es válida</string>
     <string name="engine_invalid_config_masterdns">La configuración de MasterDNS no es válida</string>
     <string name="engine_invalid_config_openconnect">La configuración de OpenConnect no es válida</string>
-    <string name="deeplink_open_label">Importar en ZedSecure</string>
-    <string name="engine_ikev2_needs_app">La VPN siempre activa no puede iniciar perfiles IKEv2. Abre ZedSecure para conectarte.</string>
+    <string name="deeplink_open_label">Importar en ZX VPN</string>
+    <string name="engine_ikev2_needs_app">La VPN siempre activa no puede iniciar perfiles IKEv2. Abre ZX VPN para conectarte.</string>
     <string name="auto_notif_remark">Auto · %1$s</string>
     <string name="auto_no_members">Ningún servidor de este grupo se puede usar con Auto</string>
     <string name="auto_all_excluded">Todos los servidores de este grupo están en países excluidos de Auto. Elige un servidor manualmente o cambia la opción Países excluidos.</string>
@@ -648,6 +648,6 @@
     <string name="auto_group_manual_short">Manual</string>
     <string name="widget_download">Descarga</string>
     <string name="widget_upload">Subida</string>
-    <string name="widget_toggle_label">Interruptor de ZedSecure</string>
+    <string name="widget_toggle_label">Interruptor de ZX VPN</string>
     <string name="widget_toggle_description">Conecta o desconecta con un toque.</string>
 </resources>
