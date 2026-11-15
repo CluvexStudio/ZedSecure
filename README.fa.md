@@ -57,8 +57,8 @@ ZX VPN یک کلاینت VPN و پروکسی برای اندروید، لینو�
 
 ## دانلود
 
-**اندروید:** از [گوگل پلی](https://github.com/hajighmony-sudo/Zx/releases)، یا
-APK مخصوص دستگاهتان از [Releases](https://github.com/hajighmony-sudo/Zx/releases)
+**اندروید:** فایل APK مخصوص دستگاهتان را از [بخش Releases](https://github.com/hajighmony-sudo/Zx/releases) دریافت کنید؛
+
 (`arm64-v8a` برای تقریباً همهٔ گوشی‌ها، `armeabi-v7a` برای گوشی‌های قدیمی‌تر).
 
 **لینوکس:** فایل `.deb`، `.rpm`، `.AppImage` یا `.tar.gz` از Releases. روی لینوکس، بسته‌ها در بخش [Releases](https://github.com/hajighmony-sudo/Zx/releases) منتشر می‌شوند.
