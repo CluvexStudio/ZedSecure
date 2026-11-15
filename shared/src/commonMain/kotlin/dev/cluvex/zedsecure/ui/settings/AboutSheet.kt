@@ -30,18 +30,12 @@ import androidx.compose.ui.unit.dp
 import dev.cluvex.zedsecure.shared.resources.Res
 import dev.cluvex.zedsecure.shared.resources.*
 import dev.cluvex.zedsecure.platform.AppInfo
-import dev.cluvex.zedsecure.ui.platform.LocalPlatform
 import dev.cluvex.zedsecure.ui.components.MorphingBlob
 import dev.cluvex.zedsecure.ui.theme.ZedGradients
 import dev.cluvex.zedsecure.ui.platform.rememberAppSheetState
 
-private const val XRAY_SOURCE_URL = "https://github.com/CluvexStudio/Xray-core"
-private const val LIB_SOURCE_URL = "https://github.com/CluvexStudio/AndroidLibXrayLite"
-
 @Composable
 fun AboutSheet(onDismiss: () -> Unit) {
-    val platform = LocalPlatform.current
-
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberAppSheetState()) {
         Column(
             Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, bottom = 28.dp),
