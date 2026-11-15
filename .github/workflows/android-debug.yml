@@ -1,0 +1,64 @@
+name: android-debug
+
+on:
+  push:
+    branches: [ZX]
+    paths:
+      - ".github/workflows/android-debug.yml"
+      - "app/**"
+      - "shared/**"
+      - "gradle/**"
+      - "gradle.properties"
+      - "build.gradle.kts"
+      - "settings.gradle.kts"
+      - "tools/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  debug-apk:
+    name: Build ZX VPN debug APKs
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ZX
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v5
+
+      - name: Download and verify Android engines
+        run: ./tools/get-cores.sh android
+
+      - name: Build debug APKs
+        run: ./gradlew --no-daemon --warning-mode all :app:assembleDebug
+
+      - name: Prepare and verify APK files
+        shell: bash
+        run: |
+          set -euo pipefail
+          V=$(grep '^zedsecure.versionName=' gradle.properties | cut -d= -f2)
+          mkdir -p dist
+          for abi in arm64-v8a armeabi-v7a x86_64; do
+            src=$(find app/build/outputs/apk/debug -type f -name "*${abi}*debug*.apk" -print -quit)
+            [ -n "$src" ] || { echo "::error::Debug APK for $abi was not produced"; find app/build/outputs/apk/debug -type f -print; exit 1; }
+            cp "$src" "dist/ZX-VPN-$V-debug-$abi.apk"
+          done
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          for apk in dist/*.apk; do
+            "$BT/apksigner" verify "$apk"
+          done
+          (cd dist && sha256sum *.apk > SHA256SUMS.txt)
+          ls -lh dist
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ZX-VPN-Android-Debug
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14
