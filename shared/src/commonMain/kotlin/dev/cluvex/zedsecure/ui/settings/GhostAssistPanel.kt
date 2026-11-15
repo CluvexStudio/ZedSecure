@@ -70,7 +70,7 @@ internal fun GhostAssistPanel(
                 totalDownload = status.totalDownload,
                 totalUpload = status.totalUpload,
             )
-        }.collect()
+        }.collect { }
     }
 
     // State-aware health checks: pause during transitions and only probe an established tunnel.
