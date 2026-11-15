@@ -121,10 +121,10 @@ object DesktopPlatform : Platform {
     internal fun uniqueNames(files: List<Pair<String, ByteArray>>): List<Pair<String, ByteArray>> {
         val used = mutableSetOf<String>()
         return files.map { (name, bytes) ->
-            val stem = name.removeSuffix(".zsx")
+            val stem = name.removeSuffix(".ZX")
             var candidate = name
             var n = 2
-            while (!used.add(candidate)) candidate = "$stem-${n++}.zsx"
+            while (!used.add(candidate)) candidate = "$stem-${n++}.ZX"
             candidate to bytes
         }
     }
