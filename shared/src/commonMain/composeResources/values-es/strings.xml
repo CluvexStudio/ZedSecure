@@ -118,11 +118,11 @@
     <string name="config_ping">ping</string>
     <string name="vault_title">Bóveda</string>
     <string name="vault_intro_title">Configuraciones bloqueadas</string>
-    <string name="vault_intro_body">Comparte un servidor como archivo .zsx. La app se conecta sin mostrar la configuración, pero como ZX VPN es de código abierto, esto la mantiene oculta, no secreta. Una contraseña decide quién puede importarla.</string>
+    <string name="vault_intro_body">Comparte un servidor como archivo .ZX. La app se conecta sin mostrar la configuración, pero como ZX VPN es de código abierto, esto la mantiene oculta, no secreta. Una contraseña decide quién puede importarla.</string>
     <string name="vault_create">Crear configuración bloqueada</string>
-    <string name="vault_import">Importar archivo .zsx</string>
+    <string name="vault_import">Importar archivo .ZX</string>
     <string name="vault_empty_title">Tu bóveda está vacía</string>
-    <string name="vault_empty_body">Crea una configuración bloqueada para compartirla en privado, o importa un .zsx que te hayan enviado.</string>
+    <string name="vault_empty_body">Crea una configuración bloqueada para compartirla en privado, o importa un .ZX que te hayan enviado.</string>
     <string name="settings_title">Ajustes</string>
     <string name="settings_appearance">Apariencia</string>
     <string name="settings_theme">Tema</string>
@@ -249,7 +249,7 @@
     <string name="zsx_expired">Esta configuración bloqueada ha caducado</string>
     <string name="zsx_wrong_password">Contraseña incorrecta</string>
     <string name="zsx_imported">Configuración bloqueada importada</string>
-    <string name="zsx_invalid">No es un archivo .zsx válido</string>
+    <string name="zsx_invalid">No es un archivo .ZX válido</string>
     <string name="zsx_legacy">Esta configuración bloqueada se creó con una versión antigua de ZX VPN. Pide una copia nueva a quien la compartió.</string>
     <string name="cd_app_logo">Logotipo de ZX VPN</string>
     <string name="cd_connection_status">Estado de la conexión</string>
@@ -298,6 +298,12 @@
     <string name="group_all">Todos</string>
     <string name="group_manual">Manual</string>
     <string name="about_version">Versión %1$s</string>
+    <string name="about_overview_title">ZX VPN de un vistazo</string>
+    <string name="about_overview_body">Un cliente VPN multiprotocolo que reúne herramientas de conexión y controles de servidores. Los protocolos y funciones disponibles pueden variar según la plataforma y la compilación.</string>
+    <string name="about_privacy_title">Privacidad y control de conexión</string>
+    <string name="about_privacy_body">Elige cómo se conecta tu dispositivo y configura las opciones de DNS y red disponibles. Una VPN no te hace anónimo: el proveedor de VPN y los servicios que visitas aún pueden procesar datos de conexión.</string>
+    <string name="about_vault_title">Archivos de la bóveda ZX</string>
+    <string name="about_vault_body">Crea archivos .ZX a partir de configuraciones seleccionadas, con contraseña y caducidad opcionales. Para mayor protección, usa una contraseña única y compártela por separado.</string>
     <string name="about_built_on">Basado en el núcleo de Xray, con Psiphon, Tor, Snowflake, obfs4, Conjure, DNSTT, VayDNS, MasterDNS, AmneziaWG, OpenConnect e IKEv2.</string>
     <string name="about_source_title">Núcleo de código abierto</string>
     <string name="about_source_body">El núcleo que transporta tu tráfico se basa en proyectos de código abierto con licencias GPL-3.0, LGPL-3.0 y MPL-2.0. Publicamos nuestro código fuente modificado, como exigen esas licencias.</string>
