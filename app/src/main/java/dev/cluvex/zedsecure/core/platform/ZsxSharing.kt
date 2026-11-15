@@ -14,7 +14,7 @@ object ZsxSharing {
     fun shareText(context: Context, fileName: String, text: String) {
         runCatching {
             val dir = File(context.cacheDir, "shared").apply { mkdirs() }
-            val file = File(dir, dev.cluvex.zedsecure.crypto.zsxFileName(fileName)).apply { writeText(text) }
+            val file = File(dir, fileName).apply { writeText(text) }
             val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
             val intent = Intent(Intent.ACTION_SEND).apply {
                 type = "text/plain"
