@@ -221,7 +221,6 @@ fun SettingsScreen(
             SettingsPage.Tor -> TorPage(settings, contentPadding, modifier, onUpdate) { page = it }
             SettingsPage.TorBridges -> TorBridgesScreen(settings, contentPadding, modifier, onUpdate)
             SettingsPage.Ssh -> SshPage(settings, contentPadding, modifier, onUpdate)
-            SettingsPage.Support -> SupportPage(contentPadding, modifier)
             SettingsPage.Privacy -> PrivacyPage(contentPadding, modifier)
             SettingsPage.Monitor -> LiveMonitorPage(contentPadding, modifier)
             SettingsPage.Ai -> ai?.let {
@@ -332,14 +331,6 @@ private fun RootPage(
             tagline = stringResource(Res.string.settings_hero_tagline),
             reduceMotion = settings.reduceMotion,
         )
-
-        SettingsGroup(modifier = Modifier.tourTargetInPage(TourTargets.SETTINGS_SUPPORT)) {
-            SettingsBannerRow(
-                stringResource(Res.string.support_title),
-                stringResource(Res.string.support_subtitle),
-                art = SettingsArts.Support,
-            ) { onOpen(SettingsPage.Support) }
-        }
 
         SettingsGroup(
             stringResource(Res.string.settings_group_personal),
@@ -790,13 +781,6 @@ private fun BentoRoot(
             art = SettingsArts.Assets,
             keywords = listOf(stringResource(Res.string.title_pref_geo_files_source)),
         ) { onOpen(SettingsPage.Assets) })
-        add(dev.cluvex.zedsecure.ui.bento.BentoHubEntry(
-            key = "support",
-            title = stringResource(Res.string.support_title),
-            summary = stringResource(Res.string.support_subtitle),
-            art = SettingsArts.Support,
-            tourKey = TourTargets.SETTINGS_SUPPORT,
-        ) { onOpen(SettingsPage.Support) })
         if (hasAi) {
             add(dev.cluvex.zedsecure.ui.bento.BentoHubEntry(
                 key = "ai",
