@@ -109,11 +109,11 @@
 
     <string name="vault_title">گاوصندوق</string>
     <string name="vault_intro_title">کانفیگ‌های قفل‌شده</string>
-    <string name="vault_intro_body">یک سرور را به‌صورت فایل رمزنگاری‌شده‌ی ‎.zsx‎ به اشتراک بگذارید. گیرنده می‌تواند وصل شود اما نمی‌تواند کانفیگ را بخواند یا ویرایش کند.</string>
+    <string name="vault_intro_body">یک سرور را به‌صورت فایل رمزنگاری‌شده‌ی ‎.ZX‎ به اشتراک بگذارید. گیرنده می‌تواند وصل شود اما نمی‌تواند کانفیگ را بخواند یا ویرایش کند.</string>
     <string name="vault_create">ساخت کانفیگ قفل‌شده</string>
-    <string name="vault_import">وارد کردن فایل ‎.zsx‎</string>
+    <string name="vault_import">وارد کردن فایل ‎.ZX‎</string>
     <string name="vault_empty_title">گاوصندوق شما خالی است</string>
-    <string name="vault_empty_body">یک کانفیگ قفل‌شده برای اشتراک خصوصی بسازید، یا یک ‎.zsx‎ که برایتان فرستاده شده وارد کنید.</string>
+    <string name="vault_empty_body">یک کانفیگ قفل‌شده برای اشتراک خصوصی بسازید، یا یک ‎.ZX‎ که برایتان فرستاده شده وارد کنید.</string>
 
     <string name="settings_title">تنظیمات</string>
     <string name="settings_appearance">ظاهر</string>
@@ -227,7 +227,7 @@
     <string name="zsx_expired">این کانفیگ قفل‌شده منقضی شده است</string>
     <string name="zsx_wrong_password">رمز نادرست است</string>
     <string name="zsx_imported">کانفیگ قفل‌شده وارد شد</string>
-    <string name="zsx_invalid">فایل ‎.zsx‎ معتبر نیست</string>
+    <string name="zsx_invalid">فایل ‎.ZX‎ معتبر نیست</string>
     <string name="zsx_legacy">این کانفیگ قفل‌شده با نسخهٔ قدیمی‌تر ZX VPN ساخته شده است. از فرستنده بخواهید نسخهٔ تازه‌ای بفرستد.</string>
 
     <string name="cd_app_logo">نشان زدسکیور</string>
