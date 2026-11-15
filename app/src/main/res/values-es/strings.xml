@@ -94,11 +94,11 @@
     <string name="config_ping">ping</string>
     <string name="vault_title">Bóveda</string>
     <string name="vault_intro_title">Configuraciones bloqueadas</string>
-    <string name="vault_intro_body">Comparte un servidor como archivo .zsx cifrado. Los destinatarios pueden conectarse, pero no pueden leer ni editar la configuración que contiene.</string>
+    <string name="vault_intro_body">Comparte un servidor como archivo .ZX cifrado. Los destinatarios pueden conectarse, pero no pueden leer ni editar la configuración que contiene.</string>
     <string name="vault_create">Crear configuración bloqueada</string>
-    <string name="vault_import">Importar archivo .zsx</string>
+    <string name="vault_import">Importar archivo .ZX</string>
     <string name="vault_empty_title">Tu bóveda está vacía</string>
-    <string name="vault_empty_body">Crea una configuración bloqueada para compartir en privado o importa un .zsx que te hayan enviado.</string>
+    <string name="vault_empty_body">Crea una configuración bloqueada para compartir en privado o importa un .ZX que te hayan enviado.</string>
     <string name="settings_title">Ajustes</string>
     <string name="settings_appearance">Apariencia</string>
     <string name="settings_theme">Tema</string>
@@ -214,7 +214,7 @@
     <string name="zsx_expired">Esta configuración bloqueada ha caducado</string>
     <string name="zsx_wrong_password">Contraseña incorrecta</string>
     <string name="zsx_imported">Configuración bloqueada importada</string>
-    <string name="zsx_invalid">No es un archivo .zsx válido</string>
+    <string name="zsx_invalid">No es un archivo .ZX válido</string>
     <string name="zsx_legacy">Esta configuración bloqueada se creó con una versión anterior de ZX VPN. Pide una copia nueva a quien la compartió.</string>
     <string name="cd_app_logo">Logotipo de ZX VPN</string>
     <string name="cd_connection_status">Estado de la conexión</string>
