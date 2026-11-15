@@ -273,6 +273,12 @@
     <string name="group_manual">دستی</string>
 
     <string name="about_version">نسخه %1$s</string>
+    <string name="about_overview_title">نگاهی به ZX VPN</string>
+    <string name="about_overview_body">یک کلاینت چندپروتکلی VPN که ابزارهای اتصال و مدیریت سرورها را یک‌جا جمع می‌کند. پروتکل‌ها و قابلیت‌های در دسترس ممکن است با توجه به پلتفرم و نسخه متفاوت باشند.</string>
+    <string name="about_privacy_title">حریم خصوصی و کنترل اتصال</string>
+    <string name="about_privacy_body">روش اتصال دستگاه و گزینه‌های پشتیبانی‌شدهٔ DNS و شبکه را تنظیم کنید. VPN شما را ناشناس نمی‌کند؛ ارائه‌دهندهٔ VPN و سرویس‌هایی که بازدید می‌کنید ممکن است همچنان برخی داده‌های اتصال را پردازش کنند.</string>
+    <string name="about_vault_title">فایل‌های گاوصندوق ZX</string>
+    <string name="about_vault_body">از کانفیگ‌های انتخاب‌شده فایل ‎.ZX‎ بسازید و در صورت تمایل برای آن رمز و تاریخ انقضا تعیین کنید. برای محافظت بیشتر، رمز منحصربه‌فردی انتخاب کنید و آن را جدا از فایل بفرستید.</string>
     <string name="about_built_on">ساخته شده بر پایهٔ هستهٔ Xray، همراه با Psiphon، Tor، Snowflake، obfs4، Conjure، DNSTT، VayDNS، MasterDNS، AmneziaWG، OpenConnect و IKEv2.</string>
     <string name="about_source_title">هستهٔ اوپن‌سورس</string>
     <string name="about_source_body">هسته‌ای که ترافیک شما را می‌برد روی پروژه‌های اوپن‌سورس با لایسنس‌های GPL-3.0، LGPL-3.0 و MPL-2.0 ساخته شده. سورس پچ‌شدهٔ ما، همان‌طور که این لایسنس‌ها لازم دارند، منتشر شده است.</string>
