@@ -231,8 +231,8 @@ data class GhostSettings(
     /** 1. App Behavior Profiles – use realistic traffic patterns of popular Iranian apps */
     val appProfilesEnabled: Boolean = true,
 
-    /** Which profiles are active (comma separated keys: rubika,neshan,digikala,snapp,aparat) */
-    val activeProfiles: String = "rubika,neshan,digikala",
+    /** Which profiles are active (comma separated keys) */
+    val activeProfiles: String = "rubika,neshan,digikala,snapp,aparat",
 
     /** 2. Smart Decoy Engine – generate background decoy traffic */
     val decoyEngineEnabled: Boolean = true,
@@ -327,7 +327,6 @@ data class AppSettings(
     val trafficTileSize: TrafficTileSize = TrafficTileSize.Normal,
 
     val uiFontScale: UiFontScale = UiFontScale.Normal,
-
     val uiFont: UiFont = UiFont.Auto,
 
     val uiScale: Float = UiScale.DEFAULT,
