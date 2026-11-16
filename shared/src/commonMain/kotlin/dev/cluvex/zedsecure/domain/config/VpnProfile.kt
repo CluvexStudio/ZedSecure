@@ -43,7 +43,6 @@ sealed interface ProfileSource {
     data class SniSpoof(val settings: SniSpoofProfile) : ProfileSource
 
     @Serializable
-    @Serializable
     @SerialName("master_dns")
     data class MasterDns(val settings: MasterDnsProfile) : ProfileSource
 
