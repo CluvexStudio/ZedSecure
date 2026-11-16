@@ -48,7 +48,7 @@ jobs:
           test -f shared/src/commonMain/kotlin/dev/cluvex/zedsecure/platform/NetworkKind.kt
           test -f shared/src/androidMain/kotlin/dev/cluvex/zedsecure/platform/NetworkKind.android.kt
           test -f shared/src/commonMain/kotlin/dev/cluvex/zedsecure/core/VpnManager.kt
-          grep -q 'SettingsArts.Ghost' shared/src/commonMain/kotlin/dev/cluvex/zedsecure/ui/settings/SettingsArt.kt
+          grep -q 'val Ghost = SettingsArt("ghost"' shared/src/commonMain/kotlin/dev/cluvex/zedsecure/ui/settings/SettingsArt.kt
           echo "files OK"
 
       - name: Verify required symbols
