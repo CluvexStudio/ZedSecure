@@ -17,8 +17,10 @@ import kotlinx.coroutines.launch
 import kotlin.random.Random
 
 /**
- * GHOST – tunnel-bound anti-DPI decoy helper.
- * AUTO retunes for Wi‑Fi / cellular; cellular keeps meaningful noise.
+ * Pro GHOST engine – multiphase app-layer anti-DPI (zapret-inspired).
+ *
+ * Lifecycle: settings only store prefs; starts on tunnel Connected; stops on disconnect.
+ * Never mutates Xray/sing-box/TUN.
  */
 object GhostEngine {
 
@@ -28,6 +30,7 @@ object GhostEngine {
     @Volatile private var currentSettings: GhostSettings = GhostSettings()
     @Volatile private var tunnelConnected: Boolean = false
     @Volatile private var lastAutoPlan: GhostAutoTuner.Plan? = null
+    @Volatile private var lastStrategy: String = "-"
 
     private val recentResults = ArrayDeque<Boolean>(64)
 
@@ -40,14 +43,17 @@ object GhostEngine {
     @Volatile var lastError: String? = null
     @Volatile var underPressure: Boolean = false; private set
     @Volatile var lastBurstAtMs: Long = 0; private set
+    @Volatile var lastPhase: String = "-"
 
     data class DebugStatus(
         val running: Boolean,
         val enabled: Boolean,
         val tunnelConnected: Boolean,
         val autoMode: Boolean,
+        val strategy: String,
         val networkLabel: String,
         val autoReason: String,
+        val phase: String,
         val cycles: Long,
         val requests: Long,
         val successes: Long,
@@ -68,8 +74,10 @@ object GhostEngine {
             enabled = currentSettings.enabled && effective.decoyEngineEnabled,
             tunnelConnected = tunnelConnected,
             autoMode = currentSettings.autoMode,
+            strategy = lastStrategy.ifBlank { effective.strategy },
             networkLabel = plan?.label ?: networkLabel(GhostAutoTuner.currentNetwork()),
             autoReason = plan?.reason ?: "-",
+            phase = lastPhase,
             cycles = totalCycles,
             requests = totalRequests,
             successes = successCount,
@@ -92,10 +100,21 @@ object GhostEngine {
 
     private fun effectiveSettings(): GhostSettings {
         val base = currentSettings
-        if (!base.autoMode) return base
-        val plan = GhostAutoTuner.plan(base, underPressure)
-        lastAutoPlan = plan
-        return plan.settings.copy(enabled = base.enabled, autoMode = true)
+        if (!base.autoMode && GhostStrategy.fromRaw(base.strategy) == GhostStrategy.Auto) {
+            // strategy=auto without autoMode still resolves via tuner once
+            val plan = GhostAutoTuner.plan(base.copy(autoMode = true), underPressure)
+            lastAutoPlan = plan
+            lastStrategy = plan.strategyName
+            return plan.settings.copy(enabled = base.enabled, autoMode = base.autoMode)
+        }
+        if (base.autoMode) {
+            val plan = GhostAutoTuner.plan(base, underPressure)
+            lastAutoPlan = plan
+            lastStrategy = plan.strategyName
+            return plan.settings.copy(enabled = base.enabled, autoMode = true)
+        }
+        lastStrategy = GhostStrategy.fromRaw(base.strategy).name
+        return base
     }
 
     fun updateSettings(settings: GhostSettings) {
@@ -105,13 +124,12 @@ object GhostEngine {
 
     fun onTunnelConnected() {
         tunnelConnected = true
-        Log.i("GhostEngine", "tunnel connected – reconciling GHOST")
+        Log.i("GhostEngine", "tunnel connected")
         reconcile()
     }
 
     fun onTunnelDisconnected() {
         tunnelConnected = false
-        Log.i("GhostEngine", "tunnel disconnected – stopping GHOST")
         stop()
     }
 
@@ -125,25 +143,25 @@ object GhostEngine {
         if (job?.isActive == true) return
         job = scope.launch {
             isRunning = true
-            Log.i("GhostEngine", "GHOST started (auto=${currentSettings.autoMode})")
+            Log.i("GhostEngine", "GHOST pro multiphase started")
             while (isActive) {
                 if (!currentSettings.enabled || !tunnelConnected) break
                 val s = effectiveSettings()
                 if (!s.decoyEngineEnabled) break
                 try {
-                    runDecoyCycle(s)
+                    if (s.multiphaseEnabled) runMultiphaseCycle(s) else runSimpleCycle(s)
                     totalCycles++
                 } catch (e: Exception) {
                     lastError = e.message
                     Log.w("GhostEngine", "cycle error: ${e.message}")
                 }
-                val base = s.decoyIntervalSeconds.coerceIn(5, 120)
-                // More organic jitter (anti fingerprint of fixed timers)
-                val jitter = Random.nextInt(0, (base * 0.7).toInt().coerceAtLeast(2))
-                val pressureFactor = if (underPressure && s.adaptiveFallbackEnabled) 0.55 else 1.0
+                val base = s.decoyIntervalSeconds.coerceIn(4, 120)
+                val jitter = Random.nextInt(0, (base * 0.75).toInt().coerceAtLeast(2))
+                val pressureFactor = if (underPressure && s.adaptiveFallbackEnabled) 0.5 else 1.0
                 delay(((base + jitter) * pressureFactor * 1000L).toLong())
             }
             isRunning = false
+            lastPhase = "-"
             Log.i("GhostEngine", "GHOST stopped")
         }
     }
@@ -152,6 +170,7 @@ object GhostEngine {
         job?.cancel()
         job = null
         isRunning = false
+        lastPhase = "-"
     }
 
     private fun recordResult(ok: Boolean) {
@@ -159,22 +178,57 @@ object GhostEngine {
         while (recentResults.size > 48) recentResults.removeFirst()
         val s = effectiveSettings()
         if (s.pressureDetectionEnabled && recentResults.size >= 6) {
-            val fails = recentResults.count { !it }
-            underPressure = fails.toFloat() / recentResults.size >= 0.30f
+            underPressure = recentResults.count { !it }.toFloat() / recentResults.size >= 0.28f
         } else {
             underPressure = false
         }
     }
 
-    private suspend fun runDecoyCycle(settings: GhostSettings) {
+    /**
+     * zapret-inspired phases at HTTP layer:
+     * 0 probe fakes → 1 main mimicry → 2 residual disordered noise
+     */
+    private suspend fun runMultiphaseCycle(settings: GhostSettings) {
         val profiles = resolveActiveProfiles(settings)
         if (profiles.isEmpty()) return
 
-        var volumeBoost = 1.0f + (settings.decoyVolumePercent.coerceIn(10, 80) / 100f)
-        if (settings.adaptiveFallbackEnabled && underPressure) volumeBoost *= 1.4f
+        // Phase 0 – probe / fake flood (harmless)
+        if (settings.fakeFloodEnabled) {
+            lastPhase = "P0-FakeFlood"
+            val probes = profiles.flatMap { it.requests }.shuffled().take(
+                if (settings.burstModeEnabled) settings.burstIntensity.coerceIn(1, 5) + 1 else 2
+            )
+            fireRequests(probes, settings, parallelOverride = settings.maxParallelRequests)
+            delay(Random.nextLong(80, 350))
+        }
+
+        // Phase 1 – main domestic app mimicry
+        lastPhase = "P1-MainMimic"
+        runMainMimic(settings, profiles)
+
+        // Phase 2 – residual disordered tail
+        lastPhase = "P2-Residual"
+        val tail = profiles.shuffled().first().requests.let { list ->
+            val ordered = if (settings.requestDisorder) list.shuffled() else list
+            ordered.take(Random.nextInt(1, 3))
+        }
+        fireRequests(tail, settings, parallelOverride = 1)
+        lastPhase = "idle"
+    }
+
+    private suspend fun runSimpleCycle(settings: GhostSettings) {
+        lastPhase = "simple"
+        val profiles = resolveActiveProfiles(settings)
+        if (profiles.isEmpty()) return
+        runMainMimic(settings, profiles)
+        lastPhase = "idle"
+    }
+
+    private suspend fun runMainMimic(settings: GhostSettings, profiles: List<AppProfile>) {
+        var volumeBoost = 1.0f + (settings.decoyVolumePercent.coerceIn(10, 85) / 100f)
+        if (settings.adaptiveFallbackEnabled && underPressure) volumeBoost *= 1.45f
         if (settings.burstModeEnabled) {
-            val intensity = settings.burstIntensity.coerceIn(1, 5)
-            volumeBoost *= (1.0f + intensity * 0.28f)
+            volumeBoost *= (1.0f + settings.burstIntensity.coerceIn(1, 5) * 0.3f)
             lastBurstAtMs = System.currentTimeMillis()
         }
 
@@ -183,40 +237,50 @@ object GhostEngine {
         } else 1
 
         val selected = profiles.shuffled().take(appCount)
-
         for (profile in selected) {
             lastProfileUsed = profile.displayName
-            val n = (Random.nextInt(1, 5) * volumeBoost).toInt().coerceIn(1, 10)
-            val requests = profile.requests.shuffled().take(n)
-            val parallel = settings.maxParallelRequests.coerceIn(1, 4)
-
-            requests.chunked(parallel).forEach { chunk ->
-                coroutineScope {
-                    chunk.map { req ->
-                        async {
-                            totalRequests++
-                            try {
-                                val ua = if (settings.appLayerMimicryEnabled) req.userAgent else DEFAULT_UA
-                                val resp = httpGetResponse(
-                                    url = req.url,
-                                    userAgent = ua,
-                                    connectTimeoutMs = 7_000,
-                                    readTimeoutMs = 10_000,
-                                )
-                                val ok = resp.code in 200..499
-                                if (ok) successCount++ else failureCount++
-                                recordResult(ok)
-                            } catch (e: Exception) {
-                                failureCount++
-                                lastError = e.message
-                                recordResult(false)
-                            }
-                        }
-                    }.awaitAll()
-                }
-                delay(Random.nextLong(150, 1100))
+            var reqs = profile.requests.shuffled().take(
+                (Random.nextInt(1, 5) * volumeBoost).toInt().coerceIn(1, 12)
+            )
+            if (settings.requestDisorder && Random.nextBoolean()) {
+                reqs = reqs.reversed()
             }
-            delay(Random.nextLong(250, 2200))
+            fireRequests(reqs, settings, parallelOverride = settings.maxParallelRequests)
+            delay(Random.nextLong(200, 1800))
+        }
+    }
+
+    private suspend fun fireRequests(
+        requests: List<DecoyRequest>,
+        settings: GhostSettings,
+        parallelOverride: Int,
+    ) {
+        val parallel = parallelOverride.coerceIn(1, 4)
+        requests.chunked(parallel).forEach { chunk ->
+            coroutineScope {
+                chunk.map { req ->
+                    async {
+                        totalRequests++
+                        try {
+                            val ua = if (settings.appLayerMimicryEnabled) req.userAgent else DEFAULT_UA
+                            val resp = httpGetResponse(
+                                url = req.url,
+                                userAgent = ua,
+                                connectTimeoutMs = 7_000,
+                                readTimeoutMs = 10_000,
+                            )
+                            val ok = resp.code in 200..499
+                            if (ok) successCount++ else failureCount++
+                            recordResult(ok)
+                        } catch (e: Exception) {
+                            failureCount++
+                            lastError = e.message
+                            recordResult(false)
+                        }
+                    }
+                }.awaitAll()
+            }
+            delay(Random.nextLong(120, 900))
         }
     }
 
