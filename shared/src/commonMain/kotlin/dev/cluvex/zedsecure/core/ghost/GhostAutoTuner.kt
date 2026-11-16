@@ -6,7 +6,9 @@ import dev.cluvex.zedsecure.platform.detectNetworkKind
 
 /**
  * Fully automatic anti-DPI planner for GHOST.
- * Chooses profiles, volume, timing and burst from network type + pressure.
+ *
+ * Cellular is no longer "too quiet": baseline noise is meaningful so mobile
+ * DPI still sees domestic app patterns; under pressure it escalates further.
  */
 object GhostAutoTuner {
 
@@ -27,33 +29,40 @@ object GhostAutoTuner {
         }
     }
 
-    /** Mobile data: conserve quota, still look like domestic apps. */
+    /**
+     * Mobile data: still anti-DPI-first.
+     * Baseline noise is stronger than before; under pressure it approaches Wi‑Fi levels
+     * (cost of analysis > data savings).
+     */
     private fun cellularPlan(base: GhostSettings, underPressure: Boolean): Plan {
         val s = base.copy(
             appProfilesEnabled = true,
+            // Always multi-app domestic signature; expand under pressure
             activeProfiles = if (underPressure)
-                "rubika,neshan,snapp,digikala,aparat"
+                "rubika,neshan,snapp,digikala,aparat,balad,generic"
             else
-                "rubika,neshan,snapp,digikala",
+                "rubika,neshan,snapp,digikala,aparat",
             decoyEngineEnabled = true,
-            decoyVolumePercent = if (underPressure) 48 else 32,
-            decoyIntervalSeconds = if (underPressure) 9 else 18,
+            // Stronger baseline than earlier versions
+            decoyVolumePercent = if (underPressure) 58 else 42,
+            decoyIntervalSeconds = if (underPressure) 7 else 12,
             appLayerMimicryEnabled = true,
             multiAppConcurrent = true,
             adaptiveFallbackEnabled = true,
             pressureDetectionEnabled = true,
-            burstModeEnabled = underPressure,
-            burstIntensity = if (underPressure) 3 else 1,
-            maxParallelRequests = if (underPressure) 2 else 1,
+            // Light burst always on cellular so traffic is not "too clean"
+            burstModeEnabled = true,
+            burstIntensity = if (underPressure) 4 else 2,
+            maxParallelRequests = if (underPressure) 3 else 2,
         )
         return Plan(
             network = NetworkKind.Cellular,
             label = "داده همراه",
             settings = s,
             reason = if (underPressure)
-                "داده همراه + فشار DPI → حجم متوسط، فاصله کوتاه، Burst ملایم"
+                "داده همراه + فشار DPI → نویز قوی، Burst بالا، پروفایل گسترده"
             else
-                "داده همراه → مصرف کم، پروفایل‌های ضروری، بدون Burst سنگین",
+                "داده همراه → نویز پایه قوی‌تر، Multi-App، Burst ملایم برای ضد DPI",
         )
     }
 
@@ -63,50 +72,50 @@ object GhostAutoTuner {
             appProfilesEnabled = true,
             activeProfiles = "rubika,digikala,neshan,snapp,aparat,balad,torob,generic",
             decoyEngineEnabled = true,
-            decoyVolumePercent = if (underPressure) 65 else 52,
-            decoyIntervalSeconds = if (underPressure) 7 else 11,
+            decoyVolumePercent = if (underPressure) 70 else 55,
+            decoyIntervalSeconds = if (underPressure) 6 else 10,
             appLayerMimicryEnabled = true,
             multiAppConcurrent = true,
             adaptiveFallbackEnabled = true,
             pressureDetectionEnabled = true,
             burstModeEnabled = true,
             burstIntensity = if (underPressure) 5 else 3,
-            maxParallelRequests = if (underPressure) 4 else 2,
+            maxParallelRequests = if (underPressure) 4 else 3,
         )
         return Plan(
             network = NetworkKind.Wifi,
             label = "وای‌فای",
             settings = s,
             reason = if (underPressure)
-                "وای‌فای + فشار → حداکثر نویز، Burst قوی، همه پروفایل‌ها"
+                "وای‌فای + فشار → حداکثر نویز و Burst"
             else
-                "وای‌فای → ضد DPI قوی با Multi-App و حجم بالا",
+                "وای‌فای → ضد DPI قوی با Multi-App کامل",
         )
     }
 
     private fun balancedPlan(base: GhostSettings, underPressure: Boolean): Plan {
         val s = base.copy(
             appProfilesEnabled = true,
-            activeProfiles = "rubika,neshan,digikala,snapp,aparat",
+            activeProfiles = "rubika,neshan,digikala,snapp,aparat,generic",
             decoyEngineEnabled = true,
-            decoyVolumePercent = if (underPressure) 55 else 42,
-            decoyIntervalSeconds = if (underPressure) 8 else 13,
+            decoyVolumePercent = if (underPressure) 58 else 45,
+            decoyIntervalSeconds = if (underPressure) 7 else 11,
             appLayerMimicryEnabled = true,
             multiAppConcurrent = true,
             adaptiveFallbackEnabled = true,
             pressureDetectionEnabled = true,
-            burstModeEnabled = underPressure || true, // light baseline noise when unknown
-            burstIntensity = if (underPressure) 3 else 2,
-            maxParallelRequests = 2,
+            burstModeEnabled = true,
+            burstIntensity = if (underPressure) 4 else 2,
+            maxParallelRequests = if (underPressure) 3 else 2,
         )
         return Plan(
             network = NetworkKind.Unknown,
             label = "نامشخص",
             settings = s,
             reason = if (underPressure)
-                "شبکه نامشخص + فشار → پروفایل متعادل با Burst"
+                "شبکه نامشخص + فشار → نویز بالا"
             else
-                "شبکه نامشخص → تنظیم متعادل ضد DPI",
+                "شبکه نامشخص → تنظیم متعادل ضد DPI با Burst پایه",
         )
     }
 }

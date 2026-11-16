@@ -34,8 +34,6 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
       - name: Verify GHOST core files
         shell: bash
@@ -48,6 +46,8 @@ jobs:
           test -f shared/src/commonMain/kotlin/dev/cluvex/zedsecure/domain/model/AppSettings.kt
           test -f shared/src/commonMain/kotlin/dev/cluvex/zedsecure/platform/NetworkKind.kt
           test -f shared/src/androidMain/kotlin/dev/cluvex/zedsecure/platform/NetworkKind.android.kt
+          test -f shared/src/desktopMain/kotlin/dev/cluvex/zedsecure/platform/NetworkKind.desktop.kt
+          test -f shared/src/jvmMain/kotlin/dev/cluvex/zedsecure/platform/NetworkKind.jvm.kt
           test -f shared/src/commonMain/kotlin/dev/cluvex/zedsecure/core/VpnManager.kt
           echo "files OK"
 
@@ -55,28 +55,39 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo "== Symbol checks =="
-          grep -q "object GhostEngine" shared/src/commonMain/kotlin/dev/cluvex/zedsecure/core/ghost/GhostEngine.kt
-          grep -q "onTunnelConnected" shared/src/commonMain/kotlin/dev/cluvex/zedsecure/core/ghost/GhostEngine.kt
-          grep -q "onTunnelDisconnected" shared/src/commonMain/kotlin/dev/cluvex/zedsecure/core/ghost/GhostEngine.kt
-          grep -q "autoMode" shared/src/commonMain/kotlin/dev/cluvex/zedsecure/domain/model/AppSettings.kt
-          grep -q "data class GhostSettings" shared/src/commonMain/kotlin/dev/cluvex/zedsecure/domain/model/AppSettings.kt
-          grep -q "GhostEngine.onTunnelConnected" shared/src/commonMain/kotlin/dev/cluvex/zedsecure/core/VpnManager.kt
-          grep -q "GhostEngine.onTunnelDisconnected" shared/src/commonMain/kotlin/dev/cluvex/zedsecure/core/VpnManager.kt
-          grep -q "object GhostAutoTuner" shared/src/commonMain/kotlin/dev/cluvex/zedsecure/core/ghost/GhostAutoTuner.kt
-          grep -q "fun GhostSettingsPage" shared/src/commonMain/kotlin/dev/cluvex/zedsecure/ui/settings/GhostSettingsPage.kt
-          grep -q "AUTO" shared/src/commonMain/kotlin/dev/cluvex/zedsecure/ui/settings/GhostSettingsPage.kt
+          GE=shared/src/commonMain/kotlin/dev/cluvex/zedsecure/core/ghost/GhostEngine.kt
+          GA=shared/src/commonMain/kotlin/dev/cluvex/zedsecure/core/ghost/GhostAutoTuner.kt
+          AS=shared/src/commonMain/kotlin/dev/cluvex/zedsecure/domain/model/AppSettings.kt
+          VM=shared/src/commonMain/kotlin/dev/cluvex/zedsecure/core/VpnManager.kt
+          UI=shared/src/commonMain/kotlin/dev/cluvex/zedsecure/ui/settings/GhostSettingsPage.kt
+
+          grep -q "object GhostEngine" "$GE"
+          grep -q "onTunnelConnected" "$GE"
+          grep -q "onTunnelDisconnected" "$GE"
+          grep -q "effectiveSettings" "$GE"
+          grep -q "autoMode" "$AS"
+          grep -q "data class GhostSettings" "$AS"
+          grep -q "GhostEngine.onTunnelConnected" "$VM"
+          grep -q "GhostEngine.onTunnelDisconnected" "$VM"
+          grep -q "object GhostAutoTuner" "$GA"
+          grep -q "cellularPlan" "$GA"
+          grep -q "wifiPlan" "$GA"
+          grep -q "NetworkKind.Cellular" "$GA"
+          grep -q "fun GhostSettingsPage" "$UI"
+          grep -q "AUTO" "$UI"
           echo "symbols OK"
 
-      - name: Summarize GHOST surface
+      - name: Summarize
         shell: bash
         run: |
-          echo "### GHOST surface" >> "$GITHUB_STEP_SUMMARY"
-          echo "- GhostEngine (tunnel-bound lifecycle)" >> "$GITHUB_STEP_SUMMARY"
-          echo "- GhostAutoTuner (Wi‑Fi / cellular plans)" >> "$GITHUB_STEP_SUMMARY"
-          echo "- GhostSettings + AUTO" >> "$GITHUB_STEP_SUMMARY"
-          echo "- GhostSettingsPage UI" >> "$GITHUB_STEP_SUMMARY"
-          echo "- VpnManager hooks" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "### GHOST Anti-DPI surface"
+            echo "- Tunnel-bound lifecycle (Connect → start / Disconnect → stop)"
+            echo "- AUTO: Wi‑Fi / cellular / unknown plans"
+            echo "- Cellular: stronger baseline noise + adaptive burst"
+            echo "- VpnManager hooks (non-invasive to engines)"
+            echo "- GhostSettingsPage + debug panel"
+          } >> "$GITHUB_STEP_SUMMARY"
 
   compile-shared:
     name: Compile shared (Android)
@@ -99,7 +110,7 @@ jobs:
           ./gradlew --no-daemon :shared:compileDebugKotlinAndroid --stacktrace
 
   debug-apk:
-    name: Build debug APK (optional path)
+    name: Build debug APK
     runs-on: ubuntu-24.04
     needs: compile-shared
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'

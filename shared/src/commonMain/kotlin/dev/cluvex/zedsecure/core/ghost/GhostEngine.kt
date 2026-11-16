@@ -18,7 +18,7 @@ import kotlin.random.Random
 
 /**
  * GHOST – tunnel-bound anti-DPI decoy helper.
- * With AUTO mode, continuously retunes profiles/volume for Wi‑Fi vs cellular.
+ * AUTO retunes for Wi‑Fi / cellular; cellular keeps meaningful noise.
  */
 object GhostEngine {
 
@@ -90,13 +90,11 @@ object GhostEngine {
         NetworkKind.Unknown -> "نامشخص"
     }
 
-    /** Runtime settings: AUTO overrides tuning knobs; master enabled stays from user. */
     private fun effectiveSettings(): GhostSettings {
         val base = currentSettings
         if (!base.autoMode) return base
         val plan = GhostAutoTuner.plan(base, underPressure)
         lastAutoPlan = plan
-        // Keep user's master enabled + autoMode flags
         return plan.settings.copy(enabled = base.enabled, autoMode = true)
     }
 
@@ -127,7 +125,7 @@ object GhostEngine {
         if (job?.isActive == true) return
         job = scope.launch {
             isRunning = true
-            Log.i("GhostEngine", "GHOST started (tunnel-bound, auto=${currentSettings.autoMode})")
+            Log.i("GhostEngine", "GHOST started (auto=${currentSettings.autoMode})")
             while (isActive) {
                 if (!currentSettings.enabled || !tunnelConnected) break
                 val s = effectiveSettings()
@@ -140,8 +138,9 @@ object GhostEngine {
                     Log.w("GhostEngine", "cycle error: ${e.message}")
                 }
                 val base = s.decoyIntervalSeconds.coerceIn(5, 120)
-                val jitter = Random.nextInt(0, (base * 0.55).toInt().coerceAtLeast(1))
-                val pressureFactor = if (underPressure && s.adaptiveFallbackEnabled) 0.65 else 1.0
+                // More organic jitter (anti fingerprint of fixed timers)
+                val jitter = Random.nextInt(0, (base * 0.7).toInt().coerceAtLeast(2))
+                val pressureFactor = if (underPressure && s.adaptiveFallbackEnabled) 0.55 else 1.0
                 delay(((base + jitter) * pressureFactor * 1000L).toLong())
             }
             isRunning = false
@@ -157,11 +156,11 @@ object GhostEngine {
 
     private fun recordResult(ok: Boolean) {
         recentResults.addLast(ok)
-        while (recentResults.size > 40) recentResults.removeFirst()
+        while (recentResults.size > 48) recentResults.removeFirst()
         val s = effectiveSettings()
-        if (s.pressureDetectionEnabled && recentResults.size >= 8) {
+        if (s.pressureDetectionEnabled && recentResults.size >= 6) {
             val fails = recentResults.count { !it }
-            underPressure = fails.toFloat() / recentResults.size >= 0.35f
+            underPressure = fails.toFloat() / recentResults.size >= 0.30f
         } else {
             underPressure = false
         }
@@ -171,11 +170,11 @@ object GhostEngine {
         val profiles = resolveActiveProfiles(settings)
         if (profiles.isEmpty()) return
 
-        var volumeBoost = 1.0f
-        if (settings.adaptiveFallbackEnabled && underPressure) volumeBoost *= 1.5f
+        var volumeBoost = 1.0f + (settings.decoyVolumePercent.coerceIn(10, 80) / 100f)
+        if (settings.adaptiveFallbackEnabled && underPressure) volumeBoost *= 1.4f
         if (settings.burstModeEnabled) {
             val intensity = settings.burstIntensity.coerceIn(1, 5)
-            volumeBoost *= (1.0f + intensity * 0.25f)
+            volumeBoost *= (1.0f + intensity * 0.28f)
             lastBurstAtMs = System.currentTimeMillis()
         }
 
@@ -187,7 +186,7 @@ object GhostEngine {
 
         for (profile in selected) {
             lastProfileUsed = profile.displayName
-            val n = (Random.nextInt(1, 5) * volumeBoost).toInt().coerceIn(1, 8)
+            val n = (Random.nextInt(1, 5) * volumeBoost).toInt().coerceIn(1, 10)
             val requests = profile.requests.shuffled().take(n)
             val parallel = settings.maxParallelRequests.coerceIn(1, 4)
 
@@ -215,9 +214,9 @@ object GhostEngine {
                         }
                     }.awaitAll()
                 }
-                delay(Random.nextLong(200, 900))
+                delay(Random.nextLong(150, 1100))
             }
-            delay(Random.nextLong(300, 2000))
+            delay(Random.nextLong(250, 2200))
         }
     }
 
@@ -254,6 +253,7 @@ object GhostEngine {
         DecoyRequest("https://api.digikala.com/v1/categories/", DIGIKALA_UA),
         DecoyRequest("https://www.digikala.com/product/dkp-123456/", DIGIKALA_UA),
         DecoyRequest("https://www.digikala.com/marvel/", DIGIKALA_UA),
+        DecoyRequest("https://www.digikala.com/landings/", DIGIKALA_UA),
     ))
     private val NESHAN = AppProfile("neshan", "نشان", listOf(
         DecoyRequest("https://neshan.org/", NESHAN_UA),
@@ -286,6 +286,8 @@ object GhostEngine {
         DecoyRequest("https://www.digiato.com/", DEFAULT_UA),
         DecoyRequest("https://www.tarafdari.com/", DEFAULT_UA),
         DecoyRequest("https://www.eghtesadnews.com/", DEFAULT_UA),
+        DecoyRequest("https://www.khabaronline.ir/", DEFAULT_UA),
+        DecoyRequest("https://www.yjc.ir/", DEFAULT_UA),
     ))
 
     private val ALL_PROFILES = listOf(
