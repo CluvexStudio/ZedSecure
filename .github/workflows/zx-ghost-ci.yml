@@ -107,7 +107,7 @@ jobs:
       - name: Compile shared Kotlin Android
         run: |
           chmod +x ./gradlew
-          ./gradlew --no-daemon :shared:compileDebugKotlinAndroid --stacktrace
+          ./gradlew --no-daemon :shared:compileAndroidMain --stacktrace
 
   debug-apk:
     name: Build debug APK
