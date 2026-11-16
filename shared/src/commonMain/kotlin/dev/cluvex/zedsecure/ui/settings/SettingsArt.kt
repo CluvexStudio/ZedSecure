@@ -51,6 +51,8 @@ object SettingsArts {
     val Appearance = SettingsArt("appearance", Res.drawable.ic_fill_palette, MaterialShapes.Flower, 0)
     val Mode = SettingsArt("mode", Res.drawable.ic_fill_toggle_on, MaterialShapes.Pill, 2)
     val Monitor = SettingsArt("monitor", Res.drawable.ic_fill_monitor_heart, MaterialShapes.Sunny, 3)
+    /** Unique key "ghost" – must NOT reuse Monitor (sharedElement collision crash). */
+    val Ghost = SettingsArt("ghost", Res.drawable.ic_fill_hub, MaterialShapes.Ghostish, 4)
     val Ai = SettingsArt("ai", Res.drawable.ic_fill_auto_awesome, MaterialShapes.SoftBurst, 4)
     val Tour = SettingsArt("tour", Res.drawable.ic_fill_explore, MaterialShapes.Arch, 5)
     val Routing = SettingsArt("routing", Res.drawable.ic_fill_alt_route, MaterialShapes.Diamond, 3)
@@ -58,7 +60,7 @@ object SettingsArts {
     val PerApp = SettingsArt("per-app", Res.drawable.ic_fill_apps, MaterialShapes.Cookie4Sided, 0)
     val Assets = SettingsArt("assets", Res.drawable.ic_fill_database, MaterialShapes.Gem, 2)
     val Dns = SettingsArt("dns", Res.drawable.ic_fill_dns, MaterialShapes.Clover4Leaf, 5)
-    val Tor = SettingsArt("tor", Res.drawable.ic_fill_hub, MaterialShapes.Ghostish, 4)
+    val Tor = SettingsArt("tor", Res.drawable.ic_fill_vpn_key, MaterialShapes.Cookie6Sided, 2)
     val Ssh = SettingsArt("ssh", Res.drawable.ic_fill_terminal, MaterialShapes.Square, 1)
     val Vpn = SettingsArt("vpn", Res.drawable.ic_fill_vpn_key, MaterialShapes.PuffyDiamond, 0)
     val Core = SettingsArt("core", Res.drawable.ic_fill_memory, MaterialShapes.Cookie12Sided, 3)
