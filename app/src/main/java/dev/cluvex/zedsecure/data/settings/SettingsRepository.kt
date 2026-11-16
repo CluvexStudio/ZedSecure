@@ -6,6 +6,7 @@ import dev.cluvex.zedsecure.domain.model.AppLanguage
 import dev.cluvex.zedsecure.domain.ai.AiSettings
 import dev.cluvex.zedsecure.domain.model.AppDesign
 import dev.cluvex.zedsecure.domain.model.AppSettings
+import dev.cluvex.zedsecure.domain.model.DnsResolverProfile
 import dev.cluvex.zedsecure.domain.model.BentoPrefs
 import dev.cluvex.zedsecure.domain.model.ZxPsPrefs
 import dev.cluvex.zedsecure.domain.model.GhostSettings
@@ -225,6 +226,8 @@ class SettingsRepository(context: Context) {
             dnsPoolEnabled = prefs.getBoolean("dns_pool", d.dnsPoolEnabled),
             dnsPoolText = prefs.str("dns_pool_text", d.dnsPoolText),
             dnsPoolFullVerification = prefs.getBoolean("dns_pool_verify", d.dnsPoolFullVerification),
+            dnsResolverProfiles = prefs.getString("dns_resolver_profiles", null)?.let { raw -> runCatching { aiJson.decodeFromString(ListSerializer(DnsResolverProfile.serializer()), raw) }.getOrNull() } ?: d.dnsResolverProfiles,
+            activeDnsResolverId = prefs.str("dns_resolver_active", d.activeDnsResolverId),
             remoteDnsMode = prefs.str("remote_dns_mode", d.remoteDnsMode),
             remoteDnsPrimary = prefs.str("remote_dns_primary", d.remoteDnsPrimary),
             remoteDnsFallback = prefs.str("remote_dns_fallback", d.remoteDnsFallback),
@@ -455,6 +458,8 @@ class SettingsRepository(context: Context) {
             putBoolean("dns_pool", s.dnsPoolEnabled)
             putString("dns_pool_text", s.dnsPoolText)
             putBoolean("dns_pool_verify", s.dnsPoolFullVerification)
+            putString("dns_resolver_profiles", aiJson.encodeToString(ListSerializer(DnsResolverProfile.serializer()), s.dnsResolverProfiles))
+            putString("dns_resolver_active", s.activeDnsResolverId)
             putString("remote_dns_mode", s.remoteDnsMode)
             putString("remote_dns_primary", s.remoteDnsPrimary)
             putString("remote_dns_fallback", s.remoteDnsFallback)
