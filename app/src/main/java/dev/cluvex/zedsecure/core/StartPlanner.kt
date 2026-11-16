@@ -179,7 +179,7 @@ class StartPlanner(context: Context) {
         profile.dnsResolverSettings()?.let { dns ->
             val ip = dns.directAddress.trim()
             require(XrayJsonBuilder.isIpLiteral(ip)) { "DNS resolver must be an IPv4 or IPv6 address" }
-            val server = if (dns.protocol.equals("tcp", true)) "tcp://$ip" else ip
+            val server = ip
             return """
                 {
                   "log": {"loglevel": "warning"},
