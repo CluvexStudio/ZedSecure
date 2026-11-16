@@ -42,12 +42,13 @@ jobs:
           echo "== GHOST file presence =="
           test -f shared/src/commonMain/kotlin/dev/cluvex/zedsecure/core/ghost/GhostEngine.kt
           test -f shared/src/commonMain/kotlin/dev/cluvex/zedsecure/core/ghost/GhostAutoTuner.kt
+          test -f shared/src/commonMain/kotlin/dev/cluvex/zedsecure/core/ghost/GhostStrategy.kt
           test -f shared/src/commonMain/kotlin/dev/cluvex/zedsecure/ui/settings/GhostSettingsPage.kt
           test -f shared/src/commonMain/kotlin/dev/cluvex/zedsecure/domain/model/AppSettings.kt
           test -f shared/src/commonMain/kotlin/dev/cluvex/zedsecure/platform/NetworkKind.kt
           test -f shared/src/androidMain/kotlin/dev/cluvex/zedsecure/platform/NetworkKind.android.kt
-          test -f shared/src/desktopMain/kotlin/dev/cluvex/zedsecure/platform/NetworkKind.desktop.kt
           test -f shared/src/commonMain/kotlin/dev/cluvex/zedsecure/core/VpnManager.kt
+          grep -q 'SettingsArts.Ghost' shared/src/commonMain/kotlin/dev/cluvex/zedsecure/ui/settings/SettingsArt.kt
           echo "files OK"
 
       - name: Verify required symbols
@@ -56,6 +57,7 @@ jobs:
           set -euo pipefail
           GE=shared/src/commonMain/kotlin/dev/cluvex/zedsecure/core/ghost/GhostEngine.kt
           GA=shared/src/commonMain/kotlin/dev/cluvex/zedsecure/core/ghost/GhostAutoTuner.kt
+          GS=shared/src/commonMain/kotlin/dev/cluvex/zedsecure/core/ghost/GhostStrategy.kt
           AS=shared/src/commonMain/kotlin/dev/cluvex/zedsecure/domain/model/AppSettings.kt
           VM=shared/src/commonMain/kotlin/dev/cluvex/zedsecure/core/VpnManager.kt
           UI=shared/src/commonMain/kotlin/dev/cluvex/zedsecure/ui/settings/GhostSettingsPage.kt
@@ -64,16 +66,18 @@ jobs:
           grep -q "onTunnelConnected" "$GE"
           grep -q "onTunnelDisconnected" "$GE"
           grep -q "effectiveSettings" "$GE"
+          grep -q "runMultiphaseCycle" "$GE"
           grep -q "autoMode" "$AS"
           grep -q "data class GhostSettings" "$AS"
+          grep -q "multiphaseEnabled" "$AS"
           grep -q "GhostEngine.onTunnelConnected" "$VM"
           grep -q "GhostEngine.onTunnelDisconnected" "$VM"
           grep -q "object GhostAutoTuner" "$GA"
           grep -q "fun plan" "$GA"
-          grep -q "currentNetwork" "$GA"
-          grep -q "NetworkKind.Cellular" "$GA"
+          grep -q "enum class GhostStrategy" "$GS"
           grep -q "fun GhostSettingsPage" "$UI"
           grep -q "AUTO" "$UI"
+          grep -q "SettingsArts.Ghost" "$UI"
           echo "symbols OK"
 
       - name: Summarize
@@ -81,11 +85,11 @@ jobs:
         run: |
           {
             echo "### GHOST Anti-DPI surface"
-            echo "- Tunnel-bound lifecycle (Connect → start / Disconnect → stop)"
-            echo "- AUTO: Wi‑Fi / cellular / unknown plans"
-            echo "- Cellular: stronger baseline noise + adaptive burst"
-            echo "- VpnManager hooks (non-invasive to engines)"
-            echo "- GhostSettingsPage + debug panel"
+            echo "- Tunnel-bound lifecycle"
+            echo "- AUTO + strategies (Balanced/Aggressive/Max/Stealth)"
+            echo "- MultiPhase + FakeFlood + Disorder"
+            echo "- Unique SettingsArts.Ghost (no sharedElement crash)"
+            echo "- VpnManager hooks only"
           } >> "$GITHUB_STEP_SUMMARY"
 
   compile-shared:
@@ -106,7 +110,8 @@ jobs:
       - name: Compile shared Kotlin Android
         run: |
           chmod +x ./gradlew
-          ./gradlew --no-daemon :shared:compileAndroidMain --stacktrace
+          ./gradlew --no-daemon :shared:compileDebugKotlinAndroid --stacktrace \
+            || ./gradlew --no-daemon :shared:compileAndroidMain --stacktrace
 
   debug-apk:
     name: Build debug APK
