@@ -21,9 +21,8 @@ import kotlin.random.Random
  * Raises the cost of DPI classification by mixing real session traffic with
  * realistic Iranian-app decoy traffic.
  *
- * Inspiration:
- * - MockTraffic / Traffic-Obfuscator (noise + hybrid patterns)
- * - zapret (idea of "fakes" and raising analysis cost – adapted to app layer)
+ * Inspiration: MockTraffic, Traffic-Obfuscator, and (app-layer adaptation of)
+ * zapret's philosophy of making analysis expensive via decoy/fake patterns.
  */
 object GhostEngine {
 
@@ -32,8 +31,7 @@ object GhostEngine {
 
     @Volatile private var currentSettings: GhostSettings = GhostSettings()
 
-    // Rolling window for pressure detection
-    private val recentResults = ArrayDeque<Boolean>(64) // true = success
+    private val recentResults = ArrayDeque<Boolean>(64)
 
     @Volatile var totalCycles: Long = 0; private set
     @Volatile var totalRequests: Long = 0; private set
@@ -100,7 +98,6 @@ object GhostEngine {
                 }
                 val base = s.decoyIntervalSeconds.coerceIn(5, 120)
                 val jitter = Random.nextInt(0, (base * 0.55).toInt().coerceAtLeast(1))
-                // Under pressure → shorter interval
                 val pressureFactor = if (underPressure && s.adaptiveFallbackEnabled) 0.65 else 1.0
                 delay(((base + jitter) * pressureFactor * 1000L).toLong())
             }
@@ -148,8 +145,8 @@ object GhostEngine {
             lastProfileUsed = profile.displayName
             val n = (Random.nextInt(1, 5) * volumeBoost).toInt().coerceIn(1, 8)
             val requests = profile.requests.shuffled().take(n)
-
             val parallel = settings.maxParallelRequests.coerceIn(1, 4)
+
             requests.chunked(parallel).forEach { chunk ->
                 coroutineScope {
                     chunk.map { req ->
@@ -182,11 +179,12 @@ object GhostEngine {
 
     private fun resolveActiveProfiles(settings: GhostSettings): List<AppProfile> {
         if (!settings.appProfilesEnabled) return listOf(GENERIC_BROWSE)
-        val keys = settings.activeProfiles.split(",").map { it.trim().lowercase() }.filter { it.isNotEmpty() }.toSet()
+        val keys = settings.activeProfiles.split(",")
+            .map { it.trim().lowercase() }
+            .filter { it.isNotEmpty() }
+            .toSet()
         return ALL_PROFILES.filter { it.key in keys }.ifEmpty { listOf(GENERIC_BROWSE) }
     }
-
-    // ── Profiles ───────────────────────────────────────────────────
 
     private data class DecoyRequest(val url: String, val userAgent: String)
     private data class AppProfile(val key: String, val displayName: String, val requests: List<DecoyRequest>)
@@ -234,7 +232,7 @@ object GhostEngine {
         DecoyRequest("https://balad.ir/maps", BALAD_UA),
     ))
     private val TOROB = AppProfile("torob", "ترب", listOf(
-        interRequest("https://torob.com/", TOROB_UA),
+        DecoyRequest("https://torob.com/", TOROB_UA),
         DecoyRequest("https://api.torob.com/", TOROB_UA),
     ))
     private val GENERIC_BROWSE = AppProfile("generic", "مرورگر", listOf(
@@ -246,7 +244,7 @@ object GhostEngine {
         DecoyRequest("https://www.eghtesadnews.com/", DEFAULT_UA),
     ))
 
-    private fun interRequest(url: String, ua: String) = DecoyRequest(url, ua)
-
-    private val ALL_PROFILES = listOf(RUBIKA, DIGIKALA, NESHAN, SNAPP, APARAT, BALAD, TOROB, GENERIC_BROWSE)
+    private val ALL_PROFILES = listOf(
+        RUBIKA, DIGIKALA, NESHAN, SNAPP, APARAT, BALAD, TOROB, GENERIC_BROWSE
+    )
 }
