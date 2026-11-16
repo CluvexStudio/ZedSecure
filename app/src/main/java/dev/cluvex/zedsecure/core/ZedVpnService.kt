@@ -289,7 +289,11 @@ class ZedVpnService : VpnService() {
                 addLanAwareRoutes(bypassLan, settings.enableIpv6, excludeIp = spoofBypassIp)
                 applyAppRules(settings)
 
-                if (kind == VpnManager.KIND_XRAY) {
+                if (settings.ghost.adultContentProtectionEnabled) {
+                    // CleanBrowsing Adult Filter blocks adult domains and enforces SafeSearch.
+                    runCatching { addDnsServer("185.228.168.10") }
+                    runCatching { addDnsServer("185.228.169.11") }
+                } else if (kind == VpnManager.KIND_XRAY) {
                     val vpnDns = if (settings.localDnsEnabled) emptyList()
                     else vpnDnsServers(settings.vpnDns, settings.enableIpv6)
                     if (vpnDns.isNotEmpty()) vpnDns.forEach { runCatching { addDnsServer(it) } }
