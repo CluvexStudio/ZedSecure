@@ -42,8 +42,9 @@ fun AppSettings.toBuildOptions(
     ruleGroupTuning = autoSelectTuning(),
     remoteDns = if (ghost.adultContentProtectionEnabled) {
         "https://doh.cleanbrowsing.org/doh/family-filter/"
-    } else remoteDns,
-    directDns = if (ghost.adultContentProtectionEnabled) "185.228.168.168" else directDns,
+    } else dnsResolverProfiles.firstOrNull { it.id == activeDnsResolverId }?.remoteEndpoint ?: remoteDns,
+    directDns = if (ghost.adultContentProtectionEnabled) "185.228.168.168" else
+        dnsResolverProfiles.firstOrNull { it.id == activeDnsResolverId }?.directAddress ?: directDns,
     muxEnabled = muxEnabled,
     muxConcurrency = muxConcurrency,
     fragmentEnabled = fragmentEnabled,
@@ -71,7 +72,9 @@ val AppSettings.effectiveLocalProxyPort: Int
         ?: LocalPorts.XRAY_SOCKS
 
 fun AppSettings.engineRemoteDns(): String =
-    remoteDnsPrimary.trim().takeIf { remoteDnsMode == "custom" && it.isNotEmpty() } ?: XrayJsonBuilder.ENGINE_REMOTE_DNS
+    dnsResolverProfiles.firstOrNull { it.id == activeDnsResolverId }?.remoteEndpoint
+        ?: remoteDnsPrimary.trim().takeIf { remoteDnsMode == "custom" && it.isNotEmpty() }
+        ?: XrayJsonBuilder.ENGINE_REMOTE_DNS
 
 private fun AppSettings.lanShare(): XrayJsonBuilder.LanShare? =
     if (!proxySharing) null
