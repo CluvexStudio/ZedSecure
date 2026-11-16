@@ -184,7 +184,7 @@ fun SettingsScreen(
     ) {
     stateHolder.SaveableStateProvider(shown) {
         when (shown) {
-            SettingsPage.Root -> if (settings.appDesign == AppDesign.Bento) {
+            SettingsPage.Root -> if (settings.appDesign == AppDesign.Bento || settings.appDesign == AppDesign.ZxPs) {
                 BentoRoot(
                     settings = settings,
                     contentPadding = contentPadding,
@@ -566,6 +566,7 @@ private fun BentoRoot(
             AppDesign.Pixel -> Res.string.home_design_pixel
             AppDesign.Old -> Res.string.home_design_old
             AppDesign.Zx -> Res.string.home_design_zx
+            AppDesign.ZxPs -> Res.string.home_design_zxps
         },
     )
     val paletteName = stringResource(
@@ -869,13 +870,17 @@ private fun BentoRoot(
             tourKey = TourTargets.SETTINGS_ABOUT,
         ) { onAbout() })
     }
-    dev.cluvex.zedsecure.ui.bento.BentoHub(
-        entries = entries,
-        layoutCode = settings.bento.tiles,
-        onLayoutChange = { code -> onUpdate { it.copy(bento = it.bento.copy(tiles = code)) } },
-        contentPadding = contentPadding,
-        modifier = modifier,
-    )
+    if (settings.appDesign == AppDesign.ZxPs) {
+        dev.cluvex.zedsecure.ui.zxps.ZxPsHub(entries = entries, contentPadding = contentPadding, modifier = modifier)
+    } else {
+        dev.cluvex.zedsecure.ui.bento.BentoHub(
+            entries = entries,
+            layoutCode = settings.bento.tiles,
+            onLayoutChange = { code -> onUpdate { it.copy(bento = it.bento.copy(tiles = code)) } },
+            contentPadding = contentPadding,
+            modifier = modifier,
+        )
+    }
     ManualUpdateCheckHost(
         settings = settings,
         trigger = checkTrigger,
@@ -1263,6 +1268,10 @@ private fun UiPage(
             dev.cluvex.zedsecure.ui.zx.ZxLookSection(s, onUpdate)
         }
 
+        if (s.appDesign == AppDesign.ZxPs) {
+            dev.cluvex.zedsecure.ui.zxps.ZxPsLookSection(s, onUpdate)
+        }
+
         if (LocalPlatform.current.hasStatusNotification) {
             SettingsGroup(title = stringResource(Res.string.settings_group_notification)) {
                 SettingsSwitchRow(
@@ -1287,12 +1296,33 @@ private fun UiPage(
                 SettingsListRow(
                     title = stringResource(Res.string.notif_style_title),
                     options = listOf(
+                        dev.cluvex.zedsecure.domain.model.NotifStyle.ZxPs to stringResource(Res.string.notif_style_zxps),
                         dev.cluvex.zedsecure.domain.model.NotifStyle.Bento to stringResource(Res.string.notif_style_bento),
                         dev.cluvex.zedsecure.domain.model.NotifStyle.System to stringResource(Res.string.notif_style_system),
                     ),
                     selected = s.notifStyle,
                     enabled = !s.liveNotification,
                     onSelected = { v -> onUpdate { it.copy(notifStyle = v) } },
+                )
+                SettingsListRow(
+                    title = stringResource(Res.string.notif_accent_title),
+                    options = listOf(
+                        dev.cluvex.zedsecure.domain.model.NotifAccent.Theme to stringResource(Res.string.notif_accent_theme),
+                        dev.cluvex.zedsecure.domain.model.NotifAccent.Cyan to stringResource(Res.string.notif_accent_cyan),
+                        dev.cluvex.zedsecure.domain.model.NotifAccent.Magenta to stringResource(Res.string.notif_accent_magenta),
+                        dev.cluvex.zedsecure.domain.model.NotifAccent.Amber to stringResource(Res.string.notif_accent_amber),
+                        dev.cluvex.zedsecure.domain.model.NotifAccent.Mint to stringResource(Res.string.notif_accent_mint),
+                    ),
+                    selected = s.notifAccent,
+                    enabled = !s.liveNotification && s.notifStyle == dev.cluvex.zedsecure.domain.model.NotifStyle.ZxPs,
+                    onSelected = { v -> onUpdate { it.copy(notifAccent = v) } },
+                )
+                SettingsSwitchRow(
+                    title = stringResource(Res.string.notif_graph_title),
+                    summary = stringResource(Res.string.notif_graph_summary),
+                    checked = s.notifGraph,
+                    enabled = !s.liveNotification && s.notifStyle == dev.cluvex.zedsecure.domain.model.NotifStyle.ZxPs,
+                    onCheckedChange = { v -> onUpdate { it.copy(notifGraph = v) } },
                 )
                 if (s.liveNotification) {
                     SettingsInfoRow(

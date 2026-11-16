@@ -25,6 +25,12 @@ import dev.cluvex.zedsecure.ui.bento.BentoStyle
 import dev.cluvex.zedsecure.ui.bento.LocalBentoStyle
 import dev.cluvex.zedsecure.ui.bento.bentoColorScheme
 import dev.cluvex.zedsecure.domain.model.ZxAnim
+import dev.cluvex.zedsecure.domain.model.ZxPsPrefs
+import dev.cluvex.zedsecure.ui.zxps.LocalZxPsStyle
+import dev.cluvex.zedsecure.ui.zxps.ZxPsPalettes
+import dev.cluvex.zedsecure.ui.zxps.ZxPsStyle
+import dev.cluvex.zedsecure.ui.zxps.zxPsColorScheme
+import dev.cluvex.zedsecure.ui.zxps.zxPsShapes
 import dev.cluvex.zedsecure.ui.zx.LocalZxStyle
 import dev.cluvex.zedsecure.ui.zx.ZxPalettes
 import dev.cluvex.zedsecure.ui.zx.ZxShapes
@@ -52,6 +58,8 @@ fun ZedSecureTheme(
 
     zxAnim: ZxAnim = ZxAnim.Auto,
 
+    zxPs: ZxPsPrefs = ZxPsPrefs(),
+
     languageTag: String = "en",
 
     fontScale: Float = 1f,
@@ -67,7 +75,10 @@ fun ZedSecureTheme(
         BentoPalettes.of(bento.palette, darkTheme, bentoSeed, amoledBlack)
     }
     val zxColors = remember(darkTheme) { ZxPalettes.of(darkTheme) }
-    val scheme = if (design == AppDesign.Zx) {
+    val zxPsColors = remember(zxPs.palette, darkTheme) { ZxPsPalettes.of(zxPs.palette, darkTheme) }
+    val scheme = if (design == AppDesign.ZxPs) {
+        remember(zxPsColors) { zxPsColorScheme(zxPsColors) }
+    } else if (design == AppDesign.Zx) {
         remember(zxColors) { zxColorScheme(zxColors) }
     } else if (design == AppDesign.Bento) {
         remember(bentoColors) { bentoColorScheme(bentoColors) }
@@ -75,6 +86,7 @@ fun ZedSecureTheme(
         (system ?: rememberZedColorScheme(darkTheme, accentColor, colorStyle, colorContrast))
             .let { if (amoledBlack) it.amoled(darkTheme) else it }
     }
+    val zxPsStyle = remember(zxPsColors, zxPs) { ZxPsStyle(zxPsColors, zxPs) }
     val zxStyle = remember(zxColors, zxAnim) { ZxStyle(zxColors, zxAnim) }
     val bentoStyle = remember(bentoColors, bento, languageTag) { BentoStyle(bentoColors, bento, latin = languageTag != "fa") }
     val colorScheme = if (animateColors) {
@@ -91,7 +103,11 @@ fun ZedSecureTheme(
     MaterialExpressiveTheme(
         colorScheme = colorScheme,
         motionScheme = MotionScheme.expressive(),
-        shapes = if (design == AppDesign.Zx) ZxShapes else ZedShapes,
+        shapes = when (design) {
+            AppDesign.Zx -> ZxShapes
+            AppDesign.ZxPs -> remember(zxPs.tile) { zxPsShapes(zxPs.tile) }
+            else -> ZedShapes
+        },
         typography = typographyFor(languageTag, design, font),
     ) {
         CompositionLocalProvider(
@@ -99,6 +115,7 @@ fun ZedSecureTheme(
             LocalAppDesign provides design,
             LocalBentoStyle provides bentoStyle,
             LocalZxStyle provides zxStyle,
+            LocalZxPsStyle provides zxPsStyle,
             content = content,
         )
     }

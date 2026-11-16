@@ -208,7 +208,41 @@ fun HomeScreen(
 
     if (design != AppDesign.Old) {
         Box(modifier.fillMaxSize()) {
-            if (design == AppDesign.Zx) {
+            if (design == AppDesign.ZxPs) {
+                dev.cluvex.zedsecure.ui.zxps.ZxPsHome(
+                    ui = ui,
+                    info = info,
+                    active = bentoActive,
+                    picks = bentoPicks,
+                    lockedNote = lockedNote,
+                    localProxyAddress = localProxyAddress,
+                    showConnectionInfo = showConnectionInfo,
+                    reduceMotion = reduceMotion,
+                    contentPadding = contentPadding,
+                    onToggleConnection = onToggleConnection,
+                    onBrowseConfigs = onBrowseConfigs,
+                    onPickServer = onPickServer,
+                    onOpenSpeedTest = onOpenSpeedTest,
+                    onOpenMap = onOpenMap,
+                    onRefreshInfo = { homeVm.refresh(force = true) },
+                    onSecretUnlocked = onSecretUnlocked,
+                    onShowLogs = { showLogs = true },
+                    onBurst = {
+                        burst++
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    },
+                    onStatusTap = {
+                        val now = System.currentTimeMillis()
+                        statusTaps = if (now - statusLastTap < TAP_WINDOW_MS) statusTaps + 1 else 1
+                        statusLastTap = now
+                        if (statusTaps >= 3) {
+                            statusTaps = 0
+                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                            laser++
+                        }
+                    },
+                )
+            } else if (design == AppDesign.Zx) {
                 dev.cluvex.zedsecure.ui.zx.ZxHome(
                     ui = ui,
                     info = info,

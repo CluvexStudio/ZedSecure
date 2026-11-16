@@ -8,7 +8,7 @@ enum class ColorStyle { ZedSecure, TonalSpot, Vibrant, Expressive, Rainbow, Frui
 
 enum class ColorContrast(val level: Double) { Standard(0.0), Medium(0.5), High(1.0) }
 
-enum class AppDesign { Bento, Pixel, Old, Zx }
+enum class AppDesign { Bento, Pixel, Old, Zx, ZxPs }
 
 enum class ZxAnim { Min, Balanced, Max, Auto }
 
@@ -96,7 +96,7 @@ enum class NavBarStyle {
     Dock,
 }
 
-enum class NotifStyle { System, Bento }
+enum class NotifStyle { System, Bento, ZxPs }
 
 enum class NotifChip {
     Speed,
@@ -290,6 +290,8 @@ data class AppSettings(
 
     val zxAnim: ZxAnim = ZxAnim.Auto,
 
+    val zxPs: ZxPsPrefs = ZxPsPrefs(),
+
     val bento: BentoPrefs = BentoPrefs(),
 
     val connectButtonStyle: ConnectButtonStyle = ConnectButtonStyle.Hero,
@@ -312,6 +314,10 @@ data class AppSettings(
     val liveNotification: Boolean = true,
 
     val notifChip: NotifChip = NotifChip.Speed,
+
+    val notifGraph: Boolean = true,
+
+    val notifAccent: NotifAccent = NotifAccent.Theme,
 
     val notifStyle: NotifStyle = NotifStyle.Bento,
 

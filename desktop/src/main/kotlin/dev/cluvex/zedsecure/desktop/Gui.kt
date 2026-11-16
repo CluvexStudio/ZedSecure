@@ -470,6 +470,7 @@ fun main(args: Array<String>) {
                     design = settings.appDesign,
                     bento = settings.bento,
                     zxAnim = settings.zxAnim,
+                    zxPs = settings.zxPs,
                     animateColors = !settings.reduceMotion,
                     languageTag = langTag,
                     fontScale = settings.uiFontScale.scale,

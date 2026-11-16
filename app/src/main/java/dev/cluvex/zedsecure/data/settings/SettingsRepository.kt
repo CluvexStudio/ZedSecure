@@ -7,6 +7,7 @@ import dev.cluvex.zedsecure.domain.ai.AiSettings
 import dev.cluvex.zedsecure.domain.model.AppDesign
 import dev.cluvex.zedsecure.domain.model.AppSettings
 import dev.cluvex.zedsecure.domain.model.BentoPrefs
+import dev.cluvex.zedsecure.domain.model.ZxPsPrefs
 import dev.cluvex.zedsecure.domain.model.DomainStrategy
 import dev.cluvex.zedsecure.domain.model.FragmentPackets
 import dev.cluvex.zedsecure.domain.model.GeoFilesSource
@@ -59,6 +60,11 @@ class SettingsRepository(context: Context) {
             colorContrast = prefs.enum("color_contrast", d.colorContrast),
             appDesign = prefs.enum("app_design", d.appDesign),
             zxAnim = prefs.enum("zx_anim", d.zxAnim),
+            zxPs = prefs.getString("zx_ps_prefs", null)
+                ?.let { runCatching { aiJson.decodeFromString(ZxPsPrefs.serializer(), it) }.getOrNull() }
+                ?: d.zxPs,
+            notifGraph = prefs.getBoolean("notif_graph", d.notifGraph),
+            notifAccent = prefs.enum("notif_accent", d.notifAccent),
             amoledBlack = prefs.getBoolean("amoled_black", d.amoledBlack),
             language = prefs.enum("language", d.language),
 
@@ -285,6 +291,9 @@ class SettingsRepository(context: Context) {
             putString("color_contrast", s.colorContrast.name)
             putString("app_design", s.appDesign.name)
             putString("zx_anim", s.zxAnim.name)
+            putString("zx_ps_prefs", aiJson.encodeToString(ZxPsPrefs.serializer(), s.zxPs))
+            putBoolean("notif_graph", s.notifGraph)
+            putString("notif_accent", s.notifAccent.name)
             putBoolean("amoled_black", s.amoledBlack)
             putString("language", s.language.name)
             putArgb("custom_color_download", s.customDownloadColor)

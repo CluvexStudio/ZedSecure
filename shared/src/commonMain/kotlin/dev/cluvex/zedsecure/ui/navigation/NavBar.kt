@@ -57,6 +57,10 @@ fun ZedNavBar(
     current: TopDestination,
     onSelect: (TopDestination) -> Unit,
 ) {
+    if (LocalAppDesign.current == AppDesign.ZxPs) {
+        dev.cluvex.zedsecure.ui.zxps.ZxPsNavBar(tabs, current, onSelect)
+        return
+    }
     if (LocalAppDesign.current == AppDesign.Zx) {
         ZxNavBar(tabs, current, onSelect)
         return

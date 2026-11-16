@@ -212,7 +212,7 @@ fun typographyFor(language: String, design: AppDesign = AppDesign.Old, font: UiF
     }
     return when {
         language == "fa" -> persianTypography()
-        (design == AppDesign.Pixel || design == AppDesign.Bento) && language != "ru" -> googleSansFamily().let { latinTypography(it, it) }
+        (design == AppDesign.Pixel || design == AppDesign.Bento || design == AppDesign.ZxPs) && language != "ru" -> googleSansFamily().let { latinTypography(it, it) }
         else -> latinTypography()
     }
 }
