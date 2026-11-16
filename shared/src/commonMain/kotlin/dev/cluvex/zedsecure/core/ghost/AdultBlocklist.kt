@@ -1,26 +1,47 @@
 package dev.cluvex.zedsecure.core.ghost
 
 /**
- * Second layer of GHOST "Anti-Porn": a built-in routing block list applied on top of the
- * DNS adult filter, so a site stays blocked even when an app bypasses the DNS resolver
- * (DoH inside the app, cached answers, hosts pinned by IP lookups).
+ * Additional routing layer for GHOST adult-content protection.
+ *
+ * These domain rules complement the configured family-safe DNS resolver. They are not
+ * a replacement for DNS filtering: encrypted DNS inside another app, direct-IP access,
+ * and third-party VPNs can bypass app-level domain rules.
  */
 object AdultBlocklist {
-    /** Substrings strong enough to block without false positives. */
+    /**
+     * Hostname fragments used by the routing engine. Keep these specific to avoid
+     * matching ordinary words in unrelated domains.
+     */
     private val keywords = listOf(
-        "porn", "xvideos", "xnxx", "xhamster", "redtube", "youporn", "hentai", "brazzers",
-        "onlyfans", "spankbang", "chaturbate", "stripchat", "bongacams", "camsoda",
+        "xvideos", "xnxx", "xhamster", "redtube", "youporn", "hentai",
+        "brazzers", "onlyfans", "spankbang", "chaturbate", "stripchat",
+        "bongacams", "camsoda", "pornhub", "eporner", "porntrex",
     )
 
+    /**
+     * Curated domain rules. Xray's domain: matcher also covers subdomains.
+     * The list is intentionally maintained separately from the DNS provider list.
+     */
     private val domains = listOf(
-        "pornhub.com", "pornhub.org", "phncdn.com", "xvideos.com", "xvideos-cdn.com", "xnxx.com", "xnxx-cdn.com",
-        "xhamster.com", "xhcdn.com", "redtube.com", "youporn.com", "tube8.com", "spankbang.com", "eporner.com",
-        "porntrex.com", "beeg.com", "motherless.com", "thumbzilla.com", "tnaflix.com", "txxx.com", "hclips.com",
-        "fapello.com", "rule34.xxx", "e-hentai.org", "nhentai.net", "hanime.tv", "chaturbate.com", "stripchat.com",
-        "bongacams.com", "livejasmin.com", "cam4.com", "camsoda.com", "myfreecams.com", "erome.com", "ixxx.com",
-        "sex.com", "fuq.com", "porn.com", "naughtyamerica.com", "realitykings.com", "bangbros.com",
+        "pornhub.com", "pornhub.org", "phncdn.com",
+        "xvideos.com", "xvideos-cdn.com", "xnxx.com", "xnxx-cdn.com",
+        "xhamster.com", "xhcdn.com", "redtube.com", "youporn.com", "tube8.com",
+        "spankbang.com", "eporner.com", "porntrex.com", "beeg.com",
+        "motherless.com", "thumbzilla.com", "tnaflix.com", "txxx.com", "hclips.com",
+        "fapello.com", "rule34.xxx", "e-hentai.org", "nhentai.net", "hanime.tv",
+        "chaturbate.com", "stripchat.com", "bongacams.com", "livejasmin.com",
+        "cam4.com", "camsoda.com", "myfreecams.com", "erome.com", "ixxx.com",
+        "sex.com", "fuq.com", "porn.com", "naughtyamerica.com",
+        "realitykings.com", "bangbros.com",
+        "redgifs.com", "4tube.com", "empflix.com", "drtuber.com",
+        "slutload.com", "keezmovies.com", "vporn.com", "youjizz.com",
+        "javhd.com", "javmost.com", "jav.guru", "javbus.com",
+        "gelbooru.com", "danbooru.donmai.us", "rule34.paheal.net",
     )
 
-    /** Rules in Xray routing syntax, ready to append to the custom block list. */
-    val rules: List<String> = keywords.map { "keyword:$it" } + domains.map { "domain:$it" }
+    /** Stable, de-duplicated Xray routing rules. */
+    val rules: List<String> = buildList {
+        keywords.forEach { add("keyword:$it") }
+        domains.forEach { add("domain:$it") }
+    }.distinct()
 }
