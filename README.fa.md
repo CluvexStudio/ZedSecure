@@ -15,7 +15,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-C7F24E?style=flat-square&labelColor=15170B" alt="AGPL-3.0"></a>
 </p>
 
-<p align="center"><a href="README.md">English</a> · <b>فارسی</b></p>
+<p align="center"><a href="README.md">English</a> · <b>فارسی</b> · <a href="README.ja.md">日本語</a></p>
 
 ## ZedSecure چیست؟
 
