@@ -361,6 +361,8 @@ fun MainScaffold(
                 TopDestination.Servers -> ServersScreen(
                     repository = configRepository,
                     contentPadding = innerPadding,
+                    settings = settings,
+                    onUpdateSettings = onUpdateSettings,
                     twoColumns = settings.doubleColumnDisplay,
                     showAllGroup = settings.groupAllDisplay,
                     confirmRemove = settings.confirmRemove,
