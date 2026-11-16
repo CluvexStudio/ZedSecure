@@ -131,7 +131,7 @@ internal fun DnsResolverSheet(
             if (settings.dnsResolverProfiles.isEmpty()) {
                 Text("هنوز پروفایلی ذخیره نشده است.", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            settings.dnsResolverProfiles.forEach { profile ->
+            settings.dnsResolverProfiles.sortedByDescending { it.favorite }.forEach { profile ->
                 Surface(
                     shape = MaterialTheme.shapes.large,
                     color = if (profile.id == settings.activeDnsResolverId) MaterialTheme.colorScheme.primaryContainer
@@ -145,6 +145,9 @@ internal fun DnsResolverSheet(
                             TextButton(onClick = {
                                 onUpdate { it.copy(activeDnsResolverId = profile.id) }
                             }) { Text(if (profile.id == settings.activeDnsResolverId) "فعال" else "فعال‌سازی") }
+                            TextButton(onClick = {
+                                onUpdate { old -> old.copy(dnsResolverProfiles = old.dnsResolverProfiles.map { if (it.id == profile.id) it.copy(favorite = !it.favorite) else it }) }
+                            }) { Text(if (profile.favorite) "حذف از محبوب‌ها" else "★ محبوب") }
                             TextButton(onClick = { startEdit(profile) }) { Text("ویرایش") }
                             TextButton(onClick = {
                                 onUpdate {
