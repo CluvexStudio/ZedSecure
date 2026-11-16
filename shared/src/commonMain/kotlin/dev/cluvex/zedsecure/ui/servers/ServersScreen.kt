@@ -332,6 +332,7 @@ fun ServersScreen(
     var showDnsTunnel by remember { mutableStateOf(false) }
     var showDnsResolver by remember { mutableStateOf(false) }
     var showMasterDns by remember { mutableStateOf(false) }
+    var showDnsProfile by remember { mutableStateOf(false) }
     var showOpenConnect by remember { mutableStateOf(false) }
     var showIkev2 by remember { mutableStateOf(false) }
     var showSsh by remember { mutableStateOf(false) }
@@ -1343,6 +1344,10 @@ fun ServersScreen(
                 showAddSheet = false
                 showDnsResolver = true
             },
+            onDnsProfile = {
+                showAddSheet = false
+                showDnsProfile = true
+            },
             onMasterDns = {
                 showAddSheet = false
                 showMasterDns = true
@@ -1437,6 +1442,17 @@ fun ServersScreen(
             onSave = { name, settings ->
                 showMasterDns = false
                 repository.addMasterDns(settings, name)
+                onServerActivated()
+            },
+        )
+    }
+
+    if (showDnsProfile) {
+        DnsProfileSheet(
+            onDismiss = { showDnsProfile = false },
+            onSave = { name, settings ->
+                showDnsProfile = false
+                repository.addDnsResolver(settings, name)
                 onServerActivated()
             },
         )
@@ -1689,6 +1705,18 @@ fun ServersScreen(
                     onDismiss = { editTarget = null },
                     onSave = { name, settings ->
                         repository.addMasterDns(settings, name, id = target.id)
+                        toastRes(Res.string.saved)
+                        editTarget = null
+                    },
+                )
+            }
+            target.isDnsResolver -> {
+                DnsProfileSheet(
+                    initial = target.dnsResolverSettings(),
+                    initialName = target.name,
+                    onDismiss = { editTarget = null },
+                    onSave = { name, settings ->
+                        repository.addDnsResolver(settings, name, id = target.id)
                         toastRes(Res.string.saved)
                         editTarget = null
                     },
@@ -2252,6 +2280,7 @@ private fun AddServerSheet(
     onPsiphon: () -> Unit,
     onDnsTunnel: () -> Unit,
     onDnsResolver: () -> Unit,
+    onDnsProfile: () -> Unit,
     onMasterDns: () -> Unit,
     onOpenConnect: () -> Unit,
     onIkev2: () -> Unit,
@@ -2312,6 +2341,7 @@ private fun AddServerSheet(
 
             OptionGroup(Res.string.add_group_dns)
             Option(Res.drawable.ic_dns, Res.string.dns_resolver_ips, onDnsResolver)
+            Option(Res.drawable.ic_dns, Res.string.master_dns_add_title, onDnsProfile)
             Option(Res.drawable.ic_public, Res.string.dns_tunnel_add_title, onDnsTunnel)
             Option(Res.drawable.ic_public, Res.string.master_dns_add_title, onMasterDns)
 
