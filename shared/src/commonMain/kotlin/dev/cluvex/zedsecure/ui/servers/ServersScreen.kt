@@ -2311,7 +2311,7 @@ private fun AddServerSheet(
             if (LocalPlatform.current.supportsSniSpoof) Option(Res.drawable.ic_bolt, Res.string.snispoof_add_title, onSniSpoof)
 
             OptionGroup(Res.string.add_group_dns)
-            Option(Res.drawable.ic_dns, Res.string.dns_protocols_about_title, onDnsResolver)
+            Option(Res.drawable.ic_dns, Res.string.dns_resolver_ips, onDnsResolver)
             Option(Res.drawable.ic_public, Res.string.dns_tunnel_add_title, onDnsTunnel)
             Option(Res.drawable.ic_public, Res.string.master_dns_add_title, onMasterDns)
 
