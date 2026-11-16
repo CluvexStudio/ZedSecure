@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.luminance
 import androidx.core.app.NotificationCompat
 import dev.cluvex.zedsecure.domain.model.NotifChip
 import androidx.core.graphics.drawable.IconCompat
@@ -38,7 +39,7 @@ class VpnNotifications(private val ctx: Context) {
             .getOrNull() ?: return FALLBACK
         val night = (ctx.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
             android.content.res.Configuration.UI_MODE_NIGHT_YES
-        val key = listOf(settings.appDesign, settings.bento.palette, settings.accentColor, settings.colorStyle, settings.colorContrast, settings.dynamicColor, night)
+        val key = listOf(settings.notifStyle, settings.notifAccent, settings.zxPs.palette, settings.appDesign, settings.bento.palette, settings.accentColor, settings.colorStyle, settings.colorContrast, settings.dynamicColor, night)
         colorsCache?.takeIf { key == colorsKey }?.let { return it }
         val computed = runCatching { themeColors(settings, night) }.getOrDefault(FALLBACK)
         colorsKey = key
@@ -52,6 +53,29 @@ class VpnNotifications(private val ctx: Context) {
             androidx.compose.ui.graphics.Color(ctx.getColor(android.R.color.system_accent1_500))
         } else {
             dev.cluvex.zedsecure.ui.theme.accentSeed(settings.accentColor)
+        }
+        if (settings.notifStyle == dev.cluvex.zedsecure.domain.model.NotifStyle.ZxPs) {
+            val c = dev.cluvex.zedsecure.ui.zxps.ZxPsPalettes.of(settings.zxPs.palette, night)
+            val accent = when (settings.notifAccent) {
+                dev.cluvex.zedsecure.domain.model.NotifAccent.Theme -> c.a
+                dev.cluvex.zedsecure.domain.model.NotifAccent.Cyan -> androidx.compose.ui.graphics.Color(if (night) 0xFF2BD9FF else 0xFF0088B0)
+                dev.cluvex.zedsecure.domain.model.NotifAccent.Magenta -> androidx.compose.ui.graphics.Color(if (night) 0xFFFF5CC8 else 0xFFC0178F)
+                dev.cluvex.zedsecure.domain.model.NotifAccent.Amber -> androidx.compose.ui.graphics.Color(if (night) 0xFFFFC24A else 0xFFB57A00)
+                dev.cluvex.zedsecure.domain.model.NotifAccent.Mint -> androidx.compose.ui.graphics.Color(if (night) 0xFF3DDC97 else 0xFF00875A)
+            }
+            val onAccent = if (androidx.compose.ui.graphics.Color(accent.toArgb()).luminance() > 0.45f) androidx.compose.ui.graphics.Color(0xFF101014) else androidx.compose.ui.graphics.Color.White
+            return Colors(
+                accent = accent.toArgb(),
+                deep = c.surface2.toArgb(),
+                good = c.good.toArgb(),
+                error = c.danger.toArgb(),
+                onAccent = onAccent.toArgb(),
+                onDeep = c.ink.toArgb(),
+                tileA = c.surface.toArgb(),
+                onTileA = c.ink.toArgb(),
+                tileB = c.surface.toArgb(),
+                onTileB = c.ink.toArgb(),
+            )
         }
         if (settings.appDesign == dev.cluvex.zedsecure.domain.model.AppDesign.Bento) {
             val c = dev.cluvex.zedsecure.ui.bento.BentoPalettes.of(settings.bento.palette, night, seed, false)
@@ -253,6 +277,15 @@ class VpnNotifications(private val ctx: Context) {
         val since = if (connectedAt > 0) (System.currentTimeMillis() - connectedAt).coerceAtLeast(0) else 0L
         val base = android.os.SystemClock.elapsedRealtime() - since
         val engine = protocolLabel.ifBlank { ctx.getString(R.string.app_name) }
+        val settings = runCatching { (ctx.applicationContext as dev.cluvex.zedsecure.ZedSecureApp).container.settingsRepository.settings.value }.getOrNull()
+        val zxPs = settings?.notifStyle == dev.cluvex.zedsecure.domain.model.NotifStyle.ZxPs
+        val graph = if (zxPs && settings?.notifGraph == true) {
+            speedHistory.addLast(downBps.toFloat())
+            while (speedHistory.size > GRAPH_POINTS) speedHistory.removeFirst()
+            speedGraph(colors.accent)
+        } else {
+            null
+        }
         fun card(layout: Int, big: Boolean) = android.widget.RemoteViews(ctx.packageName, layout).apply {
             setInt(R.id.notif_card, "setColorFilter", colors.deep)
             setTextViewText(R.id.notif_title, title)
@@ -280,12 +313,63 @@ class VpnNotifications(private val ctx: Context) {
                 setTextViewText(R.id.notif_down, BidiText.ltr("↓ $dl $dlU"))
                 setTextColor(R.id.notif_down, colors.accent)
             }
+            if (big && graph != null) {
+                setImageViewBitmap(R.id.notif_graph, graph)
+                setViewVisibility(R.id.notif_graph, android.view.View.VISIBLE)
+            }
         }
         return setStyle(NotificationCompat.DecoratedCustomViewStyle())
             .setCustomContentView(card(R.layout.notif_bento_small, false))
             .setCustomBigContentView(card(R.layout.notif_bento_big, true))
             .setShowWhen(false)
             .addAction(R.drawable.ic_close, ctx.getString(R.string.action_disconnect), stopTunnel())
+    }
+
+    private val speedHistory = ArrayDeque<Float>()
+
+    /** Smooth filled sparkline of recent download speed, drawn natively so the card can show it. */
+    private fun speedGraph(color: Int): android.graphics.Bitmap {
+        val w = 540
+        val h = 108
+        val bmp = android.graphics.Bitmap.createBitmap(w, h, android.graphics.Bitmap.Config.ARGB_8888)
+        val canvas = android.graphics.Canvas(bmp)
+        val values = speedHistory.toList()
+        val max = (values.maxOrNull() ?: 1f).coerceAtLeast(1f)
+        val step = w.toFloat() / (GRAPH_POINTS - 1)
+        val x0 = w - step * (values.size - 1).coerceAtLeast(0)
+        fun x(i: Int) = x0 + step * i
+        fun y(v: Float) = h - 6f - (v / max) * (h - 14f)
+        val line = android.graphics.Path()
+        if (values.size < 2) {
+            line.moveTo(0f, h - 6f); line.lineTo(w.toFloat(), h - 6f)
+        } else {
+            line.moveTo(x(0), y(values[0]))
+            for (i in 1 until values.size) {
+                val mx = (x(i - 1) + x(i)) / 2f
+                line.cubicTo(mx, y(values[i - 1]), mx, y(values[i]), x(i), y(values[i]))
+            }
+            val fill = android.graphics.Path(line)
+            fill.lineTo(x(values.size - 1), h.toFloat())
+            fill.lineTo(x(0), h.toFloat())
+            fill.close()
+            val fillPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                shader = android.graphics.LinearGradient(
+                    0f, 0f, 0f, h.toFloat(),
+                    (color and 0x00FFFFFF) or 0x66000000, color and 0x00FFFFFF,
+                    android.graphics.Shader.TileMode.CLAMP,
+                )
+            }
+            canvas.drawPath(fill, fillPaint)
+        }
+        val stroke = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+            this.color = color
+            style = android.graphics.Paint.Style.STROKE
+            strokeWidth = 5f
+            strokeCap = android.graphics.Paint.Cap.ROUND
+            strokeJoin = android.graphics.Paint.Join.ROUND
+        }
+        canvas.drawPath(line, stroke)
+        return bmp
     }
 
     private fun chipText(
@@ -371,6 +455,7 @@ class VpnNotifications(private val ctx: Context) {
     }
 
     companion object {
+        private const val GRAPH_POINTS = 40
         private const val CHIP_MAX_CHARS = 10
 
         const val CHANNEL_ID = "zed_vpn"

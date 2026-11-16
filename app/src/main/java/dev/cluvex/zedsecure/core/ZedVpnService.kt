@@ -243,7 +243,7 @@ class ZedVpnService : VpnService() {
         showSpeed = settings.speedInNotification
         livePromotion = settings.liveNotification
         notifChip = settings.notifChip
-        bentoCard = !settings.liveNotification && settings.notifStyle == dev.cluvex.zedsecure.domain.model.NotifStyle.Bento
+        bentoCard = !settings.liveNotification && settings.notifStyle != dev.cluvex.zedsecure.domain.model.NotifStyle.System
         val iface = settings.vpnInterfaceAddress
         hevIpv4 = iface.ipv4Client
         hevIpv6 = if (settings.enableIpv6) iface.ipv6Client else null
@@ -1419,7 +1419,7 @@ class ZedVpnService : VpnService() {
         notifSettingsJob = scope.launch {
             repository.settings
                 .map { s ->
-                    listOf(s.speedInNotification, s.liveNotification, s.notifChip, s.notifStyle, s.appDesign, s.bento.palette, s.accentColor, s.dynamicColor)
+                    listOf(s.speedInNotification, s.liveNotification, s.notifChip, s.notifStyle, s.notifAccent, s.notifGraph, s.zxPs.palette, s.appDesign, s.bento.palette, s.accentColor, s.dynamicColor)
                 }
                 .distinctUntilChanged()
                 .drop(1)
@@ -1428,7 +1428,7 @@ class ZedVpnService : VpnService() {
                     showSpeed = s.speedInNotification
                     livePromotion = s.liveNotification
                     notifChip = s.notifChip
-                    bentoCard = !s.liveNotification && s.notifStyle == dev.cluvex.zedsecure.domain.model.NotifStyle.Bento
+                    bentoCard = !s.liveNotification && s.notifStyle != dev.cluvex.zedsecure.domain.model.NotifStyle.System
                     if (connected) notify(connectedNotification(lastDownBps, lastUpBps, lastTotalDown, lastTotalUp))
                 }
         }
