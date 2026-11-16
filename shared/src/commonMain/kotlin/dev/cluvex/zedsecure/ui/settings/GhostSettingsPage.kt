@@ -53,34 +53,23 @@ fun GhostSettingsPage(
         SettingsPageScaffold(
             title = "GHOST MOD",
             art = SettingsArts.Monitor,
-            subtitle = "کمک‌کننده ضد DPI برای تونل – فقط بعد از اتصال",
+            subtitle = "ضد DPI حرفه‌ای چندفازی (الهام از zapret) – فقط بعد از اتصال",
             contentPadding = PaddingValues(0.dp),
             modifier = Modifier,
         ) {
             SettingsGroup("فعال‌سازی") {
                 SettingsSwitchRow(
                     title = "فعال‌سازی GHOST",
-                    summary = "با زدن اتصال به تونل کمک می‌کند؛ خودکار وصل نمی‌شود",
+                    summary = "با Connect به تونل کمک می‌کند؛ خودکار وصل نمی‌شود",
                     checked = ghost.enabled,
                     onCheckedChange = { v -> onUpdate { it.copy(ghost = it.ghost.copy(enabled = v)) } },
                 )
                 SettingsSwitchRow(
                     title = "AUTO",
-                    summary = "تشخیص وای‌فای / داده همراه و چیدن خودکار همه تنظیمات GHOST",
+                    summary = "تشخیص وای‌فای/داده + انتخاب خودکار استراتژی",
                     checked = ghost.autoMode,
                     onCheckedChange = { v -> onUpdate { it.copy(ghost = it.ghost.copy(autoMode = v)) } },
                 )
-                SettingsSegment {
-                    Column(Modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            "AUTO روشن باشد: نوع شبکه را بررسی می‌کند (وای‌فای یا داده همراه) " +
-                                "و حجم، فاصله، پروفایل‌ها، Burst و موازی‌سازی را خودش تنظیم می‌کند. " +
-                                "هنوز فقط وقتی تونل وصل است اجرا می‌شود.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
             }
 
             if (ghost.enabled) {
@@ -90,7 +79,7 @@ fun GhostSettingsPage(
                             Text(
                                 when {
                                     status.running -> "● در حال کمک به تونل"
-                                    status.enabled && !status.tunnelConnected -> "○ آماده – منتظر اتصال تونل"
+                                    status.enabled && !status.tunnelConnected -> "○ آماده – منتظر اتصال"
                                     else -> "○ متوقف"
                                 },
                                 style = MaterialTheme.typography.titleMedium,
@@ -99,35 +88,64 @@ fun GhostSettingsPage(
                             )
                             Text("تونل: ${if (status.tunnelConnected) "وصل" else "قطع"}",
                                 style = MaterialTheme.typography.bodyMedium)
+                            Text("استراتژی: ${status.strategy}", style = MaterialTheme.typography.bodyMedium)
+                            Text("فاز: ${status.phase}", style = MaterialTheme.typography.bodySmall)
                             if (status.autoMode) {
-                                Text("AUTO: ${status.networkLabel}", style = MaterialTheme.typography.bodyMedium)
+                                Text("شبکه: ${status.networkLabel}", style = MaterialTheme.typography.bodyMedium)
                                 Text(status.autoReason, style = MaterialTheme.typography.bodySmall)
                             }
                             if (status.underPressure) {
-                                Text("⚠ تحت فشار – حجم decoy افزایش یافته",
+                                Text("⚠ فشار DPI – نویز افزایش یافته",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.error)
                             }
-                            Text("چرخه‌ها: ${status.cycles}", style = MaterialTheme.typography.bodyMedium)
-                            Text("درخواست: ${status.requests} | موفق: ${status.successes} | ناموفق: ${status.failures}",
+                            Text("چرخه: ${status.cycles} | درخواست: ${status.requests}",
                                 style = MaterialTheme.typography.bodySmall)
-                            Text("پروفایل فعال: ${status.activeProfiles}", style = MaterialTheme.typography.bodySmall)
-                            Text("حجم مؤثر: ${status.decoyVolumePercent}% | آخرین: ${status.lastProfile}",
+                            Text("موفق: ${status.successes} | ناموفق: ${status.failures}",
+                                style = MaterialTheme.typography.bodySmall)
+                            Text("حجم مؤثر: ${status.decoyVolumePercent}% | ${status.lastProfile}",
                                 style = MaterialTheme.typography.bodySmall)
                             status.lastError?.let {
-                                Text("آخرین خطا: $it", style = MaterialTheme.typography.bodySmall,
+                                Text("خطا: $it", style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.error)
                             }
                         }
                     }
                 }
 
-                // Manual controls hidden when AUTO is on (AUTO owns them)
                 if (!ghost.autoMode) {
-                    SettingsGroup("۱. پروفایل‌های رفتاری") {
+                    SettingsGroup("استراتژی ضد DPI") {
+                        StrategyRow(
+                            current = ghost.strategy,
+                            onSelect = { key -> onUpdate { it.copy(ghost = it.ghost.copy(strategy = key)) } },
+                        )
+                    }
+
+                    SettingsGroup("حالت‌های پیشرفته (zapret-style)") {
                         SettingsSwitchRow(
-                            title = "App Behavior Profiles",
-                            summary = "الگوی واقعی اپ‌های ایرانی",
+                            title = "Multi-Phase",
+                            summary = "P0 FakeFlood → P1 Mimic → P2 Residual",
+                            checked = ghost.multiphaseEnabled,
+                            onCheckedChange = { v -> onUpdate { it.copy(ghost = it.ghost.copy(multiphaseEnabled = v)) } },
+                        )
+                        SettingsSwitchRow(
+                            title = "Fake Flood",
+                            summary = "پروب‌های جعلی بی‌ضرر قبل از mimic اصلی",
+                            checked = ghost.fakeFloodEnabled,
+                            onCheckedChange = { v -> onUpdate { it.copy(ghost = it.ghost.copy(fakeFloodEnabled = v)) } },
+                        )
+                        SettingsSwitchRow(
+                            title = "Request Disorder",
+                            summary = "به‌هم‌ریختن ترتیب درخواست‌ها",
+                            checked = ghost.requestDisorder,
+                            onCheckedChange = { v -> onUpdate { it.copy(ghost = it.ghost.copy(requestDisorder = v)) } },
+                        )
+                    }
+
+                    SettingsGroup("پروفایل و حجم") {
+                        SettingsSwitchRow(
+                            title = "App Profiles",
+                            summary = "mimic اپ‌های ایرانی",
                             checked = ghost.appProfilesEnabled,
                             onCheckedChange = { v -> onUpdate { it.copy(ghost = it.ghost.copy(appProfilesEnabled = v)) } },
                         )
@@ -137,77 +155,72 @@ fun GhostSettingsPage(
                                 onChange = { new -> onUpdate { it.copy(ghost = it.ghost.copy(activeProfiles = new)) } },
                             )
                         }
-                    }
-
-                    SettingsGroup("۲. موتور ترافیک جعلی") {
                         SettingsSwitchRow(
                             title = "Smart Decoy Engine",
-                            summary = "تولید مداوم ترافیک جعلی",
+                            summary = "موتور ترافیک جعلی",
                             checked = ghost.decoyEngineEnabled,
                             onCheckedChange = { v -> onUpdate { it.copy(ghost = it.ghost.copy(decoyEngineEnabled = v)) } },
                         )
-                        if (ghost.decoyEngineEnabled) {
-                            Text("حجم: ${ghost.decoyVolumePercent}%",
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
-                            Slider(
-                                value = ghost.decoyVolumePercent.toFloat(),
-                                onValueChange = { v ->
-                                    onUpdate { it.copy(ghost = it.ghost.copy(decoyVolumePercent = v.toInt().coerceIn(10, 80))) }
-                                },
-                                valueRange = 10f..80f, steps = 13,
-                                modifier = Modifier.padding(horizontal = 16.dp),
-                            )
-                            Text("فاصله: ${ghost.decoyIntervalSeconds} ثانیه",
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
-                            Slider(
-                                value = ghost.decoyIntervalSeconds.toFloat(),
-                                onValueChange = { v ->
-                                    onUpdate { it.copy(ghost = it.ghost.copy(decoyIntervalSeconds = v.toInt().coerceIn(5, 60))) }
-                                },
-                                valueRange = 5f..60f, steps = 10,
-                                modifier = Modifier.padding(horizontal = 16.dp),
-                            )
-                        }
+                        Text("حجم: ${ghost.decoyVolumePercent}%",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
+                        Slider(
+                            value = ghost.decoyVolumePercent.toFloat(),
+                            onValueChange = { v ->
+                                onUpdate { it.copy(ghost = it.ghost.copy(decoyVolumePercent = v.toInt().coerceIn(10, 85))) }
+                            },
+                            valueRange = 10f..85f, steps = 14,
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                        )
+                        Text("فاصله: ${ghost.decoyIntervalSeconds}s",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
+                        Slider(
+                            value = ghost.decoyIntervalSeconds.toFloat(),
+                            onValueChange = { v ->
+                                onUpdate { it.copy(ghost = it.ghost.copy(decoyIntervalSeconds = v.toInt().coerceIn(4, 60))) }
+                            },
+                            valueRange = 4f..60f, steps = 13,
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                        )
                     }
 
-                    SettingsGroup("۳. Mimicry / Multi / Adaptive") {
+                    SettingsGroup("Mimicry / Adaptive / Burst") {
                         SettingsSwitchRow(
-                            title = "Application-Layer Mimicry",
-                            summary = "UA و مسیر واقعی",
+                            title = "App-Layer Mimicry",
+                            summary = "UA واقعی اپ‌ها",
                             checked = ghost.appLayerMimicryEnabled,
                             onCheckedChange = { v -> onUpdate { it.copy(ghost = it.ghost.copy(appLayerMimicryEnabled = v)) } },
                         )
                         SettingsSwitchRow(
-                            title = "Multi-App Concurrent",
+                            title = "Multi-App",
                             summary = "چند اپ همزمان",
                             checked = ghost.multiAppConcurrent,
                             onCheckedChange = { v -> onUpdate { it.copy(ghost = it.ghost.copy(multiAppConcurrent = v)) } },
                         )
                         SettingsSwitchRow(
-                            title = "Adaptive Fallback",
-                            summary = "افزایش decoy زیر فشار",
+                            title = "Adaptive + Pressure",
+                            summary = "افزایش نویز زیر فشار",
                             checked = ghost.adaptiveFallbackEnabled,
-                            onCheckedChange = { v -> onUpdate { it.copy(ghost = it.ghost.copy(adaptiveFallbackEnabled = v)) } },
+                            onCheckedChange = { v ->
+                                onUpdate {
+                                    it.copy(
+                                        ghost = it.ghost.copy(
+                                            adaptiveFallbackEnabled = v,
+                                            pressureDetectionEnabled = v,
+                                        )
+                                    )
+                                }
+                            },
                         )
                         SettingsSwitchRow(
-                            title = "تشخیص فشار",
-                            summary = "از نرخ شکست اخیر",
-                            checked = ghost.pressureDetectionEnabled,
-                            onCheckedChange = { v -> onUpdate { it.copy(ghost = it.ghost.copy(pressureDetectionEnabled = v)) } },
-                        )
-                    }
-
-                    SettingsGroup("۷. Burst") {
-                        SettingsSwitchRow(
-                            title = "Burst Mode",
-                            summary = "نویز بالا",
+                            title = "Burst",
+                            summary = "موج نویز",
                             checked = ghost.burstModeEnabled,
                             onCheckedChange = { v -> onUpdate { it.copy(ghost = it.ghost.copy(burstModeEnabled = v)) } },
                         )
                         if (ghost.burstModeEnabled) {
-                            Text("شدت: ${ghost.burstIntensity}",
+                            Text("شدت Burst: ${ghost.burstIntensity}",
                                 style = MaterialTheme.typography.bodyMedium,
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
                             Slider(
@@ -219,10 +232,7 @@ fun GhostSettingsPage(
                                 modifier = Modifier.padding(horizontal = 16.dp),
                             )
                         }
-                    }
-
-                    SettingsGroup("۸. موازی‌سازی") {
-                        Text("حداکثر موازی: ${ghost.maxParallelRequests}",
+                        Text("موازی: ${ghost.maxParallelRequests}",
                             style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
                         Slider(
@@ -235,12 +245,12 @@ fun GhostSettingsPage(
                         )
                     }
                 } else {
-                    SettingsGroup("AUTO فعال است") {
+                    SettingsGroup("AUTO فعال") {
                         SettingsSegment {
-                            Column(Modifier = Modifier.padding(16.dp)) {
+                            Column(modifier = Modifier.padding(16.dp)) {
                                 Text(
-                                    "تنظیمات دستی مخفی شده‌اند. AUTO بر اساس شبکه و فشار، " +
-                                        "همه‌چیز را خودش می‌چیند. برای تنظیم دستی، AUTO را خاموش کن.",
+                                    "استراتژی، حجم، MultiPhase، FakeFlood و پروفایل‌ها " +
+                                        "بر اساس شبکه و فشار DPI خودکار تنظیم می‌شوند.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -249,6 +259,28 @@ fun GhostSettingsPage(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun StrategyRow(current: String, onSelect: (String) -> Unit) {
+    val items = listOf(
+        "auto" to "Auto (پیشنهادی)",
+        "balanced" to "Balanced",
+        "aggressive" to "Aggressive",
+        "max" to "Max Noise",
+        "stealth" to "Cellular Stealth",
+    )
+    Column(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
+        items.forEach { (key, label) ->
+            SettingsSwitchRow(
+                title = label,
+                summary = key,
+                checked = current.equals(key, ignoreCase = true) ||
+                    (key == "max" && current.equals("maxnoise", true)),
+                onCheckedChange = { on -> if (on) onSelect(key) },
+            )
         }
     }
 }
@@ -263,18 +295,15 @@ private fun ProfileChipRow(current: String, onChange: (String) -> Unit) {
         "aparat" to "آپارات",
         "balad" to "بلد",
         "torob" to "ترب",
-        "generic" to "مرورگر عمومی",
+        "generic" to "مرورگر",
     )
     val selected = current.split(",").map { it.trim().lowercase() }.toSet()
     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-        Text("اپ‌های فعال:", style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier.padding(bottom = 6.dp))
         all.forEach { (key, label) ->
-            val isOn = key in selected
             SettingsSwitchRow(
                 title = label,
                 summary = key,
-                checked = isOn,
+                checked = key in selected,
                 onCheckedChange = { checked ->
                     val next = if (checked) selected + key else selected - key
                     onChange(next.joinToString(","))
