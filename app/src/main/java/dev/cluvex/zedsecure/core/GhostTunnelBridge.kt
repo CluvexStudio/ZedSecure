@@ -18,6 +18,6 @@ internal object GhostTunnelBridge {
 
     fun onTunnelStopped() {
         // Keep background GHOST traffic from outliving the VPN session.
-        GhostEngine.stop()
+        GhostEngine.onTunnelDisconnected()
     }
 }

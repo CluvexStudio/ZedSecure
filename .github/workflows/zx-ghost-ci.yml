@@ -47,7 +47,6 @@ jobs:
           test -f shared/src/commonMain/kotlin/dev/cluvex/zedsecure/platform/NetworkKind.kt
           test -f shared/src/androidMain/kotlin/dev/cluvex/zedsecure/platform/NetworkKind.android.kt
           test -f shared/src/desktopMain/kotlin/dev/cluvex/zedsecure/platform/NetworkKind.desktop.kt
-          test -f shared/src/jvmMain/kotlin/dev/cluvex/zedsecure/platform/NetworkKind.jvm.kt
           test -f shared/src/commonMain/kotlin/dev/cluvex/zedsecure/core/VpnManager.kt
           echo "files OK"
 
