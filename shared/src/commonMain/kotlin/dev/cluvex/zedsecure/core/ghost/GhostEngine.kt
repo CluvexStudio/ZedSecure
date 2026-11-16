@@ -4,6 +4,7 @@ import dev.cluvex.zedsecure.domain.model.GhostSettings
 import dev.cluvex.zedsecure.platform.NetworkKind
 import dev.cluvex.zedsecure.platform.httpGetResponse
 import dev.cluvex.zedsecure.platform.Log
+import dev.cluvex.zedsecure.platform.currentTimeMillis
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -18,9 +19,7 @@ import kotlin.random.Random
 
 /**
  * Pro GHOST engine – multiphase app-layer anti-DPI (zapret-inspired).
- *
- * Lifecycle: settings only store prefs; starts on tunnel Connected; stops on disconnect.
- * Never mutates Xray/sing-box/TUN.
+ * Lifecycle: starts on tunnel Connected; stops on disconnect.
  */
 object GhostEngine {
 
@@ -101,7 +100,6 @@ object GhostEngine {
     private fun effectiveSettings(): GhostSettings {
         val base = currentSettings
         if (!base.autoMode && GhostStrategy.fromRaw(base.strategy) == GhostStrategy.Auto) {
-            // strategy=auto without autoMode still resolves via tuner once
             val plan = GhostAutoTuner.plan(base.copy(autoMode = true), underPressure)
             lastAutoPlan = plan
             lastStrategy = plan.strategyName
@@ -143,7 +141,7 @@ object GhostEngine {
         if (job?.isActive == true) return
         job = scope.launch {
             isRunning = true
-            Log.i("GhostEngine", "GHOST pro multiphase started")
+            Log.i("GhostEngine", "GHOST multiphase started")
             while (isActive) {
                 if (!currentSettings.enabled || !tunnelConnected) break
                 val s = effectiveSettings()
@@ -162,7 +160,6 @@ object GhostEngine {
             }
             isRunning = false
             lastPhase = "-"
-            Log.i("GhostEngine", "GHOST stopped")
         }
     }
 
@@ -184,35 +181,25 @@ object GhostEngine {
         }
     }
 
-    /**
-     * zapret-inspired phases at HTTP layer:
-     * 0 probe fakes → 1 main mimicry → 2 residual disordered noise
-     */
     private suspend fun runMultiphaseCycle(settings: GhostSettings) {
         val profiles = resolveActiveProfiles(settings)
         if (profiles.isEmpty()) return
-
-        // Phase 0 – probe / fake flood (harmless)
         if (settings.fakeFloodEnabled) {
             lastPhase = "P0-FakeFlood"
             val probes = profiles.flatMap { it.requests }.shuffled().take(
                 if (settings.burstModeEnabled) settings.burstIntensity.coerceIn(1, 5) + 1 else 2
             )
-            fireRequests(probes, settings, parallelOverride = settings.maxParallelRequests)
+            fireRequests(probes, settings, settings.maxParallelRequests)
             delay(Random.nextLong(80, 350))
         }
-
-        // Phase 1 – main domestic app mimicry
         lastPhase = "P1-MainMimic"
         runMainMimic(settings, profiles)
-
-        // Phase 2 – residual disordered tail
         lastPhase = "P2-Residual"
         val tail = profiles.shuffled().first().requests.let { list ->
             val ordered = if (settings.requestDisorder) list.shuffled() else list
             ordered.take(Random.nextInt(1, 3))
         }
-        fireRequests(tail, settings, parallelOverride = 1)
+        fireRequests(tail, settings, 1)
         lastPhase = "idle"
     }
 
@@ -229,23 +216,19 @@ object GhostEngine {
         if (settings.adaptiveFallbackEnabled && underPressure) volumeBoost *= 1.45f
         if (settings.burstModeEnabled) {
             volumeBoost *= (1.0f + settings.burstIntensity.coerceIn(1, 5) * 0.3f)
-            lastBurstAtMs = System.currentTimeMillis()
+            lastBurstAtMs = currentTimeMillis()
         }
-
         val appCount = if (settings.multiAppConcurrent) {
             Random.nextInt(1, minOf(4, profiles.size) + 1)
         } else 1
-
         val selected = profiles.shuffled().take(appCount)
         for (profile in selected) {
             lastProfileUsed = profile.displayName
             var reqs = profile.requests.shuffled().take(
                 (Random.nextInt(1, 5) * volumeBoost).toInt().coerceIn(1, 12)
             )
-            if (settings.requestDisorder && Random.nextBoolean()) {
-                reqs = reqs.reversed()
-            }
-            fireRequests(reqs, settings, parallelOverride = settings.maxParallelRequests)
+            if (settings.requestDisorder && Random.nextBoolean()) reqs = reqs.reversed()
+            fireRequests(reqs, settings, settings.maxParallelRequests)
             delay(Random.nextLong(200, 1800))
         }
     }
@@ -317,13 +300,11 @@ object GhostEngine {
         DecoyRequest("https://api.digikala.com/v1/categories/", DIGIKALA_UA),
         DecoyRequest("https://www.digikala.com/product/dkp-123456/", DIGIKALA_UA),
         DecoyRequest("https://www.digikala.com/marvel/", DIGIKALA_UA),
-        DecoyRequest("https://www.digikala.com/landings/", DIGIKALA_UA),
     ))
     private val NESHAN = AppProfile("neshan", "نشان", listOf(
         DecoyRequest("https://neshan.org/", NESHAN_UA),
         DecoyRequest("https://api.neshan.org/v1/search?term=tehran", NESHAN_UA),
         DecoyRequest("https://neshan.org/maps/", NESHAN_UA),
-        DecoyRequest("https://neshan.org/traffic/", NESHAN_UA),
     ))
     private val SNAPP = AppProfile("snapp", "اسنپ", listOf(
         DecoyRequest("https://app.snapp.taxi/", SNAPP_UA),
@@ -333,7 +314,6 @@ object GhostEngine {
     private val APARAT = AppProfile("aparat", "آپارات", listOf(
         DecoyRequest("https://www.aparat.com/", APARAT_UA),
         DecoyRequest("https://www.aparat.com/v/abc123", APARAT_UA),
-        DecoyRequest("https://www.aparat.com/api/fa/v1/video/video/list/tagid/1", APARAT_UA),
     ))
     private val BALAD = AppProfile("balad", "بلد", listOf(
         DecoyRequest("https://balad.ir/", BALAD_UA),
@@ -348,10 +328,7 @@ object GhostEngine {
         DecoyRequest("https://www.hamshahrionline.ir/", DEFAULT_UA),
         DecoyRequest("https://www.zoomit.ir/", DEFAULT_UA),
         DecoyRequest("https://www.digiato.com/", DEFAULT_UA),
-        DecoyRequest("https://www.tarafdari.com/", DEFAULT_UA),
-        DecoyRequest("https://www.eghtesadnews.com/", DEFAULT_UA),
         DecoyRequest("https://www.khabaronline.ir/", DEFAULT_UA),
-        DecoyRequest("https://www.yjc.ir/", DEFAULT_UA),
     ))
 
     private val ALL_PROFILES = listOf(
