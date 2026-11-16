@@ -8,120 +8,58 @@ enum class ColorStyle { ZedSecure, TonalSpot, Vibrant, Expressive, Rainbow, Frui
 
 enum class ColorContrast(val level: Double) { Standard(0.0), Medium(0.5), High(1.0) }
 
-enum class AppDesign { Bento, Pixel, Old, Zx, ZxPs }
+enum class AppDesign { Bento, Pixel, Old, Zx }
 
 enum class ZxAnim { Min, Balanced, Max, Auto }
 
 enum class ScreenTransition {
-    Fade,
-
-    Slide,
-
-    Push,
-
-    Depth,
-
-    Elastic,
-
-    Curtain,
-
-    Flip,
+    Fade, Slide, Push, Depth, Elastic, Curtain, Flip,
 }
 
 enum class AppLanguage(val tag: String?) {
-    System(null),
-    English("en"),
-    Persian("fa"),
-    Chinese("zh"),
-    Russian("ru"),
-    Spanish("es"),
+    System(null), English("en"), Persian("fa"), Chinese("zh"), Russian("ru"), Spanish("es"),
 }
 
 enum class RoutingMode { Global, BypassLan, BypassIran, BypassLanAndIran }
 
 enum class DomainStrategy(val value: String) {
-    AsIs("AsIs"),
-    IpIfNonMatch("IPIfNonMatch"),
-    IpOnDemand("IPOnDemand"),
+    AsIs("AsIs"), IpIfNonMatch("IPIfNonMatch"), IpOnDemand("IPOnDemand"),
 }
 
 enum class LogLevel(val value: String) {
-    Debug("debug"),
-    Info("info"),
-    Warning("warning"),
-    Error("error"),
-    None("none"),
+    Debug("debug"), Info("info"), Warning("warning"), Error("error"), None("none"),
 }
 
 enum class RenderingMode { Auto, Gpu, Software }
 
 enum class RunMode(val value: String) {
-    Vpn("VPN"),
-    ProxyOnly("Proxy only"),
-    SystemProxy("System proxy"),
+    Vpn("VPN"), ProxyOnly("Proxy only"), SystemProxy("System proxy"),
 }
 
 enum class HevLogLevel(val value: String) {
-    Error("error"),
-    Warn("warn"),
-    Info("info"),
-    Debug("debug"),
+    Error("error"), Warn("warn"), Info("info"), Debug("debug"),
 }
 
 enum class VpnBypassLan(val value: String) {
-    FollowConfig("0"),
-    Bypass("1"),
-    NotBypass("2"),
+    FollowConfig("0"), Bypass("1"), NotBypass("2"),
 }
 
 enum class CardCornerStyle(val serverCardDp: Int, val tileScale: Float) {
-    Squared(6, 0.30f),
-    Rounded(22, 1f),
-    Pill(34, 1.45f),
+    Squared(6, 0.30f), Rounded(22, 1f), Pill(34, 1.45f),
 }
 
 enum class NavBarStyle {
-    FloatingPill,
-
-    FullBar,
-
-    ExpressivePill,
-
-    CompactDock,
-
-    Underline,
-
-    Minimal,
-
-    Dock,
+    FloatingPill, FullBar, ExpressivePill, CompactDock, Underline, Minimal, Dock,
 }
 
-enum class NotifStyle { System, Bento, ZxPs }
+enum class NotifStyle { System, Bento }
 
-enum class NotifChip {
-    Speed,
+enum class NotifChip { Speed, ConfigName, Duration, Total, None }
 
-    ConfigName,
-
-    Duration,
-
-    Total,
-
-    None,
-}
-
-enum class ConnectButtonStyle {
-    Pill,
-    Hero,
-    Ring,
-    Bar,
-    Icon,
-    Switch,
-}
+enum class ConnectButtonStyle { Pill, Hero, Ring, Bar, Icon, Switch }
 
 enum class ListDensity(val cardVerticalDp: Int, val gapDp: Int) {
-    Comfortable(12, 10),
-    Compact(6, 6),
+    Comfortable(12, 10), Compact(6, 6),
 }
 
 enum class UiFont { Auto, GoogleSans, Inter, Vazirmatn, Estedad, Nunito, System }
@@ -130,78 +68,42 @@ object UiScale {
     const val MIN = 0.5f
     const val MAX = 2f
     const val DEFAULT = 1f
-
     fun clamp(value: Float): Float = if (value.isNaN()) DEFAULT else value.coerceIn(MIN, MAX)
 }
 
 enum class UiFontScale(val scale: Float) {
-    Smallest(0.80f),
-    Smaller(0.90f),
-    Normal(1.00f),
-    Larger(1.12f),
-    Largest(1.25f),
+    Smallest(0.80f), Smaller(0.90f), Normal(1.00f), Larger(1.12f), Largest(1.25f),
 }
 
 enum class TrafficTileSize(val paddingDp: Int, val gapDp: Int) {
-    Small(8, 5),
-    Normal(14, 12),
-    Large(18, 16),
+    Small(8, 5), Normal(14, 12), Large(18, 16),
 }
 
-enum class TrafficCardStyle {
-    Cards,
-
-    Duo,
-
-    Rings,
-
-    Minimal,
-
-    Graph,
-}
+enum class TrafficCardStyle { Cards, Duo, Rings, Minimal, Graph }
 
 enum class OutboundDomainResolve(val value: String) {
-    DoNotResolve("0"),
-    ResolveAndAddToHosts("1"),
-    ResolveAndReplace("2"),
+    DoNotResolve("0"), ResolveAndAddToHosts("1"), ResolveAndReplace("2"),
 }
 
 enum class XudpQuic(val value: String) {
-    Reject("reject"),
-    Allow("allow"),
-    Skip("skip"),
+    Reject("reject"), Allow("allow"), Skip("skip"),
 }
 
 enum class SingBoxMuxProtocol(val value: String) {
-    H2Mux("h2mux"),
-    SMux("smux"),
-    YaMux("yamux"),
+    H2Mux("h2mux"), SMux("smux"), YaMux("yamux"),
 }
 
 enum class SingBoxStack(val value: String) {
-    Auto(""),
-
-    System("system"),
-
-    GVisor("gvisor"),
-
-    Mixed("mixed"),
+    Auto(""), System("system"), GVisor("gvisor"), Mixed("mixed"),
 }
 
 enum class FragmentPackets(val value: String) {
-    TlsHello("tlshello"),
-    OneOne("1-1"),
-    OneTwo("1-2"),
-    OneThree("1-3"),
-    OneFive("1-5"),
+    TlsHello("tlshello"), OneOne("1-1"), OneTwo("1-2"), OneThree("1-3"), OneFive("1-5"),
 }
 
 enum class VpnInterfaceAddress(
-    val label: String,
-    val ipv4Client: String,
-    val ipv4Router: String,
-    val ipv6Client: String,
-    val ipv6Router: String,
+    val label: String, val ipv4Client: String, val ipv4Router: String,
+    val ipv6Client: String, val ipv6Router: String,
 ) {
     Option1("10.10.14.x", "10.10.14.1", "10.10.14.2", "fc00::10:10:14:1", "fc00::10:10:14:2"),
     Option2("10.1.0.x", "10.1.0.1", "10.1.0.2", "fc00::10:1:0:1", "fc00::10:1:0:2"),
@@ -220,141 +122,111 @@ enum class GeoFilesSource(val repo: String) {
 
 /**
  * GHOST MOD – Generated Harmless Obfuscated Session Traffic
- * Makes VPN traffic harder to detect by mixing real traffic with
- * realistic Iranian app decoy traffic (Rubika, Digikala, Neshan, etc.).
+ *
+ * Mixes real VPN traffic with realistic Iranian-app decoy traffic so DPI
+ * systems cannot cheaply classify the session as "VPN".
+ * Inspired by MockTraffic, Traffic-Obfuscator and (at app-layer) zapret's
+ * idea of raising the cost of analysis with decoy/fake patterns.
  */
 @Serializable
 data class GhostSettings(
-    /** Master switch for the whole GHOST system */
+    /** Master switch */
     val enabled: Boolean = false,
 
-    /** 1. App Behavior Profiles – use realistic traffic patterns of popular Iranian apps */
+    /** 1. App Behavior Profiles */
     val appProfilesEnabled: Boolean = true,
-
-    /** Which profiles are active (comma separated keys) */
+    /** comma-separated: rubika,digikala,neshan,snapp,aparat,balad,torob,generic */
     val activeProfiles: String = "rubika,neshan,digikala,snapp,aparat",
 
-    /** 2. Smart Decoy Engine – generate background decoy traffic */
+    /** 2. Smart Decoy Engine */
     val decoyEngineEnabled: Boolean = true,
-
-    /** Decoy volume as percentage of total traffic (30-70 recommended) */
+    /** Target decoy share 10–80 */
     val decoyVolumePercent: Int = 40,
+    /** Seconds between cycles */
+    val decoyIntervalSeconds: Int = 12,
 
-    /** 3. Application-Layer Mimicry – craft requests that look like real app API calls */
+    /** 3. Application-Layer Mimicry (realistic UA + paths) */
     val appLayerMimicryEnabled: Boolean = true,
 
-    /** 5. Multi-App Concurrent Mimicry – run several app profiles at the same time */
+    /** 5. Multi-App Concurrent */
     val multiAppConcurrent: Boolean = true,
 
-    /** 6. Adaptive Fallback – increase decoy / reduce real traffic when under pressure */
+    /** 6. Adaptive Fallback – raise decoy when failures rise */
     val adaptiveFallbackEnabled: Boolean = true,
 
-    /** Minimum interval between decoy bursts in seconds */
-    val decoyIntervalSeconds: Int = 12,
+    /** Burst / high-noise mode (zapret-inspired "flood of fakes" at app layer) */
+    val burstModeEnabled: Boolean = false,
+
+    /** How aggressive burst is when triggered (1–5) */
+    val burstIntensity: Int = 3,
+
+    /** Simple pressure detection from recent failure rate */
+    val pressureDetectionEnabled: Boolean = true,
+
+    /** Max parallel decoy requests inside one cycle */
+    val maxParallelRequests: Int = 2,
 )
 
 @Serializable
 data class AppSettings(
-
     val ai: dev.cluvex.zedsecure.domain.ai.AiSettings = dev.cluvex.zedsecure.domain.ai.AiSettings(),
-
     val themeMode: ThemeMode = ThemeMode.System,
     val dynamicColor: Boolean = false,
-
     val accentColor: Int = 0,
-
     val amoledBlack: Boolean = false,
-
     val colorStyle: ColorStyle = ColorStyle.ZedSecure,
     val colorContrast: ColorContrast = ColorContrast.Standard,
     val language: AppLanguage = AppLanguage.System,
-
     val customDownloadColor: Long? = null,
     val customUploadColor: Long? = null,
-
     val customDownloadTileColor: Long? = null,
     val customUploadTileColor: Long? = null,
     val customConnectColor: Long? = null,
-
     val customConnectedColor: Long? = null,
-
     val customTapHintColor: Long? = null,
-
     val customServerCardColor: Long? = null,
     val customServerActiveColor: Long? = null,
-
     val customConfigCardColor: Long? = null,
     val customConfigCardTextColor: Long? = null,
-
     val appDesign: AppDesign = AppDesign.Bento,
-
     val zxAnim: ZxAnim = ZxAnim.Auto,
-
-    val zxPs: ZxPsPrefs = ZxPsPrefs(),
-
     val bento: BentoPrefs = BentoPrefs(),
-
     val connectButtonStyle: ConnectButtonStyle = ConnectButtonStyle.Hero,
-
     val navBarStyle: NavBarStyle = NavBarStyle.ExpressivePill,
-
     val navTabs: String = "",
-
     val themeProfileId: String? = null,
-
     val cardCornerStyle: CardCornerStyle = CardCornerStyle.Rounded,
     val listDensity: ListDensity = ListDensity.Comfortable,
-
     val showServerPing: Boolean = true,
     val showServerUsage: Boolean = true,
-
     val monospaceAddress: Boolean = false,
     val speedInNotification: Boolean = true,
-
     val liveNotification: Boolean = true,
-
     val notifChip: NotifChip = NotifChip.Speed,
-
-    val notifGraph: Boolean = true,
-
-    val notifAccent: NotifAccent = NotifAccent.Theme,
-
     val notifStyle: NotifStyle = NotifStyle.Bento,
-
     val onboardingVersion: Int = 0,
-
     val screenTransition: ScreenTransition = ScreenTransition.Push,
     val confirmRemove: Boolean = true,
-
     val homeAfterSelect: Boolean = false,
-
     val showTrafficTiles: Boolean = true,
     val trafficTilesAboveHero: Boolean = false,
     val trafficTileSize: TrafficTileSize = TrafficTileSize.Normal,
-
     val uiFontScale: UiFontScale = UiFontScale.Normal,
     val uiFont: UiFont = UiFont.Auto,
-
     val uiScale: Float = UiScale.DEFAULT,
     val trafficCardStyle: TrafficCardStyle = TrafficCardStyle.Cards,
     val doubleColumnDisplay: Boolean = false,
     val groupAllDisplay: Boolean = true,
     val reduceMotion: Boolean = false,
     val renderingMode: RenderingMode = RenderingMode.Auto,
-
     val speedFabAtEnd: Boolean = true,
     val speedFabY: Float = 0.45f,
-
     val verifiedOriginCode: String = "",
     val verifiedOriginLabel: String = "",
-
     val runMode: RunMode = RunMode.Vpn,
-
     val tunSystemProxy: Boolean = false,
-
     val enableIpv6: Boolean = false,
     val preferIpv6: Boolean = false,
-
     val useSystemCa: Boolean = false,
     val localDnsEnabled: Boolean = false,
     val fakeDnsEnabled: Boolean = false,
@@ -363,164 +235,109 @@ data class AppSettings(
     val vpnBypassLan: VpnBypassLan = VpnBypassLan.FollowConfig,
     val vpnInterfaceAddress: VpnInterfaceAddress = VpnInterfaceAddress.Option2,
     val vpnMtu: Int = 1500,
-
     val useZepTun: Boolean = false,
-
     val useHevOnMac: Boolean = false,
     val hevTunLogLevel: HevLogLevel = HevLogLevel.Warn,
-
     val hevTunRwTimeout: String = "300,60",
-
     val sniffingEnabled: Boolean = true,
     val routeOnly: Boolean = false,
     val enableLocalProxy: Boolean = true,
     val proxySharing: Boolean = false,
     val dynamicSocksPort: Boolean = false,
-
     val socksPort: Int = dev.cluvex.zedsecure.domain.config.LocalPorts.LAN_SOCKS,
-
     val localProxyPort: Int = dev.cluvex.zedsecure.domain.config.LocalPorts.XRAY_SOCKS,
-
     val socksUsername: String = "",
     val socksPassword: String = "",
     val lanShareAuth: Boolean = true,
-
     val socksEnableUdp: Boolean = false,
     val remoteDns: String = "https://cloudflare-dns.com/dns-query",
     val directDns: String = "8.8.8.8",
-
     val dnsHosts: String = "",
     val logLevel: LogLevel = LogLevel.Warning,
     val outboundDomainResolve: OutboundDomainResolve = OutboundDomainResolve.ResolveAndAddToHosts,
-
     val domainStrategy: DomainStrategy = DomainStrategy.AsIs,
     val routingMode: RoutingMode = RoutingMode.BypassLan,
     val blockAds: Boolean = false,
-
     val customProxyRules: String = "",
     val customDirectRules: String = "",
     val customBlockRules: String = "",
-
     val rulesets: List<RulesetItem> = emptyList(),
-
     val regionCode: String = "",
-
     val routingMigrated: Boolean = false,
-
     val routingSeeded: Boolean = false,
-
     val perAppProxyEnabled: Boolean = false,
     val perAppBypassMode: Boolean = true,
     val perAppPackages: Set<String> = emptySet(),
-
     val muxEnabled: Boolean = false,
     val muxConcurrency: Int = 8,
     val muxXudpConcurrency: Int = 16,
     val muxXudpQuic: XudpQuic = XudpQuic.Reject,
-
     val singBoxMuxEnabled: Boolean = false,
     val singBoxMuxProtocol: SingBoxMuxProtocol = SingBoxMuxProtocol.H2Mux,
-
     val singBoxMuxMaxConnections: Int = 4,
-
     val singBoxMuxPadding: Boolean = false,
-
     val singBoxBrutalEnabled: Boolean = false,
     val singBoxBrutalUpMbps: Int = 50,
     val singBoxBrutalDownMbps: Int = 100,
-
     val singBoxTlsFragment: Boolean = false,
-
     val singBoxTlsRecordFragment: Boolean = false,
-
     val singBoxUtlsFingerprint: String = "",
-
     val singBoxUdpOverTcp: Boolean = false,
-
     val singBoxTunStack: SingBoxStack = SingBoxStack.Auto,
-
     val singBoxStrictRoute: Boolean = false,
-
     val singBoxEndpointIndependentNat: Boolean = false,
-
     val singBoxStoreCache: Boolean = true,
-
     val singBoxNtpEnabled: Boolean = false,
     val singBoxNtpServer: String = "time.apple.com",
-
     val fragmentEnabled: Boolean = false,
     val fragmentPackets: FragmentPackets = FragmentPackets.TlsHello,
     val fragmentLength: String = "50-100",
     val fragmentInterval: String = "10-20",
     val fragmentMaxSplit: Int = 10,
-
     val autoSelectCheckSeconds: Int = 30,
-
     val autoSelectSweepMinutes: Int = 10,
-
     val autoSelectSwitchMargin: Int = 30,
-
     val autoSelectRetry: Boolean = true,
-
     val autoSelectExcludedCountries: List<String> = emptyList(),
-
     val autoConnectOnBoot: Boolean = false,
     val delayTestUrl: String = "https://www.gstatic.com/generate_204",
     val realPingConcurrency: Int = 16,
     val ipApiUrl: String = "https://api.ip.sb/geoip",
     val useRealDelayForTests: Boolean = true,
-
     val lastUpdateCheckMs: Long = 0L,
-
     val dismissedUpdateVersion: String = "",
     val dismissedUpdateAtMs: Long = 0L,
-
     val successfulConnections: Int = 0,
     val ratePromptLastShownMs: Long = 0L,
     val rateNeverAsk: Boolean = false,
-
     val geoFilesSource: GeoFilesSource = GeoFilesSource.Chocolate4U,
-
     val autoUpdateSubscriptions: Boolean = false,
     val subscriptionUpdateIntervalHours: Int = 12,
     val autoTestAfterUpdate: Boolean = false,
     val autoRemoveInvalidAfterTest: Boolean = false,
     val autoSortAfterTest: Boolean = false,
-
     val dnsGlobalResolverEnabled: Boolean = false,
     val dnsGlobalResolvers: String = "",
-
     val dnsPoolEnabled: Boolean = false,
     val dnsPoolText: String = "",
-
     val dnsPoolFullVerification: Boolean = false,
-
     val remoteDnsMode: String = "default",
     val remoteDnsPrimary: String = "",
     val remoteDnsFallback: String = "",
-
     val dnsWorkerMode: String = "per_query",
-
     val preventDnsFallback: Boolean = true,
-
     val sshCipher: String = "auto",
     val sshCompression: Boolean = false,
     val sshMaxChannels: Int = 16,
-
     val killSwitch: Boolean = false,
-
     val torBridgesMode: String = "none",
-
     val torBridgeTransport: String = "obfs4",
-
     val torOwnBridges: String = "",
-
     val torEntryNodes: String = "",
     val torExitNodes: String = "",
     val torExcludeNodes: String = "",
     val torExcludeExitNodes: String = "",
     val torStrictNodes: Boolean = false,
-
     val torVirtualAddrNetwork: String = "10.192.0.0/10",
     val torHardwareAccel: Boolean = true,
     val torAvoidDiskWrites: Boolean = true,
@@ -534,37 +351,23 @@ data class AppSettings(
     val torTrackHostExits: Boolean = false,
     val torClientUseIPv4: Boolean = true,
     val torClientUseIPv6: Boolean = true,
-
     val torIsolateUid: Boolean = true,
     val torIsolateDestAddr: Boolean = false,
     val torIsolateDestPort: Boolean = false,
-
     val torSnowflakeRendezvous: String = "cdn77",
-
     val torSnowflakeStun: String = "",
-
     val torEnabledBridges: String = "",
-
     val torFakeSniEnabled: Boolean = false,
     val torFakeSniHosts: String = "",
-
     val detectServerLocation: Boolean = false,
-
     val localProxyAuth: Boolean = true,
-
     val reconnectOnNetworkChange: Boolean = true,
-
-    /** GHOST MOD – anti-DPI decoy & mimicry system */
     val ghost: GhostSettings = GhostSettings(),
 ) {
     val useHevTun: Boolean get() = true
-
     val localProxyForced: Boolean get() = runMode == RunMode.Vpn && useHevTun
-
     val effectiveLocalProxy: Boolean get() = enableLocalProxy || localProxyForced
-
     val isVpnMode: Boolean get() = runMode == RunMode.Vpn
-
     companion object {
         val DURATION_PATTERN = Regex("""[1-9]\\d*(ms|s|m|h)""")
     }
