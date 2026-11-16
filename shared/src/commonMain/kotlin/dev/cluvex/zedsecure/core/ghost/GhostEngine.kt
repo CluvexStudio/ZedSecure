@@ -18,8 +18,8 @@ import kotlinx.coroutines.launch
 import kotlin.random.Random
 
 /**
- * GHOST + DARK GHOST engine (app-layer anti-DPI).
- * Lifecycle: starts only when GHOST enabled AND tunnel Connected.
+ * GHOST engine: decoy + DARK + zapret-inspired desync patterns (app-layer).
+ * Native nfqws only if GhostNativeDesync reports available.
  */
 object GhostEngine {
 
@@ -31,6 +31,7 @@ object GhostEngine {
     @Volatile private var tunnelConnected: Boolean = false
     @Volatile private var lastAutoPlan: GhostAutoTuner.Plan? = null
     @Volatile private var lastStrategy: String = "-"
+    @Volatile private var nativeCap: NativeDesyncCapability = GhostNativeDesync.probe()
 
     private val recentResults = ArrayDeque<Boolean>(64)
 
@@ -52,6 +53,10 @@ object GhostEngine {
         val tunnelConnected: Boolean,
         val autoMode: Boolean,
         val darkGhost: Boolean,
+        val packetDesync: Boolean,
+        val desyncProfile: String,
+        val nativeMode: String,
+        val nativeDetail: String,
         val strategy: String,
         val networkLabel: String,
         val autoReason: String,
@@ -73,12 +78,17 @@ object GhostEngine {
         val effective = effectiveSettings()
         val plan = lastAutoPlan
         val intel = DarkGhostIntelligence.lastProfile
+        nativeCap = GhostNativeDesync.probe()
         return DebugStatus(
             running = isRunning,
             enabled = currentSettings.enabled && effective.decoyEngineEnabled,
             tunnelConnected = tunnelConnected,
             autoMode = currentSettings.autoMode,
             darkGhost = currentSettings.darkGhostEnabled,
+            packetDesync = currentSettings.packetDesyncEnabled,
+            desyncProfile = currentSettings.desyncProfile,
+            nativeMode = nativeCap.mode,
+            nativeDetail = nativeCap.detailFa,
             strategy = lastStrategy.ifBlank { effective.strategy },
             networkLabel = plan?.label ?: networkLabel(GhostAutoTuner.currentNetwork()),
             autoReason = plan?.reason ?: "-",
@@ -111,7 +121,18 @@ object GhostEngine {
                 val plan = GhostAutoTuner.plan(base.copy(autoMode = true), underPressure)
                 lastAutoPlan = plan
                 lastStrategy = plan.strategyName
-                plan.settings.copy(enabled = base.enabled, autoMode = base.autoMode, darkGhostEnabled = base.darkGhostEnabled)
+                plan.settings.copy(
+                    enabled = base.enabled,
+                    autoMode = base.autoMode,
+                    darkGhostEnabled = base.darkGhostEnabled,
+                    packetDesyncEnabled = base.packetDesyncEnabled,
+                    desyncProfile = base.desyncProfile,
+                    preferNativeDesync = base.preferNativeDesync,
+                    darkIntelligenceEnabled = base.darkIntelligenceEnabled,
+                    darkMorphingEnabled = base.darkMorphingEnabled,
+                    darkIntensity = base.darkIntensity,
+                    darkProbeIntervalSec = base.darkProbeIntervalSec,
+                )
             }
             else -> {
                 lastStrategy = GhostStrategy.fromRaw(base.strategy).name
@@ -119,7 +140,6 @@ object GhostEngine {
             }
         }
 
-        // DARK GHOST escalation – measured, not magical
         if (base.darkGhostEnabled) {
             darkActive = true
             val intelPressure = DarkGhostIntelligence.lastProfile?.underPressure == true
@@ -137,16 +157,32 @@ object GhostEngine {
                 appProfilesEnabled = true,
                 activeProfiles = if (force)
                     "rubika,digikala,neshan,snapp,aparat,balad,torob,generic"
-                else
-                    s.activeProfiles.ifBlank { "rubika,neshan,digikala,snapp,aparat" },
+                else s.activeProfiles.ifBlank { "rubika,neshan,digikala,snapp,aparat" },
                 decoyVolumePercent = (s.decoyVolumePercent + if (force) 20 else 12).coerceIn(35, 85),
                 decoyIntervalSeconds = (s.decoyIntervalSeconds - if (force) 4 else 2).coerceIn(4, 30),
                 burstIntensity = (s.burstIntensity + if (force) 2 else 1).coerceIn(2, 5),
                 maxParallelRequests = (s.maxParallelRequests + 1).coerceIn(2, 4),
             )
             lastStrategy = "DARK/" + lastStrategy
-        } else {
-            darkActive = false
+        } else darkActive = false
+
+        if (base.packetDesyncEnabled) {
+            val p = DesyncProfile.fromRaw(base.desyncProfile)
+            s = s.copy(
+                multiphaseEnabled = true,
+                fakeFloodEnabled = true,
+                requestDisorder = p == DesyncProfile.Disorder || p == DesyncProfile.Max || s.requestDisorder,
+                burstModeEnabled = true,
+                burstIntensity = when (p) {
+                    DesyncProfile.Max, DesyncProfile.FakeBurst -> (s.burstIntensity + 1).coerceAtMost(5)
+                    else -> s.burstIntensity
+                },
+                maxParallelRequests = when (p) {
+                    DesyncProfile.Split, DesyncProfile.Max -> (s.maxParallelRequests + 1).coerceAtMost(4)
+                    else -> s.maxParallelRequests
+                },
+            )
+            lastStrategy = lastStrategy + "/DSYNC-" + p.name
         }
         return s
     }
@@ -159,11 +195,16 @@ object GhostEngine {
     fun onTunnelConnected() {
         tunnelConnected = true
         Log.i("GhostEngine", "tunnel connected")
+        if (currentSettings.packetDesyncEnabled && currentSettings.preferNativeDesync) {
+            val profile = DesyncProfile.fromRaw(currentSettings.desyncProfile)
+            GhostNativeDesync.tryArm(profile)
+        }
         reconcile()
     }
 
     fun onTunnelDisconnected() {
         tunnelConnected = false
+        GhostNativeDesync.disarm()
         stop()
         DarkGhostIntelligence.reset()
     }
@@ -178,18 +219,19 @@ object GhostEngine {
         if (job?.isActive == true) return
         job = scope.launch {
             isRunning = true
-            Log.i("GhostEngine", "GHOST started dark=${currentSettings.darkGhostEnabled}")
-            if (currentSettings.darkGhostEnabled && currentSettings.darkIntelligenceEnabled) {
-                startIntelLoop()
-            }
+            Log.i("GhostEngine", "start dark=${currentSettings.darkGhostEnabled} desync=${currentSettings.packetDesyncEnabled}")
+            if (currentSettings.darkGhostEnabled && currentSettings.darkIntelligenceEnabled) startIntelLoop()
             while (isActive) {
                 if (!currentSettings.enabled || !tunnelConnected) break
                 val s = effectiveSettings()
                 if (!s.decoyEngineEnabled) break
                 try {
-                    if (currentSettings.darkGhostEnabled) runDarkCycle(s)
-                    else if (s.multiphaseEnabled) runMultiphaseCycle(s)
-                    else runSimpleCycle(s)
+                    when {
+                        currentSettings.packetDesyncEnabled -> runDesyncCycle(s)
+                        currentSettings.darkGhostEnabled -> runDarkCycle(s)
+                        s.multiphaseEnabled -> runMultiphaseCycle(s)
+                        else -> runSimpleCycle(s)
+                    }
                     totalCycles++
                 } catch (e: Exception) {
                     lastError = e.message
@@ -219,8 +261,7 @@ object GhostEngine {
                 } catch (e: Exception) {
                     Log.w("GhostEngine", "intel: ${e.message}")
                 }
-                val wait = currentSettings.darkProbeIntervalSec.coerceIn(20, 180)
-                delay(wait * 1000L)
+                delay(currentSettings.darkProbeIntervalSec.coerceIn(20, 180) * 1000L)
             }
         }
     }
@@ -244,44 +285,84 @@ object GhostEngine {
         }
     }
 
-    /** DARK: intelligence-informed multiphase + morphing residuals */
+    /**
+     * App-layer patterns inspired by zapret desync ideas (NOT kernel nfqws):
+     * Split ≈ staggered parallel bursts
+     * Disorder ≈ shuffled/reversed fire order
+     * FakeBurst ≈ cheap probes before mimic
+     */
+    private suspend fun runDesyncCycle(settings: GhostSettings) {
+        val profiles = resolveActiveProfiles(settings)
+        if (profiles.isEmpty()) return
+        val profile = DesyncProfile.fromRaw(currentSettings.desyncProfile)
+
+        lastPhase = "Z0-Arm"
+        delay(Random.nextLong(30, 120))
+
+        when (profile) {
+            DesyncProfile.Off -> runMultiphaseCycle(settings)
+            DesyncProfile.FakeBurst, DesyncProfile.Max -> {
+                lastPhase = "Z1-FakeBurst"
+                val n = 3 + settings.burstIntensity
+                val probes = profiles.flatMap { it.requests }.shuffled().take(n)
+                fireRequests(probes, settings, settings.maxParallelRequests)
+                delay(Random.nextLong(40, 180))
+                lastPhase = "Z2-SplitMimic"
+                runSplitMimic(settings, profiles)
+                if (profile == DesyncProfile.Max) {
+                    lastPhase = "Z3-DisorderTail"
+                    val tail = profiles.flatMap { it.requests }.shuffled().take(Random.nextInt(2, 5))
+                    fireRequests(tail.reversed(), settings, 2)
+                }
+            }
+            DesyncProfile.Split -> {
+                lastPhase = "Z1-Split"
+                runSplitMimic(settings, profiles)
+            }
+            DesyncProfile.Disorder -> {
+                lastPhase = "Z1-Disorder"
+                val reqs = profiles.flatMap { it.requests }.shuffled()
+                fireRequests(reqs.take(Random.nextInt(4, 10)).reversed(), settings, settings.maxParallelRequests)
+                delay(Random.nextLong(60, 220))
+                runMainMimic(settings, profiles)
+            }
+        }
+        lastPhase = "idle"
+    }
+
+    private suspend fun runSplitMimic(settings: GhostSettings, profiles: List<AppProfile>) {
+        val selected = profiles.shuffled().take(if (settings.multiAppConcurrent) Random.nextInt(2, minOf(4, profiles.size) + 1) else 1)
+        for (p in selected) {
+            lastProfileUsed = p.displayName
+            val parts = p.requests.shuffled().chunked(1)
+            for (chunk in parts.take(Random.nextInt(2, 6))) {
+                fireRequests(chunk, settings, 1)
+                delay(Random.nextLong(35, 160)) // split-like spacing
+            }
+        }
+    }
+
     private suspend fun runDarkCycle(settings: GhostSettings) {
         val profiles = resolveActiveProfiles(settings)
         if (profiles.isEmpty()) return
-
         lastPhase = "D0-IntelEcho"
-        if (settings.darkIntelligenceEnabled) {
-            // lightweight echo using last intel; full probe is async in intelJob
-            delay(Random.nextLong(40, 160))
-        }
-
+        delay(Random.nextLong(40, 160))
         if (settings.fakeFloodEnabled) {
             lastPhase = "D1-FakeFlood"
             val n = settings.burstIntensity.coerceIn(2, 5) + 2
-            val probes = profiles.flatMap { it.requests }.shuffled().take(n)
-            fireRequests(probes, settings, settings.maxParallelRequests)
-            // morphing gap
+            fireRequests(profiles.flatMap { it.requests }.shuffled().take(n), settings, settings.maxParallelRequests)
             delay(Random.nextLong(50, 280))
         }
-
         lastPhase = "D2-MainMimic"
         runMainMimic(settings, profiles)
-
         if (settings.darkMorphingEnabled) {
             lastPhase = "D3-Morph"
-            val morph = profiles.shuffled().take(2).flatMap { p ->
-                p.requests.shuffled().take(Random.nextInt(1, 3))
-            }
+            val morph = profiles.shuffled().take(2).flatMap { it.requests.shuffled().take(Random.nextInt(1, 3)) }
             fireRequests(if (settings.requestDisorder) morph.shuffled() else morph, settings, 2)
             delay(Random.nextLong(90, 400))
         }
-
         lastPhase = "D4-Residual"
-        val tail = profiles.shuffled().first().requests.let { list ->
-            val ordered = if (settings.requestDisorder) list.shuffled() else list
-            ordered.take(Random.nextInt(1, 3))
-        }
-        fireRequests(tail, settings, 1)
+        fireRequests(profiles.shuffled().first().requests.shuffled().take(Random.nextInt(1, 3)), settings, 1)
         lastPhase = "idle"
     }
 
@@ -290,20 +371,23 @@ object GhostEngine {
         if (profiles.isEmpty()) return
         if (settings.fakeFloodEnabled) {
             lastPhase = "P0-FakeFlood"
-            val probes = profiles.flatMap { it.requests }.shuffled().take(
-                if (settings.burstModeEnabled) settings.burstIntensity.coerceIn(1, 5) + 1 else 2
+            fireRequests(
+                profiles.flatMap { it.requests }.shuffled().take(
+                    if (settings.burstModeEnabled) settings.burstIntensity.coerceIn(1, 5) + 1 else 2
+                ),
+                settings,
+                settings.maxParallelRequests,
             )
-            fireRequests(probes, settings, settings.maxParallelRequests)
             delay(Random.nextLong(80, 350))
         }
         lastPhase = "P1-MainMimic"
         runMainMimic(settings, profiles)
         lastPhase = "P2-Residual"
-        val tail = profiles.shuffled().first().requests.let { list ->
-            val ordered = if (settings.requestDisorder) list.shuffled() else list
-            ordered.take(Random.nextInt(1, 3))
-        }
-        fireRequests(tail, settings, 1)
+        fireRequests(
+            profiles.shuffled().first().requests.let { if (settings.requestDisorder) it.shuffled() else it }.take(Random.nextInt(1, 3)),
+            settings,
+            1,
+        )
         lastPhase = "idle"
     }
 
@@ -322,26 +406,17 @@ object GhostEngine {
             volumeBoost *= (1.0f + settings.burstIntensity.coerceIn(1, 5) * 0.3f)
             lastBurstAtMs = currentTimeMillis()
         }
-        val appCount = if (settings.multiAppConcurrent) {
-            Random.nextInt(1, minOf(4, profiles.size) + 1)
-        } else 1
-        val selected = profiles.shuffled().take(appCount)
-        for (profile in selected) {
+        val appCount = if (settings.multiAppConcurrent) Random.nextInt(1, minOf(4, profiles.size) + 1) else 1
+        for (profile in profiles.shuffled().take(appCount)) {
             lastProfileUsed = profile.displayName
-            var reqs = profile.requests.shuffled().take(
-                (Random.nextInt(1, 5) * volumeBoost).toInt().coerceIn(1, 12)
-            )
+            var reqs = profile.requests.shuffled().take((Random.nextInt(1, 5) * volumeBoost).toInt().coerceIn(1, 12))
             if (settings.requestDisorder && Random.nextBoolean()) reqs = reqs.reversed()
             fireRequests(reqs, settings, settings.maxParallelRequests)
             delay(Random.nextLong(200, 1800))
         }
     }
 
-    private suspend fun fireRequests(
-        requests: List<DecoyRequest>,
-        settings: GhostSettings,
-        parallelOverride: Int,
-    ) {
+    private suspend fun fireRequests(requests: List<DecoyRequest>, settings: GhostSettings, parallelOverride: Int) {
         val parallel = parallelOverride.coerceIn(1, 4)
         requests.chunked(parallel).forEach { chunk ->
             coroutineScope {
@@ -350,12 +425,7 @@ object GhostEngine {
                         totalRequests++
                         try {
                             val ua = if (settings.appLayerMimicryEnabled) req.userAgent else DEFAULT_UA
-                            val resp = httpGetResponse(
-                                url = req.url,
-                                userAgent = ua,
-                                connectTimeoutMs = 7_000,
-                                readTimeoutMs = 10_000,
-                            )
+                            val resp = httpGetResponse(req.url, ua, connectTimeoutMs = 7_000, readTimeoutMs = 10_000)
                             val ok = resp.code in 200..499
                             if (ok) successCount++ else failureCount++
                             recordResult(ok)
@@ -373,10 +443,7 @@ object GhostEngine {
 
     private fun resolveActiveProfiles(settings: GhostSettings): List<AppProfile> {
         if (!settings.appProfilesEnabled) return listOf(GENERIC_BROWSE)
-        val keys = settings.activeProfiles.split(",")
-            .map { it.trim().lowercase() }
-            .filter { it.isNotEmpty() }
-            .toSet()
+        val keys = settings.activeProfiles.split(",").map { it.trim().lowercase() }.filter { it.isNotEmpty() }.toSet()
         return ALL_PROFILES.filter { it.key in keys }.ifEmpty { listOf(GENERIC_BROWSE) }
     }
 
@@ -395,47 +462,35 @@ object GhostEngine {
     private val RUBIKA = AppProfile("rubika", "روبیکا", listOf(
         DecoyRequest("https://rubika.ir/", RUBIKA_UA),
         DecoyRequest("https://web.rubika.ir/", RUBIKA_UA),
-        DecoyRequest("https://rubika.ir/static/js/main.js", RUBIKA_UA),
         DecoyRequest("https://rubika.ir/favicon.ico", RUBIKA_UA),
     ))
     private val DIGIKALA = AppProfile("digikala", "دیجیکالا", listOf(
         DecoyRequest("https://www.digikala.com/", DIGIKALA_UA),
         DecoyRequest("https://www.digikala.com/search/", DIGIKALA_UA),
         DecoyRequest("https://api.digikala.com/v1/categories/", DIGIKALA_UA),
-        DecoyRequest("https://www.digikala.com/product/dkp-123456/", DIGIKALA_UA),
-        DecoyRequest("https://www.digikala.com/marvel/", DIGIKALA_UA),
     ))
     private val NESHAN = AppProfile("neshan", "نشان", listOf(
         DecoyRequest("https://neshan.org/", NESHAN_UA),
-        DecoyRequest("https://api.neshan.org/v1/search?term=tehran", NESHAN_UA),
         DecoyRequest("https://neshan.org/maps/", NESHAN_UA),
     ))
     private val SNAPP = AppProfile("snapp", "اسنپ", listOf(
-        DecoyRequest("https://app.snapp.taxi/", SNAPP_UA),
-        DecoyRequest("https://api.snapp.ir/", SNAPP_UA),
         DecoyRequest("https://snapp.ir/", SNAPP_UA),
+        DecoyRequest("https://app.snapp.taxi/", SNAPP_UA),
     ))
     private val APARAT = AppProfile("aparat", "آپارات", listOf(
         DecoyRequest("https://www.aparat.com/", APARAT_UA),
-        DecoyRequest("https://www.aparat.com/v/abc123", APARAT_UA),
     ))
     private val BALAD = AppProfile("balad", "بلد", listOf(
         DecoyRequest("https://balad.ir/", BALAD_UA),
-        DecoyRequest("https://balad.ir/maps", BALAD_UA),
     ))
     private val TOROB = AppProfile("torob", "ترب", listOf(
         DecoyRequest("https://torob.com/", TOROB_UA),
-        DecoyRequest("https://api.torob.com/", TOROB_UA),
     ))
     private val GENERIC_BROWSE = AppProfile("generic", "مرورگر", listOf(
         DecoyRequest("https://www.varzesh3.com/", DEFAULT_UA),
-        DecoyRequest("https://www.hamshahrionline.ir/", DEFAULT_UA),
         DecoyRequest("https://www.zoomit.ir/", DEFAULT_UA),
-        DecoyRequest("https://www.digiato.com/", DEFAULT_UA),
         DecoyRequest("https://www.khabaronline.ir/", DEFAULT_UA),
     ))
 
-    private val ALL_PROFILES = listOf(
-        RUBIKA, DIGIKALA, NESHAN, SNAPP, APARAT, BALAD, TOROB, GENERIC_BROWSE
-    )
+    private val ALL_PROFILES = listOf(RUBIKA, DIGIKALA, NESHAN, SNAPP, APARAT, BALAD, TOROB, GENERIC_BROWSE)
 }
