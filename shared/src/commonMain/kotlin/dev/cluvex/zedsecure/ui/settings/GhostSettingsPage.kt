@@ -63,7 +63,7 @@ fun GhostSettingsPage(
             )
             SettingsSwitchRow(
                 title = "ضد Porn",
-                summary = "فیلتر DNS برای محتوای بزرگسالان و اعمال SafeSearch؛ هنگام اتصال VPN فعال می‌شود",
+                summary = "DNS خانوادگی، مسدودسازی دامنه‌ها و SafeSearch در سرویس‌های پشتیبانی‌شده؛ هنگام اتصال VPN اعمال می‌شود",
                 checked = ghost.adultContentProtectionEnabled,
                 onCheckedChange = { v ->
                     onUpdate {
@@ -72,7 +72,7 @@ fun GhostSettingsPage(
                 },
             )
             Text(
-                text = "برای اعمال تغییر، اتصال VPN را دوباره برقرار کن. مرورگرهایی که DNS رمزگذاری‌شدهٔ مستقل دارند ممکن است از فیلتر شبکه پیروی نکنند.",
+                text = "این حالت از Family Filter استفاده می‌کند و SafeSearch را در سرویس‌های پشتیبانی‌شده فعال می‌کند. برای اعمال تغییر، VPN را دوباره وصل کن. DNS رمزگذاری‌شدهٔ مستقل در بعضی برنامه‌ها یا VPN دیگر ممکن است این سیاست را دور بزند؛ فیلتر تضمین صددرصدی نیست.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
