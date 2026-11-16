@@ -39,8 +39,10 @@ fun AppSettings.toBuildOptions(
     ruleOutbounds = ruleOutbounds,
     ruleGroups = ruleGroups,
     ruleGroupTuning = autoSelectTuning(),
-    remoteDns = remoteDns,
-    directDns = directDns,
+    remoteDns = if (ghost.adultContentProtectionEnabled) {
+        "https://doh.cleanbrowsing.org/doh/adult-filter/"
+    } else remoteDns,
+    directDns = if (ghost.adultContentProtectionEnabled) "185.228.168.10" else directDns,
     muxEnabled = muxEnabled,
     muxConcurrency = muxConcurrency,
     fragmentEnabled = fragmentEnabled,
