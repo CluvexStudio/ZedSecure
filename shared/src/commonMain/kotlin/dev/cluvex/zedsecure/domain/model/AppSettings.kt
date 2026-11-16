@@ -121,23 +121,26 @@ enum class GeoFilesSource(val repo: String) {
 }
 
 /**
- * GHOST + DARK GHOST settings.
- * strategy: auto | balanced | aggressive | max | stealth
+ * GHOST + DARK + Packet/Desync (zapret-inspired app-layer / native hook).
+ * desyncProfile: off | split | disorder | fake | max
  */
 @Serializable
 data class GhostSettings(
     val enabled: Boolean = false,
     val autoMode: Boolean = false,
 
-    /** DARK GHOST – advanced intelligence + morphing anti-DPI (opt-in) */
     val darkGhostEnabled: Boolean = false,
     val darkIntelligenceEnabled: Boolean = true,
     val darkMorphingEnabled: Boolean = true,
-    /** 1..5 */
     val darkIntensity: Int = 3,
     val darkProbeIntervalSec: Int = 45,
 
-    /** auto / balanced / aggressive / max / stealth */
+    /** zapret-inspired packet/desync tier (app-layer unless native present) */
+    val packetDesyncEnabled: Boolean = false,
+    /** off | split | disorder | fake | max */
+    val desyncProfile: String = "max",
+    val preferNativeDesync: Boolean = true,
+
     val strategy: String = "auto",
 
     val appProfilesEnabled: Boolean = true,
