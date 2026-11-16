@@ -127,6 +127,8 @@ enum class GeoFilesSource(val repo: String) {
 @Serializable
 data class GhostSettings(
     val enabled: Boolean = false,
+    /** DNS-based adult-content filtering and SafeSearch enforcement while the VPN is active. */
+    val adultContentProtectionEnabled: Boolean = false,
     val autoMode: Boolean = false,
 
     // Legacy serialized keys retained for existing installs; GHOST no longer reads these values.
