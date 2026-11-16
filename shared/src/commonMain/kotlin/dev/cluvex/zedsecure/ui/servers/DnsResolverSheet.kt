@@ -24,6 +24,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -32,6 +33,12 @@ import androidx.compose.ui.unit.dp
 import dev.cluvex.zedsecure.domain.model.AppSettings
 import dev.cluvex.zedsecure.domain.model.DnsResolverProfile
 import dev.cluvex.zedsecure.ui.platform.rememberAppSheetState
+import dev.cluvex.zedsecure.platform.DnsRecordType
+import dev.cluvex.zedsecure.platform.DnsResult
+import dev.cluvex.zedsecure.platform.DnsTransport
+import dev.cluvex.zedsecure.platform.dnsQuery
+import kotlinx.coroutines.launch
+import kotlin.random.Random
 
 private data class DnsPreset(
     val name: String,
@@ -64,6 +71,9 @@ internal fun DnsResolverSheet(
     var endpoint by rememberSaveable { mutableStateOf("") }
     var direct by rememberSaveable { mutableStateOf("") }
     var error by rememberSaveable { mutableStateOf("") }
+    var testStatus by rememberSaveable { mutableStateOf("") }
+    var testing by rememberSaveable { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     fun startEdit(profile: DnsResolverProfile) {
         editingId = profile.id
@@ -125,7 +135,7 @@ internal fun DnsResolverSheet(
                 Surface(
                     shape = MaterialTheme.shapes.large,
                     color = if (profile.id == settings.activeDnsResolverId) MaterialTheme.colorScheme.primaryContainer
-                    else MaterialTheme.colorScheme.surfaceContainer,
+                    else MaterialTheme.colorScheme.surfaceVariant,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
@@ -214,6 +224,46 @@ internal fun DnsResolverSheet(
                 singleLine = true,
                 label = { Text("DNS مستقیم / Bootstrap (IP)") },
             )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(enabled = !testing, onClick = {
+                    val value = endpoint.trim()
+                    val transport = when (protocol) {
+                        "udp" -> DnsTransport.UDP
+                        "tcp" -> DnsTransport.TCP
+                        "dot" -> DnsTransport.DOT
+                        else -> DnsTransport.DOH
+                    }
+                    val hostPort = when (protocol) {
+                        "doh" -> value
+                        "dot" -> value.removePrefix("tls://")
+                        "tcp" -> value.removePrefix("tcp://")
+                        else -> value
+                    }
+                    val parsed = splitDnsHostPort(hostPort, when (protocol) { "dot" -> 853; "doh" -> 443; else -> 53 })
+                    val server = if (protocol == "doh") value else parsed.first
+                    val port = if (protocol == "doh") 443 else parsed.second
+                    if (server.isBlank()) {
+                        testStatus = "آدرس DNS معتبر نیست."
+                    } else {
+                        testing = true
+                        testStatus = "در حال بررسی پاسخ DNS…"
+                        scope.launch {
+                            val result = runCatching {
+                                dnsQuery(server, port, "example.com", DnsRecordType.A, transport, 3500)
+                            }.getOrNull()
+                            testStatus = when (result) {
+                                is DnsResult.Ok -> "اتصال موفق · ${result.reply.elapsedMs} ms · ${result.reply.answerCount} پاسخ"
+                                is DnsResult.Failed -> "آزمایش ناموفق: ${result.reason}"
+                                null -> "آزمایش DNS ناموفق بود."
+                            }
+                            testing = false
+                        }
+                    }
+                }) { Text(if (testing) "در حال تست…" else "تست اتصال DNS") }
+                if (testStatus.isNotBlank()) {
+                    Text(testStatus, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 12.dp))
+                }
+            }
             if (error.isNotBlank()) {
                 Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }
@@ -237,7 +287,7 @@ internal fun DnsResolverSheet(
                     } else if (direct.isBlank()) {
                         error = "آدرس IP برای DNS مستقیم الزامی است."
                     } else {
-                        val id = editingId ?: "${normalized.hashCode()}-${name.trim().hashCode()}"
+                        val id = editingId ?: Random.nextLong().toString()
                         val profile = DnsResolverProfile(id, name.trim(), protocol, normalized, direct.trim())
                         onUpdate { old ->
                             val updated = if (editingId == null) old.dnsResolverProfiles + profile
@@ -257,4 +307,21 @@ internal fun DnsResolverSheet(
             Spacer(Modifier.height(6.dp))
         }
     }
+}
+
+
+private fun splitDnsHostPort(value: String, defaultPort: Int): Pair<String, Int> {
+    val trimmed = value.trim()
+    if (trimmed.startsWith("[")) {
+        val end = trimmed.indexOf(']')
+        if (end > 0) {
+            val port = trimmed.substring(end + 1).removePrefix(":").toIntOrNull() ?: defaultPort
+            return trimmed.substring(1, end) to port
+        }
+    }
+    val colon = trimmed.lastIndexOf(':')
+    if (colon > 0 && trimmed.indexOf(':') == colon) {
+        return trimmed.substring(0, colon) to (trimmed.substring(colon + 1).toIntOrNull() ?: defaultPort)
+    }
+    return trimmed to defaultPort
 }
