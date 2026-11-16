@@ -168,6 +168,19 @@ data class GhostSettings(
 )
 
 @Serializable
+data class DnsResolverProfile(
+    val id: String,
+    val name: String,
+    /** udp, tcp, dot, or doh */
+    val protocol: String = "doh",
+    /** Endpoint consumed by the active proxy engine. */
+    val remoteEndpoint: String,
+    /** Plain IP resolver used for direct/bootstrap lookups. */
+    val directAddress: String,
+    val favorite: Boolean = false,
+)
+
+@Serializable
 data class AppSettings(
     val ai: dev.cluvex.zedsecure.domain.ai.AiSettings = dev.cluvex.zedsecure.domain.ai.AiSettings(),
     val themeMode: ThemeMode = ThemeMode.System,
@@ -324,6 +337,8 @@ data class AppSettings(
     val dnsPoolEnabled: Boolean = false,
     val dnsPoolText: String = "",
     val dnsPoolFullVerification: Boolean = false,
+    val dnsResolverProfiles: List<DnsResolverProfile> = emptyList(),
+    val activeDnsResolverId: String = "",
     val remoteDnsMode: String = "default",
     val remoteDnsPrimary: String = "",
     val remoteDnsFallback: String = "",
