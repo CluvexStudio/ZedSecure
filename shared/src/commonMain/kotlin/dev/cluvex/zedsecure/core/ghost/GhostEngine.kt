@@ -18,14 +18,13 @@ import kotlinx.coroutines.launch
 import kotlin.random.Random
 
 /**
- * GHOST engine: decoy + DARK + zapret-inspired desync patterns (app-layer).
+ * GHOST engine: decoy + packet/desync patterns (app-layer).
  * Native nfqws only if GhostNativeDesync reports available.
  */
 object GhostEngine {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var job: Job? = null
-    private var intelJob: Job? = null
 
     @Volatile private var currentSettings: GhostSettings = GhostSettings()
     @Volatile private var tunnelConnected: Boolean = false
@@ -45,14 +44,12 @@ object GhostEngine {
     @Volatile var underPressure: Boolean = false; private set
     @Volatile var lastBurstAtMs: Long = 0; private set
     @Volatile var lastPhase: String = "-"
-    @Volatile var darkActive: Boolean = false; private set
 
     data class DebugStatus(
         val running: Boolean,
         val enabled: Boolean,
         val tunnelConnected: Boolean,
         val autoMode: Boolean,
-        val darkGhost: Boolean,
         val packetDesync: Boolean,
         val desyncProfile: String,
         val nativeMode: String,
@@ -71,20 +68,17 @@ object GhostEngine {
         val decoyVolumePercent: Int,
         val underPressure: Boolean,
         val burstMode: Boolean,
-        val intelSummary: String,
     )
 
     fun debugStatus(): DebugStatus {
         val effective = effectiveSettings()
         val plan = lastAutoPlan
-        val intel = DarkGhostIntelligence.lastProfile
         nativeCap = GhostNativeDesync.probe()
         return DebugStatus(
             running = isRunning,
             enabled = currentSettings.enabled && effective.decoyEngineEnabled,
             tunnelConnected = tunnelConnected,
             autoMode = currentSettings.autoMode,
-            darkGhost = currentSettings.darkGhostEnabled,
             packetDesync = currentSettings.packetDesyncEnabled,
             desyncProfile = currentSettings.desyncProfile,
             nativeMode = nativeCap.mode,
@@ -103,7 +97,6 @@ object GhostEngine {
             decoyVolumePercent = effective.decoyVolumePercent,
             underPressure = underPressure,
             burstMode = effective.burstModeEnabled,
-            intelSummary = intel?.summaryFa ?: if (currentSettings.darkGhostEnabled) "در انتظار پروب…" else "-",
         )
     }
 
@@ -124,14 +117,9 @@ object GhostEngine {
                 plan.settings.copy(
                     enabled = base.enabled,
                     autoMode = base.autoMode,
-                    darkGhostEnabled = base.darkGhostEnabled,
                     packetDesyncEnabled = base.packetDesyncEnabled,
                     desyncProfile = base.desyncProfile,
                     preferNativeDesync = base.preferNativeDesync,
-                    darkIntelligenceEnabled = base.darkIntelligenceEnabled,
-                    darkMorphingEnabled = base.darkMorphingEnabled,
-                    darkIntensity = base.darkIntensity,
-                    darkProbeIntervalSec = base.darkProbeIntervalSec,
                 )
             }
             else -> {
@@ -139,32 +127,6 @@ object GhostEngine {
                 base
             }
         }
-
-        if (base.darkGhostEnabled) {
-            darkActive = true
-            val intelPressure = DarkGhostIntelligence.lastProfile?.underPressure == true
-            val force = underPressure || intelPressure
-            s = s.copy(
-                multiphaseEnabled = true,
-                fakeFloodEnabled = true,
-                requestDisorder = true,
-                multiAppConcurrent = true,
-                appLayerMimicryEnabled = true,
-                adaptiveFallbackEnabled = true,
-                pressureDetectionEnabled = true,
-                burstModeEnabled = true,
-                decoyEngineEnabled = true,
-                appProfilesEnabled = true,
-                activeProfiles = if (force)
-                    "rubika,digikala,neshan,snapp,aparat,balad,torob,generic"
-                else s.activeProfiles.ifBlank { "rubika,neshan,digikala,snapp,aparat" },
-                decoyVolumePercent = (s.decoyVolumePercent + if (force) 20 else 12).coerceIn(35, 85),
-                decoyIntervalSeconds = (s.decoyIntervalSeconds - if (force) 4 else 2).coerceIn(4, 30),
-                burstIntensity = (s.burstIntensity + if (force) 2 else 1).coerceIn(2, 5),
-                maxParallelRequests = (s.maxParallelRequests + 1).coerceIn(2, 4),
-            )
-            lastStrategy = "DARK/" + lastStrategy
-        } else darkActive = false
 
         if (base.packetDesyncEnabled) {
             val p = DesyncProfile.fromRaw(base.desyncProfile)
@@ -206,7 +168,6 @@ object GhostEngine {
         tunnelConnected = false
         GhostNativeDesync.disarm()
         stop()
-        DarkGhostIntelligence.reset()
     }
 
     private fun reconcile() {
@@ -219,8 +180,7 @@ object GhostEngine {
         if (job?.isActive == true) return
         job = scope.launch {
             isRunning = true
-            Log.i("GhostEngine", "start dark=${currentSettings.darkGhostEnabled} desync=${currentSettings.packetDesyncEnabled}")
-            if (currentSettings.darkGhostEnabled && currentSettings.darkIntelligenceEnabled) startIntelLoop()
+            Log.i("GhostEngine", "GHOST multiphase started")
             while (isActive) {
                 if (!currentSettings.enabled || !tunnelConnected) break
                 val s = effectiveSettings()
@@ -228,7 +188,6 @@ object GhostEngine {
                 try {
                     when {
                         currentSettings.packetDesyncEnabled -> runDesyncCycle(s)
-                        currentSettings.darkGhostEnabled -> runDarkCycle(s)
                         s.multiphaseEnabled -> runMultiphaseCycle(s)
                         else -> runSimpleCycle(s)
                     }
@@ -238,42 +197,20 @@ object GhostEngine {
                     Log.w("GhostEngine", "cycle error: ${e.message}")
                 }
                 val base = s.decoyIntervalSeconds.coerceIn(4, 120)
-                val jitter = Random.nextInt(0, (base * 0.85).toInt().coerceAtLeast(2))
-                val pressureFactor = if (underPressure && s.adaptiveFallbackEnabled) 0.45 else 1.0
+                val jitter = Random.nextInt(0, (base * 0.75).toInt().coerceAtLeast(2))
+                val pressureFactor = if (underPressure && s.adaptiveFallbackEnabled) 0.5 else 1.0
                 delay(((base + jitter) * pressureFactor * 1000L).toLong())
             }
             isRunning = false
             lastPhase = "-"
-            intelJob?.cancel()
-            intelJob = null
-        }
-    }
-
-    private fun startIntelLoop() {
-        if (intelJob?.isActive == true) return
-        intelJob = scope.launch {
-            while (isActive && tunnelConnected && currentSettings.darkGhostEnabled) {
-                try {
-                    val profile = DarkGhostIntelligence.runProbeCycle(
-                        maxProbes = 2 + currentSettings.darkIntensity.coerceIn(1, 5) / 2,
-                    )
-                    if (profile.underPressure) underPressure = true
-                } catch (e: Exception) {
-                    Log.w("GhostEngine", "intel: ${e.message}")
-                }
-                delay(currentSettings.darkProbeIntervalSec.coerceIn(20, 180) * 1000L)
-            }
         }
     }
 
     private fun stop() {
         job?.cancel()
         job = null
-        intelJob?.cancel()
-        intelJob = null
         isRunning = false
         lastPhase = "-"
-        darkActive = false
     }
 
     private fun recordResult(ok: Boolean) {
@@ -282,6 +219,8 @@ object GhostEngine {
         val s = effectiveSettings()
         if (s.pressureDetectionEnabled && recentResults.size >= 6) {
             underPressure = recentResults.count { !it }.toFloat() / recentResults.size >= 0.28f
+        } else {
+            underPressure = false
         }
     }
 
@@ -340,30 +279,6 @@ object GhostEngine {
                 delay(Random.nextLong(35, 160)) // split-like spacing
             }
         }
-    }
-
-    private suspend fun runDarkCycle(settings: GhostSettings) {
-        val profiles = resolveActiveProfiles(settings)
-        if (profiles.isEmpty()) return
-        lastPhase = "D0-IntelEcho"
-        delay(Random.nextLong(40, 160))
-        if (settings.fakeFloodEnabled) {
-            lastPhase = "D1-FakeFlood"
-            val n = settings.burstIntensity.coerceIn(2, 5) + 2
-            fireRequests(profiles.flatMap { it.requests }.shuffled().take(n), settings, settings.maxParallelRequests)
-            delay(Random.nextLong(50, 280))
-        }
-        lastPhase = "D2-MainMimic"
-        runMainMimic(settings, profiles)
-        if (settings.darkMorphingEnabled) {
-            lastPhase = "D3-Morph"
-            val morph = profiles.shuffled().take(2).flatMap { it.requests.shuffled().take(Random.nextInt(1, 3)) }
-            fireRequests(if (settings.requestDisorder) morph.shuffled() else morph, settings, 2)
-            delay(Random.nextLong(90, 400))
-        }
-        lastPhase = "D4-Residual"
-        fireRequests(profiles.shuffled().first().requests.shuffled().take(Random.nextInt(1, 3)), settings, 1)
-        lastPhase = "idle"
     }
 
     private suspend fun runMultiphaseCycle(settings: GhostSettings) {
