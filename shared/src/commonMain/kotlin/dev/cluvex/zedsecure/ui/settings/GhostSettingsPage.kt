@@ -31,7 +31,6 @@ fun GhostSettingsPage(
 ) {
     val ghost = settings.ghost
 
-    // Only sync preferences – engine starts only when tunnel is connected
     LaunchedEffect(ghost) {
         GhostEngine.updateSettings(ghost)
     }
@@ -54,23 +53,29 @@ fun GhostSettingsPage(
         SettingsPageScaffold(
             title = "GHOST MOD",
             art = SettingsArts.Monitor,
-            subtitle = "کمک‌کننده ضد DPI برای تونل – فقط بعد از اتصال فعال می‌شود",
+            subtitle = "کمک‌کننده ضد DPI برای تونل – فقط بعد از اتصال",
             contentPadding = PaddingValues(0.dp),
             modifier = Modifier,
         ) {
             SettingsGroup("فعال‌سازی") {
                 SettingsSwitchRow(
                     title = "فعال‌سازی GHOST",
-                    summary = "فقط ترجیح را ذخیره می‌کند. با زدن اتصال، به تونل کمک می‌کند",
+                    summary = "با زدن اتصال به تونل کمک می‌کند؛ خودکار وصل نمی‌شود",
                     checked = ghost.enabled,
                     onCheckedChange = { v -> onUpdate { it.copy(ghost = it.ghost.copy(enabled = v)) } },
+                )
+                SettingsSwitchRow(
+                    title = "AUTO",
+                    summary = "تشخیص وای‌فای / داده همراه و چیدن خودکار همه تنظیمات GHOST",
+                    checked = ghost.autoMode,
+                    onCheckedChange = { v -> onUpdate { it.copy(ghost = it.ghost.copy(autoMode = v)) } },
                 )
                 SettingsSegment {
                     Column(Modifier = Modifier.padding(16.dp)) {
                         Text(
-                            "نحوه کار: GHOST را اینجا روشن کن → بعد دکمه اتصال را بزن. " +
-                                "تا وقتی تونل وصل است کار می‌کند و با قطع اتصال خاموش می‌شود. " +
-                                "به موتورهای Xray / sing-box و ... دست نمی‌زند.",
+                            "AUTO روشن باشد: نوع شبکه را بررسی می‌کند (وای‌فای یا داده همراه) " +
+                                "و حجم، فاصله، پروفایل‌ها، Burst و موازی‌سازی را خودش تنظیم می‌کند. " +
+                                "هنوز فقط وقتی تونل وصل است اجرا می‌شود.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -79,9 +84,9 @@ fun GhostSettingsPage(
             }
 
             if (ghost.enabled) {
-                SettingsGroup("وضعیت زنده (Debug)") {
+                SettingsGroup("وضعیت زنده") {
                     SettingsSegment {
-                        Column(Modifier = Modifier.padding(16.dp)) {
+                        Column(modifier = Modifier.padding(16.dp)) {
                             Text(
                                 when {
                                     status.running -> "● در حال کمک به تونل"
@@ -92,172 +97,156 @@ fun GhostSettingsPage(
                                 color = if (status.running) MaterialTheme.colorScheme.primary
                                 else MaterialTheme.colorScheme.onSurfaceVariant,
                             )
-                            Text(
-                                "تونل: ${if (status.tunnelConnected) "وصل" else "قطع"}",
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
+                            Text("تونل: ${if (status.tunnelConnected) "وصل" else "قطع"}",
+                                style = MaterialTheme.typography.bodyMedium)
+                            if (status.autoMode) {
+                                Text("AUTO: ${status.networkLabel}", style = MaterialTheme.typography.bodyMedium)
+                                Text(status.autoReason, style = MaterialTheme.typography.bodySmall)
+                            }
                             if (status.underPressure) {
-                                Text(
-                                    "⚠ تحت فشار – حجم decoy افزایش یافته",
+                                Text("⚠ تحت فشار – حجم decoy افزایش یافته",
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.error,
-                                )
+                                    color = MaterialTheme.colorScheme.error)
                             }
                             Text("چرخه‌ها: ${status.cycles}", style = MaterialTheme.typography.bodyMedium)
-                            Text(
-                                "درخواست: ${status.requests} | موفق: ${status.successes} | ناموفق: ${status.failures}",
-                                style = MaterialTheme.typography.bodySmall,
-                            )
-                            Text("آخرین پروفایل: ${status.lastProfile}", style = MaterialTheme.typography.bodySmall)
-                            if (status.burstMode) {
-                                Text("حالت Burst فعال است", style = MaterialTheme.typography.bodySmall)
-                            }
+                            Text("درخواست: ${status.requests} | موفق: ${status.successes} | ناموفق: ${status.failures}",
+                                style = MaterialTheme.typography.bodySmall)
+                            Text("پروفایل فعال: ${status.activeProfiles}", style = MaterialTheme.typography.bodySmall)
+                            Text("حجم مؤثر: ${status.decoyVolumePercent}% | آخرین: ${status.lastProfile}",
+                                style = MaterialTheme.typography.bodySmall)
                             status.lastError?.let {
-                                Text(
-                                    "آخرین خطا: $it",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.error,
-                                )
+                                Text("آخرین خطا: $it", style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error)
                             }
                         }
                     }
                 }
 
-                SettingsGroup("۱. پروفایل‌های رفتاری اپ‌های ایرانی") {
-                    SettingsSwitchRow(
-                        title = "App Behavior Profiles",
-                        summary = "الگوی واقعی روبیکا، نشان، دیجیکالا و ...",
-                        checked = ghost.appProfilesEnabled,
-                        onCheckedChange = { v -> onUpdate { it.copy(ghost = it.ghost.copy(appProfilesEnabled = v)) } },
-                    )
-                    if (ghost.appProfilesEnabled) {
-                        ProfileChipRow(
-                            current = ghost.activeProfiles,
-                            onChange = { new -> onUpdate { it.copy(ghost = it.ghost.copy(activeProfiles = new)) } },
+                // Manual controls hidden when AUTO is on (AUTO owns them)
+                if (!ghost.autoMode) {
+                    SettingsGroup("۱. پروفایل‌های رفتاری") {
+                        SettingsSwitchRow(
+                            title = "App Behavior Profiles",
+                            summary = "الگوی واقعی اپ‌های ایرانی",
+                            checked = ghost.appProfilesEnabled,
+                            onCheckedChange = { v -> onUpdate { it.copy(ghost = it.ghost.copy(appProfilesEnabled = v)) } },
+                        )
+                        if (ghost.appProfilesEnabled) {
+                            ProfileChipRow(
+                                current = ghost.activeProfiles,
+                                onChange = { new -> onUpdate { it.copy(ghost = it.ghost.copy(activeProfiles = new)) } },
+                            )
+                        }
+                    }
+
+                    SettingsGroup("۲. موتور ترافیک جعلی") {
+                        SettingsSwitchRow(
+                            title = "Smart Decoy Engine",
+                            summary = "تولید مداوم ترافیک جعلی",
+                            checked = ghost.decoyEngineEnabled,
+                            onCheckedChange = { v -> onUpdate { it.copy(ghost = it.ghost.copy(decoyEngineEnabled = v)) } },
+                        )
+                        if (ghost.decoyEngineEnabled) {
+                            Text("حجم: ${ghost.decoyVolumePercent}%",
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
+                            Slider(
+                                value = ghost.decoyVolumePercent.toFloat(),
+                                onValueChange = { v ->
+                                    onUpdate { it.copy(ghost = it.ghost.copy(decoyVolumePercent = v.toInt().coerceIn(10, 80))) }
+                                },
+                                valueRange = 10f..80f, steps = 13,
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                            )
+                            Text("فاصله: ${ghost.decoyIntervalSeconds} ثانیه",
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
+                            Slider(
+                                value = ghost.decoyIntervalSeconds.toFloat(),
+                                onValueChange = { v ->
+                                    onUpdate { it.copy(ghost = it.ghost.copy(decoyIntervalSeconds = v.toInt().coerceIn(5, 60))) }
+                                },
+                                valueRange = 5f..60f, steps = 10,
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                            )
+                        }
+                    }
+
+                    SettingsGroup("۳. Mimicry / Multi / Adaptive") {
+                        SettingsSwitchRow(
+                            title = "Application-Layer Mimicry",
+                            summary = "UA و مسیر واقعی",
+                            checked = ghost.appLayerMimicryEnabled,
+                            onCheckedChange = { v -> onUpdate { it.copy(ghost = it.ghost.copy(appLayerMimicryEnabled = v)) } },
+                        )
+                        SettingsSwitchRow(
+                            title = "Multi-App Concurrent",
+                            summary = "چند اپ همزمان",
+                            checked = ghost.multiAppConcurrent,
+                            onCheckedChange = { v -> onUpdate { it.copy(ghost = it.ghost.copy(multiAppConcurrent = v)) } },
+                        )
+                        SettingsSwitchRow(
+                            title = "Adaptive Fallback",
+                            summary = "افزایش decoy زیر فشار",
+                            checked = ghost.adaptiveFallbackEnabled,
+                            onCheckedChange = { v -> onUpdate { it.copy(ghost = it.ghost.copy(adaptiveFallbackEnabled = v)) } },
+                        )
+                        SettingsSwitchRow(
+                            title = "تشخیص فشار",
+                            summary = "از نرخ شکست اخیر",
+                            checked = ghost.pressureDetectionEnabled,
+                            onCheckedChange = { v -> onUpdate { it.copy(ghost = it.ghost.copy(pressureDetectionEnabled = v)) } },
                         )
                     }
-                }
 
-                SettingsGroup("۲. موتور تولید ترافیک جعلی") {
-                    SettingsSwitchRow(
-                        title = "Smart Decoy Engine",
-                        summary = "تولید مداوم ترافیک جعلی کنار تونل",
-                        checked = ghost.decoyEngineEnabled,
-                        onCheckedChange = { v -> onUpdate { it.copy(ghost = it.ghost.copy(decoyEngineEnabled = v)) } },
-                    )
-                    if (ghost.decoyEngineEnabled) {
-                        Text(
-                            "حجم ترافیک جعلی: ${ghost.decoyVolumePercent}%",
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    SettingsGroup("۷. Burst") {
+                        SettingsSwitchRow(
+                            title = "Burst Mode",
+                            summary = "نویز بالا",
+                            checked = ghost.burstModeEnabled,
+                            onCheckedChange = { v -> onUpdate { it.copy(ghost = it.ghost.copy(burstModeEnabled = v)) } },
                         )
-                        Slider(
-                            value = ghost.decoyVolumePercent.toFloat(),
-                            onValueChange = { v ->
-                                onUpdate {
-                                    it.copy(ghost = it.ghost.copy(decoyVolumePercent = v.toInt().coerceIn(10, 80)))
-                                }
-                            },
-                            valueRange = 10f..80f,
-                            steps = 13,
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                        )
-                        Text(
-                            "فاصله چرخه‌ها: ${ghost.decoyIntervalSeconds} ثانیه",
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                        )
-                        Slider(
-                            value = ghost.decoyIntervalSeconds.toFloat(),
-                            onValueChange = { v ->
-                                onUpdate {
-                                    it.copy(ghost = it.ghost.copy(decoyIntervalSeconds = v.toInt().coerceIn(5, 60)))
-                                }
-                            },
-                            valueRange = 5f..60f,
-                            steps = 10,
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                        )
+                        if (ghost.burstModeEnabled) {
+                            Text("شدت: ${ghost.burstIntensity}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
+                            Slider(
+                                value = ghost.burstIntensity.toFloat(),
+                                onValueChange = { v ->
+                                    onUpdate { it.copy(ghost = it.ghost.copy(burstIntensity = v.toInt().coerceIn(1, 5))) }
+                                },
+                                valueRange = 1f..5f, steps = 3,
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                            )
+                        }
                     }
-                }
 
-                SettingsGroup("۳. شبیه‌سازی لایه اپلیکیشن") {
-                    SettingsSwitchRow(
-                        title = "Application-Layer Mimicry",
-                        summary = "User-Agent و مسیرهای واقعی اپ‌ها",
-                        checked = ghost.appLayerMimicryEnabled,
-                        onCheckedChange = { v -> onUpdate { it.copy(ghost = it.ghost.copy(appLayerMimicryEnabled = v)) } },
-                    )
-                }
-
-                SettingsGroup("۵. شبیه‌سازی همزمان چند اپ") {
-                    SettingsSwitchRow(
-                        title = "Multi-App Concurrent",
-                        summary = "چند اپ همزمان مثل کاربر واقعی",
-                        checked = ghost.multiAppConcurrent,
-                        onCheckedChange = { v -> onUpdate { it.copy(ghost = it.ghost.copy(multiAppConcurrent = v)) } },
-                    )
-                }
-
-                SettingsGroup("۶. Fallback هوشمند + فشار") {
-                    SettingsSwitchRow(
-                        title = "Adaptive Fallback",
-                        summary = "وقتی نرخ خطا بالا برود حجم decoy را زیاد می‌کند",
-                        checked = ghost.adaptiveFallbackEnabled,
-                        onCheckedChange = { v -> onUpdate { it.copy(ghost = it.ghost.copy(adaptiveFallbackEnabled = v)) } },
-                    )
-                    SettingsSwitchRow(
-                        title = "تشخیص فشار",
-                        summary = "از نرخ شکست اخیر برای تشخیص فشار استفاده می‌کند",
-                        checked = ghost.pressureDetectionEnabled,
-                        onCheckedChange = { v -> onUpdate { it.copy(ghost = it.ghost.copy(pressureDetectionEnabled = v)) } },
-                    )
-                }
-
-                SettingsGroup("۷. حالت Burst") {
-                    SettingsSwitchRow(
-                        title = "Burst / High-Noise Mode",
-                        summary = "افزایش شدید تعداد درخواست‌های جعلی",
-                        checked = ghost.burstModeEnabled,
-                        onCheckedChange = { v -> onUpdate { it.copy(ghost = it.ghost.copy(burstModeEnabled = v)) } },
-                    )
-                    if (ghost.burstModeEnabled) {
-                        Text(
-                            "شدت Burst: ${ghost.burstIntensity}",
+                    SettingsGroup("۸. موازی‌سازی") {
+                        Text("حداکثر موازی: ${ghost.maxParallelRequests}",
                             style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                        )
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
                         Slider(
-                            value = ghost.burstIntensity.toFloat(),
+                            value = ghost.maxParallelRequests.toFloat(),
                             onValueChange = { v ->
-                                onUpdate {
-                                    it.copy(ghost = it.ghost.copy(burstIntensity = v.toInt().coerceIn(1, 5)))
-                                }
+                                onUpdate { it.copy(ghost = it.ghost.copy(maxParallelRequests = v.toInt().coerceIn(1, 4))) }
                             },
-                            valueRange = 1f..5f,
-                            steps = 3,
+                            valueRange = 1f..4f, steps = 2,
                             modifier = Modifier.padding(horizontal = 16.dp),
                         )
                     }
-                }
-
-                SettingsGroup("۸. موازی‌سازی") {
-                    Text(
-                        "حداکثر درخواست موازی: ${ghost.maxParallelRequests}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                    )
-                    Slider(
-                        value = ghost.maxParallelRequests.toFloat(),
-                        onValueChange = { v ->
-                            onUpdate {
-                                it.copy(ghost = it.ghost.copy(maxParallelRequests = v.toInt().coerceIn(1, 4)))
+                } else {
+                    SettingsGroup("AUTO فعال است") {
+                        SettingsSegment {
+                            Column(Modifier = Modifier.padding(16.dp)) {
+                                Text(
+                                    "تنظیمات دستی مخفی شده‌اند. AUTO بر اساس شبکه و فشار، " +
+                                        "همه‌چیز را خودش می‌چیند. برای تنظیم دستی، AUTO را خاموش کن.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
                             }
-                        },
-                        valueRange = 1f..4f,
-                        steps = 2,
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                    )
+                        }
+                    }
                 }
             }
         }
@@ -278,11 +267,8 @@ private fun ProfileChipRow(current: String, onChange: (String) -> Unit) {
     )
     val selected = current.split(",").map { it.trim().lowercase() }.toSet()
     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-        Text(
-            "اپ‌های فعال:",
-            style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier.padding(bottom = 6.dp),
-        )
+        Text("اپ‌های فعال:", style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier.padding(bottom = 6.dp))
         all.forEach { (key, label) ->
             val isOn = key in selected
             SettingsSwitchRow(

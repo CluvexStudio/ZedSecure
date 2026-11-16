@@ -1,6 +1,7 @@
 package dev.cluvex.zedsecure.core.ghost
 
 import dev.cluvex.zedsecure.domain.model.GhostSettings
+import dev.cluvex.zedsecure.platform.NetworkKind
 import dev.cluvex.zedsecure.platform.httpGetResponse
 import dev.cluvex.zedsecure.platform.Log
 import kotlinx.coroutines.CoroutineScope
@@ -16,14 +17,8 @@ import kotlinx.coroutines.launch
 import kotlin.random.Random
 
 /**
- * GHOST – helps the active tunnel with app-layer decoy traffic (anti-DPI noise).
- *
- * Lifecycle (important):
- * - User enables GHOST in settings → only stores preference, does NOT start.
- * - User presses Connect and tunnel becomes Connected → GHOST starts (if enabled).
- * - Tunnel disconnects / errors → GHOST stops immediately.
- *
- * Never touches Xray / sing-box / TUN / routing. Only best-effort HTTP decoys.
+ * GHOST – tunnel-bound anti-DPI decoy helper.
+ * With AUTO mode, continuously retunes profiles/volume for Wi‑Fi vs cellular.
  */
 object GhostEngine {
 
@@ -32,6 +27,7 @@ object GhostEngine {
 
     @Volatile private var currentSettings: GhostSettings = GhostSettings()
     @Volatile private var tunnelConnected: Boolean = false
+    @Volatile private var lastAutoPlan: GhostAutoTuner.Plan? = null
 
     private val recentResults = ArrayDeque<Boolean>(64)
 
@@ -49,6 +45,9 @@ object GhostEngine {
         val running: Boolean,
         val enabled: Boolean,
         val tunnelConnected: Boolean,
+        val autoMode: Boolean,
+        val networkLabel: String,
+        val autoReason: String,
         val cycles: Long,
         val requests: Long,
         val successes: Long,
@@ -62,40 +61,56 @@ object GhostEngine {
     )
 
     fun debugStatus(): DebugStatus {
-        val s = currentSettings
+        val effective = effectiveSettings()
+        val plan = lastAutoPlan
         return DebugStatus(
             running = isRunning,
-            enabled = s.enabled && s.decoyEngineEnabled,
+            enabled = currentSettings.enabled && effective.decoyEngineEnabled,
             tunnelConnected = tunnelConnected,
+            autoMode = currentSettings.autoMode,
+            networkLabel = plan?.label ?: networkLabel(GhostAutoTuner.currentNetwork()),
+            autoReason = plan?.reason ?: "-",
             cycles = totalCycles,
             requests = totalRequests,
             successes = successCount,
             failures = failureCount,
             lastProfile = lastProfileUsed,
             lastError = lastError,
-            activeProfiles = s.activeProfiles,
-            decoyVolumePercent = s.decoyVolumePercent,
+            activeProfiles = effective.activeProfiles,
+            decoyVolumePercent = effective.decoyVolumePercent,
             underPressure = underPressure,
-            burstMode = s.burstModeEnabled,
+            burstMode = effective.burstModeEnabled,
         )
     }
 
-    /** Only updates preferences. Does NOT start the engine by itself. */
+    private fun networkLabel(k: NetworkKind): String = when (k) {
+        NetworkKind.Wifi -> "وای‌فای"
+        NetworkKind.Cellular -> "داده همراه"
+        NetworkKind.Ethernet -> "اترنت"
+        NetworkKind.Unknown -> "نامشخص"
+    }
+
+    /** Runtime settings: AUTO overrides tuning knobs; master enabled stays from user. */
+    private fun effectiveSettings(): GhostSettings {
+        val base = currentSettings
+        if (!base.autoMode) return base
+        val plan = GhostAutoTuner.plan(base, underPressure)
+        lastAutoPlan = plan
+        // Keep user's master enabled + autoMode flags
+        return plan.settings.copy(enabled = base.enabled, autoMode = true)
+    }
+
     fun updateSettings(settings: GhostSettings) {
         currentSettings = settings
-        // If user turned GHOST off while tunnel is up → stop.
-        // If user turned it on while tunnel is already up → start.
         reconcile()
     }
 
-    /** Called from VpnManager when tunnel reaches Connected. */
     fun onTunnelConnected() {
         tunnelConnected = true
         Log.i("GhostEngine", "tunnel connected – reconciling GHOST")
         reconcile()
     }
 
-    /** Called from VpnManager on disconnect / error / stopping. */
     fun onTunnelDisconnected() {
         tunnelConnected = false
         Log.i("GhostEngine", "tunnel disconnected – stopping GHOST")
@@ -103,8 +118,8 @@ object GhostEngine {
     }
 
     private fun reconcile() {
-        val s = currentSettings
-        val shouldRun = s.enabled && s.decoyEngineEnabled && tunnelConnected
+        val s = effectiveSettings()
+        val shouldRun = currentSettings.enabled && s.decoyEngineEnabled && tunnelConnected
         if (shouldRun) start() else stop()
     }
 
@@ -112,10 +127,11 @@ object GhostEngine {
         if (job?.isActive == true) return
         job = scope.launch {
             isRunning = true
-            Log.i("GhostEngine", "GHOST decoy helper started (tunnel-bound)")
+            Log.i("GhostEngine", "GHOST started (tunnel-bound, auto=${currentSettings.autoMode})")
             while (isActive) {
-                val s = currentSettings
-                if (!s.enabled || !s.decoyEngineEnabled || !tunnelConnected) break
+                if (!currentSettings.enabled || !tunnelConnected) break
+                val s = effectiveSettings()
+                if (!s.decoyEngineEnabled) break
                 try {
                     runDecoyCycle(s)
                     totalCycles++
@@ -129,7 +145,7 @@ object GhostEngine {
                 delay(((base + jitter) * pressureFactor * 1000L).toLong())
             }
             isRunning = false
-            Log.i("GhostEngine", "GHOST decoy helper stopped")
+            Log.i("GhostEngine", "GHOST stopped")
         }
     }
 
@@ -142,7 +158,8 @@ object GhostEngine {
     private fun recordResult(ok: Boolean) {
         recentResults.addLast(ok)
         while (recentResults.size > 40) recentResults.removeFirst()
-        if (currentSettings.pressureDetectionEnabled && recentResults.size >= 8) {
+        val s = effectiveSettings()
+        if (s.pressureDetectionEnabled && recentResults.size >= 8) {
             val fails = recentResults.count { !it }
             underPressure = fails.toFloat() / recentResults.size >= 0.35f
         } else {
