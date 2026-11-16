@@ -339,14 +339,6 @@ private fun RootPage(
             reduceMotion = settings.reduceMotion,
         )
 
-        SettingsGroup(modifier = Modifier.tourTargetInPage(TourTargets.SETTINGS_SUPPORT)) {
-            SettingsBannerRow(
-                stringResource(Res.string.support_title),
-                stringResource(Res.string.support_subtitle),
-                art = SettingsArts.Support,
-            ) { onOpen(SettingsPage.Support) }
-        }
-
         SettingsGroup(
             stringResource(Res.string.settings_group_personal),
             modifier = Modifier.tourTargetInPage(TourTargets.SETTINGS_LOOK),
@@ -516,11 +508,6 @@ private fun RootPage(
                     null
                 },
             ) { if (!checking) { checking = true; checkTrigger++ } }
-            SettingsMenuRow(
-                stringResource(if (fromPlay) Res.string.rate_title else Res.string.rate_title_github),
-                stringResource(if (fromPlay) Res.string.rate_summary else Res.string.rate_summary_github),
-                art = SettingsArts.Rate,
-            ) { platform.openStorePage() }
             SettingsMenuRow(
                 stringResource(Res.string.privacy_title),
                 stringResource(Res.string.privacy_settings_sub),
@@ -808,13 +795,6 @@ private fun BentoRoot(
             art = SettingsArts.Assets,
             keywords = listOf(stringResource(Res.string.title_pref_geo_files_source)),
         ) { onOpen(SettingsPage.Assets) })
-        add(dev.cluvex.zedsecure.ui.bento.BentoHubEntry(
-            key = "support",
-            title = stringResource(Res.string.support_title),
-            summary = stringResource(Res.string.support_subtitle),
-            art = SettingsArts.Support,
-            tourKey = TourTargets.SETTINGS_SUPPORT,
-        ) { onOpen(SettingsPage.Support) })
         if (hasAi) {
             add(dev.cluvex.zedsecure.ui.bento.BentoHubEntry(
                 key = "ai",
@@ -850,12 +830,6 @@ private fun BentoRoot(
             },
             art = SettingsArts.Update,
         ) { if (!checking) { checking = true; checkTrigger++ } })
-        add(dev.cluvex.zedsecure.ui.bento.BentoHubEntry(
-            key = "rate",
-            title = stringResource(if (fromPlay) Res.string.rate_title else Res.string.rate_title_github),
-            summary = stringResource(if (fromPlay) Res.string.rate_summary else Res.string.rate_summary_github),
-            art = SettingsArts.Rate,
-        ) { platform.openStorePage() })
         add(dev.cluvex.zedsecure.ui.bento.BentoHubEntry(
             key = "privacy",
             title = stringResource(Res.string.privacy_title),

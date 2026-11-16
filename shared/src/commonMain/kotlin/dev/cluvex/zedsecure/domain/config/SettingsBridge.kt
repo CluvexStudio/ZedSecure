@@ -32,7 +32,8 @@ fun AppSettings.toBuildOptions(
     geoCodes = geoCodes,
     customProxyRules = customProxyRules.toRuleList(),
     customDirectRules = customDirectRules.toRuleList(),
-    customBlockRules = customBlockRules.toRuleList(),
+    customBlockRules = customBlockRules.toRuleList() +
+        if (ghost.adultContentProtectionEnabled) dev.cluvex.zedsecure.core.ghost.AdultBlocklist.rules else emptyList(),
 
     rulesets = RoutingMigration.effectiveRulesets(this),
     networkType = networkType,
