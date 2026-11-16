@@ -120,50 +120,27 @@ enum class GeoFilesSource(val repo: String) {
     Chocolate4U("Chocolate4U/Iran-v2ray-rules"),
 }
 
-/**
- * GHOST MOD – Generated Harmless Obfuscated Session Traffic
- *
- * Mixes real VPN traffic with realistic Iranian-app decoy traffic so DPI
- * systems cannot cheaply classify the session as "VPN".
- * Inspired by MockTraffic, Traffic-Obfuscator and (at app-layer) zapret's
- * idea of raising the cost of analysis with decoy/fake patterns.
- */
 @Serializable
 data class GhostSettings(
-    /** Master switch */
     val enabled: Boolean = false,
 
-    /** 1. App Behavior Profiles */
+    /** AUTO: detect Wi‑Fi / mobile data and auto-tune all GHOST parameters */
+    val autoMode: Boolean = false,
+
     val appProfilesEnabled: Boolean = true,
-    /** comma-separated: rubika,digikala,neshan,snapp,aparat,balad,torob,generic */
     val activeProfiles: String = "rubika,neshan,digikala,snapp,aparat",
 
-    /** 2. Smart Decoy Engine */
     val decoyEngineEnabled: Boolean = true,
-    /** Target decoy share 10–80 */
     val decoyVolumePercent: Int = 40,
-    /** Seconds between cycles */
     val decoyIntervalSeconds: Int = 12,
 
-    /** 3. Application-Layer Mimicry (realistic UA + paths) */
     val appLayerMimicryEnabled: Boolean = true,
-
-    /** 5. Multi-App Concurrent */
     val multiAppConcurrent: Boolean = true,
-
-    /** 6. Adaptive Fallback – raise decoy when failures rise */
     val adaptiveFallbackEnabled: Boolean = true,
 
-    /** Burst / high-noise mode (zapret-inspired "flood of fakes" at app layer) */
     val burstModeEnabled: Boolean = false,
-
-    /** How aggressive burst is when triggered (1–5) */
     val burstIntensity: Int = 3,
-
-    /** Simple pressure detection from recent failure rate */
     val pressureDetectionEnabled: Boolean = true,
-
-    /** Max parallel decoy requests inside one cycle */
     val maxParallelRequests: Int = 2,
 )
 
