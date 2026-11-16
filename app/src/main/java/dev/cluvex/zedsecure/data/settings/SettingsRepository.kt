@@ -8,6 +8,7 @@ import dev.cluvex.zedsecure.domain.model.AppDesign
 import dev.cluvex.zedsecure.domain.model.AppSettings
 import dev.cluvex.zedsecure.domain.model.BentoPrefs
 import dev.cluvex.zedsecure.domain.model.ZxPsPrefs
+import dev.cluvex.zedsecure.domain.model.GhostSettings
 import dev.cluvex.zedsecure.domain.model.DomainStrategy
 import dev.cluvex.zedsecure.domain.model.FragmentPackets
 import dev.cluvex.zedsecure.domain.model.GeoFilesSource
@@ -63,6 +64,9 @@ class SettingsRepository(context: Context) {
             zxPs = prefs.getString("zx_ps_prefs", null)
                 ?.let { runCatching { aiJson.decodeFromString(ZxPsPrefs.serializer(), it) }.getOrNull() }
                 ?: d.zxPs,
+            ghost = prefs.getString("ghost_settings", null)
+                ?.let { runCatching { aiJson.decodeFromString(GhostSettings.serializer(), it) }.getOrNull() }
+                ?: d.ghost,
             notifGraph = prefs.getBoolean("notif_graph", d.notifGraph),
             notifAccent = prefs.enum("notif_accent", d.notifAccent),
             amoledBlack = prefs.getBoolean("amoled_black", d.amoledBlack),
@@ -292,6 +296,7 @@ class SettingsRepository(context: Context) {
             putString("app_design", s.appDesign.name)
             putString("zx_anim", s.zxAnim.name)
             putString("zx_ps_prefs", aiJson.encodeToString(ZxPsPrefs.serializer(), s.zxPs))
+            putString("ghost_settings", aiJson.encodeToString(GhostSettings.serializer(), s.ghost))
             putBoolean("notif_graph", s.notifGraph)
             putString("notif_accent", s.notifAccent.name)
             putBoolean("amoled_black", s.amoledBlack)
