@@ -38,10 +38,10 @@ object AdultBlocklist {
         "javhd.com", "javmost.com", "jav.guru", "javbus.com",
         "gelbooru.com", "danbooru.donmai.us", "rule34.paheal.net",
         "pornhubpremium.com", "pornhubpremium.net", "xhamsterlive.com", "xhamster.desi",
-        "xnxx.tv", "xnxx.health", "xvideos2.com", "xvideos3.com", "redgifs.com",
-        "adulttime.com", "teamSkeet.com".lowercase(), "mofos.com", "naughtyamerica.com",
-        "digitalplayground.com", "wicked.com", "vixen.com", "deeper.com",
-        "blacked.com", "tushy.com", "bellesa.co", "manyvids.com",
+        "xnxx.tv", "xnxx.health", "xvideos2.com", "xvideos3.com",
+        "adulttime.com", "teamskeet.com", "mofos.com", "digitalplayground.com",
+        "wicked.com", "vixen.com", "deeper.com", "blacked.com", "tushy.com",
+        "bellesa.co", "manyvids.com",
     )
 
     /** Stable, de-duplicated Xray routing rules. */
