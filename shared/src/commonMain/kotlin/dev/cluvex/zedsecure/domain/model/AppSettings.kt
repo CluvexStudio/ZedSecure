@@ -121,13 +121,21 @@ enum class GeoFilesSource(val repo: String) {
 }
 
 /**
- * GHOST – pro anti-DPI helper (app-layer, zapret-inspired multiphase).
+ * GHOST + DARK GHOST settings.
  * strategy: auto | balanced | aggressive | max | stealth
  */
 @Serializable
 data class GhostSettings(
     val enabled: Boolean = false,
     val autoMode: Boolean = false,
+
+    /** DARK GHOST – advanced intelligence + morphing anti-DPI (opt-in) */
+    val darkGhostEnabled: Boolean = false,
+    val darkIntelligenceEnabled: Boolean = true,
+    val darkMorphingEnabled: Boolean = true,
+    /** 1..5 */
+    val darkIntensity: Int = 3,
+    val darkProbeIntervalSec: Int = 45,
 
     /** auto / balanced / aggressive / max / stealth */
     val strategy: String = "auto",
@@ -148,11 +156,8 @@ data class GhostSettings(
     val pressureDetectionEnabled: Boolean = true,
     val maxParallelRequests: Int = 2,
 
-    /** zapret-inspired multiphase cycle */
     val multiphaseEnabled: Boolean = true,
-    /** shuffle / reverse request order inside a phase */
     val requestDisorder: Boolean = true,
-    /** extra harmless "fake" probes before main decoy */
     val fakeFloodEnabled: Boolean = true,
 )
 

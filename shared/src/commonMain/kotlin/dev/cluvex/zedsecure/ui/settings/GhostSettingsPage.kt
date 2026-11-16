@@ -18,10 +18,6 @@ import dev.cluvex.zedsecure.core.ghost.GhostEngine
 import dev.cluvex.zedsecure.domain.model.AppSettings
 import kotlinx.coroutines.delay
 
-/**
- * GHOST MOD settings.
- * Pattern matches PrivacyPage / other settings pages to avoid scaffold API mismatches.
- */
 @Composable
 fun GhostSettingsPage(
     settings: AppSettings,
@@ -69,6 +65,14 @@ fun GhostSettingsPage(
                     onUpdate { it.copy(ghost = it.ghost.copy(autoMode = v)) }
                 },
             )
+            SettingsSwitchRow(
+                title = "DARK GHOST",
+                summary = "حالت فوق‌پیشرفته: هوش شبکه + Morphing + تشدید ضد DPI",
+                checked = ghost.darkGhostEnabled,
+                onCheckedChange = { v ->
+                    onUpdate { it.copy(ghost = it.ghost.copy(darkGhostEnabled = v)) }
+                },
+            )
         }
 
         if (!ghost.enabled) return@SettingsPageScaffold
@@ -82,16 +86,14 @@ fun GhostSettingsPage(
                     } else {
                         Text(
                             text = when {
+                                s.running && s.darkGhost -> "● DARK GHOST فعال – کمک به تونل"
                                 s.running -> "● در حال کمک به تونل"
                                 s.enabled && !s.tunnelConnected -> "○ آماده – منتظر اتصال"
                                 else -> "○ متوقف"
                             },
                             style = MaterialTheme.typography.titleMedium,
-                            color = if (s.running) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
+                            color = if (s.running) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Text(
                             text = "تونل: ${if (s.tunnelConnected) "وصل" else "قطع"}",
@@ -101,19 +103,22 @@ fun GhostSettingsPage(
                             text = "استراتژی: ${s.strategy} | فاز: ${s.phase}",
                             style = MaterialTheme.typography.bodySmall,
                         )
+                        if (s.darkGhost) {
+                            Text(
+                                text = "Intel: ${s.intelSummary}",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
                         if (s.autoMode) {
                             Text(
                                 text = "شبکه: ${s.networkLabel}",
                                 style = MaterialTheme.typography.bodyMedium,
                             )
-                            Text(
-                                text = s.autoReason,
-                                style = MaterialTheme.typography.bodySmall,
-                            )
+                            Text(text = s.autoReason, style = MaterialTheme.typography.bodySmall)
                         }
                         if (s.underPressure) {
                             Text(
-                                text = "⚠ فشار DPI – نویز افزایش یافته",
+                                text = "⚠ فشار شبکه – نویز افزایش یافته",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.error,
                             )
@@ -135,12 +140,74 @@ fun GhostSettingsPage(
             }
         }
 
-        if (ghost.autoMode) {
+        if (ghost.darkGhostEnabled) {
+            SettingsGroup(title = "DARK GHOST") {
+                SettingsSwitchRow(
+                    title = "Network Intelligence",
+                    summary = "پروب امن و طبقه‌بندی شرایط شبکه (بدون ادعای DPI قطعی)",
+                    checked = ghost.darkIntelligenceEnabled,
+                    onCheckedChange = { v ->
+                        onUpdate { it.copy(ghost = it.ghost.copy(darkIntelligenceEnabled = v)) }
+                    },
+                )
+                SettingsSwitchRow(
+                    title = "Traffic Morphing",
+                    summary = "jitter / disorder / فازهای اضافی D0–D4",
+                    checked = ghost.darkMorphingEnabled,
+                    onCheckedChange = { v ->
+                        onUpdate { it.copy(ghost = it.ghost.copy(darkMorphingEnabled = v)) }
+                    },
+                )
+                SettingsSegment {
+                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                        Text(
+                            text = "شدت DARK: ${ghost.darkIntensity}",
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        Slider(
+                            value = ghost.darkIntensity.toFloat().coerceIn(1f, 5f),
+                            onValueChange = { v ->
+                                onUpdate {
+                                    it.copy(ghost = it.ghost.copy(darkIntensity = v.toInt().coerceIn(1, 5)))
+                                }
+                            },
+                            valueRange = 1f..5f,
+                            steps = 3,
+                        )
+                        Text(
+                            text = "فاصله پروب Intel: ${ghost.darkProbeIntervalSec}s",
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        Slider(
+                            value = ghost.darkProbeIntervalSec.toFloat().coerceIn(20f, 180f),
+                            onValueChange = { v ->
+                                onUpdate {
+                                    it.copy(
+                                        ghost = it.ghost.copy(
+                                            darkProbeIntervalSec = v.toInt().coerceIn(20, 180),
+                                        ),
+                                    )
+                                }
+                            },
+                            valueRange = 20f..180f,
+                            steps = 15,
+                        )
+                        Text(
+                            text = "DARK فقط پس از Connect کار می‌کند و موتورهای VPN را تغییر نمی‌دهد.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+        }
+
+        if (ghost.autoMode && !ghost.darkGhostEnabled) {
             SettingsGroup(title = "AUTO فعال") {
                 SettingsSegment {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
-                            text = "تنظیمات دستی مخفی است. AUTO بر اساس شبکه و فشار DPI همه چیز را می‌چیند.",
+                            text = "تنظیمات دستی مخفی است. AUTO بر اساس شبکه و فشار، پارامترها را می‌چیند.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -150,173 +217,66 @@ fun GhostSettingsPage(
             return@SettingsPageScaffold
         }
 
-        SettingsGroup(title = "استراتژی") {
-            StrategyOption(
-                label = "Auto",
-                key = "auto",
-                current = ghost.strategy,
-                onSelect = { key -> onUpdate { it.copy(ghost = it.ghost.copy(strategy = key)) } },
-            )
-            StrategyOption(
-                label = "Balanced",
-                key = "balanced",
-                current = ghost.strategy,
-                onSelect = { key -> onUpdate { it.copy(ghost = it.ghost.copy(strategy = key)) } },
-            )
-            StrategyOption(
-                label = "Aggressive",
-                key = "aggressive",
-                current = ghost.strategy,
-                onSelect = { key -> onUpdate { it.copy(ghost = it.ghost.copy(strategy = key)) } },
-            )
-            StrategyOption(
-                label = "Max Noise",
-                key = "max",
-                current = ghost.strategy,
-                onSelect = { key -> onUpdate { it.copy(ghost = it.ghost.copy(strategy = key)) } },
-            )
-            StrategyOption(
-                label = "Cellular Stealth",
-                key = "stealth",
-                current = ghost.strategy,
-                onSelect = { key -> onUpdate { it.copy(ghost = it.ghost.copy(strategy = key)) } },
-            )
-        }
-
-        SettingsGroup(title = "پیشرفته") {
-            SettingsSwitchRow(
-                title = "Multi-Phase",
-                summary = "P0 Fake → P1 Mimic → P2 Residual",
-                checked = ghost.multiphaseEnabled,
-                onCheckedChange = { v ->
-                    onUpdate { it.copy(ghost = it.ghost.copy(multiphaseEnabled = v)) }
-                },
-            )
-            SettingsSwitchRow(
-                title = "Fake Flood",
-                summary = "پروب جعلی قبل از mimic",
-                checked = ghost.fakeFloodEnabled,
-                onCheckedChange = { v ->
-                    onUpdate { it.copy(ghost = it.ghost.copy(fakeFloodEnabled = v)) }
-                },
-            )
-            SettingsSwitchRow(
-                title = "Request Disorder",
-                summary = "به‌هم‌ریختن ترتیب درخواست‌ها",
-                checked = ghost.requestDisorder,
-                onCheckedChange = { v ->
-                    onUpdate { it.copy(ghost = it.ghost.copy(requestDisorder = v)) }
-                },
-            )
-            SettingsSwitchRow(
-                title = "Smart Decoy",
-                summary = "موتور ترافیک جعلی",
-                checked = ghost.decoyEngineEnabled,
-                onCheckedChange = { v ->
-                    onUpdate { it.copy(ghost = it.ghost.copy(decoyEngineEnabled = v)) }
-                },
-            )
-            SettingsSwitchRow(
-                title = "App-Layer Mimicry",
-                summary = "User-Agent شبیه اپ‌های ایرانی",
-                checked = ghost.appLayerMimicryEnabled,
-                onCheckedChange = { v ->
-                    onUpdate { it.copy(ghost = it.ghost.copy(appLayerMimicryEnabled = v)) }
-                },
-            )
-            SettingsSwitchRow(
-                title = "Multi-App",
-                summary = "چند اپ همزمان",
-                checked = ghost.multiAppConcurrent,
-                onCheckedChange = { v ->
-                    onUpdate { it.copy(ghost = it.ghost.copy(multiAppConcurrent = v)) }
-                },
-            )
-            SettingsSwitchRow(
-                title = "Adaptive + Pressure",
-                summary = "افزایش نویز زیر فشار DPI",
-                checked = ghost.adaptiveFallbackEnabled,
-                onCheckedChange = { v ->
-                    onUpdate {
-                        it.copy(
-                            ghost = it.ghost.copy(
-                                adaptiveFallbackEnabled = v,
-                                pressureDetectionEnabled = v,
-                            ),
-                        )
-                    }
-                },
-            )
-            SettingsSwitchRow(
-                title = "Burst",
-                summary = "موج نویز",
-                checked = ghost.burstModeEnabled,
-                onCheckedChange = { v ->
-                    onUpdate { it.copy(ghost = it.ghost.copy(burstModeEnabled = v)) }
-                },
-            )
-        }
-
-        SettingsGroup(title = "حجم و زمان") {
-            SettingsSegment {
-                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                    Text(
-                        text = "حجم ترافیک جعلی: ${ghost.decoyVolumePercent}%",
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                    Slider(
-                        value = ghost.decoyVolumePercent.toFloat().coerceIn(10f, 85f),
-                        onValueChange = { v ->
-                            onUpdate {
-                                it.copy(
-                                    ghost = it.ghost.copy(
-                                        decoyVolumePercent = v.toInt().coerceIn(10, 85),
-                                    ),
-                                )
-                            }
-                        },
-                        valueRange = 10f..85f,
-                        steps = 14,
-                    )
-                    Text(
-                        text = "فاصله چرخه: ${ghost.decoyIntervalSeconds} ثانیه",
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                    Slider(
-                        value = ghost.decoyIntervalSeconds.toFloat().coerceIn(4f, 60f),
-                        onValueChange = { v ->
-                            onUpdate {
-                                it.copy(
-                                    ghost = it.ghost.copy(
-                                        decoyIntervalSeconds = v.toInt().coerceIn(4, 60),
-                                    ),
-                                )
-                            }
-                        },
-                        valueRange = 4f..60f,
-                        steps = 13,
-                    )
-                    if (ghost.burstModeEnabled) {
-                        Text(
-                            text = "شدت Burst: ${ghost.burstIntensity}",
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                        Slider(
-                            value = ghost.burstIntensity.toFloat().coerceIn(1f, 5f),
-                            onValueChange = { v ->
-                                onUpdate {
-                                    it.copy(
-                                        ghost = it.ghost.copy(
-                                            burstIntensity = v.toInt().coerceIn(1, 5),
-                                        ),
-                                    )
-                                }
-                            },
-                            valueRange = 1f..5f,
-                            steps = 3,
-                        )
-                    }
+        if (!ghost.autoMode) {
+            SettingsGroup(title = "استراتژی") {
+                StrategyOption("Auto", "auto", ghost.strategy) { key ->
+                    onUpdate { it.copy(ghost = it.ghost.copy(strategy = key)) }
                 }
+                StrategyOption("Balanced", "balanced", ghost.strategy) { key ->
+                    onUpdate { it.copy(ghost = it.ghost.copy(strategy = key)) }
+                }
+                StrategyOption("Aggressive", "aggressive", ghost.strategy) { key ->
+                    onUpdate { it.copy(ghost = it.ghost.copy(strategy = key)) }
+                }
+                StrategyOption("Max Noise", "max", ghost.strategy) { key ->
+                    onUpdate { it.copy(ghost = it.ghost.copy(strategy = key)) }
+                }
+                StrategyOption("Cellular Stealth", "stealth", ghost.strategy) { key ->
+                    onUpdate { it.copy(ghost = it.ghost.copy(strategy = key)) }
+                }
+            }
+
+            SettingsGroup(title = "پیشرفته") {
+                SettingsSwitchRow(
+                    title = "Multi-Phase",
+                    summary = "P0 Fake → P1 Mimic → P2 Residual",
+                    checked = ghost.multiphaseEnabled,
+                    onCheckedChange = { v ->
+                        onUpdate { it.copy(ghost = it.ghost.copy(multiphaseEnabled = v)) }
+                    },
+                )
+                SettingsSwitchRow(
+                    title = "Fake Flood",
+                    summary = "پروب جعلی قبل از mimic",
+                    checked = ghost.fakeFloodEnabled,
+                    onCheckedChange = { v ->
+                        onUpdate { it.copy(ghost = it.ghost.copy(fakeFloodEnabled = v)) }
+                    },
+                )
+                SettingsSwitchRow(
+                    title = "Request Disorder",
+                    summary = "به‌هم‌ریختن ترتیب درخواست‌ها",
+                    checked = ghost.requestDisorder,
+                    onCheckedChange = { v ->
+                        onUpdate { it.copy(ghost = it.ghost.copy(requestDisorder = v)) }
+                    },
+                )
+                SettingsSwitchRow(
+                    title = "Smart Decoy",
+                    summary = "موتور ترافیک جعلی",
+                    checked = ghost.decoyEngineEnabled,
+                    onCheckedChange = { v ->
+                        onUpdate { it.copy(ghost = it.ghost.copy(decoyEngineEnabled = v)) }
+                    },
+                )
+                SettingsSwitchRow(
+                    title = "Burst",
+                    summary = "موج نویز",
+                    checked = ghost.burstModeEnabled,
+                    onCheckedChange = { v ->
+                        onUpdate { it.copy(ghost = it.ghost.copy(burstModeEnabled = v)) }
+                    },
+                )
             }
         }
     }
