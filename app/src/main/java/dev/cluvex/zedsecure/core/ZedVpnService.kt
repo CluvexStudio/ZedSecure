@@ -286,10 +286,27 @@ class ZedVpnService : VpnService() {
 
                 addAddress(iface.ipv4Router, 30)
                 if (settings.enableIpv6) addAddress(iface.ipv6Router, 126)
-                addLanAwareRoutes(bypassLan, settings.enableIpv6, excludeIp = spoofBypassIp)
+                if (kind == VpnManager.KIND_DNS_RESOLVER) {
+                    val resolver = dnsResolverAddress(configJson)
+                        ?: throw IllegalArgumentException("DNS profile has no valid numeric resolver address")
+                    addRoute(resolver, if (resolver.contains(':')) 128 else 32)
+                    if (settings.ghost.adultContentProtectionEnabled) {
+                        addRoute("185.228.168.10", 32)
+                        addRoute("185.228.169.11", 32)
+                    }
+                } else {
+                    addLanAwareRoutes(bypassLan, settings.enableIpv6, excludeIp = spoofBypassIp)
+                }
                 applyAppRules(settings)
 
-                if (settings.ghost.adultContentProtectionEnabled) {
+                if (kind == VpnManager.KIND_DNS_RESOLVER) {
+                    if (settings.ghost.adultContentProtectionEnabled) {
+                        addDnsServer("185.228.168.10")
+                        addDnsServer("185.228.169.11")
+                    } else {
+                        addDnsServer(dnsResolverAddress(configJson)!!)
+                    }
+                } else if (settings.ghost.adultContentProtectionEnabled) {
                     // CleanBrowsing Adult Filter blocks adult domains and enforces SafeSearch.
                     runCatching { addDnsServer("185.228.168.10") }
                     runCatching { addDnsServer("185.228.169.11") }
@@ -338,6 +355,13 @@ class ZedVpnService : VpnService() {
         }
     }
 
+    private fun dnsResolverAddress(configJson: String): String? = runCatching {
+        val servers = JSONObject(configJson).optJSONObject("dns")?.optJSONArray("servers") ?: return null
+        val raw = servers.optString(0).removePrefix("tcp://").trim()
+        val address = if (raw.startsWith("[")) raw.substringAfter('[').substringBefore(']')
+        else raw.substringBefore(':')
+        address.takeIf { dev.cluvex.zedsecure.domain.config.XrayJsonBuilder.isIpLiteral(it) }
+    }.getOrNull()
     private fun startSniSpoof(configJson: String, socksPort: Int, descriptor: ParcelFileDescriptor, tunMtu: Int) {
         scope.launch {
             try {
@@ -953,6 +977,7 @@ class ZedVpnService : VpnService() {
             VpnManager.KIND_PSIPHON -> "Psiphon"
             VpnManager.KIND_DNS_TUNNEL -> "DNS"
             VpnManager.KIND_MASTERDNS -> "MasterDNS"
+            VpnManager.KIND_DNS_RESOLVER -> "DNS"
             VpnManager.KIND_TOR -> "Tor"
             VpnManager.KIND_SSH -> "SSH"
             VpnManager.KIND_OPENCONNECT -> "OpenConnect"
@@ -971,6 +996,7 @@ class ZedVpnService : VpnService() {
         VpnManager.KIND_PSIPHON -> "Psiphon"
         VpnManager.KIND_DNS_TUNNEL -> "DNS"
         VpnManager.KIND_MASTERDNS -> "MasterDNS"
+        VpnManager.KIND_DNS_RESOLVER -> "DNS"
         VpnManager.KIND_TOR -> "Tor"
         VpnManager.KIND_SSH -> "SSH"
         else -> "Xray"
