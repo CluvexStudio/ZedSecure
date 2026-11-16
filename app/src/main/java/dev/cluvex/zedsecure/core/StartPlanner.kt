@@ -124,6 +124,7 @@ class StartPlanner(context: Context) {
         profile.psiphonSettings() != null -> VpnManager.KIND_PSIPHON
         profile.dnsTunnelSettings() != null -> VpnManager.KIND_DNS_TUNNEL
         profile.masterDnsSettings() != null -> VpnManager.KIND_MASTERDNS
+        profile.dnsResolverSettings() != null -> VpnManager.KIND_DNS_RESOLVER
         profile.openConnectSettings() != null -> VpnManager.KIND_OPENCONNECT
         profile.ikev2Settings() != null -> VpnManager.KIND_IKEV2
         profile.isTor -> VpnManager.KIND_TOR
@@ -174,6 +175,25 @@ class StartPlanner(context: Context) {
                 socksPort = freePort(LocalPorts.PSIPHON_SOCKS),
                 httpPort = freePort(LocalPorts.PSIPHON_HTTP),
             )
+        }
+        profile.dnsResolverSettings()?.let { dns ->
+            val ip = dns.directAddress.trim()
+            require(XrayJsonBuilder.isIpLiteral(ip)) { "DNS resolver must be an IPv4 or IPv6 address" }
+            val server = if (dns.protocol.equals("tcp", true)) "tcp://$ip" else ip
+            return """
+                {
+                  "log": {"loglevel": "warning"},
+                  "dns": {"servers": ["$server"]},
+                  "inbounds": [{
+                    "tag": "socks-in",
+                    "listen": "127.0.0.1",
+                    "port": ${LocalPorts.XRAY_SOCKS},
+                    "protocol": "socks",
+                    "settings": {"auth": "noauth", "udp": true}
+                  }],
+                  "outbounds": [{"tag": "direct", "protocol": "freedom", "settings": {}}]
+                }
+            """.trimIndent()
         }
         profile.masterDnsSettings()?.let {
             return kotlinx.serialization.json.Json.encodeToString(
