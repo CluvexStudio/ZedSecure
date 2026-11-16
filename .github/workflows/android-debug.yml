@@ -42,7 +42,7 @@ jobs:
           cargo install cargo-ndk --locked
 
       - name: Build pinned Aether native engine
-        run: ./tools/build-aether-engine.sh
+        run: bash ./tools/build-aether-engine.sh
 
       - name: Download and verify Android engines
         run: ./tools/get-cores.sh android
