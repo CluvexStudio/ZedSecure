@@ -1822,4 +1822,12 @@
     <string name="notif_sound_action_title">Choose a custom notification sound</string>
     <string name="notif_sound_action_summary">Open Android notification settings to select a sound and vibration for ZX VPN.</string>
     <string name="notif_custom_group_title">Customizable notifications</string>
+    <string name="support_title">Support the project</string>
+    <string name="support_subtitle">Help fund ongoing development</string>
+    <string name="support_intro">Help fund the project's development — you can support via any of these:</string>
+    <string name="support_usdt">USDT (TRC20)</string>
+    <string name="support_ton">TON (Gram)</string>
+    <string name="support_tron">TRON (TRX)</string>
+    <string name="support_usdt_note">Note: the USDT is on the TRON network, so the USDT (TRC20) and TRON addresses are the same wallet — that's intentional.</string>
+    <string name="support_copied">Address copied</string>
 </resources>

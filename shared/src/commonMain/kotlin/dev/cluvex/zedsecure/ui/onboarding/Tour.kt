@@ -136,6 +136,7 @@ object TourTargets {
     const val SETTINGS_CORE = "settings-core"
     const val SETTINGS_TOOLS = "settings-tools"
     const val SETTINGS_ABOUT = "settings-about"
+    const val SETTINGS_SUPPORT = "settings-support"
 }
 
 fun Modifier.tourTarget(key: String): Modifier = this then TourTargetElement(key)

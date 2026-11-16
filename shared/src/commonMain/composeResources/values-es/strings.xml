@@ -1772,4 +1772,12 @@
     <string name="zx_anim_hint">Auto se adapta a tu dispositivo. Máximo añade glitch, líneas de escaneo, lluvia digital y una cuadrícula luminosa; Mínimo deja solo transiciones simples. Día y noche siguen el modo del tema.</string>
     <string name="zx_node_device">Tú</string>
     <string name="zx_node_internet">Red</string>
+    <string name="support_title">Apoyar el proyecto</string>
+    <string name="support_subtitle">Ayuda a financiar el desarrollo continuo</string>
+    <string name="support_intro">Ayuda a financiar el desarrollo del proyecto — puedes apoyarlo con cualquiera de estas opciones:</string>
+    <string name="support_usdt">USDT (TRC20)</string>
+    <string name="support_ton">TON (Gram)</string>
+    <string name="support_tron">TRON (TRX)</string>
+    <string name="support_usdt_note">Nota: el USDT está en la red TRON, así que las direcciones de USDT (TRC20) y TRON son la misma billetera — es intencionado.</string>
+    <string name="support_copied">Dirección copiada</string>
 </resources>

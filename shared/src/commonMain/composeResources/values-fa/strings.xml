@@ -1815,4 +1815,12 @@
     <string name="notif_sound_action_title">انتخاب صدای دلخواه اعلان</string>
     <string name="notif_sound_action_summary">برای انتخاب صدا و لرزش اختصاصی ZX VPN، تنظیمات اعلان اندروید را باز کنید.</string>
     <string name="notif_custom_group_title">شخصی‌سازی اعلان‌ها</string>
+    <string name="support_title">حمایت مالی</string>
+    <string name="support_subtitle">کمک به توسعهٔ پروژه</string>
+    <string name="support_intro">برای کمک به توسعهٔ پروژه می‌توانید از هر یک از این راه‌ها حمایت کنید:</string>
+    <string name="support_usdt">تتر USDT (TRC20)</string>
+    <string name="support_ton">تون TON (Gram)</string>
+    <string name="support_tron">ترون TRON (TRX)</string>
+    <string name="support_usdt_note">توجه: این تتر روی شبکهٔ ترون (TRON) است، به همین دلیل آدرس USDT (TRC20) و TRON یکی هستند — این عمدی است و اشتباه نیست.</string>
+    <string name="support_copied">آدرس کپی شد</string>
 </resources>

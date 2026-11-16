@@ -1819,4 +1819,12 @@
     <string name="zx_anim_hint">Авто подстраивается под устройство. Максимум добавляет глитч, линии развёртки, цифровой дождь и светящуюся сетку; Минимум оставляет только простые переходы. День и ночь зависят от режима темы.</string>
     <string name="zx_node_device">Вы</string>
     <string name="zx_node_internet">Сеть</string>
+    <string name="support_title">Поддержать проект</string>
+    <string name="support_subtitle">Помочь развитию проекта</string>
+    <string name="support_intro">Помогите финансировать развитие проекта — вы можете поддержать любым из способов:</string>
+    <string name="support_usdt">USDT (TRC20)</string>
+    <string name="support_ton">TON (Gram)</string>
+    <string name="support_tron">TRON (TRX)</string>
+    <string name="support_usdt_note">Примечание: USDT находится в сети TRON, поэтому адреса USDT (TRC20) и TRON — это один и тот же кошелёк. Так и должно быть.</string>
+    <string name="support_copied">Адрес скопирован</string>
 </resources>

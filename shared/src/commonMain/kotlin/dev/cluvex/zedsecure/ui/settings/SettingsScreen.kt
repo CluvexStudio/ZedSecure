@@ -565,6 +565,7 @@ private fun BentoRoot(
             AppDesign.Bento -> Res.string.home_design_bento
             AppDesign.Pixel -> Res.string.home_design_pixel
             AppDesign.Old -> Res.string.home_design_old
+            AppDesign.Zx -> Res.string.home_design_zx
         },
     )
     val paletteName = stringResource(
@@ -1256,6 +1257,10 @@ private fun UiPage(
 
         if (s.appDesign == AppDesign.Bento) {
             dev.cluvex.zedsecure.ui.bento.BentoLookSection(s, onUpdate)
+        }
+
+        if (s.appDesign == AppDesign.Zx) {
+            dev.cluvex.zedsecure.ui.zx.ZxLookSection(s, onUpdate)
         }
 
         if (LocalPlatform.current.hasStatusNotification) {
