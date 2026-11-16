@@ -358,8 +358,11 @@ class ZedVpnService : VpnService() {
     private fun dnsResolverAddress(configJson: String): String? = runCatching {
         val servers = JSONObject(configJson).optJSONObject("dns")?.optJSONArray("servers") ?: return null
         val raw = servers.optString(0).removePrefix("tcp://").trim()
-        val address = if (raw.startsWith("[")) raw.substringAfter('[').substringBefore(']')
-        else raw.substringBefore(':')
+        val address = when {
+            raw.startsWith("[") -> raw.substringAfter('[').substringBefore(']')
+            dev.cluvex.zedsecure.domain.config.XrayJsonBuilder.isIpLiteral(raw) -> raw
+            else -> raw.substringBefore(':')
+        }
         address.takeIf { dev.cluvex.zedsecure.domain.config.XrayJsonBuilder.isIpLiteral(it) }
     }.getOrNull()
     private fun startSniSpoof(configJson: String, socksPort: Int, descriptor: ParcelFileDescriptor, tunMtu: Int) {
