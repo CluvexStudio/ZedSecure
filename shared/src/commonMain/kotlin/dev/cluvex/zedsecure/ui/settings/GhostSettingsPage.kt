@@ -62,6 +62,21 @@ fun GhostSettingsPage(
                 },
             )
             SettingsSwitchRow(
+                title = "ضد Porn",
+                summary = "فیلتر DNS برای محتوای بزرگسالان و اعمال SafeSearch؛ هنگام اتصال VPN فعال می‌شود",
+                checked = ghost.adultContentProtectionEnabled,
+                onCheckedChange = { v ->
+                    onUpdate {
+                        it.copy(ghost = it.ghost.copy(adultContentProtectionEnabled = v))
+                    }
+                },
+            )
+            Text(
+                text = "برای اعمال تغییر، اتصال VPN را دوباره برقرار کن. مرورگرهایی که DNS رمزگذاری‌شدهٔ مستقل دارند ممکن است از فیلتر شبکه پیروی نکنند.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            SettingsSwitchRow(
                 title = "AUTO",
                 summary = "تشخیص وای‌فای/داده + استراتژی خودکار",
                 checked = ghost.autoMode,
