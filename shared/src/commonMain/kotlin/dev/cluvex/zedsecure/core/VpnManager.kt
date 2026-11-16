@@ -61,6 +61,8 @@ object VpnManager {
 
     const val KIND_MASTERDNS = "master_dns"
 
+    const val KIND_DNS_RESOLVER = "dns_resolver"
+
     const val KIND_TOR = "tor"
 
     const val KIND_SSH = "ssh"
