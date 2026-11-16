@@ -463,6 +463,27 @@ class ConfigRepository(private val store: KeyValueStore) {
         return profile
     }
 
+    fun addDnsResolver(
+        settings: dev.cluvex.zedsecure.domain.model.DnsResolverProfile,
+        name: String,
+        id: String? = null,
+    ): VpnProfile {
+        val existing = id?.let { profile(it) }
+        val profile = VpnProfile.fromDnsResolver(
+            settings = settings,
+            id = existing?.id ?: newId(),
+            addedAt = existing?.addedAt ?: currentTimeMillis(),
+            name = name,
+        ).let { carryOver(existing, it) }
+        _profiles.value = if (existing != null) {
+            _profiles.value.map { if (it.id == profile.id) profile else it }
+        } else {
+            listOf(profile) + _profiles.value
+        }
+        persistProfiles()
+        if (_activeId.value == null) setActive(profile.id)
+        return profile
+    }
     fun addOpenConnect(
         settings: dev.cluvex.zedsecure.domain.config.OpenConnectProfile,
         name: String,
@@ -755,6 +776,7 @@ class ConfigRepository(private val store: KeyValueStore) {
             is ProfileSource.Tor -> { addTor(name); 1 }
             is ProfileSource.Ssh -> { addSsh(src.settings, name); 1 }
             is ProfileSource.MasterDns -> { addMasterDns(src.settings, name); 1 }
+            is ProfileSource.DnsResolver -> { addDnsResolver(src.settings, name); 1 }
             is ProfileSource.OpenConnect -> { addOpenConnect(src.settings, name); 1 }
             is ProfileSource.Ikev2 -> { addIkev2(src.settings, name); 1 }
             is ProfileSource.ProxyChain, is ProfileSource.CrossChain -> {
