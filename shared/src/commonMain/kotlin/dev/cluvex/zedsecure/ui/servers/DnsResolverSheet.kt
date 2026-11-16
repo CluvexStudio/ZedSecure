@@ -47,7 +47,7 @@ private val dnsPresets = listOf(
     DnsPreset("AdGuard", "doh", "https://dns.adguard.com/dns-query", "94.140.14.14"),
     DnsPreset("CleanBrowsing Family", "doh", "https://doh.cleanbrowsing.org/doh/family-filter/", "185.228.168.168"),
     DnsPreset("Cloudflare DoT", "dot", "tls://1.1.1.1:853", "1.1.1.1"),
-    DnsPreset("Google UDP", "udp", "udp://8.8.8.8:53", "8.8.8.8"),
+    DnsPreset("Google UDP", "udp", "8.8.8.8:53", "8.8.8.8"),
     DnsPreset("Cloudflare TCP", "tcp", "tcp://1.1.1.1:53", "1.1.1.1"),
 )
 
@@ -182,7 +182,7 @@ internal fun DnsResolverSheet(
                         onClick = {
                             protocol = value
                             endpoint = when (value) {
-                                "udp" -> "udp://"
+                                "udp" -> ""
                                 "tcp" -> "tcp://"
                                 "dot" -> "tls://"
                                 else -> "https://"
@@ -221,14 +221,18 @@ internal fun DnsResolverSheet(
                 Button(onClick = {
                     val normalized = endpoint.trim()
                     val expectedScheme = when (protocol) {
-                        "udp" -> "udp://"
+                        "udp" -> ""
                         "tcp" -> "tcp://"
                         "dot" -> "tls://"
                         else -> "https://"
                     }
+                    val validEndpoint = when (protocol) {
+                        "udp" -> normalized.isNotBlank() && !normalized.contains("://")
+                        else -> normalized.startsWith(expectedScheme) && normalized.length > expectedScheme.length
+                    }
                     if (name.isBlank()) {
                         error = "برای پروفایل یک نام وارد کن."
-                    } else if (!normalized.startsWith(expectedScheme) || normalized.length <= expectedScheme.length) {
+                    } else if (!validEndpoint) {
                         error = "آدرس با پروتکل انتخاب‌شده هم‌خوانی ندارد."
                     } else if (direct.isBlank()) {
                         error = "آدرس IP برای DNS مستقیم الزامی است."
