@@ -35,7 +35,6 @@ internal fun DnsProfileSheet(
 ) {
     var name by remember(initial?.id) { mutableStateOf(initialName.ifBlank { initial?.name ?: "Cloudflare DNS" }) }
     var address by remember(initial?.id) { mutableStateOf(initial?.directAddress ?: "1.1.1.1") }
-    var protocol by remember(initial?.id) { mutableStateOf(initial?.protocol ?: "udp") }
     var error by remember { mutableStateOf("") }
     val validIp = remember(address) {
         val value = address.trim()
@@ -56,11 +55,7 @@ internal fun DnsProfileSheet(
             }
             OutlinedTextField(value = name, onValueChange = { name = it; error = "" }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("نام پروفایل") })
             OutlinedTextField(value = address, onValueChange = { address = it.trim(); error = "" }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("آدرس IP سرور DNS") }, supportingText = { Text("IPv4 یا IPv6؛ برای نسخه فعلی از IP مستقیم استفاده کن.") })
-            Text("انتقال DNS", style = MaterialTheme.typography.labelLarge)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                AssistChip(onClick = { protocol = "udp" }, label = { Text(if (protocol == "udp") "✓ UDP" else "UDP") })
-                AssistChip(onClick = { protocol = "tcp" }, label = { Text(if (protocol == "tcp") "✓ TCP" else "TCP") })
-            }
+            Text("انتقال DNS: UDP از طریق تونل اصلی", style = MaterialTheme.typography.bodyMedium)
             if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             Button(
                 onClick = {
@@ -68,8 +63,8 @@ internal fun DnsProfileSheet(
                     else if (!validIp) error = "آدرس باید یک IP معتبر باشد."
                     else {
                         val ip = address.trim()
-                        val endpoint = if (protocol == "tcp") "tcp://$ip:53" else "$ip:53"
-                        onSave(name.trim(), DnsResolverProfile(id = initial?.id ?: "dns-${kotlin.random.Random.nextLong()}", name = name.trim(), protocol = protocol, remoteEndpoint = endpoint, directAddress = ip))
+                        val endpoint = "$ip:53"
+                        onSave(name.trim(), DnsResolverProfile(id = initial?.id ?: "dns-${kotlin.random.Random.nextLong()}", name = name.trim(), protocol = "udp", remoteEndpoint = endpoint, directAddress = ip))
                     }
                 },
                 enabled = name.isNotBlank() && validIp,
