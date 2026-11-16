@@ -120,28 +120,40 @@ enum class GeoFilesSource(val repo: String) {
     Chocolate4U("Chocolate4U/Iran-v2ray-rules"),
 }
 
+/**
+ * GHOST – pro anti-DPI helper (app-layer, zapret-inspired multiphase).
+ * strategy: auto | balanced | aggressive | max | stealth
+ */
 @Serializable
 data class GhostSettings(
     val enabled: Boolean = false,
-
-    /** AUTO: detect Wi‑Fi / mobile data and auto-tune all GHOST parameters */
     val autoMode: Boolean = false,
+
+    /** auto / balanced / aggressive / max / stealth */
+    val strategy: String = "auto",
 
     val appProfilesEnabled: Boolean = true,
     val activeProfiles: String = "rubika,neshan,digikala,snapp,aparat",
 
     val decoyEngineEnabled: Boolean = true,
-    val decoyVolumePercent: Int = 40,
-    val decoyIntervalSeconds: Int = 12,
+    val decoyVolumePercent: Int = 45,
+    val decoyIntervalSeconds: Int = 11,
 
     val appLayerMimicryEnabled: Boolean = true,
     val multiAppConcurrent: Boolean = true,
     val adaptiveFallbackEnabled: Boolean = true,
 
-    val burstModeEnabled: Boolean = false,
+    val burstModeEnabled: Boolean = true,
     val burstIntensity: Int = 3,
     val pressureDetectionEnabled: Boolean = true,
     val maxParallelRequests: Int = 2,
+
+    /** zapret-inspired multiphase cycle */
+    val multiphaseEnabled: Boolean = true,
+    /** shuffle / reverse request order inside a phase */
+    val requestDisorder: Boolean = true,
+    /** extra harmless "fake" probes before main decoy */
+    val fakeFloodEnabled: Boolean = true,
 )
 
 @Serializable
