@@ -16,13 +16,14 @@ import kotlinx.coroutines.launch
 import kotlin.random.Random
 
 /**
- * GHOST Engine – Generated Harmless Obfuscated Session Traffic
+ * GHOST – helps the active tunnel with app-layer decoy traffic (anti-DPI noise).
  *
- * Raises the cost of DPI classification by mixing real session traffic with
- * realistic Iranian-app decoy traffic.
+ * Lifecycle (important):
+ * - User enables GHOST in settings → only stores preference, does NOT start.
+ * - User presses Connect and tunnel becomes Connected → GHOST starts (if enabled).
+ * - Tunnel disconnects / errors → GHOST stops immediately.
  *
- * Inspiration: MockTraffic, Traffic-Obfuscator, and (app-layer adaptation of)
- * zapret's philosophy of making analysis expensive via decoy/fake patterns.
+ * Never touches Xray / sing-box / TUN / routing. Only best-effort HTTP decoys.
  */
 object GhostEngine {
 
@@ -30,6 +31,7 @@ object GhostEngine {
     private var job: Job? = null
 
     @Volatile private var currentSettings: GhostSettings = GhostSettings()
+    @Volatile private var tunnelConnected: Boolean = false
 
     private val recentResults = ArrayDeque<Boolean>(64)
 
@@ -46,6 +48,7 @@ object GhostEngine {
     data class DebugStatus(
         val running: Boolean,
         val enabled: Boolean,
+        val tunnelConnected: Boolean,
         val cycles: Long,
         val requests: Long,
         val successes: Long,
@@ -63,6 +66,7 @@ object GhostEngine {
         return DebugStatus(
             running = isRunning,
             enabled = s.enabled && s.decoyEngineEnabled,
+            tunnelConnected = tunnelConnected,
             cycles = totalCycles,
             requests = totalRequests,
             successes = successCount,
@@ -76,19 +80,42 @@ object GhostEngine {
         )
     }
 
+    /** Only updates preferences. Does NOT start the engine by itself. */
     fun updateSettings(settings: GhostSettings) {
         currentSettings = settings
-        if (settings.enabled && settings.decoyEngineEnabled) start() else stop()
+        // If user turned GHOST off while tunnel is up → stop.
+        // If user turned it on while tunnel is already up → start.
+        reconcile()
     }
 
-    fun start() {
+    /** Called from VpnManager when tunnel reaches Connected. */
+    fun onTunnelConnected() {
+        tunnelConnected = true
+        Log.i("GhostEngine", "tunnel connected – reconciling GHOST")
+        reconcile()
+    }
+
+    /** Called from VpnManager on disconnect / error / stopping. */
+    fun onTunnelDisconnected() {
+        tunnelConnected = false
+        Log.i("GhostEngine", "tunnel disconnected – stopping GHOST")
+        stop()
+    }
+
+    private fun reconcile() {
+        val s = currentSettings
+        val shouldRun = s.enabled && s.decoyEngineEnabled && tunnelConnected
+        if (shouldRun) start() else stop()
+    }
+
+    private fun start() {
         if (job?.isActive == true) return
         job = scope.launch {
             isRunning = true
-            Log.i("GhostEngine", "GHOST started")
+            Log.i("GhostEngine", "GHOST decoy helper started (tunnel-bound)")
             while (isActive) {
                 val s = currentSettings
-                if (!s.enabled || !s.decoyEngineEnabled) break
+                if (!s.enabled || !s.decoyEngineEnabled || !tunnelConnected) break
                 try {
                     runDecoyCycle(s)
                     totalCycles++
@@ -102,11 +129,11 @@ object GhostEngine {
                 delay(((base + jitter) * pressureFactor * 1000L).toLong())
             }
             isRunning = false
-            Log.i("GhostEngine", "GHOST stopped")
+            Log.i("GhostEngine", "GHOST decoy helper stopped")
         }
     }
 
-    fun stop() {
+    private fun stop() {
         job?.cancel()
         job = null
         isRunning = false
