@@ -75,7 +75,7 @@ fun GhostSettingsPage(
 
         SettingsGroup(title = "وضعیت زنده") {
             SettingsSegment {
-                Column(Modifier = Modifier.padding(16.dp)) {
+                Column(modifier = Modifier.padding(16.dp)) {
                     val s = status
                     if (s == null) {
                         Text("در حال بارگذاری…", style = MaterialTheme.typography.bodyMedium)
