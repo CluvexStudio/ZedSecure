@@ -95,6 +95,7 @@ import dev.cluvex.zedsecure.core.AutoSelect
 import dev.cluvex.zedsecure.domain.config.AutoSelectIds
 import dev.cluvex.zedsecure.domain.config.ConfigParseException
 import dev.cluvex.zedsecure.domain.config.VpnProfile
+import dev.cluvex.zedsecure.domain.model.AppSettings
 import dev.cluvex.zedsecure.ui.onboarding.TourTargets
 import dev.cluvex.zedsecure.ui.onboarding.tourTarget
 import dev.cluvex.zedsecure.ui.platform.LocalPlatform
@@ -125,6 +126,8 @@ fun ServersScreen(
     repository: ConfigRepository,
     contentPadding: PaddingValues,
     onServerActivated: () -> Unit,
+    settings: AppSettings,
+    onUpdateSettings: ((AppSettings) -> AppSettings) -> Unit,
     modifier: Modifier = Modifier,
     twoColumns: Boolean = false,
     showAllGroup: Boolean = true,
@@ -327,6 +330,7 @@ fun ServersScreen(
     var showCustomJson by remember { mutableStateOf(false) }
     var showPsiphon by remember { mutableStateOf(false) }
     var showDnsTunnel by remember { mutableStateOf(false) }
+    var showDnsResolver by remember { mutableStateOf(false) }
     var showMasterDns by remember { mutableStateOf(false) }
     var showOpenConnect by remember { mutableStateOf(false) }
     var showIkev2 by remember { mutableStateOf(false) }
@@ -1335,6 +1339,10 @@ fun ServersScreen(
                 showAddSheet = false
                 showDnsTunnel = true
             },
+            onDnsResolver = {
+                showAddSheet = false
+                showDnsResolver = true
+            },
             onMasterDns = {
                 showAddSheet = false
                 showMasterDns = true
@@ -1401,6 +1409,14 @@ fun ServersScreen(
                     .onSuccess { toastRes(Res.string.servers_imported, it) }
                     .onFailure { toastImportFailure(it) }
             },
+        )
+    }
+
+    if (showDnsResolver) {
+        DnsResolverSheet(
+            settings = settings,
+            onDismiss = { showDnsResolver = false },
+            onUpdate = onUpdateSettings,
         )
     }
 
@@ -2235,6 +2251,7 @@ private fun AddServerSheet(
     onCustom: () -> Unit,
     onPsiphon: () -> Unit,
     onDnsTunnel: () -> Unit,
+    onDnsResolver: () -> Unit,
     onMasterDns: () -> Unit,
     onOpenConnect: () -> Unit,
     onIkev2: () -> Unit,
@@ -2294,6 +2311,7 @@ private fun AddServerSheet(
             if (LocalPlatform.current.supportsSniSpoof) Option(Res.drawable.ic_bolt, Res.string.snispoof_add_title, onSniSpoof)
 
             OptionGroup(Res.string.add_group_dns)
+            Option(Res.drawable.ic_dns, Res.string.dns_protocols_about_title, onDnsResolver)
             Option(Res.drawable.ic_public, Res.string.dns_tunnel_add_title, onDnsTunnel)
             Option(Res.drawable.ic_public, Res.string.master_dns_add_title, onMasterDns)
 
