@@ -129,6 +129,7 @@ data class GhostSettings(
     val enabled: Boolean = false,
     val autoMode: Boolean = false,
 
+    // Legacy serialized keys retained for existing installs; GHOST no longer reads these values.
     val darkGhostEnabled: Boolean = false,
     val darkIntelligenceEnabled: Boolean = true,
     val darkMorphingEnabled: Boolean = true,
