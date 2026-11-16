@@ -28,12 +28,14 @@ import dev.cluvex.zedsecure.ui.platform.rememberAppSheetState
 
 @Composable
 internal fun DnsProfileSheet(
+    initial: DnsResolverProfile? = null,
+    initialName: String = "",
     onDismiss: () -> Unit,
     onSave: (String, DnsResolverProfile) -> Unit,
 ) {
-    var name by remember { mutableStateOf("Cloudflare DNS") }
-    var address by remember { mutableStateOf("1.1.1.1") }
-    var protocol by remember { mutableStateOf("udp") }
+    var name by remember(initial?.id) { mutableStateOf(initialName.ifBlank { initial?.name ?: "Cloudflare DNS" }) }
+    var address by remember(initial?.id) { mutableStateOf(initial?.directAddress ?: "1.1.1.1") }
+    var protocol by remember(initial?.id) { mutableStateOf(initial?.protocol ?: "udp") }
     var error by remember { mutableStateOf("") }
     val validIp = remember(address) {
         val value = address.trim()
@@ -67,7 +69,7 @@ internal fun DnsProfileSheet(
                     else {
                         val ip = address.trim()
                         val endpoint = if (protocol == "tcp") "tcp://$ip:53" else "$ip:53"
-                        onSave(name.trim(), DnsResolverProfile(id = "dns-${kotlin.random.Random.nextLong()}", name = name.trim(), protocol = protocol, remoteEndpoint = endpoint, directAddress = ip))
+                        onSave(name.trim(), DnsResolverProfile(id = initial?.id ?: "dns-${kotlin.random.Random.nextLong()}", name = name.trim(), protocol = protocol, remoteEndpoint = endpoint, directAddress = ip))
                     }
                 },
                 enabled = name.isNotBlank() && validIp,
