@@ -289,6 +289,9 @@ class ZedVpnService : VpnService() {
                 if (kind == VpnManager.KIND_DNS_RESOLVER) {
                     val resolver = dnsResolverAddress(configJson)
                         ?: throw IllegalArgumentException("DNS profile has no valid numeric resolver address")
+                    if (resolver.contains(':') && !settings.enableIpv6) {
+                        throw IllegalArgumentException("Enable IPv6 in settings to use this IPv6 DNS resolver")
+                    }
                     addRoute(resolver, if (resolver.contains(':')) 128 else 32)
                     if (settings.ghost.adultContentProtectionEnabled) {
                         addRoute("185.228.168.10", 32)
