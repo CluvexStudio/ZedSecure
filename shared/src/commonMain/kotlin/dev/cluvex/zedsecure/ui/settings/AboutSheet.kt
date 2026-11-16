@@ -73,6 +73,74 @@ fun AboutSheet(onDismiss: () -> Unit) {
                 title = stringResource(Res.string.about_vault_title),
                 body = stringResource(Res.string.about_vault_body),
             )
+            AboutInfoCard(
+                title = stringResource(Res.string.about_connection_title),
+                body = stringResource(Res.string.about_connection_body),
+            )
+            AboutInfoCard(
+                title = stringResource(Res.string.about_protocols_title),
+                body = stringResource(Res.string.about_protocols_body),
+            )
+            AboutInfoCard(
+                title = stringResource(Res.string.about_servers_title),
+                body = stringResource(Res.string.about_servers_body),
+            )
+            AboutInfoCard(
+                title = stringResource(Res.string.about_auto_title),
+                body = stringResource(Res.string.about_auto_body),
+            )
+            AboutInfoCard(
+                title = stringResource(Res.string.about_routing_title),
+                body = stringResource(Res.string.about_routing_body),
+            )
+            AboutInfoCard(
+                title = stringResource(Res.string.about_dns_title),
+                body = stringResource(Res.string.about_dns_body),
+            )
+            AboutInfoCard(
+                title = stringResource(Res.string.about_ghost_title),
+                body = stringResource(Res.string.about_ghost_body),
+            )
+            AboutInfoCard(
+                title = stringResource(Res.string.about_tor_title),
+                body = stringResource(Res.string.about_tor_body),
+            )
+            AboutInfoCard(
+                title = stringResource(Res.string.about_privacy_tools_title),
+                body = stringResource(Res.string.about_privacy_tools_body),
+            )
+            AboutInfoCard(
+                title = stringResource(Res.string.about_monitor_title),
+                body = stringResource(Res.string.about_monitor_body),
+            )
+            AboutInfoCard(
+                title = stringResource(Res.string.about_map_speed_title),
+                body = stringResource(Res.string.about_map_speed_body),
+            )
+            AboutInfoCard(
+                title = stringResource(Res.string.about_ui_title),
+                body = stringResource(Res.string.about_ui_body),
+            )
+            AboutInfoCard(
+                title = stringResource(Res.string.about_ai_title),
+                body = stringResource(Res.string.about_ai_body),
+            )
+            AboutInfoCard(
+                title = stringResource(Res.string.about_data_title),
+                body = stringResource(Res.string.about_data_body),
+            )
+            AboutInfoCard(
+                title = stringResource(Res.string.about_notifications_title),
+                body = stringResource(Res.string.about_notifications_body),
+            )
+            AboutInfoCard(
+                title = stringResource(Res.string.about_logs_title),
+                body = stringResource(Res.string.about_logs_body),
+            )
+            AboutInfoCard(
+                title = stringResource(Res.string.about_limits_title),
+                body = stringResource(Res.string.about_limits_body),
+            )
 
             Text(
                 stringResource(Res.string.about_built_on),
