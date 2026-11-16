@@ -31,6 +31,7 @@ fun GhostSettingsPage(
 ) {
     val ghost = settings.ghost
 
+    // Only sync preferences – engine starts only when tunnel is connected
     LaunchedEffect(ghost) {
         GhostEngine.updateSettings(ghost)
     }
@@ -53,17 +54,28 @@ fun GhostSettingsPage(
         SettingsPageScaffold(
             title = "GHOST MOD",
             art = SettingsArts.Monitor,
-            subtitle = "ترافیک جعلی هوشمند ضد DPI (الهام از zapret / MockTraffic)",
+            subtitle = "کمک‌کننده ضد DPI برای تونل – فقط بعد از اتصال فعال می‌شود",
             contentPadding = PaddingValues(0.dp),
             modifier = Modifier,
         ) {
             SettingsGroup("فعال‌سازی") {
                 SettingsSwitchRow(
                     title = "فعال‌سازی GHOST",
-                    summary = "روشن کردن کل سیستم ضدشناسایی",
+                    summary = "فقط ترجیح را ذخیره می‌کند. با زدن اتصال، به تونل کمک می‌کند",
                     checked = ghost.enabled,
                     onCheckedChange = { v -> onUpdate { it.copy(ghost = it.ghost.copy(enabled = v)) } },
                 )
+                SettingsSegment {
+                    Column(Modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            "نحوه کار: GHOST را اینجا روشن کن → بعد دکمه اتصال را بزن. " +
+                                "تا وقتی تونل وصل است کار می‌کند و با قطع اتصال خاموش می‌شود. " +
+                                "به موتورهای Xray / sing-box و ... دست نمی‌زند.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
             }
 
             if (ghost.enabled) {
@@ -71,26 +83,41 @@ fun GhostSettingsPage(
                     SettingsSegment {
                         Column(Modifier = Modifier.padding(16.dp)) {
                             Text(
-                                if (status.running) "● در حال اجرا" else "○ متوقف",
+                                when {
+                                    status.running -> "● در حال کمک به تونل"
+                                    status.enabled && !status.tunnelConnected -> "○ آماده – منتظر اتصال تونل"
+                                    else -> "○ متوقف"
+                                },
                                 style = MaterialTheme.typography.titleMedium,
                                 color = if (status.running) MaterialTheme.colorScheme.primary
                                 else MaterialTheme.colorScheme.onSurfaceVariant,
                             )
+                            Text(
+                                "تونل: ${if (status.tunnelConnected) "وصل" else "قطع"}",
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
                             if (status.underPressure) {
-                                Text("⚠ تحت فشار – حجم decoy افزایش یافته",
+                                Text(
+                                    "⚠ تحت فشار – حجم decoy افزایش یافته",
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.error)
+                                    color = MaterialTheme.colorScheme.error,
+                                )
                             }
                             Text("چرخه‌ها: ${status.cycles}", style = MaterialTheme.typography.bodyMedium)
-                            Text("درخواست: ${status.requests} | موفق: ${status.successes} | ناموفق: ${status.failures}",
-                                style = MaterialTheme.typography.bodySmall)
+                            Text(
+                                "درخواست: ${status.requests} | موفق: ${status.successes} | ناموفق: ${status.failures}",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
                             Text("آخرین پروفایل: ${status.lastProfile}", style = MaterialTheme.typography.bodySmall)
                             if (status.burstMode) {
                                 Text("حالت Burst فعال است", style = MaterialTheme.typography.bodySmall)
                             }
                             status.lastError?.let {
-                                Text("آخرین خطا: $it", style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.error)
+                                Text(
+                                    "آخرین خطا: $it",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error,
+                                )
                             }
                         }
                     }
@@ -114,31 +141,41 @@ fun GhostSettingsPage(
                 SettingsGroup("۲. موتور تولید ترافیک جعلی") {
                     SettingsSwitchRow(
                         title = "Smart Decoy Engine",
-                        summary = "تولید مداوم ترافیک جعلی",
+                        summary = "تولید مداوم ترافیک جعلی کنار تونل",
                         checked = ghost.decoyEngineEnabled,
                         onCheckedChange = { v -> onUpdate { it.copy(ghost = it.ghost.copy(decoyEngineEnabled = v)) } },
                     )
                     if (ghost.decoyEngineEnabled) {
-                        Text("حجم ترافیک جعلی: ${ghost.decoyVolumePercent}%",
+                        Text(
+                            "حجم ترافیک جعلی: ${ghost.decoyVolumePercent}%",
                             style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                        )
                         Slider(
                             value = ghost.decoyVolumePercent.toFloat(),
                             onValueChange = { v ->
-                                onUpdate { it.copy(ghost = it.ghost.copy(decoyVolumePercent = v.toInt().coerceIn(10, 80))) }
+                                onUpdate {
+                                    it.copy(ghost = it.ghost.copy(decoyVolumePercent = v.toInt().coerceIn(10, 80)))
+                                }
                             },
-                            valueRange = 10f..80f, steps = 13,
+                            valueRange = 10f..80f,
+                            steps = 13,
                             modifier = Modifier.padding(horizontal = 16.dp),
                         )
-                        Text("فاصله چرخه‌ها: ${ghost.decoyIntervalSeconds} ثانیه",
+                        Text(
+                            "فاصله چرخه‌ها: ${ghost.decoyIntervalSeconds} ثانیه",
                             style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                        )
                         Slider(
                             value = ghost.decoyIntervalSeconds.toFloat(),
                             onValueChange = { v ->
-                                onUpdate { it.copy(ghost = it.ghost.copy(decoyIntervalSeconds = v.toInt().coerceIn(5, 60))) }
+                                onUpdate {
+                                    it.copy(ghost = it.ghost.copy(decoyIntervalSeconds = v.toInt().coerceIn(5, 60)))
+                                }
                             },
-                            valueRange = 5f..60f, steps = 10,
+                            valueRange = 5f..60f,
+                            steps = 10,
                             modifier = Modifier.padding(horizontal = 16.dp),
                         )
                     }
@@ -170,45 +207,55 @@ fun GhostSettingsPage(
                         onCheckedChange = { v -> onUpdate { it.copy(ghost = it.ghost.copy(adaptiveFallbackEnabled = v)) } },
                     )
                     SettingsSwitchRow(
-                        title = "تشخیص فشار (Pressure Detection)",
+                        title = "تشخیص فشار",
                         summary = "از نرخ شکست اخیر برای تشخیص فشار استفاده می‌کند",
                         checked = ghost.pressureDetectionEnabled,
                         onCheckedChange = { v -> onUpdate { it.copy(ghost = it.ghost.copy(pressureDetectionEnabled = v)) } },
                     )
                 }
 
-                SettingsGroup("۷. حالت Burst (الهام از zapret)") {
+                SettingsGroup("۷. حالت Burst") {
                     SettingsSwitchRow(
                         title = "Burst / High-Noise Mode",
-                        summary = "افزایش شدید تعداد درخواست‌های جعلی (مثل سیل fake)",
+                        summary = "افزایش شدید تعداد درخواست‌های جعلی",
                         checked = ghost.burstModeEnabled,
                         onCheckedChange = { v -> onUpdate { it.copy(ghost = it.ghost.copy(burstModeEnabled = v)) } },
                     )
                     if (ghost.burstModeEnabled) {
-                        Text("شدت Burst: ${ghost.burstIntensity}",
+                        Text(
+                            "شدت Burst: ${ghost.burstIntensity}",
                             style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                        )
                         Slider(
                             value = ghost.burstIntensity.toFloat(),
                             onValueChange = { v ->
-                                onUpdate { it.copy(ghost = it.ghost.copy(burstIntensity = v.toInt().coerceIn(1, 5))) }
+                                onUpdate {
+                                    it.copy(ghost = it.ghost.copy(burstIntensity = v.toInt().coerceIn(1, 5)))
+                                }
                             },
-                            valueRange = 1f..5f, steps = 3,
+                            valueRange = 1f..5f,
+                            steps = 3,
                             modifier = Modifier.padding(horizontal = 16.dp),
                         )
                     }
                 }
 
                 SettingsGroup("۸. موازی‌سازی") {
-                    Text("حداکثر درخواست موازی: ${ghost.maxParallelRequests}",
+                    Text(
+                        "حداکثر درخواست موازی: ${ghost.maxParallelRequests}",
                         style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    )
                     Slider(
                         value = ghost.maxParallelRequests.toFloat(),
                         onValueChange = { v ->
-                            onUpdate { it.copy(ghost = it.ghost.copy(maxParallelRequests = v.toInt().coerceIn(1, 4))) }
+                            onUpdate {
+                                it.copy(ghost = it.ghost.copy(maxParallelRequests = v.toInt().coerceIn(1, 4)))
+                            }
                         },
-                        valueRange = 1f..4f, steps = 2,
+                        valueRange = 1f..4f,
+                        steps = 2,
                         modifier = Modifier.padding(horizontal = 16.dp),
                     )
                 }
@@ -230,9 +277,12 @@ private fun ProfileChipRow(current: String, onChange: (String) -> Unit) {
         "generic" to "مرورگر عمومی",
     )
     val selected = current.split(",").map { it.trim().lowercase() }.toSet()
-    Column(Modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-        Text("اپ‌های فعال:", style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier.padding(bottom = 6.dp))
+    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+        Text(
+            "اپ‌های فعال:",
+            style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier.padding(bottom = 6.dp),
+        )
         all.forEach { (key, label) ->
             val isOn = key in selected
             SettingsSwitchRow(
