@@ -1,0 +1,156 @@
+name: ZX · GHOST Anti-DPI CI
+
+on:
+  push:
+    branches: [ZX]
+    paths:
+      - "shared/**"
+      - "app/**"
+      - ".github/workflows/zx-ghost-ci.yml"
+      - ".github/workflows/ghost-check.yml"
+      - "gradle/**"
+      - "gradle.properties"
+      - "build.gradle.kts"
+      - "settings.gradle.kts"
+  pull_request:
+    branches: [ZX]
+    paths:
+      - "shared/**"
+      - "app/**"
+      - ".github/workflows/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: zx-ghost-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ghost-structure:
+    name: GHOST structure & symbols
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Verify GHOST core files
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "== GHOST file presence =="
+          test -f shared/src/commonMain/kotlin/dev/cluvex/zedsecure/core/ghost/GhostEngine.kt
+          test -f shared/src/commonMain/kotlin/dev/cluvex/zedsecure/core/ghost/GhostAutoTuner.kt
+          test -f shared/src/commonMain/kotlin/dev/cluvex/zedsecure/ui/settings/GhostSettingsPage.kt
+          test -f shared/src/commonMain/kotlin/dev/cluvex/zedsecure/domain/model/AppSettings.kt
+          test -f shared/src/commonMain/kotlin/dev/cluvex/zedsecure/platform/NetworkKind.kt
+          test -f shared/src/androidMain/kotlin/dev/cluvex/zedsecure/platform/NetworkKind.android.kt
+          test -f shared/src/commonMain/kotlin/dev/cluvex/zedsecure/core/VpnManager.kt
+          echo "files OK"
+
+      - name: Verify required symbols
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "== Symbol checks =="
+          grep -q "object GhostEngine" shared/src/commonMain/kotlin/dev/cluvex/zedsecure/core/ghost/GhostEngine.kt
+          grep -q "onTunnelConnected" shared/src/commonMain/kotlin/dev/cluvex/zedsecure/core/ghost/GhostEngine.kt
+          grep -q "onTunnelDisconnected" shared/src/commonMain/kotlin/dev/cluvex/zedsecure/core/ghost/GhostEngine.kt
+          grep -q "autoMode" shared/src/commonMain/kotlin/dev/cluvex/zedsecure/domain/model/AppSettings.kt
+          grep -q "data class GhostSettings" shared/src/commonMain/kotlin/dev/cluvex/zedsecure/domain/model/AppSettings.kt
+          grep -q "GhostEngine.onTunnelConnected" shared/src/commonMain/kotlin/dev/cluvex/zedsecure/core/VpnManager.kt
+          grep -q "GhostEngine.onTunnelDisconnected" shared/src/commonMain/kotlin/dev/cluvex/zedsecure/core/VpnManager.kt
+          grep -q "object GhostAutoTuner" shared/src/commonMain/kotlin/dev/cluvex/zedsecure/core/ghost/GhostAutoTuner.kt
+          grep -q "fun GhostSettingsPage" shared/src/commonMain/kotlin/dev/cluvex/zedsecure/ui/settings/GhostSettingsPage.kt
+          grep -q "AUTO" shared/src/commonMain/kotlin/dev/cluvex/zedsecure/ui/settings/GhostSettingsPage.kt
+          echo "symbols OK"
+
+      - name: Summarize GHOST surface
+        shell: bash
+        run: |
+          echo "### GHOST surface" >> "$GITHUB_STEP_SUMMARY"
+          echo "- GhostEngine (tunnel-bound lifecycle)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- GhostAutoTuner (Wi‑Fi / cellular plans)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- GhostSettings + AUTO" >> "$GITHUB_STEP_SUMMARY"
+          echo "- GhostSettingsPage UI" >> "$GITHUB_STEP_SUMMARY"
+          echo "- VpnManager hooks" >> "$GITHUB_STEP_SUMMARY"
+
+  compile-shared:
+    name: Compile shared (Android)
+    runs-on: ubuntu-24.04
+    needs: ghost-structure
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Compile shared Kotlin Android
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon :shared:compileDebugKotlinAndroid --stacktrace
+
+  debug-apk:
+    name: Build debug APK (optional path)
+    runs-on: ubuntu-24.04
+    needs: compile-shared
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ZX
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Download Android engines (best effort)
+        run: |
+          if [ -x ./tools/get-cores.sh ]; then
+            ./tools/get-cores.sh android || echo "get-cores skipped/failed – continue"
+          else
+            echo "no get-cores.sh"
+          fi
+
+      - name: Assemble debug APK
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon --warning-mode all :app:assembleDebug
+
+      - name: Collect APKs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          V=$(grep '^zedsecure.versionName=' gradle.properties | cut -d= -f2 || echo "dev")
+          found=0
+          while IFS= read -r src; do
+            base=$(basename "$src")
+            cp "$src" "dist/ZX-VPN-$V-$base"
+            found=1
+          done < <(find app/build/outputs/apk -type f -name "*.apk" 2>/dev/null || true)
+          if [ "$found" -eq 0 ]; then
+            echo "::warning::No APK produced"
+            exit 0
+          fi
+          (cd dist && sha256sum *.apk > SHA256SUMS.txt || true)
+          ls -lh dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ZX-GHOST-Debug-APKs
+          path: dist/*
+          if-no-files-found: ignore
+          retention-days: 14
