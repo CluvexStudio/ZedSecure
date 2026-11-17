@@ -1911,4 +1911,12 @@
     <string name="zx_act_disconnect">Disconnect</string>
     <string name="zx_act_cancel">Cancel</string>
     <string name="zx_act_switch">Switch</string>
+    <string name="aether_smart_step_net">Network</string>
+    <string name="aether_smart_step_edge">Cloudflare edge</string>
+    <string name="aether_smart_step_api">WARP API</string>
+    <string name="aether_smart_step_ip">IPv6</string>
+    <string name="aether_smart_blocked_note">Some paths are blocked on your network. The strongest anti-filter settings were chosen, and the connection automatically retries other methods if needed.</string>
+    <string name="aether_smart_ok">Reachable</string>
+    <string name="aether_smart_blocked">Blocked</string>
+    <string name="aether_smart_na">Not available</string>
 </resources>

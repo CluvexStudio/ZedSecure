@@ -1874,4 +1874,12 @@
     <string name="zx_act_disconnect">Отключить</string>
     <string name="zx_act_cancel">Отмена</string>
     <string name="zx_act_switch">Сменить</string>
+    <string name="aether_smart_step_net">Сеть</string>
+    <string name="aether_smart_step_edge">Edge Cloudflare</string>
+    <string name="aether_smart_step_api">API WARP</string>
+    <string name="aether_smart_step_ip">IPv6</string>
+    <string name="aether_smart_blocked_note">Часть путей в вашей сети заблокирована. Выбраны самые стойкие настройки, при необходимости соединение само попробует другие методы.</string>
+    <string name="aether_smart_ok">Доступно</string>
+    <string name="aether_smart_blocked">Заблокировано</string>
+    <string name="aether_smart_na">Недоступно</string>
 </resources>

@@ -109,6 +109,7 @@ import dev.cluvex.zedsecure.ui.theme.pingColor
 import dev.cluvex.zedsecure.ui.theme.ZedLime
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.async
 import kotlinx.coroutines.withTimeoutOrNull
 import dev.cluvex.zedsecure.ui.platform.mouseDragScroll
 import dev.cluvex.zedsecure.ui.platform.mouseWheelScroll
@@ -2814,46 +2815,97 @@ private fun AetherSmartDialog(
     onCustomize: () -> Unit,
 ) {
     var profile by remember { mutableStateOf<dev.cluvex.zedsecure.domain.config.AetherProfile?>(null) }
-    var network by remember { mutableStateOf(dev.cluvex.zedsecure.platform.NetworkKind.Unknown) }
+    var network by remember { mutableStateOf<dev.cluvex.zedsecure.platform.NetworkKind?>(null) }
+    var edgeMs by remember { mutableStateOf<Int?>(null) }
+    var apiMs by remember { mutableStateOf<Int?>(null) }
+    var ipv6 by remember { mutableStateOf<Boolean?>(null) }
+    var probed by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         val kind = dev.cluvex.zedsecure.platform.detectNetworkKind()
         network = kind
-        val info = withTimeoutOrNull(7_000) {
-            runCatching { dev.cluvex.zedsecure.data.net.NetworkInfoRepository().fetchInfo(force = true) }.getOrNull()
+        val infoJob = async {
+            withTimeoutOrNull(5_000) {
+                runCatching { dev.cluvex.zedsecure.data.net.NetworkInfoRepository().fetchInfo(force = true) }.getOrNull()
+            }
         }
+        val probe = dev.cluvex.zedsecure.domain.config.AetherSmartProbe.run()
+        edgeMs = probe.edgeMs
+        apiMs = probe.apiMs
+        probed = true
+        val info = infoJob.await()
+        ipv6 = !info?.ipv6.isNullOrBlank()
         profile = dev.cluvex.zedsecure.domain.config.AetherSmartConfig.build(
             dev.cluvex.zedsecure.domain.config.AetherSmartInput(
                 network = kind,
-                hasIpv6 = !info?.ipv6.isNullOrBlank(),
+                hasIpv6 = ipv6 == true,
                 pingMs = info?.pingMs,
                 countryCode = info?.countryCode,
+                edgeReachable = probe.edgeMs != null,
+                edgeMs = probe.edgeMs,
+                apiReachable = probe.apiMs != null,
             ),
         )
     }
-    val networkLabel = stringResource(
+    val netLabel = stringResource(
         when (network) {
             dev.cluvex.zedsecure.platform.NetworkKind.Cellular -> Res.string.aether_smart_net_mobile
             dev.cluvex.zedsecure.platform.NetworkKind.Wifi -> Res.string.aether_smart_net_wifi
             dev.cluvex.zedsecure.platform.NetworkKind.Ethernet -> Res.string.aether_smart_net_lan
-            dev.cluvex.zedsecure.platform.NetworkKind.Unknown -> Res.string.aether_smart_net_unknown
+            else -> Res.string.aether_smart_net_unknown
         },
     )
+    val okText = stringResource(Res.string.aether_smart_ok)
+    val blockedText = stringResource(Res.string.aether_smart_blocked)
+    val naText = stringResource(Res.string.aether_smart_na)
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.aether_smart_title)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(stringResource(Res.string.aether_smart_body))
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(stringResource(Res.string.aether_smart_body), style = MaterialTheme.typography.bodySmall)
+                if (profile == null) {
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                }
+                SmartStepRow(stringResource(Res.string.aether_smart_step_net), network != null, true, netLabel)
+                SmartStepRow(
+                    stringResource(Res.string.aether_smart_step_edge), probed, edgeMs != null,
+                    if (edgeMs != null) "$edgeMs ms" else blockedText,
+                )
+                SmartStepRow(
+                    stringResource(Res.string.aether_smart_step_api), probed, apiMs != null,
+                    if (apiMs != null) okText else blockedText,
+                )
+                SmartStepRow(
+                    stringResource(Res.string.aether_smart_step_ip), ipv6 != null, ipv6 == true,
+                    if (ipv6 == true) okText else naText,
+                )
                 val p = profile
-                if (p == null) {
-                    Text(stringResource(Res.string.aether_smart_detecting), color = MaterialTheme.colorScheme.primary)
-                } else {
-                    Text(stringResource(Res.string.aether_smart_detected, networkLabel), fontWeight = FontWeight.SemiBold)
-                    Text("• Protocol: ${p.protocol.uppercase()}")
-                    Text("• Scan: ${p.scanMode}")
-                    Text("• IP: ${p.ipVersion}")
-                    Text("• Anti-DPI: ${p.noize}")
-                    Text("• HTTP/2: ${if (p.http2) "on" else "off"}")
+                if (p != null) {
+                    Surface(
+                        shape = MaterialTheme.shapes.large,
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                    ) {
+                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(p.profileName, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                SmartChip(p.protocol.uppercase())
+                                SmartChip(if (p.http2) "HTTP/2" else "HTTP/3")
+                                SmartChip(p.ipVersion)
+                            }
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                SmartChip("scan ${p.scanMode}")
+                                SmartChip("noize ${p.noize}")
+                                if (p.fragment) SmartChip("fragment")
+                            }
+                        }
+                    }
+                    if (edgeMs == null || apiMs == null) {
+                        Text(
+                            stringResource(Res.string.aether_smart_blocked_note),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.tertiary,
+                        )
+                    }
                 }
             }
         },
@@ -2869,4 +2921,38 @@ private fun AetherSmartDialog(
             }
         },
     )
+}
+
+@Composable
+private fun SmartStepRow(label: String, done: Boolean, ok: Boolean, detail: String) {
+    Row(
+        Modifier.fillMaxWidth(),
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Box(Modifier.size(20.dp), contentAlignment = androidx.compose.ui.Alignment.Center) {
+            if (!done) {
+                CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(16.dp))
+            } else {
+                Text(
+                    if (ok) "✓" else "✕",
+                    fontWeight = FontWeight.Bold,
+                    color = if (ok) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                )
+            }
+        }
+        Text(label, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+        if (done) Text(detail, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+private fun SmartChip(text: String) {
+    Surface(shape = androidx.compose.foundation.shape.RoundedCornerShape(50), color = MaterialTheme.colorScheme.surface) {
+        Text(
+            text,
+            Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+            style = MaterialTheme.typography.labelSmall,
+        )
+    }
 }

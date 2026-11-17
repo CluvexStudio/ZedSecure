@@ -1874,4 +1874,12 @@
     <string name="zx_act_disconnect">断开</string>
     <string name="zx_act_cancel">取消</string>
     <string name="zx_act_switch">切换</string>
+    <string name="aether_smart_step_net">网络</string>
+    <string name="aether_smart_step_edge">Cloudflare 边缘</string>
+    <string name="aether_smart_step_api">WARP API</string>
+    <string name="aether_smart_step_ip">IPv6</string>
+    <string name="aether_smart_blocked_note">您的网络阻断了部分路径。已选用最强的抗封锁设置，必要时连接会自动尝试其他方式。</string>
+    <string name="aether_smart_ok">可用</string>
+    <string name="aether_smart_blocked">被阻断</string>
+    <string name="aether_smart_na">不可用</string>
 </resources>

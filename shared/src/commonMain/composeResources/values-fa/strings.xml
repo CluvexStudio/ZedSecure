@@ -1904,4 +1904,12 @@
     <string name="zx_act_disconnect">قطع اتصال</string>
     <string name="zx_act_cancel">لغو</string>
     <string name="zx_act_switch">تغییر</string>
+    <string name="aether_smart_step_net">شبکه</string>
+    <string name="aether_smart_step_edge">لبهٔ Cloudflare</string>
+    <string name="aether_smart_step_api">API وارپ</string>
+    <string name="aether_smart_step_ip">IPv6</string>
+    <string name="aether_smart_blocked_note">بعضی مسیرها روی شبکهٔ شما بسته است. قوی‌ترین تنظیمات ضدفیلتر انتخاب شد و در صورت نیاز اتصال خودکار روش‌های دیگر را امتحان می‌کند.</string>
+    <string name="aether_smart_ok">در دسترس</string>
+    <string name="aether_smart_blocked">مسدود</string>
+    <string name="aether_smart_na">ندارد</string>
 </resources>

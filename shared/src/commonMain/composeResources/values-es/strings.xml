@@ -1827,4 +1827,12 @@
     <string name="zx_act_disconnect">Desconectar</string>
     <string name="zx_act_cancel">Cancelar</string>
     <string name="zx_act_switch">Cambiar</string>
+    <string name="aether_smart_step_net">Red</string>
+    <string name="aether_smart_step_edge">Borde de Cloudflare</string>
+    <string name="aether_smart_step_api">API WARP</string>
+    <string name="aether_smart_step_ip">IPv6</string>
+    <string name="aether_smart_blocked_note">Algunas rutas están bloqueadas en tu red. Se eligió la configuración anti-filtro más fuerte y la conexión reintenta otros métodos automáticamente.</string>
+    <string name="aether_smart_ok">Accesible</string>
+    <string name="aether_smart_blocked">Bloqueado</string>
+    <string name="aether_smart_na">No disponible</string>
 </resources>

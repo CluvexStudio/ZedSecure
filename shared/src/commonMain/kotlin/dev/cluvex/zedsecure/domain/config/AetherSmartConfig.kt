@@ -9,6 +9,10 @@ data class AetherSmartInput(
     val pingMs: Int? = null,
     /** Two-letter country code of the user's current network, when known. */
     val countryCode: String? = null,
+    /** Result of the live reachability probe: null = not measured. */
+    val edgeReachable: Boolean? = null,
+    val edgeMs: Int? = null,
+    val apiReachable: Boolean? = null,
 )
 
 /**
@@ -28,25 +32,33 @@ object AetherSmartConfig {
         val cellular = input.network == NetworkKind.Cellular
         val filtered = input.countryCode?.uppercase() in heavilyFiltered
         val slow = (input.pingMs ?: 0) >= SLOW_PING_MS
+        val edgeBlocked = input.edgeReachable == false
+        val apiBlocked = input.apiReachable == false
+        val fastEdge = input.edgeReachable == true && (input.edgeMs ?: Int.MAX_VALUE) < FAST_EDGE_MS
 
+        val strict = filtered || edgeBlocked
         val noize = when {
-            cellular && filtered -> "gfw"
-            filtered -> "gfw"
+            strict -> "gfw"
             cellular -> "firewall"
             else -> "balanced"
         }
         val scan = when {
+            edgeBlocked -> "thorough"
+            fastEdge && !filtered -> "turbo"
             slow -> "turbo"
             cellular || filtered -> "thorough"
             else -> "balanced"
         }
+        val h2 = cellular || strict
         return AetherProfile(
             profileName = nameFor(input.network),
             protocol = "masque",
             scanMode = scan,
             ipVersion = if (input.hasIpv6) "both" else "v4",
             noize = noize,
-            http2 = cellular || filtered,
+            http2 = h2,
+            fragment = h2 && strict,
+            apiAddress = if (apiBlocked) "162.159.137.105" else "",
         )
     }
 
@@ -58,4 +70,5 @@ object AetherSmartConfig {
     }
 
     private const val SLOW_PING_MS = 350
+    private const val FAST_EDGE_MS = 220
 }
