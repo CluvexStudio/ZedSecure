@@ -1793,6 +1793,7 @@ class ZedVpnService : VpnService() {
 
     override fun onDestroy() {
         XrayController.onCoreShutdown = null
+        FrontCore.onLost = null
         aetherWatch?.cancel()
         aetherEngine?.stop()
         aetherEngine = null
@@ -1801,7 +1802,7 @@ class ZedVpnService : VpnService() {
     }
 
     override fun dump(fd: java.io.FileDescriptor, writer: java.io.PrintWriter, args: Array<out String>?) {
-        writer.println("engine=$kind tun=${tun != null} core=${XrayController.isRunning}")
+        writer.println("engine=$kind tun=${tun != null} core=${XrayController.isRunning} front=${FrontCore.isRunning} aether=${aetherEngine?.isAlive() == true}")
         writer.println("crypto=" + XrayController.cryptoAcceleration())
         writer.println(ZepTunCore.stats())
         writer.println()
