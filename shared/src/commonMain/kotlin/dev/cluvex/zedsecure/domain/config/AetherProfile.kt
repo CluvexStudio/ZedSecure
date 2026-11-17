@@ -80,6 +80,6 @@ data class AetherProfile(
         }.getOrNull()?.takeIf { it.marker == MARKER }
 
         fun encode(profile: AetherProfile): String =
-            Json.encodeToString(profile.copy(marker = MARKER))
+            Json { encodeDefaults = true }.encodeToString(profile.copy(marker = MARKER))
     }
 }
