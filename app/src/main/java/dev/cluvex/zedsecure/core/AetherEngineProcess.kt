@@ -14,6 +14,10 @@ internal class AetherEngineProcess(
     private val workingDirectory: File,
 ) {
     @Volatile private var process: Process? = null
+    private val recent = java.util.ArrayDeque<String>()
+
+    /** Last few engine output lines, for a readable error when the engine dies or never connects. */
+    fun lastLines(): String = synchronized(recent) { recent.joinToString(" | ") }
 
     @Synchronized
     fun start(arguments: List<String>, environment: Map<String, String> = emptyMap()) {
@@ -46,7 +50,13 @@ internal class AetherEngineProcess(
         Thread({
             runCatching {
                 child.inputStream.bufferedReader().useLines { lines ->
-                    lines.forEach { LogBus.append("I/Aether: " + it.take(MAX_LOG_LINE)) }
+                    lines.forEach {
+                        LogBus.append("I/Aether: " + it.take(MAX_LOG_LINE))
+                        synchronized(recent) {
+                            recent.addLast(it.take(160))
+                            while (recent.size > 4) recent.removeFirst()
+                        }
+                    }
                 }
             }.onFailure { LogBus.append("W/Aether: output reader stopped (" + it.javaClass.simpleName + ")") }
         }, "ZX-Aether-logs").apply { isDaemon = true; start() }

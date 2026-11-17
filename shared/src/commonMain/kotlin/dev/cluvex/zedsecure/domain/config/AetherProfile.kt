@@ -33,6 +33,19 @@ data class AetherProfile(
         }
     }
 
+    /**
+     * Ordered connection attempts: this profile first, then progressively more conservative
+     * variants (other transport, stronger obfuscation, WireGuard, plain). The service tries each
+     * until real traffic passes, so one unlucky setting never leaves the user with an error.
+     */
+    fun attempts(): List<AetherProfile> = buildList {
+        add(this@AetherProfile)
+        if (protocol == "masque") add(copy(http2 = !http2))
+        add(copy(protocol = "masque", http2 = true, noize = "gfw", scanMode = "thorough"))
+        add(copy(protocol = "wg", http2 = false, noize = "balanced", scanMode = "balanced"))
+        add(copy(protocol = "masque", http2 = false, noize = "off", ipVersion = "v4", scanMode = "balanced"))
+    }.distinct()
+
     companion object {
         const val MARKER = "ZX_AETHER"
         private val PROTOCOLS = setOf("masque", "wg", "gool", "mim")

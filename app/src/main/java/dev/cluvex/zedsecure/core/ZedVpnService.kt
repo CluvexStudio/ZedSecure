@@ -761,38 +761,56 @@ class ZedVpnService : VpnService() {
             stopEverything()
             return
         }
-        val port = LocalPortPicker.pick(LocalPorts.AETHER_SOCKS)
         val workDir = java.io.File(filesDir, "aether").apply { mkdirs() }
-        val process = AetherEngineProcess(java.io.File(applicationInfo.nativeLibraryDir), workDir)
-        aetherEngine = process
         VpnManager.setActiveKind(kind)
         advance(VpnNotifications.Stage.Engine)
         scope.launch(Dispatchers.IO) {
+            var lastDetail = ""
             try {
-                process.start(profile.toArgs(port, workDir.absolutePath))
-                aetherWatch?.cancel()
-                aetherWatch = scope.launch(Dispatchers.IO) {
-                    val exitCode = runCatching { process.awaitExit() }.getOrNull()
-                    if (!userStop && process === aetherEngine &&
-                        (connected || VpnManager.status.value.state.isTransitioning)
-                    ) {
-                        onTunnelFailed("Aether engine stopped unexpectedly (exit ${exitCode ?: "unknown"})")
-                    }
-                }
-                val deadline = System.currentTimeMillis() + 180_000L
-                var ready = false
-                while (System.currentTimeMillis() < deadline) {
+                val variants = profile.attempts()
+                var readyPort = -1
+                for ((index, variant) in variants.withIndex()) {
                     if (userStop) return@launch
-                    if (!process.isAlive()) throw IllegalStateException("Aether exited before opening its SOCKS5 listener")
-                    val listening = runCatching {
-                        TunnelReadiness.verify(port, timeoutMs = 3_000, attempts = 1)
-                    }.getOrDefault(false)
-                    if (listening) { ready = true; break }
-                    kotlinx.coroutines.delay(400)
+                    val port = LocalPortPicker.pick(LocalPorts.AETHER_SOCKS)
+                    val process = AetherEngineProcess(java.io.File(applicationInfo.nativeLibraryDir), workDir)
+                    aetherEngine = process
+                    LogBus.append("I/Aether: attempt ${index + 1}/${variants.size} (${variant.protocol}, h2=${variant.http2}, noize=${variant.noize})")
+                    process.start(variant.toArgs(port, workDir.absolutePath))
+                    aetherWatch?.cancel()
+                    aetherWatch = scope.launch(Dispatchers.IO) {
+                        val exitCode = runCatching { process.awaitExit() }.getOrNull()
+                        if (!userStop && process === aetherEngine && readyPort > 0 &&
+                            (connected || VpnManager.status.value.state.isTransitioning)
+                        ) {
+                            onTunnelFailed("Aether engine stopped unexpectedly (exit ${exitCode ?: "unknown"})")
+                        }
+                    }
+                    val budget = if (index == 0) 70_000L else 50_000L
+                    val deadline = System.currentTimeMillis() + budget
+                    var ready = false
+                    while (System.currentTimeMillis() < deadline) {
+                        if (userStop) return@launch
+                        if (!process.isAlive()) break
+                        val ok = runCatching {
+                            TunnelReadiness.verify(port, timeoutMs = 4_000, attempts = 1)
+                        }.getOrDefault(false)
+                        if (ok) { ready = true; break }
+                        kotlinx.coroutines.delay(500)
+                    }
+                    if (ready) { readyPort = port; break }
+                    lastDetail = process.lastLines()
+                    LogBus.append("W/Aether: attempt ${index + 1} did not connect; $lastDetail")
+                    aetherWatch?.cancel()
+                    process.stop()
                 }
-                if (!ready) throw IllegalStateException("Aether SOCKS5 listener did not become ready")
-                bridgeEngine(descriptor, port, tunMtu)
-                LogBus.append("I/Aether: native engine ready on 127.0.0.1:$port")
+                if (readyPort <= 0) {
+                    throw IllegalStateException(
+                        "Aether could not establish a tunnel on this network" +
+                            if (lastDetail.isNotBlank()) " ($lastDetail)" else "",
+                    )
+                }
+                bridgeEngine(descriptor, readyPort, tunMtu)
+                LogBus.append("I/Aether: native engine ready on 127.0.0.1:$readyPort")
             } catch (e: Exception) {
                 if (userStop) return@launch
                 Log.e(TAG, "Aether startup failed", e)
