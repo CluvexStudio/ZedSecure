@@ -785,10 +785,7 @@ class ZedVpnService : VpnService() {
                     if (userStop) return@launch
                     if (!process.isAlive()) throw IllegalStateException("Aether exited before opening its SOCKS5 listener")
                     val listening = runCatching {
-                        java.net.Socket().use { socket ->
-                            socket.connect(java.net.InetSocketAddress("127.0.0.1", port), 400)
-                            true
-                        }
+                        TunnelReadiness.verify(port, timeoutMs = 3_000, attempts = 1)
                     }.getOrDefault(false)
                     if (listening) { ready = true; break }
                     kotlinx.coroutines.delay(400)
