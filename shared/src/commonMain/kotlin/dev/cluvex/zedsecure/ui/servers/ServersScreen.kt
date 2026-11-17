@@ -109,6 +109,7 @@ import dev.cluvex.zedsecure.ui.theme.pingColor
 import dev.cluvex.zedsecure.ui.theme.ZedLime
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import dev.cluvex.zedsecure.ui.platform.mouseDragScroll
 import dev.cluvex.zedsecure.ui.platform.mouseWheelScroll
 import dev.cluvex.zedsecure.ui.platform.onSecondaryClick
@@ -341,6 +342,7 @@ fun ServersScreen(
     var showCrossChain by remember { mutableStateOf(false) }
     var showWarp by remember { mutableStateOf(false) }
     var showAether by remember { mutableStateOf(false) }
+    var showAetherSmart by remember { mutableStateOf(false) }
 
     val servers = profiles.filterNot { it.isLocked }
 
@@ -1379,6 +1381,10 @@ fun ServersScreen(
                 showAddSheet = false
                 showAether = true
             },
+            onAetherSmart = {
+                showAddSheet = false
+                showAetherSmart = true
+            },
             onSniSpoof = {
                 showAddSheet = false
                 showSniSpoof = true
@@ -1394,6 +1400,22 @@ fun ServersScreen(
             onSubscription = {
                 showAddSheet = false
                 showSubs = true
+            },
+        )
+    }
+
+    if (showAetherSmart) {
+        AetherSmartDialog(
+            onDismiss = { showAetherSmart = false },
+            onCreate = { profile ->
+                showAetherSmart = false
+                val created = repository.addAether(profile, profile.profileName)
+                repository.setActive(created.id)
+                toastRes(Res.string.aether_smart_done)
+            },
+            onCustomize = {
+                showAetherSmart = false
+                showAether = true
             },
         )
     }
@@ -2316,6 +2338,7 @@ private fun AddServerSheet(
     onSsh: () -> Unit,
     onWarp: () -> Unit,
     onAether: () -> Unit,
+    onAetherSmart: () -> Unit,
     onSniSpoof: () -> Unit,
     onProxyChain: () -> Unit,
     onCrossChain: () -> Unit,
@@ -2366,6 +2389,7 @@ private fun AddServerSheet(
             Option(Res.drawable.ic_lock, Res.string.tor_add_title, onTor, free = true)
             Option(Res.drawable.ic_speed, Res.string.ssh_add_title, onSsh)
             Option(Res.drawable.ic_public, Res.string.warp_add_title, onWarp, free = true)
+            Option(Res.drawable.ic_bolt, Res.string.aether_smart_title, onAetherSmart, free = true)
             OptionText(Res.drawable.ic_public, "Aether · WARP engine", onAether)
             if (LocalPlatform.current.supportsSniSpoof) Option(Res.drawable.ic_bolt, Res.string.snispoof_add_title, onSniSpoof)
 
@@ -2780,5 +2804,69 @@ private fun androidx.compose.foundation.layout.ColumnScope.ServerMenuItems(
         text = { Text(stringResource(Res.string.action_delete)) },
         leadingIcon = { Icon(painterResource(Res.drawable.ic_delete), null) },
         onClick = { close(); onDelete() },
+    )
+}
+
+@Composable
+private fun AetherSmartDialog(
+    onDismiss: () -> Unit,
+    onCreate: (dev.cluvex.zedsecure.domain.config.AetherProfile) -> Unit,
+    onCustomize: () -> Unit,
+) {
+    var profile by remember { mutableStateOf<dev.cluvex.zedsecure.domain.config.AetherProfile?>(null) }
+    var network by remember { mutableStateOf(dev.cluvex.zedsecure.platform.NetworkKind.Unknown) }
+    LaunchedEffect(Unit) {
+        val kind = dev.cluvex.zedsecure.platform.detectNetworkKind()
+        network = kind
+        val info = withTimeoutOrNull(7_000) {
+            runCatching { dev.cluvex.zedsecure.data.net.NetworkInfoRepository().fetchInfo(force = true) }.getOrNull()
+        }
+        profile = dev.cluvex.zedsecure.domain.config.AetherSmartConfig.build(
+            dev.cluvex.zedsecure.domain.config.AetherSmartInput(
+                network = kind,
+                hasIpv6 = !info?.ipv6.isNullOrBlank(),
+                pingMs = info?.pingMs,
+                countryCode = info?.countryCode,
+            ),
+        )
+    }
+    val networkLabel = stringResource(
+        when (network) {
+            dev.cluvex.zedsecure.platform.NetworkKind.Cellular -> Res.string.aether_smart_net_mobile
+            dev.cluvex.zedsecure.platform.NetworkKind.Wifi -> Res.string.aether_smart_net_wifi
+            dev.cluvex.zedsecure.platform.NetworkKind.Ethernet -> Res.string.aether_smart_net_lan
+            dev.cluvex.zedsecure.platform.NetworkKind.Unknown -> Res.string.aether_smart_net_unknown
+        },
+    )
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(Res.string.aether_smart_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(stringResource(Res.string.aether_smart_body))
+                val p = profile
+                if (p == null) {
+                    Text(stringResource(Res.string.aether_smart_detecting), color = MaterialTheme.colorScheme.primary)
+                } else {
+                    Text(stringResource(Res.string.aether_smart_detected, networkLabel), fontWeight = FontWeight.SemiBold)
+                    Text("• Protocol: ${p.protocol.uppercase()}")
+                    Text("• Scan: ${p.scanMode}")
+                    Text("• IP: ${p.ipVersion}")
+                    Text("• Anti-DPI: ${p.noize}")
+                    Text("• HTTP/2: ${if (p.http2) "on" else "off"}")
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(enabled = profile != null, onClick = { profile?.let(onCreate) }) {
+                Text(stringResource(Res.string.aether_smart_create))
+            }
+        },
+        dismissButton = {
+            Row {
+                TextButton(onClick = onCustomize) { Text(stringResource(Res.string.aether_smart_customize)) }
+                TextButton(onClick = onDismiss) { Text(stringResource(Res.string.action_cancel)) }
+            }
+        },
     )
 }

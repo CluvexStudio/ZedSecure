@@ -1893,4 +1893,15 @@
     <string name="about_logs_body">Logs show recorded technical events and errors for troubleshooting. Support provides help-related information, while update checks look for newer releases. Review logs for personal details or sensitive addresses before sharing them.</string>
     <string name="about_limits_title">Important performance notes</string>
     <string name="about_limits_body">Actual performance depends on internet quality, server, carrier, operating system, permissions and selected configuration. Not every feature is available on every device or connection engine. A VPN alone cannot guarantee complete security, fixed speed or absolute anonymity.</string>
+    <string name="aether_smart_title">Smart config (Aether)</string>
+    <string name="aether_smart_body">The app checks your network and internet, fills in every Aether field (protocol, scan mode, IP version, anti-DPI, HTTP/2) automatically and builds a dedicated, ready-to-connect config.</string>
+    <string name="aether_smart_detecting">Detecting your network…</string>
+    <string name="aether_smart_detected">Detected network: %1$s</string>
+    <string name="aether_smart_net_mobile">Mobile data</string>
+    <string name="aether_smart_net_wifi">Wi-Fi</string>
+    <string name="aether_smart_net_lan">Wired network</string>
+    <string name="aether_smart_net_unknown">Unknown</string>
+    <string name="aether_smart_create">Create and activate</string>
+    <string name="aether_smart_customize">Edit manually</string>
+    <string name="aether_smart_done">Smart Aether config created and activated</string>
 </resources>

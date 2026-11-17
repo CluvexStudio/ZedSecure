@@ -1856,4 +1856,15 @@
     <string name="notif_accent_mint">Мята</string>
     <string name="notif_graph_title">График скорости</string>
     <string name="notif_graph_summary">Показывать живой график скорости в карточке (стиль ZX PS)</string>
+    <string name="aether_smart_title">Умная конфигурация (Aether)</string>
+    <string name="aether_smart_body">Приложение проверяет вашу сеть и интернет, автоматически заполняет все поля Aether (протокол, режим сканирования, версия IP, анти‑DPI, HTTP/2) и создаёт готовую к подключению конфигурацию.</string>
+    <string name="aether_smart_detecting">Определяем сеть…</string>
+    <string name="aether_smart_detected">Обнаруженная сеть: %1$s</string>
+    <string name="aether_smart_net_mobile">Мобильные данные</string>
+    <string name="aether_smart_net_wifi">Wi‑Fi</string>
+    <string name="aether_smart_net_lan">Проводная сеть</string>
+    <string name="aether_smart_net_unknown">Неизвестно</string>
+    <string name="aether_smart_create">Создать и включить</string>
+    <string name="aether_smart_customize">Изменить вручную</string>
+    <string name="aether_smart_done">Умная конфигурация Aether создана и включена</string>
 </resources>

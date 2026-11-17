@@ -1886,4 +1886,15 @@
     <string name="about_logs_body">گزارش‌ها رویدادهای فنی و خطاهای ثبت‌شده را برای عیب‌یابی نشان می‌دهند. بخش پشتیبانی راه‌های کمک و اطلاعات مرتبط را در دسترس می‌گذارد و بررسی به‌روزرسانی نسخه‌های جدید را پیدا می‌کند. هنگام اشتراک‌گذاری گزارش، اطلاعات شخصی یا نشانی‌های حساس را بازبینی کنید.</string>
     <string name="about_limits_title">نکات مهم درباره عملکرد</string>
     <string name="about_limits_body">عملکرد نهایی به کیفیت اینترنت، سرور، اپراتور، سیستم‌عامل، مجوزها و پیکربندی انتخاب‌شده بستگی دارد. همه قابلیت‌ها در تمام دستگاه‌ها یا همه موتورهای اتصال فعال نیستند. VPN به‌تنهایی امنیت کامل، سرعت ثابت یا ناشناس‌بودن مطلق را تضمین نمی‌کند.</string>
+    <string name="aether_smart_title">کانفیگ هوشمند (Aether)</string>
+    <string name="aether_smart_body">برنامه اینترنت و شبکه‌ی خودتان را بررسی می‌کند و همه‌ی فیلدهای Aether (پروتکل، حالت اسکن، نسخه IP، ضد DPI، HTTP/2) را خودکار پر می‌کند و یک کانفیگ اختصاصی و آماده‌ی اتصال می‌سازد.</string>
+    <string name="aether_smart_detecting">در حال تشخیص شبکه…</string>
+    <string name="aether_smart_detected">شبکه‌ی تشخیص‌داده‌شده: %1$s</string>
+    <string name="aether_smart_net_mobile">داده همراه</string>
+    <string name="aether_smart_net_wifi">وای‌فای</string>
+    <string name="aether_smart_net_lan">شبکه‌ی سیمی</string>
+    <string name="aether_smart_net_unknown">نامشخص</string>
+    <string name="aether_smart_create">ساخت و فعال‌سازی</string>
+    <string name="aether_smart_customize">ویرایش دستی</string>
+    <string name="aether_smart_done">کانفیگ هوشمند Aether ساخته و فعال شد</string>
 </resources>

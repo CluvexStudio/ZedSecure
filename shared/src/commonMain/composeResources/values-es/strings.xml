@@ -1809,4 +1809,15 @@
     <string name="notif_accent_mint">Menta</string>
     <string name="notif_graph_title">Gráfico de velocidad</string>
     <string name="notif_graph_summary">Muestra un gráfico de velocidad en la tarjeta (estilo ZX PS)</string>
+    <string name="aether_smart_title">Config inteligente (Aether)</string>
+    <string name="aether_smart_body">La app analiza tu red e internet, rellena automáticamente todos los campos de Aether (protocolo, modo de escaneo, versión IP, anti‑DPI, HTTP/2) y crea una configuración propia lista para conectar.</string>
+    <string name="aether_smart_detecting">Detectando tu red…</string>
+    <string name="aether_smart_detected">Red detectada: %1$s</string>
+    <string name="aether_smart_net_mobile">Datos móviles</string>
+    <string name="aether_smart_net_wifi">Wi‑Fi</string>
+    <string name="aether_smart_net_lan">Red cableada</string>
+    <string name="aether_smart_net_unknown">Desconocida</string>
+    <string name="aether_smart_create">Crear y activar</string>
+    <string name="aether_smart_customize">Editar manualmente</string>
+    <string name="aether_smart_done">Config inteligente de Aether creada y activada</string>
 </resources>

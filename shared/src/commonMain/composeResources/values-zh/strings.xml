@@ -1856,4 +1856,15 @@
     <string name="notif_accent_mint">薄荷</string>
     <string name="notif_graph_title">速度曲线</string>
     <string name="notif_graph_summary">在卡片中显示实时速度曲线（ZX PS 样式）</string>
+    <string name="aether_smart_title">智能配置（Aether）</string>
+    <string name="aether_smart_body">应用会检测你的网络和互联网状况，自动填写 Aether 的所有字段（协议、扫描模式、IP 版本、反 DPI、HTTP/2），并生成可直接连接的专属配置。</string>
+    <string name="aether_smart_detecting">正在检测网络…</string>
+    <string name="aether_smart_detected">检测到的网络：%1$s</string>
+    <string name="aether_smart_net_mobile">移动数据</string>
+    <string name="aether_smart_net_wifi">Wi‑Fi</string>
+    <string name="aether_smart_net_lan">有线网络</string>
+    <string name="aether_smart_net_unknown">未知</string>
+    <string name="aether_smart_create">创建并启用</string>
+    <string name="aether_smart_customize">手动编辑</string>
+    <string name="aether_smart_done">已创建并启用智能 Aether 配置</string>
 </resources>
