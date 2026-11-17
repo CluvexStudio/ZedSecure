@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -76,6 +77,24 @@ fun GhostSettingsPage(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            if (ghost.adultContentProtectionEnabled) {
+                androidx.compose.material3.OutlinedTextField(
+                    value = ghost.adultExtraDomains,
+                    onValueChange = { v ->
+                        onUpdate { it.copy(ghost = it.ghost.copy(adultExtraDomains = v.take(8000))) }
+                    },
+                    label = { Text("دامنه‌های اضافهٔ مسدود (هر خط یکی)") },
+                    placeholder = { Text("example.com") },
+                    minLines = 2,
+                    maxLines = 6,
+                    modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
+                )
+                Text(
+                    text = "علاوه بر لیست داخلی، این دامنه‌ها هم هنگام اتصال مسدود می‌شوند. هم‌زمان نشانی‌های DNS رمزگذاری‌شدهٔ عمومی (مثل dns.google و cloudflare-dns.com) بسته می‌شوند تا مرورگرها نتوانند فیلتر DNS را دور بزنند.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             SettingsSwitchRow(
                 title = "AUTO",
                 summary = "تشخیص وای‌فای/داده + استراتژی خودکار",
