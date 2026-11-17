@@ -1,6 +1,7 @@
 package dev.cluvex.zedsecure.domain.config
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
