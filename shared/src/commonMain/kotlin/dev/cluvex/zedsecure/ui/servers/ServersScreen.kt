@@ -2416,12 +2416,14 @@ private fun AetherProfileSheet(
                     label = { Text("Profile name") },
                     modifier = Modifier.fillMaxWidth(),
                 )
-                AetherChoice("Protocol", protocol, listOf("masque", "wg", "gool", "mim")) { protocol = it }
+                AetherChoice("Protocol", protocol, listOf("masque", "wg", "gool", "mim")) { protocol = it; if (it == "wg") http2 = false }
                 AetherChoice("Scan mode", scan, listOf("turbo", "balanced", "thorough", "verified", "ironclad")) { scan = it }
                 AetherChoice("IP version", ip, listOf("v4", "v6", "both")) { ip = it }
                 AetherChoice("Anti-DPI profile", noize, listOf("off", "light", "firewall", "balanced", "gfw", "aggressive")) { noize = it }
-                TextButton(onClick = { http2 = !http2 }) {
-                    Text(if (http2) "HTTP/2 transport: enabled" else "HTTP/2 transport: disabled")
+                if (protocol != "wg") {
+                    TextButton(onClick = { http2 = !http2 }) {
+                        Text(if (http2) "HTTP/2 transport: enabled" else "HTTP/2 transport: disabled")
+                    }
                 }
             }
         },

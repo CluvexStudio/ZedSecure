@@ -21,6 +21,7 @@ data class AetherProfile(
         require(scanMode in SCAN_MODES) { "Unsupported Aether scan mode" }
         require(ipVersion in IP_VERSIONS) { "Unsupported Aether IP version" }
         require(noize in NOIZE_PROFILES) { "Unsupported Aether obfuscation profile" }
+        require(!http2 || protocol != "wg") { "HTTP/2 transport is not available for WireGuard mode" }
         return buildList {
             add("--bind"); add("127.0.0.1:$bindPort")
             add("--protocol"); add(protocol)
