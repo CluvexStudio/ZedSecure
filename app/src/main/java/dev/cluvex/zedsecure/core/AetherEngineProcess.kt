@@ -17,7 +17,7 @@ internal class AetherEngineProcess(
 
     @Synchronized
     fun start(arguments: List<String>, environment: Map<String, String> = emptyMap()) {
-        check(process?.isAlive != true) { "Aether is already running" }
+        check(process?.let(::isProcessAlive) != true) { "Aether is already running" }
         AetherIdentityVault.sealAndShred(workingDirectory)
         AetherIdentityVault.unsealInto(workingDirectory)
         val executable = File(nativeLibraryDir, "libaether.so")
@@ -53,7 +53,14 @@ internal class AetherEngineProcess(
     }
 
     @Synchronized
-    fun isAlive(): Boolean = process?.isAlive == true
+    fun isAlive(): Boolean = process?.let(::isProcessAlive) == true
+
+    private fun isProcessAlive(child: Process): Boolean = try {
+        child.exitValue()
+        false
+    } catch (_: IllegalThreadStateException) {
+        true
+    }
 
     fun awaitExit(): Int? = process?.waitFor()
 
@@ -62,10 +69,16 @@ internal class AetherEngineProcess(
         val child = process
         if (child != null) {
             child.destroy()
-            if (!child.waitFor(STOP_TIMEOUT_MS, java.util.concurrent.TimeUnit.MILLISECONDS)) {
-                child.destroyForcibly()
-                child.waitFor(STOP_TIMEOUT_MS, java.util.concurrent.TimeUnit.MILLISECONDS)
+            val deadline = System.currentTimeMillis() + STOP_TIMEOUT_MS
+            while (isProcessAlive(child) && System.currentTimeMillis() < deadline) {
+                runCatching { Thread.sleep(30) }
             }
+            if (isProcessAlive(child)) {
+                // destroyForcibly was added after ZX's minSdk. Reflect it when
+                // present, while keeping the normal path compatible with API 24+.
+                runCatching { Process::class.java.getMethod("destroyForcibly").invoke(child) }
+            }
+            runCatching { child.waitFor() }
             process = null
         }
         AetherIdentityVault.sealAndShred(workingDirectory)
