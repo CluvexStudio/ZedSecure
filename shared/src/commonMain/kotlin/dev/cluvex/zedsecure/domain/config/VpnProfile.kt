@@ -129,6 +129,8 @@ data class VpnProfile(
 
     val isSingBoxConfig: Boolean get() = source is ProfileSource.SingBoxConfig
 
+    val isAether: Boolean get() = aetherSettings() != null
+
     val engineLabel: String
         get() = engineLabelOf(source)
 
@@ -159,7 +161,7 @@ data class VpnProfile(
 
     val isManagedTunnel: Boolean
         get() = isPsiphon || isDnsTunnel || isMasterDns || isDnsResolver || isTor || isSsh || isSniSpoof ||
-            isOpenConnect || isIkev2 || isCrossChain || isSingBoxConfig
+            isOpenConnect || isIkev2 || isCrossChain || isSingBoxConfig || isAether
 
     val isDnsBasedTunnel: Boolean get() = isDnsTunnel || isMasterDns || isDnsResolver
 
@@ -174,12 +176,14 @@ data class VpnProfile(
 
     fun ikev2Settings(): Ikev2Profile? = (source as? ProfileSource.Ikev2)?.settings
 
+    fun aetherSettings(): AetherProfile? = (source as? ProfileSource.RawJson)?.json?.let(AetherProfile::decode)
+
     fun proxyChainSettings(): List<String>? = (source as? ProfileSource.ProxyChain)?.memberIds
 
     val isCrossChain: Boolean get() = source is ProfileSource.CrossChain
 
     val canCarryChain: Boolean
-        get() = when (source) {
+        get() = !isAether && when (source) {
             is ProfileSource.Link, is ProfileSource.RawJson, is ProfileSource.Sealed,
             is ProfileSource.ProxyChain, is ProfileSource.SingBox,
             is ProfileSource.Psiphon, is ProfileSource.Tor -> true
@@ -187,7 +191,7 @@ data class VpnProfile(
         }
 
     val canDialThroughProxy: Boolean
-        get() = when (source) {
+        get() = !isAether && when (source) {
             is ProfileSource.Tor, is ProfileSource.Psiphon -> true
             is ProfileSource.Link, is ProfileSource.RawJson, is ProfileSource.Sealed,
             is ProfileSource.ProxyChain, is ProfileSource.SingBox -> true
@@ -195,7 +199,7 @@ data class VpnProfile(
         }
 
     val carrierRelaysUdp: Boolean
-        get() = when (source) {
+        get() = !isAether && when (source) {
             is ProfileSource.Link, is ProfileSource.RawJson, is ProfileSource.Sealed,
             is ProfileSource.ProxyChain, is ProfileSource.SingBox, is ProfileSource.Psiphon -> true
             else -> false
@@ -253,11 +257,14 @@ data class VpnProfile(
                 forSpeedtest = forSpeedtest,
             )
         }
-        is ProfileSource.RawJson -> XrayJsonBuilder.normalizeRawJson(
+        is ProfileSource.RawJson -> {
+            check(AetherProfile.decode(src.json) == null) { "Aether profiles do not build Xray config" }
+            XrayJsonBuilder.normalizeRawJson(
             src.json,
             forSpeedtest = forSpeedtest,
             geoAssetsAvailable = options.geoAssetsAvailable,
         )
+        }
         is ProfileSource.Sealed ->
             configJsonFromPayload(
                 ZsxCrypto.open(Base64.decode(src.zsxBase64), password = null),
@@ -314,6 +321,7 @@ data class VpnProfile(
     companion object {
         const val ENGINE_XRAY = "Xray"
         const val ENGINE_SINGBOX = "sing-box"
+        const val ENGINE_AETHER = "Aether"
         const val ENGINE_CHAIN = "Chain"
         const val ENGINE_AUTO = "Auto"
 
@@ -462,6 +470,13 @@ data class VpnProfile(
             )
         }
 
+        fun fromAether(settings: AetherProfile, id: String, addedAt: Long, name: String): VpnProfile = VpnProfile(
+            id = id, name = name.ifBlank { "Aether" }, protocol = "AETHER",
+            address = "Cloudflare WARP", port = 0,
+            transportLabel = "Aether · ${settings.protocol.uppercase()}",
+            source = ProfileSource.RawJson(AetherProfile.encode(settings)), addedAt = addedAt,
+        )
+
         fun fromTor(id: String, addedAt: Long, name: String): VpnProfile = VpnProfile(
             id = id,
             name = name.ifBlank { "Tor" },
@@ -560,7 +575,8 @@ data class VpnProfile(
             is ProfileSource.CrossChain -> ENGINE_CHAIN
             is ProfileSource.AutoSelect -> ENGINE_AUTO
             is ProfileSource.Sealed -> sealedEngineLabel(src.zsxBase64)
-            is ProfileSource.RawJson, is ProfileSource.ProxyChain -> ENGINE_XRAY
+            is ProfileSource.RawJson -> if (AetherProfile.decode(src.json) != null) ENGINE_AETHER else ENGINE_XRAY
+            is ProfileSource.ProxyChain -> ENGINE_XRAY
         }
 
         private val sealedLabels = java.util.concurrent.ConcurrentHashMap<String, String>()
