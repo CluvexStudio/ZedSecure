@@ -208,7 +208,12 @@ object ConfigExplorerEngine {
 
     fun setEnabled(repository: ConfigRepository, enabled: Boolean) {
         repository.configExplorer.setEnabled(enabled)
-        if (enabled) start(repository)
+        if (enabled) {
+            start(repository)
+            if (!repository.configExplorer.state.value.isRunning) {
+                scope.launch { runCycle(repository) }
+            }
+        }
     }
 
     fun promoteReserve(repository: ConfigRepository, entryId: String) {
