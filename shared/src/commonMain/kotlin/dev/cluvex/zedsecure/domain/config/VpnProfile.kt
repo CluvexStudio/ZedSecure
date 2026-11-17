@@ -595,6 +595,7 @@ data class VpnProfile(
             if (SniSpoofLink.isSniSpoofLink(text)) {
                 return SniSpoofLink.parse(text)?.second?.let { ProfileSource.SniSpoof(it) }
             }
+            if (AetherProfile.decode(text) != null) return ProfileSource.RawJson(text)
             when (SingBoxJson.shapeOf(text)) {
                 SingBoxJson.Shape.FullConfig -> return ProfileSource.SingBoxConfig(text)
                 SingBoxJson.Shape.None -> Unit
