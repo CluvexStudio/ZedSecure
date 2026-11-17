@@ -269,7 +269,6 @@ class ZedVpnService : VpnService() {
         if (kind == VpnManager.KIND_OPENCONNECT) { startOpenConnect(configJson, settings); return }
 
         if (kind == VpnManager.KIND_SINGBOX) { startSingBox(configJson, settings); return }
-        if (kind == VpnManager.KIND_AETHER) { startAether(configJson, descriptor, tunMtu); return }
 
         val dnsInChain = kind == VpnManager.KIND_DNS_TUNNEL || kind == VpnManager.KIND_MASTERDNS ||
             (kind == VpnManager.KIND_CROSS_CHAIN && crossChainHasDnsTunnel(configJson))
@@ -348,6 +347,8 @@ class ZedVpnService : VpnService() {
         advance(VpnNotifications.Stage.Interface)
 
         VpnManager.setActiveKind(kind)
+
+        if (kind == VpnManager.KIND_AETHER) { startAether(configJson, descriptor, tunMtu); return }
 
         when (kind) {
             VpnManager.KIND_PSIPHON -> startPsiphon(configJson, descriptor, tunMtu)
