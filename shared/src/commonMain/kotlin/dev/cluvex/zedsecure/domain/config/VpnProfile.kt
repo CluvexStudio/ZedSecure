@@ -100,7 +100,7 @@ data class VpnProfile(
 
     val note: String? = null,
 ) {
-    val isCustom: Boolean get() = source is ProfileSource.RawJson
+    val isCustom: Boolean get() = source is ProfileSource.RawJson && !isAether
 
     val isServerless: Boolean by lazy { (source as? ProfileSource.RawJson)?.json?.let(CustomConfig::isServerless) == true }
 
