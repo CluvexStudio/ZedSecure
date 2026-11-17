@@ -792,7 +792,11 @@ class ZedVpnService : VpnService() {
                         if (userStop) return@launch
                         if (!process.isAlive()) break
                         val ok = runCatching {
-                            TunnelReadiness.verify(port, timeoutMs = 4_000, attempts = 1)
+                            TunnelReadiness.verifyAny(
+                                port,
+                                timeoutMs = 4_000,
+                                hosts = listOf("cp.cloudflare.com", "www.cloudflare.com", "example.com"),
+                            )
                         }.getOrDefault(false)
                         if (ok) { ready = true; break }
                         kotlinx.coroutines.delay(500)
