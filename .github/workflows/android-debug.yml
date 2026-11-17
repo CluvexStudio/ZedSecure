@@ -50,6 +50,9 @@ jobs:
       - name: Download and verify Android engines
         run: ./tools/get-cores.sh android
 
+      - name: Run Android unit tests
+        run: ./gradlew --no-daemon --warning-mode all :app:testDebugUnitTest
+
       - name: Build debug APKs
         run: ./gradlew --no-daemon --warning-mode all :app:assembleDebug
 
