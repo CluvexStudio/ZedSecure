@@ -1,3 +1,7 @@
 [submodule "native/aether"]
 	path = native/aether
 	url = https://github.com/CluvexStudio/Aether.git
+
+[submodule "native/aether-qw"]
+	path = native/aether-qw
+	url = https://github.com/QW-AI-Code/Aether.git

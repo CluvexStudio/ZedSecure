@@ -3,7 +3,9 @@
 # This is additive: no existing ZX engine or source is replaced.
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SRC="$ROOT/native/aether/aether"
+AETHER_ROOT="$ROOT/native/aether-qw/native/aether"
+SRC="$AETHER_ROOT/aether"
+PATCHER="$ROOT/native/aether-qw/scripts/patch-engine-dependencies.py"
 JNI="$ROOT/app/src/main/jniLibs"
 API="${ANDROID_API:-24}"
 if [ -z "${ANDROID_NDK_HOME:-}" ]; then
@@ -11,9 +13,20 @@ if [ -z "${ANDROID_NDK_HOME:-}" ]; then
   ANDROID_NDK_HOME="$(find "$NDK_ROOT" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort -V | tail -n1)"
 fi
 NDK="${ANDROID_NDK_HOME:-${ANDROID_NDK_ROOT:-}}"
-if [ ! -f "$SRC/Cargo.toml" ]; then
-  echo "Pinned Aether source missing; initialize submodules recursively." >&2; exit 1
+if [ ! -f "$SRC/Cargo.toml" ] || [ ! -f "$PATCHER" ]; then
+  echo "Merged Aether source or dependency patcher missing; initialize submodules recursively." >&2
+  exit 1
 fi
+if [ ! -f "$ROOT/native/aether-qw/PATCHLEVEL" ]; then
+  echo "Merged Aether PATCHLEVEL is missing; refusing an unidentifiable engine build." >&2
+  exit 1
+fi
+APP_PATCHLEVEL="$(tr -d '[:space:]' < "$ROOT/native/aether-qw/PATCHLEVEL")"
+[ -n "$APP_PATCHLEVEL" ] || { echo "Aether PATCHLEVEL is empty" >&2; exit 1; }
+export APP_PATCHLEVEL
+export CARGO_TARGET_DIR="$AETHER_ROOT/target"
+echo "==> Building merged Aether core at patch level $APP_PATCHLEVEL"
+python3 "$PATCHER" "$SRC"
 if [ -z "$NDK" ] || [ ! -d "$NDK/toolchains/llvm/prebuilt/linux-x86_64" ]; then
   echo "Linux Android NDK not found. Set ANDROID_NDK_HOME to the NDK root." >&2; exit 1
 fi
@@ -23,8 +36,8 @@ build_one() {
   local abi="$1" triple="$2"
   echo "==> Building pinned Aether for $abi ($triple)"
   (cd "$SRC" && cargo ndk -t "$abi" --platform "$API" build --bin aether --release --locked --features tor)
-  local bin="$SRC/target/$triple/release/aether"
-  [ -x "$bin" ] || { echo "Aether executable missing: $bin" >&2; find "$SRC/target" -maxdepth 4 -type f -name aether -print >&2 || true; exit 1; }
+  local bin="$CARGO_TARGET_DIR/$triple/release/aether"
+  [ -x "$bin" ] || { echo "Aether executable missing: $bin" >&2; find "$CARGO_TARGET_DIR" -maxdepth 5 -type f -name aether -print >&2 || true; exit 1; }
   mkdir -p "$JNI/$abi"
   install -m 755 "$bin" "$JNI/$abi/libaether.so"
   local sysroot_triple="$triple"
@@ -67,6 +80,12 @@ build_one() {
         ;;
     esac
   done <<< "$needed"
+  local stamp="AETHER-BUILD-STAMP:$APP_PATCHLEVEL"
+  if ! grep -aF -- "$stamp" "$JNI/$abi/libaether.so" >/dev/null; then
+    echo "Aether binary for $abi is missing build stamp $stamp" >&2
+    exit 1
+  fi
+  echo "    verified merged Aether build stamp: $stamp"
   echo "    packaged and dependency-verified $JNI/$abi/libaether.so"
 }
 build_one arm64-v8a aarch64-linux-android
