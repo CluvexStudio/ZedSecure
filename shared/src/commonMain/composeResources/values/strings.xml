@@ -1904,4 +1904,11 @@
     <string name="aether_smart_create">Create and activate</string>
     <string name="aether_smart_customize">Edit manually</string>
     <string name="aether_smart_done">Smart Aether config created and activated</string>
+    <string name="zx_tab_nodes">Nodes</string>
+    <string name="zx_tab_stats">Stats</string>
+    <string name="zx_tab_tools">Tools</string>
+    <string name="zx_act_connect">Connect</string>
+    <string name="zx_act_disconnect">Disconnect</string>
+    <string name="zx_act_cancel">Cancel</string>
+    <string name="zx_act_switch">Switch</string>
 </resources>

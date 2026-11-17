@@ -1867,4 +1867,11 @@
     <string name="aether_smart_create">Создать и включить</string>
     <string name="aether_smart_customize">Изменить вручную</string>
     <string name="aether_smart_done">Умная конфигурация Aether создана и включена</string>
+    <string name="zx_tab_nodes">Узлы</string>
+    <string name="zx_tab_stats">Статистика</string>
+    <string name="zx_tab_tools">Инструменты</string>
+    <string name="zx_act_connect">Подключить</string>
+    <string name="zx_act_disconnect">Отключить</string>
+    <string name="zx_act_cancel">Отмена</string>
+    <string name="zx_act_switch">Сменить</string>
 </resources>

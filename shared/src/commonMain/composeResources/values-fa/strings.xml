@@ -1897,4 +1897,11 @@
     <string name="aether_smart_create">ساخت و فعال‌سازی</string>
     <string name="aether_smart_customize">ویرایش دستی</string>
     <string name="aether_smart_done">کانفیگ هوشمند Aether ساخته و فعال شد</string>
+    <string name="zx_tab_nodes">سرورها</string>
+    <string name="zx_tab_stats">آمار</string>
+    <string name="zx_tab_tools">ابزارها</string>
+    <string name="zx_act_connect">اتصال</string>
+    <string name="zx_act_disconnect">قطع اتصال</string>
+    <string name="zx_act_cancel">لغو</string>
+    <string name="zx_act_switch">تغییر</string>
 </resources>

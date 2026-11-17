@@ -1820,4 +1820,11 @@
     <string name="aether_smart_create">Crear y activar</string>
     <string name="aether_smart_customize">Editar manualmente</string>
     <string name="aether_smart_done">Config inteligente de Aether creada y activada</string>
+    <string name="zx_tab_nodes">Nodos</string>
+    <string name="zx_tab_stats">Estadísticas</string>
+    <string name="zx_tab_tools">Herramientas</string>
+    <string name="zx_act_connect">Conectar</string>
+    <string name="zx_act_disconnect">Desconectar</string>
+    <string name="zx_act_cancel">Cancelar</string>
+    <string name="zx_act_switch">Cambiar</string>
 </resources>

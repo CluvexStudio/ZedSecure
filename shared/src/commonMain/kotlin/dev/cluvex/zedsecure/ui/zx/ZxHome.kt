@@ -2,6 +2,26 @@
 
 package dev.cluvex.zedsecure.ui.zx
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
+import dev.cluvex.zedsecure.shared.resources.zx_act_cancel
+import dev.cluvex.zedsecure.shared.resources.zx_act_connect
+import dev.cluvex.zedsecure.shared.resources.zx_act_disconnect
+import dev.cluvex.zedsecure.shared.resources.zx_act_switch
+import dev.cluvex.zedsecure.shared.resources.zx_tab_nodes
+import dev.cluvex.zedsecure.shared.resources.zx_tab_stats
+import dev.cluvex.zedsecure.shared.resources.zx_tab_tools
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -105,6 +125,18 @@ private const val TITLE_TAPS = 5
 private const val BURST_TAPS = 3
 private const val TAP_WINDOW_MS = 1_200L
 
+private enum class DeckTab { Nodes, Stats, Tools }
+
+private class DeckCard(
+    val id: String?,
+    val name: String,
+    val country: String?,
+    val engine: String?,
+    val detail: String?,
+    val pingMs: Int?,
+    val isActive: Boolean,
+)
+
 @Composable
 internal fun ZxHome(
     ui: ConnectionUiState,
@@ -144,11 +176,38 @@ internal fun ZxHome(
 
     var titleTaps by remember { mutableIntStateOf(0) }
     var titleLast by remember { mutableLongStateOf(0L) }
+    var tab by remember { mutableStateOf(DeckTab.Nodes) }
+    var selected by remember { mutableIntStateOf(0) }
 
-    val intensity by animateFloatAsState(if (live) 1f else 0.4f, tween(700), label = "zx-intensity")
+    val cards = remember(active, picks) {
+        buildList {
+            if (active != null) add(DeckCard(null, active.name, active.country, active.engine, active.detail, null, true))
+            picks.filter { it.name != active?.name }.forEach {
+                add(DeckCard(it.id, it.name, it.country, null, it.detail, it.pingMs, false))
+            }
+        }
+    }
+    val sel = selected.coerceIn(0, (cards.size - 1).coerceAtLeast(0))
+    val accents = listOf(c.neonA, c.neonB, c.neonC)
+    val accent by animateColorAsState(
+        if (cards.isEmpty()) c.neonA else accents[sel % accents.size],
+        tween(600),
+        label = "zx-deck-accent",
+    )
+    val intensity by animateFloatAsState(if (live) 1f else 0.45f, tween(700), label = "zx-intensity")
 
     Box(modifier.fillMaxSize().background(c.ground)) {
         ZxBackdrop(fx = fx, intensity = intensity)
+        // PlayStation-style dynamic background: the selected card tints the whole screen.
+        Box(
+            Modifier.fillMaxSize().background(
+                Brush.radialGradient(
+                    listOf(accent.copy(alpha = if (c.dark) 0.26f else 0.16f), Color.Transparent),
+                    center = Offset(Float.POSITIVE_INFINITY, 0f),
+                    radius = 1400f,
+                ),
+            ),
+        )
 
         Column(Modifier.fillMaxSize().padding(contentPadding)) {
             ZxTopBar(
@@ -169,162 +228,373 @@ internal fun ZxHome(
                 onLogs = onShowLogs,
             )
 
+            DeckTabs(tab, accent) { tab = it; haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove) }
+
             Column(
-                Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .appVerticalScroll(scroll)
-                    .padding(horizontal = 16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
+                Modifier.fillMaxWidth().weight(1f).appVerticalScroll(scroll),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                Spacer(Modifier.height(4.dp))
-
-                ZxCore(
-                    state = ui.state,
-                    fx = fx,
-                    onToggle = onToggleConnection,
-                    modifier = Modifier.tourTarget(TourTargets.CORE),
-                )
-
-                ZxStatus(
-                    state = ui.state,
-                    elapsedSeconds = ui.elapsedSeconds,
-                    fx = fx,
-                    onTap = onStatusTap,
-                )
-
-                Column(
-                    Modifier.fillMaxWidth().widthIn(max = 640.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                // Hero: status on the left, reactor on the right.
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 18.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    if (ui.state == ConnectionState.Error) {
-                        ZxErrorPanel(
-                            error = ui.error,
-                            onRetry = onToggleConnection,
-                            onOtherServer = onBrowseConfigs,
-                            onShowLogs = onShowLogs,
-                        )
+                    Column(Modifier.weight(1f)) {
+                        ZxStatusLeft(ui.state, ui.elapsedSeconds, fx, onStatusTap)
                     }
-
-                    if (active != null) {
-                        ZxChain(
-                            state = ui.state,
-                            deviceLabel = stringResource(Res.string.zx_node_device),
-                            engine = active.engine,
-                            netLabel = stringResource(Res.string.zx_node_internet),
-                            fx = fx,
-                        )
-                    }
-
-                    ZxServerPanel(
-                        active = active,
-                        info = info,
-                        live = live,
-                        showInfo = showConnectionInfo,
-                        onClick = onBrowseConfigs,
-                        onRefreshInfo = onRefreshInfo,
-                        modifier = Modifier.tourTarget(TourTargets.CONFIG_CARD),
+                    ZxCore(
+                        state = ui.state,
+                        fx = fx,
+                        onToggle = onToggleConnection,
+                        modifier = Modifier.tourTarget(TourTargets.CORE),
+                        diameter = 132.dp,
                     )
+                }
 
-                    Row(
-                        Modifier.fillMaxWidth().tourTarget(TourTargets.TRAFFIC),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        ZxSpeedPanel(
-                            label = stringResource(Res.string.home_download),
-                            bps = if (live) ui.downloadBps else 0,
-                            history = downHistory,
-                            tone = c.neonA,
-                            live = live,
-                            glow = fx != ZxFx.Min,
-                            modifier = Modifier.weight(1f),
-                        )
-                        ZxSpeedPanel(
-                            label = stringResource(Res.string.home_upload),
-                            bps = if (live) ui.uploadBps else 0,
-                            history = upHistory,
-                            tone = c.neonB,
-                            live = live,
-                            glow = fx != ZxFx.Min,
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
+                if (ui.state == ConnectionState.Error) {
+                    ZxErrorPanel(
+                        error = ui.error,
+                        onRetry = onToggleConnection,
+                        onOtherServer = onBrowseConfigs,
+                        onShowLogs = onShowLogs,
+                    )
+                }
 
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        ZxFactPanel(
-                            label = stringResource(Res.string.bento_connected_for),
-                            value = if (live) formatElapsed(ui.elapsedSeconds) else "--:--",
-                            tone = c.neonC,
-                            modifier = Modifier.weight(1f),
-                        )
-                        ZxFactPanel(
-                            label = stringResource(Res.string.bento_data_session),
-                            value = formatBytes(ui.totalDownload + ui.totalUpload),
-                            tone = c.neonA,
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-
-                    if (onOpenSpeedTest != null || onOpenMap != null) {
-                        FlowRow(
-                            Modifier.fillMaxWidth().tourTarget(TourTargets.HOME_TOOLS),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            if (onOpenSpeedTest != null && live) {
-                                ZxChip(stringResource(Res.string.title_speedtest), c.neonC, onOpenSpeedTest)
+                when (tab) {
+                    DeckTab.Nodes -> {
+                        if (cards.isEmpty()) {
+                            ZxPanel(
+                                Modifier.fillMaxWidth().padding(horizontal = 16.dp).tourTarget(TourTargets.CONFIG_CARD),
+                                onClick = onBrowseConfigs,
+                            ) {
+                                Text(stringResource(Res.string.bento_no_server).uppercase(), style = zxNumber(16.sp), color = c.ink)
                             }
-                            if (onOpenMap != null) {
-                                ZxChip(stringResource(Res.string.map_title), c.neonB, onOpenMap)
-                            }
-                        }
-                    }
-
-                    if (localProxyAddress != null && live) {
-                        val platform = LocalPlatform.current
-                        val copied = stringResource(Res.string.copied)
-                        ZxChip(
-                            text = stringResource(Res.string.home_local_proxy, localProxyAddress),
-                            tone = c.muted,
-                            onClick = {
-                                platform.copyToClipboard(localProxyAddress)
-                                platform.toast(copied)
-                            },
-                            mono = true,
-                        )
-                    }
-
-                    if (lockedNote != null) {
-                        val noteScroll = rememberScrollState()
-                        ZxPanel(Modifier.fillMaxWidth(), contentPadding = PaddingValues(0.dp)) {
-                            NoteText(
-                                text = lockedNote,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = c.muted,
-                                modifier = Modifier
+                        } else {
+                            Row(
+                                Modifier
                                     .fillMaxWidth()
-                                    .heightIn(max = 140.dp)
-                                    .appVerticalScroll(noteScroll)
-                                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                                    .horizontalScroll(rememberScrollState())
+                                    .padding(horizontal = 16.dp)
+                                    .tourTarget(TourTargets.CONFIG_CARD),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                cards.forEachIndexed { i, card ->
+                                    DeckCardView(
+                                        card = card,
+                                        index = i,
+                                        selected = i == sel,
+                                        live = live && card.isActive,
+                                        tone = accents[i % accents.size],
+                                        onClick = {
+                                            if (selected != i) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            selected = i
+                                        },
+                                    )
+                                }
+                            }
+                            val card = cards[sel]
+                            DeckHub(
+                                card = card,
+                                tone = accent,
+                                live = live,
+                                state = ui.state,
+                                info = info,
+                                showInfo = showConnectionInfo,
+                                onConnect = { if (card.isActive || card.id == null) onToggleConnection() else onPickServer(card.id) },
+                                onMap = onOpenMap,
+                                onSpeed = if (live) onOpenSpeedTest else null,
+                                onLogs = onShowLogs,
+                                fx = fx,
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                            )
+                            ZxChip(
+                                text = stringResource(Res.string.bento_fastest),
+                                tone = c.muted,
+                                onClick = onBrowseConfigs,
                             )
                         }
                     }
 
-                    if (picks.isNotEmpty()) {
-                        Text(
-                            stringResource(Res.string.bento_fastest).uppercase(),
-                            style = zxCaption(),
-                            color = c.muted,
-                            modifier = Modifier.padding(top = 4.dp),
+                    DeckTab.Stats -> Column(
+                        Modifier.padding(horizontal = 16.dp).widthIn(max = 640.dp).tourTarget(TourTargets.TRAFFIC),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        if (active != null) {
+                            ZxChain(
+                                state = ui.state,
+                                deviceLabel = stringResource(Res.string.zx_node_device),
+                                engine = active.engine,
+                                netLabel = stringResource(Res.string.zx_node_internet),
+                                fx = fx,
+                            )
+                        }
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            ZxSpeedPanel(stringResource(Res.string.home_download), if (live) ui.downloadBps else 0, downHistory, c.neonA, live, fx != ZxFx.Min, Modifier.weight(1f))
+                            ZxSpeedPanel(stringResource(Res.string.home_upload), if (live) ui.uploadBps else 0, upHistory, c.neonB, live, fx != ZxFx.Min, Modifier.weight(1f))
+                        }
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            ZxFactPanel(stringResource(Res.string.bento_connected_for), if (live) formatElapsed(ui.elapsedSeconds) else "--:--", c.neonC, Modifier.weight(1f))
+                            ZxFactPanel(stringResource(Res.string.bento_data_session), formatBytes(ui.totalDownload + ui.totalUpload), c.neonA, Modifier.weight(1f))
+                        }
+                        ZxServerPanel(
+                            active = active,
+                            info = info,
+                            live = live,
+                            showInfo = showConnectionInfo,
+                            onClick = onBrowseConfigs,
+                            onRefreshInfo = onRefreshInfo,
                         )
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            picks.forEach { pick -> ZxPickRow(pick) { onPickServer(pick.id) } }
+                        if (lockedNote != null) {
+                            val noteScroll = rememberScrollState()
+                            ZxPanel(Modifier.fillMaxWidth(), contentPadding = PaddingValues(0.dp)) {
+                                NoteText(
+                                    text = lockedNote,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = c.muted,
+                                    modifier = Modifier.fillMaxWidth().heightIn(max = 140.dp).appVerticalScroll(noteScroll)
+                                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                                )
+                            }
                         }
                     }
-                    Spacer(Modifier.height(20.dp))
+
+                    DeckTab.Tools -> Column(
+                        Modifier.padding(horizontal = 16.dp).widthIn(max = 640.dp).tourTarget(TourTargets.HOME_TOOLS),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        val platform = LocalPlatform.current
+                        val copied = stringResource(Res.string.copied)
+                        ToolTile(PsGlyph.Triangle, stringResource(Res.string.map_title), c.neonB, onOpenMap != null) { onOpenMap?.invoke() }
+                        ToolTile(PsGlyph.Square, stringResource(Res.string.title_speedtest), c.neonC, onOpenSpeedTest != null && live) { onOpenSpeedTest?.invoke() }
+                        ToolTile(PsGlyph.Circle, stringResource(Res.string.logs_title), c.neonA, true, onShowLogs)
+                        ToolTile(PsGlyph.Cross, stringResource(Res.string.bento_current_server), c.neonA, true, onBrowseConfigs)
+                        if (localProxyAddress != null && live) {
+                            ToolTile(PsGlyph.Circle, stringResource(Res.string.home_local_proxy, localProxyAddress), c.muted, true) {
+                                platform.copyToClipboard(localProxyAddress)
+                                platform.toast(copied)
+                            }
+                        }
+                    }
+                }
+                Spacer(Modifier.height(110.dp))
+            }
+        }
+    }
+}
+
+private enum class PsGlyph { Cross, Circle, Triangle, Square }
+
+/** The four action-button shapes, drawn as simple strokes. */
+@Composable
+private fun GlyphMark(glyph: PsGlyph, tone: Color, modifier: Modifier = Modifier.size(20.dp)) {
+    Canvas(modifier) {
+        val s = size.minDimension
+        val sw = 2.2.dp.toPx()
+        val m = s * 0.14f
+        when (glyph) {
+            PsGlyph.Cross -> {
+                drawLine(tone, Offset(m, m), Offset(s - m, s - m), sw, StrokeCap.Round)
+                drawLine(tone, Offset(s - m, m), Offset(m, s - m), sw, StrokeCap.Round)
+            }
+            PsGlyph.Circle -> drawCircle(tone, radius = s / 2f - m, style = Stroke(sw))
+            PsGlyph.Square -> drawRect(tone, Offset(m, m), androidx.compose.ui.geometry.Size(s - 2 * m, s - 2 * m), style = Stroke(sw, join = StrokeJoin.Round))
+            PsGlyph.Triangle -> {
+                val p = Path().apply {
+                    moveTo(s / 2f, m * 0.8f); lineTo(s - m, s - m); lineTo(m, s - m); close()
+                }
+                drawPath(p, tone, style = Stroke(sw, join = StrokeJoin.Round))
+            }
+        }
+    }
+}
+
+@Composable
+private fun DeckTabs(current: DeckTab, accent: Color, onSelect: (DeckTab) -> Unit) {
+    val c = Zx.colors
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(22.dp),
+        verticalAlignment = Alignment.Bottom,
+    ) {
+        DeckTab.entries.forEach { t ->
+            val on = t == current
+            val label = stringResource(
+                when (t) {
+                    DeckTab.Nodes -> Res.string.zx_tab_nodes
+                    DeckTab.Stats -> Res.string.zx_tab_stats
+                    DeckTab.Tools -> Res.string.zx_tab_tools
+                },
+            )
+            val size by animateFloatAsState(if (on) 17f else 13f, spring(dampingRatio = 0.6f), label = "zx-tab-size")
+            val bar by animateFloatAsState(if (on) 1f else 0f, tween(260), label = "zx-tab-bar")
+            Column(
+                Modifier.clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    role = Role.Tab,
+                ) { onSelect(t) },
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(label.uppercase(), style = zxNumber(size.sp), color = if (on) c.ink else c.muted, maxLines = 1)
+                Spacer(Modifier.height(3.dp))
+                Box(Modifier.height(3.dp).fillMaxWidth(bar).background(accent))
+            }
+        }
+    }
+}
+
+@Composable
+private fun ZxStatusLeft(state: ConnectionState, elapsedSeconds: Int, fx: ZxFx, onTap: () -> Unit) {
+    val c = Zx.colors
+    val tone = zxStateTone(state)
+    val label = stringResource(
+        when (state) {
+            ConnectionState.Idle -> Res.string.state_idle
+            ConnectionState.Connecting -> Res.string.state_connecting
+            ConnectionState.Connected -> Res.string.state_connected
+            ConnectionState.Reconnecting -> Res.string.state_reconnecting
+            ConnectionState.Disconnecting -> Res.string.state_disconnecting
+            ConnectionState.Error -> Res.string.state_error
+        },
+    )
+    Column(Modifier.clip(CutCornerShape(8.dp)).clickable(role = Role.Button, onClick = onTap).padding(vertical = 4.dp)) {
+        Text(
+            label.uppercase(),
+            style = zxNumber(26.sp).copy(shadow = if (fx == ZxFx.Max && c.dark) Shadow(tone.copy(alpha = 0.9f), blurRadius = 22f) else null),
+            color = tone,
+            maxLines = 1,
+        )
+        Text(
+            if (state == ConnectionState.Connected) formatElapsed(elapsedSeconds) else "--:--:--",
+            style = zxNumber(15.sp, FontWeight.Medium),
+            color = c.muted,
+        )
+    }
+}
+
+@Composable
+private fun DeckCardView(
+    card: DeckCard,
+    index: Int,
+    selected: Boolean,
+    live: Boolean,
+    tone: Color,
+    onClick: () -> Unit,
+) {
+    val c = Zx.colors
+    val spec = spring<androidx.compose.ui.unit.Dp>(dampingRatio = 0.7f, stiffness = 380f)
+    val w by animateDpAsState(if (selected) 172.dp else 128.dp, spec, label = "zx-card-w")
+    val h by animateDpAsState(if (selected) 236.dp else 188.dp, spec, label = "zx-card-h")
+    val shape = CutCornerShape(topStart = 0.dp, topEnd = 22.dp, bottomEnd = 0.dp, bottomStart = 22.dp)
+    val border by animateColorAsState(if (selected) tone else c.line, tween(300), label = "zx-card-border")
+    Box(
+        Modifier
+            .width(w).height(h)
+            .clip(shape)
+            .background(Brush.verticalGradient(listOf(tone.copy(alpha = if (selected) 0.30f else 0.12f), c.surface.copy(alpha = 0.92f))))
+            .border(if (selected) 2.dp else 1.dp, border, shape)
+            .clickable(role = Role.Button, onClick = onClick),
+    ) {
+        Text(
+            (index + 1).toString().padStart(2, '0'),
+            style = zxNumber(54.sp),
+            color = tone.copy(alpha = 0.14f),
+            modifier = Modifier.align(Alignment.TopEnd).padding(10.dp),
+        )
+        Column(Modifier.fillMaxSize().padding(14.dp), verticalArrangement = Arrangement.SpaceBetween) {
+            FlagBadge(countryCode = card.country, size = if (selected) 40.dp else 32.dp)
+            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                if (live) Text("● LIVE", style = zxCaption(), color = c.good)
+                Text(card.name, style = zxNumber(if (selected) 16.sp else 13.sp), color = c.ink, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                val sub = listOfNotNull(card.engine, card.detail).joinToString(" · ")
+                if (sub.isNotBlank()) Text(sub, style = zxCaption(), color = c.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                card.pingMs?.let { ms ->
+                    Box(Modifier.fillMaxWidth().height(3.dp).background(c.line)) {
+                        Box(Modifier.fillMaxWidth((1f - ms / 600f).coerceIn(0.08f, 1f)).height(3.dp).background(tone))
+                    }
+                    Text("$ms ms", style = zxCaption(), color = tone)
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun DeckHub(
+    card: DeckCard,
+    tone: Color,
+    live: Boolean,
+    state: ConnectionState,
+    info: NetworkInfo,
+    showInfo: Boolean,
+    onConnect: () -> Unit,
+    onMap: (() -> Unit)?,
+    onSpeed: (() -> Unit)?,
+    onLogs: () -> Unit,
+    fx: ZxFx,
+    modifier: Modifier = Modifier,
+) {
+    val c = Zx.colors
+    val thisLive = live && card.isActive
+    ZxPanel(modifier.fillMaxWidth(), accent = tone, glow = thisLive) {
+        Text(card.name, style = zxNumber(20.sp), color = c.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        val sub = listOfNotNull(card.engine, card.detail).joinToString(" · ")
+        if (sub.isNotBlank()) Text(sub, style = zxCaption(), color = c.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        if (thisLive && showInfo) {
+            Spacer(Modifier.height(6.dp))
+            val line = listOfNotNull(info.ipv4?.let { ltrIsolate(it) }, info.pingMs?.let { "$it ms" }).joinToString("  ·  ")
+            if (line.isNotBlank()) Text(line, style = zxNumber(13.sp, FontWeight.Medium), color = c.neonA)
+        }
+        Spacer(Modifier.height(12.dp))
+        val connectLabel = stringResource(
+            when {
+                state.isTransitioning && card.isActive -> Res.string.zx_act_cancel
+                thisLive -> Res.string.zx_act_disconnect
+                card.isActive || card.id == null -> Res.string.zx_act_connect
+                else -> Res.string.zx_act_switch
+            },
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            val shape = CutCornerShape(topStart = 0.dp, topEnd = 12.dp, bottomEnd = 0.dp, bottomStart = 12.dp)
+            Row(
+                Modifier.weight(1f).clip(shape).background(tone).clickable(role = Role.Button, onClick = onConnect)
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                GlyphMark(PsGlyph.Cross, c.ground)
+                Text(connectLabel.uppercase(), style = zxNumber(14.sp), color = c.ground, maxLines = 1)
+            }
+            MiniAction(PsGlyph.Triangle, c.neonB, onMap != null) { onMap?.invoke() }
+            MiniAction(PsGlyph.Square, c.neonC, onSpeed != null) { onSpeed?.invoke() }
+            MiniAction(PsGlyph.Circle, c.neonA, true, onLogs)
+        }
+    }
+}
+
+@Composable
+private fun MiniAction(glyph: PsGlyph, tone: Color, enabled: Boolean, onClick: () -> Unit) {
+    val shape = CutCornerShape(topStart = 0.dp, topEnd = 10.dp, bottomEnd = 0.dp, bottomStart = 10.dp)
+    val t = if (enabled) tone else tone.copy(alpha = 0.3f)
+    Box(
+        Modifier.size(46.dp).clip(shape).background(t.copy(alpha = 0.10f)).border(1.dp, t, shape)
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) { GlyphMark(glyph, t) }
+}
+
+@Composable
+private fun ToolTile(glyph: PsGlyph, label: String, tone: Color, enabled: Boolean, onClick: () -> Unit) {
+    val c = Zx.colors
+    ZxPanel(
+        Modifier.fillMaxWidth().then(if (enabled) Modifier else Modifier.graphicsLayer { alpha = 0.45f }),
+        accent = tone,
+        onClick = if (enabled) onClick else null,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            GlyphMark(glyph, tone, Modifier.size(26.dp))
+            Text(label.uppercase(), style = zxNumber(15.sp), color = c.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }

@@ -1867,4 +1867,11 @@
     <string name="aether_smart_create">创建并启用</string>
     <string name="aether_smart_customize">手动编辑</string>
     <string name="aether_smart_done">已创建并启用智能 Aether 配置</string>
+    <string name="zx_tab_nodes">节点</string>
+    <string name="zx_tab_stats">统计</string>
+    <string name="zx_tab_tools">工具</string>
+    <string name="zx_act_connect">连接</string>
+    <string name="zx_act_disconnect">断开</string>
+    <string name="zx_act_cancel">取消</string>
+    <string name="zx_act_switch">切换</string>
 </resources>
