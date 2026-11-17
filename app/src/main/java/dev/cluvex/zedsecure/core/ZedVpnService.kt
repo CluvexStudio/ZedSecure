@@ -794,8 +794,9 @@ class ZedVpnService : VpnService() {
                         val ok = runCatching {
                             TunnelReadiness.verifyAny(
                                 port,
-                                timeoutMs = 4_000,
+                                timeoutMs = 1_800,
                                 hosts = listOf("cp.cloudflare.com", "www.cloudflare.com", "example.com"),
+                                connectTimeoutMs = 1_200,
                             )
                         }.getOrDefault(false)
                         if (ok) { ready = true; break }
