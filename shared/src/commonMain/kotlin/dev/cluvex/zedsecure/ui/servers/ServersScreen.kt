@@ -1374,6 +1374,11 @@ fun ServersScreen(
                 showAddSheet = false
                 showWarp = true
             },
+            onAether = {
+                showAddSheet = false
+                repository.addAether()
+                scope.launch { platform.toast("Aether profile added") }
+            },
             onSniSpoof = {
                 showAddSheet = false
                 showSniSpoof = true
@@ -2287,6 +2292,7 @@ private fun AddServerSheet(
     onTor: () -> Unit,
     onSsh: () -> Unit,
     onWarp: () -> Unit,
+    onAether: () -> Unit,
     onSniSpoof: () -> Unit,
     onProxyChain: () -> Unit,
     onCrossChain: () -> Unit,
@@ -2337,6 +2343,7 @@ private fun AddServerSheet(
             Option(Res.drawable.ic_lock, Res.string.tor_add_title, onTor, free = true)
             Option(Res.drawable.ic_speed, Res.string.ssh_add_title, onSsh)
             Option(Res.drawable.ic_public, Res.string.warp_add_title, onWarp, free = true)
+            OptionText(Res.drawable.ic_public, "Aether · WARP engine", onAether)
             if (LocalPlatform.current.supportsSniSpoof) Option(Res.drawable.ic_bolt, Res.string.snispoof_add_title, onSniSpoof)
 
             OptionGroup(Res.string.add_group_dns)
@@ -2355,6 +2362,20 @@ private fun AddServerSheet(
 
             OptionGroup(Res.string.add_group_subscription)
             Option(Res.drawable.ic_add_link, Res.string.subs_add, onSubscription)
+        }
+    }
+}
+
+@Composable
+private fun OptionText(iconRes: DrawableResource, label: String, onClick: () -> Unit) {
+    Surface(onClick = onClick, color = Color.Transparent, modifier = Modifier.fillMaxWidth()) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 15.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(painterResource(iconRes), null, tint = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.width(18.dp))
+            Text(label, style = MaterialTheme.typography.titleMedium)
         }
     }
 }
