@@ -1,6 +1,8 @@
 package dev.cluvex.zedsecure.data.config
 
 import dev.cluvex.zedsecure.data.net.NetworkInfoRepository
+import dev.cluvex.zedsecure.data.net.GeoLookup
+import dev.cluvex.zedsecure.platform.resolveHostAddress
 import dev.cluvex.zedsecure.data.net.PingService
 import dev.cluvex.zedsecure.domain.config.SubscriptionParser
 import dev.cluvex.zedsecure.domain.config.VpnProfile
@@ -47,6 +49,8 @@ data class ConfigExplorerEntry(
     val jitterMs: Int,
     val lastCheckedAt: Long,
     val profileId: String? = null,
+    val ipAddress: String? = null,
+    val countryCode: String? = null,
 )
 
 @Serializable
@@ -67,6 +71,7 @@ data class ConfigExplorerSnapshot(
     val groupId: String? = null,
     val managedProfileIds: List<String> = emptyList(),
     val healthyPool: List<ConfigExplorerEntry> = emptyList(),
+    val liveEntries: List<ConfigExplorerEntry> = emptyList(),
     val sourceStatuses: List<ConfigExplorerSourceStatus> = emptyList(),
     val candidateCount: Int = 0,
     val parsedCount: Int = 0,
@@ -253,6 +258,7 @@ object ConfigExplorerEngine {
                 progressDone = 0,
                 progressTotal = 0,
                 candidateCount = 0,
+                liveEntries = emptyList(),
                 parsedCount = 0,
                 testedCount = 0,
                 lastError = null,
@@ -382,7 +388,21 @@ object ConfigExplorerEngine {
                             meanMs = samples.average().toInt(),
                             jitterMs = (samples.maxOrNull() ?: 0) - (samples.minOrNull() ?: 0),
                             lastCheckedAt = currentTimeMillis(),
-                        )
+                        ).also { entry ->
+                            explorer.updateRuntime { state ->
+                                state.copy(liveEntries = (state.liveEntries.filterNot { it.id == entry.id } + entry)
+                                    .sortedWith(entryComparator()).take(HEALTHY_LIMIT))
+                            }
+                            scope.launch {
+                                val ip = runCatching { resolveHostAddress(profile.address) }.getOrNull()
+                                val country = GeoLookup.countryOf(profile.address)
+                                explorer.updateRuntime { state ->
+                                    state.copy(liveEntries = state.liveEntries.map { current ->
+                                        if (current.id == entry.id) current.copy(ipAddress = ip, countryCode = country) else current
+                                    })
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -433,6 +453,7 @@ object ConfigExplorerEngine {
                     groupId = groupId,
                     managedProfileIds = sync.managedProfileIds,
                     healthyPool = sync.entries + healthy.drop(BEST_LIMIT),
+                    liveEntries = emptyList(),
                     sourceStatuses = statuses,
                     candidateCount = candidates.size,
                     parsedCount = parsed.size,
