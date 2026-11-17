@@ -5,7 +5,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SRC="$ROOT/native/aether/aether"
 JNI="$ROOT/app/src/main/jniLibs"
-API="${ANDROID_API:-26}"
+API="${ANDROID_API:-24}"
 if [ -z "${ANDROID_NDK_HOME:-}" ]; then
   NDK_ROOT="${ANDROID_HOME:-$HOME/Android/Sdk}/ndk"
   ANDROID_NDK_HOME="$(find "$NDK_ROOT" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort -V | tail -n1)"
