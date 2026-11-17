@@ -219,7 +219,7 @@ data class VpnProfile(
 
     fun rawPayload(): String? = when (val src = source) {
         is ProfileSource.Link -> src.link
-        is ProfileSource.RawJson -> src.json
+        is ProfileSource.RawJson -> AetherProfile.decode(src.json)?.let { AetherProfile.encode(it.copy(profileName = name)) } ?: src.json
 
         is ProfileSource.Sealed -> null
 
