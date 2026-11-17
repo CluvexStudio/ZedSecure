@@ -203,9 +203,7 @@ object ConfigExplorerEngine {
     }
 
     fun runNow(repository: ConfigRepository) {
-        if (repository.configExplorer.state.value.enabled) {
-            scope.launch { runCycle(repository, force = true) }
-        }
+        scope.launch { runCycle(repository, force = true) }
     }
 
     fun setEnabled(repository: ConfigRepository, enabled: Boolean) {
