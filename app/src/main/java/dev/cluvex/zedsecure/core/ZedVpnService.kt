@@ -1319,6 +1319,7 @@ class ZedVpnService : VpnService() {
                 val waited = waitMs
                 delay(waited)
                 val running = when (kind) {
+                    VpnManager.KIND_AETHER -> aetherEngine?.isAlive() == true && FrontCore.isRunning
                     VpnManager.KIND_PSIPHON -> psiphon?.isRunning == true
                     VpnManager.KIND_DNS_TUNNEL -> dnsTunnel?.isRunning == true
                     VpnManager.KIND_MASTERDNS -> masterDns?.isRunning == true
