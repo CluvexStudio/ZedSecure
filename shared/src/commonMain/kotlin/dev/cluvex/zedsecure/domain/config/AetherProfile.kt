@@ -42,7 +42,7 @@ data class AetherProfile(
             val json = Json { ignoreUnknownKeys = true }
             val element = json.parseToJsonElement(raw) as? kotlinx.serialization.json.JsonObject
                 ?: return null
-            if (element["marker"]?.toString() != "`"package dev.cluvex.zedsecure.domain.config
+            if (element["marker"]?.toString() != "\"ZX_AETHER\"") return null
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
