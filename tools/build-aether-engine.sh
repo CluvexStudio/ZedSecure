@@ -27,8 +27,19 @@ build_one() {
   [ -x "$bin" ] || { echo "Aether executable missing: $bin" >&2; find "$SRC/target" -maxdepth 4 -type f -name aether -print >&2 || true; exit 1; }
   mkdir -p "$JNI/$abi"
   install -m 755 "$bin" "$JNI/$abi/libaether.so"
-  local syslib="$NDK/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/$triple/libc++_shared.so"
-  if [ -f "$syslib" ]; then install -m 644 "$syslib" "$JNI/$abi/libc++_shared.so"; fi
+  local sysroot_triple="$triple"
+  if [ "$abi" = "armeabi-v7a" ]; then sysroot_triple="arm-linux-androideabi"; fi
+  local syslib_dir="$NDK/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/$sysroot_triple"
+  local syslib="$syslib_dir/libc++_shared.so"
+  if [ ! -f "$syslib" ] && [ -d "$syslib_dir" ]; then
+    syslib="$(find "$syslib_dir" -name libc++_shared.so -type f | sort -V | tail -n1)"
+  fi
+  if [ -f "$syslib" ]; then
+    install -m 644 "$syslib" "$JNI/$abi/libc++_shared.so"
+  else
+    echo "NDK libc++_shared.so not found for $abi ($sysroot_triple)" >&2
+    exit 1
+  fi
   echo "    packaged $JNI/$abi/libaether.so"
 }
 build_one arm64-v8a aarch64-linux-android
