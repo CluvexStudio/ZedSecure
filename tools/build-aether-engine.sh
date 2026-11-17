@@ -40,7 +40,34 @@ build_one() {
     echo "NDK libc++_shared.so not found for $abi ($sysroot_triple)" >&2
     exit 1
   fi
-  echo "    packaged $JNI/$abi/libaether.so"
+
+  # Strip and verify every dynamic dependency before the APK is assembled.
+  local llvm_bin="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin"
+  "$llvm_bin/llvm-strip" "$JNI/$abi/libaether.so"
+  local needed
+  needed="$("$llvm_bin/llvm-readelf" -d "$JNI/$abi/libaether.so" 2>/dev/null | sed -n 's/.*Shared library: \\[\\([^]]*\\)\\].*/\\1/p')"
+  if [ -z "$needed" ]; then
+    echo "Could not read dynamic dependencies from $JNI/$abi/libaether.so" >&2
+    exit 1
+  fi
+  while IFS= read -r dep; do
+    [ -n "$dep" ] || continue
+    case "$dep" in
+      libc.so|libdl.so|liblog.so|libm.so|libandroid.so|libz.so) ;;
+      libc++_shared.so)
+        [ -f "$JNI/$abi/libc++_shared.so" ] || {
+          echo "Missing libc++_shared.so for $abi" >&2; exit 1;
+        }
+        ;;
+      *)
+        if [ ! -f "$JNI/$abi/$dep" ]; then
+          echo "Unpackaged Aether runtime dependency for $abi: $dep" >&2
+          exit 1
+        fi
+        ;;
+    esac
+  done <<< "$needed"
+  echo "    packaged and dependency-verified $JNI/$abi/libaether.so"
 }
 build_one arm64-v8a aarch64-linux-android
 build_one armeabi-v7a armv7-linux-androideabi
