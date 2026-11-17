@@ -15,6 +15,10 @@ data class AetherProfile(
     val ipVersion: String = "v4",
     val noize: String = "firewall",
     val http2: Boolean = false,
+    /** Sends the TLS ClientHello in pieces (anti-DPI); only meaningful with HTTP/2 transport. */
+    val fragment: Boolean = false,
+    /** Optional IP for the WARP registration API, for networks that block its default addresses. */
+    val apiAddress: String = "",
 ) {
     fun toArgs(bindPort: Int, workingDirectory: String): List<String> {
         require(protocol in PROTOCOLS) { "Unsupported Aether protocol" }
@@ -29,6 +33,10 @@ data class AetherProfile(
             add("--ip"); add(ipVersion)
             add("--noize"); add(noize)
             if (http2) add("--h2")
+            if (fragment && http2) add("--fragment")
+            if (apiAddress.isNotBlank() && apiAddress.all { it.isLetterOrDigit() || it in ".:-[]" }) {
+                add("--api-address"); add(apiAddress.trim())
+            }
             add("--config"); add("$workingDirectory/aether.toml")
         }
     }
@@ -41,7 +49,8 @@ data class AetherProfile(
     fun attempts(): List<AetherProfile> = buildList {
         add(this@AetherProfile)
         if (protocol == "masque") add(copy(http2 = !http2))
-        add(copy(protocol = "masque", http2 = true, noize = "gfw", scanMode = "thorough"))
+        add(copy(protocol = "masque", http2 = true, fragment = true, noize = "gfw", scanMode = "thorough"))
+        add(copy(protocol = "masque", http2 = true, fragment = true, noize = "gfw", scanMode = "thorough", apiAddress = "162.159.137.105"))
         add(copy(protocol = "wg", http2 = false, noize = "balanced", scanMode = "balanced"))
         add(copy(protocol = "masque", http2 = false, noize = "off", ipVersion = "v4", scanMode = "balanced"))
     }.distinct()

@@ -37,6 +37,7 @@ data class ConnectionFault(
 
     companion object {
         private val RULES: List<Pair<Cause, List<String>>> = listOf(
+            Cause.Transport to listOf("aether could not establish"),
             Cause.PortBusy to listOf("address already in use", "failed to listen", "eaddrinuse",
                 "only one usage of each socket address"),
             Cause.Config to listOf("config error", "failed to parse json config", "failed to parse config",
