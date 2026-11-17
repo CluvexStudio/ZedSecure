@@ -248,7 +248,12 @@ fun ConfigExplorerSheet(
 private fun countryFlag(code: String): String {
     if (code.length != 2) return "🌐"
     val base = 0x1F1E6
-    return code.uppercase().map { char -> String(Character.toChars(base + char.code - 'A'.code)) }.joinToString("")
+    return code.uppercase().map { char ->
+        val point = base + char.code - 'A'.code
+        val high = ((point - 0x10000) shr 10) + 0xD800
+        val low = ((point - 0x10000) and 0x3FF) + 0xDC00
+        "" + high.toChar() + low.toChar()
+    }.joinToString("")
 }
 
 @Composable
@@ -283,7 +288,7 @@ private fun ExplorerEntryRow(
     Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
         Row(
             Modifier.fillMaxWidth()
-                .clickable(enabled = !isReserve && entry.profileId != null, onClick = onClick)
+                .clickable(onClick = onClick)
                 .padding(vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
