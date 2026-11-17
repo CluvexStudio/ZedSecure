@@ -54,6 +54,8 @@ internal class AetherEngineProcess(
     @Synchronized
     fun isAlive(): Boolean = process?.isAlive == true
 
+    fun awaitExit(): Int? = process?.waitFor()
+
     @Synchronized
     fun stop() {
         val child = process ?: return

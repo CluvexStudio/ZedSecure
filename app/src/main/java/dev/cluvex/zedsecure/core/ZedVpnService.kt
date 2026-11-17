@@ -67,6 +67,8 @@ class ZedVpnService : VpnService() {
     private var sniSpoofEdge: String? = null
     private var openConnect: OpenConnectController? = null
     private var singBox: SingBoxEngine? = null
+    private var aetherEngine: AetherEngineProcess? = null
+    private var aetherWatch: Job? = null
 
     private var singBoxLastUp = 0L
     private var singBoxLastDown = 0L
@@ -267,6 +269,7 @@ class ZedVpnService : VpnService() {
         if (kind == VpnManager.KIND_OPENCONNECT) { startOpenConnect(configJson, settings); return }
 
         if (kind == VpnManager.KIND_SINGBOX) { startSingBox(configJson, settings); return }
+        if (kind == VpnManager.KIND_AETHER) { startAether(configJson, descriptor, tunMtu); return }
 
         val dnsInChain = kind == VpnManager.KIND_DNS_TUNNEL || kind == VpnManager.KIND_MASTERDNS ||
             (kind == VpnManager.KIND_CROSS_CHAIN && crossChainHasDnsTunnel(configJson))
@@ -744,6 +747,60 @@ class ZedVpnService : VpnService() {
             .filter { it.isNotEmpty() && XrayJsonBuilder.isIpLiteral(it) }
             .filter { ipv6 || !it.contains(':') }
             .distinct()
+
+    private fun startAether(configJson: String, descriptor: ParcelFileDescriptor, tunMtu: Int) {
+        val profile = runCatching {
+            kotlinx.serialization.json.Json.decodeFromString(
+                dev.cluvex.zedsecure.domain.config.AetherProfile.serializer(),
+                configJson,
+            )
+        }.getOrElse {
+            Log.e(TAG, "bad Aether profile", it)
+            VpnManager.onError(getString(R.string.config_invalid))
+            stopEverything()
+            return
+        }
+        val port = LocalPortPicker.pick(LocalPorts.AETHER_SOCKS)
+        val workDir = java.io.File(filesDir, "aether").apply { mkdirs() }
+        val process = AetherEngineProcess(java.io.File(applicationInfo.nativeLibraryDir), workDir)
+        aetherEngine = process
+        VpnManager.setActiveKind(kind)
+        advance(VpnNotifications.Stage.Engine)
+        scope.launch(Dispatchers.IO) {
+            try {
+                process.start(profile.toArgs(port, workDir.absolutePath))
+                aetherWatch?.cancel()
+                aetherWatch = scope.launch(Dispatchers.IO) {
+                    val exitCode = runCatching { process.awaitExit() }.getOrNull()
+                    if (!userStop && process === aetherEngine &&
+                        (connected || VpnManager.status.value.state.isTransitioning)
+                    ) {
+                        onTunnelFailed("Aether engine stopped unexpectedly (exit ${exitCode ?: "unknown"})")
+                    }
+                }
+                val deadline = System.currentTimeMillis() + 180_000L
+                var ready = false
+                while (System.currentTimeMillis() < deadline) {
+                    if (!process.isAlive()) throw IllegalStateException("Aether exited before opening its SOCKS5 listener")
+                    val listening = runCatching {
+                        java.net.Socket().use { socket ->
+                            socket.connect(java.net.InetSocketAddress("127.0.0.1", port), 400)
+                            true
+                        }
+                    }.getOrDefault(false)
+                    if (listening) { ready = true; break }
+                    kotlinx.coroutines.delay(400)
+                }
+                if (!ready) throw IllegalStateException("Aether SOCKS5 listener did not become ready")
+                bridgeEngine(descriptor, port, tunMtu)
+                LogBus.append("I/Aether: native engine ready on 127.0.0.1:$port")
+            } catch (e: Exception) {
+                Log.e(TAG, "Aether startup failed", e)
+                VpnManager.onError(e.message ?: getString(R.string.engine_failed_tunnel))
+                stopEverything()
+            }
+        }
+    }
 
     private fun startXray(configJson: String, preferredPort: Int, descriptor: ParcelFileDescriptor, tunMtu: Int) {
         val socksPort = freePairFor(preferredPort)
@@ -1488,6 +1545,8 @@ class ZedVpnService : VpnService() {
         sniSpoof?.stop(); sniSpoof = null
         openConnect?.stop(); openConnect = null
         singBox?.stop(); singBox = null
+        aetherWatch?.cancel(); aetherWatch = null
+        aetherEngine?.stop(); aetherEngine = null
         outerPsiphon?.stop(); outerPsiphon = null
         outerTor?.stop(); outerTor = null
         outerSsh?.stop(); outerSsh = null
@@ -1743,6 +1802,7 @@ class ZedVpnService : VpnService() {
         VpnManager.KIND_MASTERDNS -> masterDns?.isRunning == true
         VpnManager.KIND_TOR -> (if (outer) outerTor else tor)?.isRunning == true
         VpnManager.KIND_SSH -> (if (outer) outerSsh else ssh)?.isRunning == true
+        VpnManager.KIND_AETHER -> !outer && aetherEngine?.isAlive() == true
         else -> XrayController.isRunning
     }
 
