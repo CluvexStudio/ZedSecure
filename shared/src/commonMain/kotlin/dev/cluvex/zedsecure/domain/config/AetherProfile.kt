@@ -40,10 +40,14 @@ data class AetherProfile(
 
         fun decode(raw: String): AetherProfile? = runCatching {
             val json = Json { ignoreUnknownKeys = true }
-            val element = json.parseToJsonElement(raw) as? kotlinx.serialization.json.JsonObject
-                ?: return null
-            if (element["marker"]?.toString() != "\"ZX_AETHER\"") return null
-            json.decodeFromString<AetherProfile>(raw)
+            val element = json.parseToJsonElement(raw)
+            if (element !is kotlinx.serialization.json.JsonObject ||
+                element["marker"]?.toString() != "\"ZX_AETHER\""
+            ) {
+                null
+            } else {
+                json.decodeFromString<AetherProfile>(raw)
+            }
         }.getOrNull()?.takeIf { it.marker == MARKER }
 
         fun encode(profile: AetherProfile): String =
