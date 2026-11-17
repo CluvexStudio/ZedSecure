@@ -1769,6 +1769,9 @@ class ZedVpnService : VpnService() {
 
     override fun onDestroy() {
         XrayController.onCoreShutdown = null
+        aetherWatch?.cancel()
+        aetherEngine?.stop()
+        aetherEngine = null
         scope.cancel()
         super.onDestroy()
     }
