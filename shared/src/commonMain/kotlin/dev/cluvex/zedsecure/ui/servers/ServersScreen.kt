@@ -340,6 +340,7 @@ fun ServersScreen(
     var showProxyChain by remember { mutableStateOf(false) }
     var showCrossChain by remember { mutableStateOf(false) }
     var showWarp by remember { mutableStateOf(false) }
+    var showAether by remember { mutableStateOf(false) }
 
     val servers = profiles.filterNot { it.isLocked }
 
@@ -1376,8 +1377,7 @@ fun ServersScreen(
             },
             onAether = {
                 showAddSheet = false
-                repository.addAether()
-                scope.launch { platform.toast("Aether profile added") }
+                showAether = true
             },
             onSniSpoof = {
                 showAddSheet = false
@@ -1394,6 +1394,17 @@ fun ServersScreen(
             onSubscription = {
                 showAddSheet = false
                 showSubs = true
+            },
+        )
+    }
+
+    if (showAether) {
+        AetherProfileSheet(
+            onDismiss = { showAether = false },
+            onSave = { profile ->
+                showAether = false
+                repository.addAether(profile)
+                scope.launch { platform.toast("Aether profile added") }
             },
         )
     }
@@ -2362,6 +2373,70 @@ private fun AddServerSheet(
 
             OptionGroup(Res.string.add_group_subscription)
             Option(Res.drawable.ic_add_link, Res.string.subs_add, onSubscription)
+        }
+    }
+}
+
+@Composable
+private fun AetherProfileSheet(
+    onDismiss: () -> Unit,
+    onSave: (dev.cluvex.zedsecure.domain.config.AetherProfile) -> Unit,
+) {
+    var protocol by rememberSaveable { mutableStateOf("masque") }
+    var scan by rememberSaveable { mutableStateOf("balanced") }
+    var ip by rememberSaveable { mutableStateOf("v4") }
+    var noize by rememberSaveable { mutableStateOf("firewall") }
+    var http2 by rememberSaveable { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Aether · WARP engine") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("A separate WARP-based tunnel engine. Choose its transport and connection profile.")
+                AetherChoice("Protocol", protocol, listOf("masque", "wg", "gool", "mim")) { protocol = it }
+                AetherChoice("Scan mode", scan, listOf("turbo", "balanced", "thorough", "verified", "ironclad")) { scan = it }
+                AetherChoice("IP version", ip, listOf("v4", "v6", "both")) { ip = it }
+                AetherChoice("Anti-DPI profile", noize, listOf("off", "light", "firewall", "balanced", "gfw", "aggressive")) { noize = it }
+                TextButton(onClick = { http2 = !http2 }) {
+                    Text(if (http2) "HTTP/2 transport: enabled" else "HTTP/2 transport: disabled")
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                onSave(
+                    dev.cluvex.zedsecure.domain.config.AetherProfile(
+                        protocol = protocol,
+                        scanMode = scan,
+                        ipVersion = ip,
+                        noize = noize,
+                        http2 = http2,
+                    ),
+                )
+            }) { Text("Add Aether") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.action_cancel)) } },
+    )
+}
+
+@Composable
+private fun AetherChoice(
+    label: String,
+    selected: String,
+    choices: List<String>,
+    onSelect: (String) -> Unit,
+) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    Column {
+        TextButton(onClick = { expanded = true }) { Text("$label: $selected") }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            choices.forEach { choice ->
+                DropdownMenuItem(
+                    text = { Text(choice) },
+                    onClick = { expanded = false; onSelect(choice) },
+                )
+            }
         }
     }
 }
