@@ -453,7 +453,7 @@ object ConfigExplorerEngine {
                     groupId = groupId,
                     managedProfileIds = sync.managedProfileIds,
                     healthyPool = sync.entries + healthy.drop(BEST_LIMIT),
-                    liveEntries = emptyList(),
+                    liveEntries = sync.entries + healthy.drop(BEST_LIMIT),
                     sourceStatuses = statuses,
                     candidateCount = candidates.size,
                     parsedCount = parsed.size,
