@@ -37,6 +37,11 @@ data class AetherProfile(
             if (apiAddress.isNotBlank() && apiAddress.all { it.isLetterOrDigit() || it in ".:-[]" }) {
                 add("--api-address"); add(apiAddress.trim())
             }
+            // Keep the last known working gateway across transient reconnects and
+            // emit native tunnel counters into the existing Aether log stream.
+            add("--quick-reconnect")
+            add("--stats"); add("--stats-secs"); add("15")
+            add("--log-level"); add("info")
             add("--config"); add("$workingDirectory/aether.toml")
         }
     }
