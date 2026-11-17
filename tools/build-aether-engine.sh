@@ -17,6 +17,18 @@ if [ ! -f "$SRC/Cargo.toml" ] || [ ! -f "$PATCHER" ]; then
   echo "Merged Aether source or dependency patcher missing; initialize submodules recursively." >&2
   exit 1
 fi
+UPSTREAM_SRC="$ROOT/native/aether/aether"
+if [ ! -f "$UPSTREAM_SRC/Cargo.toml" ]; then
+  echo "Cluvex upstream Aether submodule is missing." >&2
+  exit 1
+fi
+UPSTREAM_VERSION="$(sed -n 's/^version = "\(.*\)"/\1/p' "$UPSTREAM_SRC/Cargo.toml" | head -n1)"
+MERGED_VERSION="$(sed -n 's/^version = "\(.*\)"/\1/p' "$SRC/Cargo.toml" | head -n1)"
+if [ -z "$UPSTREAM_VERSION" ] || [ "$UPSTREAM_VERSION" != "$MERGED_VERSION" ]; then
+  echo "Aether core versions differ (Cluvex=$UPSTREAM_VERSION, QW=$MERGED_VERSION); review the merge before building." >&2
+  exit 1
+fi
+echo "==> Cluvex upstream and QW patched Aether core versions match: $MERGED_VERSION"
 if [ ! -f "$ROOT/native/aether-qw/PATCHLEVEL" ]; then
   echo "Merged Aether PATCHLEVEL is missing; refusing an unidentifiable engine build." >&2
   exit 1
