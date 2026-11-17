@@ -78,6 +78,9 @@ compose.desktop {
     application {
         mainClass = "dev.cluvex.zedsecure.desktop.GuiKt"
         jvmArgs += listOf("-XX:TieredStopAtLevel=1")
+        if (System.getProperty("os.name").startsWith("Linux")) {
+            jvmArgs += listOf("--add-opens=java.desktop/sun.awt.X11=ALL-UNNAMED")
+        }
         nativeDistributions {
             targetFormats(TargetFormat.Deb, TargetFormat.Rpm, TargetFormat.AppImage, TargetFormat.Msi, TargetFormat.Dmg)
             modules("java.net.http", "jdk.localedata")

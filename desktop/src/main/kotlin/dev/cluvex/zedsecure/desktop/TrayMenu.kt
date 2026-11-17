@@ -193,6 +193,15 @@ object LinuxDesktop {
 
     private const val NATIVE_TRAY_BRIDGE = "com.kdroid.composetray.lib.linux.LinuxNativeBridge"
 
+    const val WINDOW_CLASS = "zedsecure-ZedSecure"
+
+    fun claimWindowClass() {
+        runCatching {
+            val toolkit = java.awt.Toolkit.getDefaultToolkit()
+            toolkit.javaClass.getDeclaredField("awtAppClassName").apply { isAccessible = true }.set(toolkit, WINDOW_CLASS)
+        }.onFailure { System.err.println("window class: ${it.message ?: it}") }
+    }
+
     fun trayHostAvailable(): Boolean {
         val gdbus = exec(
             "gdbus", "call", "--session",
@@ -218,7 +227,10 @@ object LinuxDesktop {
 
     fun notify(title: String, body: String) {
         thread(name = "desktop-notify", isDaemon = true) {
-            exec("notify-send", "--app-name=ZedSecure", "--icon=network-vpn", title, body, timeoutSec = 5)
+            exec(
+                "notify-send", "--app-name=ZedSecure", "--icon=network-vpn",
+                "--hint=string:desktop-entry:$WINDOW_CLASS", title, body, timeoutSec = 5,
+            )
         }
     }
 }

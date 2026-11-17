@@ -155,6 +155,7 @@ fun main(args: Array<String>) {
             kotlinx.coroutines.delay(15 * 60 * 1000L)
         }
     }
+    if (Os.current == Os.LINUX) LinuxDesktop.claimWindowClass()
     application {
         setSingletonImageLoaderFactory { ctx ->
             ImageLoader.Builder(ctx).components { add(SvgDecoder.Factory()) }.build()

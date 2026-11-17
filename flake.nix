@@ -36,6 +36,7 @@
               exec = "zedsecure";
               icon = "zedsecure";
               desktopName = "ZedSecure";
+              startupWMClass = "zedsecure-ZedSecure";
               categories = [ "Network" ];
             })
           ];

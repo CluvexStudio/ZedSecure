@@ -71,6 +71,7 @@ jobs:
           Name=ZedSecure
           Exec=$(basename "$BIN")
           Icon=zedsecure
+          StartupWMClass=zedsecure-ZedSecure
           Categories=Network;
           Terminal=false
           EOF
