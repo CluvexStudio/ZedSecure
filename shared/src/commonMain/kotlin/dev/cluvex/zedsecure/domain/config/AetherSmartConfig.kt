@@ -2,6 +2,9 @@ package dev.cluvex.zedsecure.domain.config
 
 import dev.cluvex.zedsecure.platform.NetworkKind
 
+/** What the user wants the Smart config to favor. */
+enum class AetherSmartGoal { Auto, Speed, Stealth }
+
 /** What the app learned about the user's connection before building an Aether profile. */
 data class AetherSmartInput(
     val network: NetworkKind = NetworkKind.Unknown,
@@ -13,6 +16,9 @@ data class AetherSmartInput(
     val edgeReachable: Boolean? = null,
     val edgeMs: Int? = null,
     val apiReachable: Boolean? = null,
+    /** Spread between two edge samples; a high value marks an unstable link. */
+    val edgeJitterMs: Int? = null,
+    val goal: AetherSmartGoal = AetherSmartGoal.Auto,
 )
 
 /**
@@ -36,20 +42,23 @@ object AetherSmartConfig {
         val apiBlocked = input.apiReachable == false
         val fastEdge = input.edgeReachable == true && (input.edgeMs ?: Int.MAX_VALUE) < FAST_EDGE_MS
 
-        val strict = filtered || edgeBlocked
+        val unstable = (input.edgeJitterMs ?: 0) >= UNSTABLE_JITTER_MS
+        val strict = filtered || edgeBlocked || input.goal == AetherSmartGoal.Stealth
         val noize = when {
             strict -> "gfw"
             cellular -> "firewall"
             else -> "balanced"
         }
         val scan = when {
-            edgeBlocked -> "thorough"
+            input.goal == AetherSmartGoal.Stealth -> "verified"
+            input.goal == AetherSmartGoal.Speed && !edgeBlocked -> "turbo"
+            edgeBlocked || unstable -> "thorough"
             fastEdge && !filtered -> "turbo"
             slow -> "turbo"
             cellular || filtered -> "thorough"
             else -> "balanced"
         }
-        val h2 = cellular || strict
+        val h2 = (cellular || strict) && !(input.goal == AetherSmartGoal.Speed && !edgeBlocked && !filtered)
         return AetherProfile(
             profileName = nameFor(input.network),
             protocol = "masque",
@@ -71,4 +80,5 @@ object AetherSmartConfig {
 
     private const val SLOW_PING_MS = 350
     private const val FAST_EDGE_MS = 220
+    private const val UNSTABLE_JITTER_MS = 150
 }

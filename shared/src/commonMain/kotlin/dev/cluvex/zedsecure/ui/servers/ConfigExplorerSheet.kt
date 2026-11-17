@@ -13,7 +13,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -36,6 +38,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.cluvex.zedsecure.data.config.ConfigExplorerEngine
 import dev.cluvex.zedsecure.data.config.ConfigExplorerEntry
 import dev.cluvex.zedsecure.data.config.ConfigRepository
+import dev.cluvex.zedsecure.platform.currentTimeMillis
+import dev.cluvex.zedsecure.ui.platform.LocalPlatform
 import dev.cluvex.zedsecure.ui.platform.rememberAppSheetState
 
 @Composable
@@ -47,8 +51,16 @@ fun ConfigExplorerSheet(
     val state by repository.configExplorer.state.collectAsStateWithLifecycle()
     var tab by rememberSaveable { mutableStateOf("live") }
     var selectedEntry by rememberSaveable { mutableStateOf<ConfigExplorerEntry?>(null) }
+    var query by rememberSaveable { mutableStateOf("") }
+    var protoFilter by rememberSaveable { mutableStateOf<String?>(null) }
+    var sort by rememberSaveable { mutableStateOf("latency") }
+    val platform = LocalPlatform.current
 
     LaunchedEffect(repository) { ConfigExplorerEngine.start(repository) }
+    // While the best list is still empty, show the live findings instead of a blank "preparing" page.
+    LaunchedEffect(state.healthyPool.isEmpty(), state.liveEntries.isNotEmpty()) {
+        if (tab == "best" && state.healthyPool.isEmpty() && state.liveEntries.isNotEmpty()) tab = "live"
+    }
 
     val visibleHealthyCount = (state.healthyPool + state.liveEntries).distinctBy { it.id }.size
 
@@ -58,6 +70,23 @@ fun ConfigExplorerSheet(
         "pool" -> state.healthyPool
         else -> state.healthyPool.take(ConfigExplorerEngine.BEST_LIMIT)
     }
+
+    val protocols = entries.map { it.protocol }.distinct().sorted()
+    val shown = entries
+        .filter { protoFilter == null || it.protocol == protoFilter }
+        .filter {
+            val q = query.trim().lowercase()
+            q.isEmpty() || it.name.lowercase().contains(q) || it.address.lowercase().contains(q) ||
+                (it.countryCode?.lowercase() ?: "").contains(q) || it.protocol.lowercase().contains(q) ||
+                it.sourceName.lowercase().contains(q)
+        }
+        .let { list ->
+            when (sort) {
+                "jitter" -> list.sortedBy { it.jitterMs }
+                "quality" -> list.sortedByDescending { explorerQuality(it) }
+                else -> list
+            }
+        }
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberAppSheetState()) {
         Column(
@@ -87,6 +116,41 @@ fun ConfigExplorerSheet(
                 ExplorerMetric("برتر", state.healthyPool.take(ConfigExplorerEngine.BEST_LIMIT).size.toString(), Modifier.weight(1f))
             }
 
+            val best = state.healthyPool.firstOrNull { it.profileId != null }
+            if (best != null) {
+                Surface(
+                    shape = RoundedCornerShape(18.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            "بهترین سرور فعلی: " + (best.countryCode?.let(::countryFlag) ?: "🌐") + " " +
+                                best.protocol + " · " + best.medianMs + " ms · امتیاز " + explorerQuality(best),
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        )
+                        val pool = state.healthyPool
+                        val protoStats = pool.groupingBy { it.protocol }.eachCount().entries
+                            .sortedByDescending { it.value }.take(4)
+                            .joinToString(" · ") { it.key + " " + it.value }
+                        val countryStats = pool.mapNotNull { it.countryCode }.groupingBy { it }.eachCount().entries
+                            .sortedByDescending { it.value }.take(5)
+                            .joinToString("  ") { countryFlag(it.key) + it.value }
+                        if (protoStats.isNotBlank()) {
+                            Text(protoStats, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                        }
+                        if (countryStats.isNotBlank()) {
+                            Text(countryStats, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                        }
+                        Button(
+                            onClick = { best.profileId?.let { repository.setActive(it); onServerActivated(); onDismiss() } },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) { Text("اتصال سریع به بهترین سرور") }
+                    }
+                }
+            }
+
             Surface(
                 shape = RoundedCornerShape(18.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant,
@@ -97,7 +161,7 @@ fun ConfigExplorerSheet(
                         Column(Modifier.weight(1f)) {
                             Text("چرخه خودکار", fontWeight = FontWeight.SemiBold)
                             Text(
-                                "اجرای مجدد هر ۱۵ دقیقه؛ بدون هم‌پوشانی چرخه‌ها",
+                                "اجرای خودکار هر ۱۵ دقیقه (پیش‌فرض خاموش). با دکمهٔ «شروع کاوش» هر وقت خواستید دستی اجرا کنید",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -123,16 +187,24 @@ fun ConfigExplorerSheet(
                         )
                     } else {
                         Text(
-                            state.lastError ?: if (state.lastRunAt == null) "هنوز چرخه‌ای اجرا نشده است" else "آخرین چرخه پایان یافته است",
+                            state.lastError ?: state.lastRunAt?.let { last ->
+                                "آخرین چرخه " + relativeAgo(last) + " · چرخهٔ بعدی " + relativeIn(last + ConfigExplorerEngine.INTERVAL_MS)
+                            } ?: "هنوز چرخه‌ای اجرا نشده است",
                             style = MaterialTheme.typography.bodySmall,
                             color = if (state.lastError != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    Button(
-                        onClick = { ConfigExplorerEngine.runNow(repository) },
-                        enabled = !state.isRunning,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) { Text(if (state.isRunning) "کاوش در حال اجراست..." else "شروع کاوش فوری") }
+                    if (state.isRunning) {
+                        androidx.compose.material3.OutlinedButton(
+                            onClick = { ConfigExplorerEngine.stop(repository) },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) { Text("توقف کاوش (یافته‌ها حفظ می‌شود)") }
+                    } else {
+                        Button(
+                            onClick = { ConfigExplorerEngine.runNow(repository) },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) { Text("شروع کاوش") }
+                    }
                     Text(
                         "چرخه " + state.cycleCount + " · تعداد تست‌ها " + state.testedCount,
                         style = MaterialTheme.typography.labelSmall,
@@ -153,6 +225,43 @@ fun ConfigExplorerSheet(
             }
 
             HorizontalDivider()
+
+            if (tab != "sources") {
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    singleLine = true,
+                    label = { Text("جست‌وجو (نام، آدرس، کشور، پروتکل، منبع)") },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Row(
+                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    FilterChip(selected = protoFilter == null, onClick = { protoFilter = null }, label = { Text("همه") })
+                    protocols.forEach { proto ->
+                        FilterChip(
+                            selected = protoFilter == proto,
+                            onClick = { protoFilter = if (protoFilter == proto) null else proto },
+                            label = { Text(proto) },
+                        )
+                    }
+                }
+                Row(
+                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    FilterChip(selected = sort == "latency", onClick = { sort = "latency" }, label = { Text("تأخیر") })
+                    FilterChip(selected = sort == "jitter", onClick = { sort = "jitter" }, label = { Text("کمترین نوسان") })
+                    FilterChip(selected = sort == "quality", onClick = { sort = "quality" }, label = { Text("امتیاز کیفیت") })
+                    Text(
+                        shown.size.toString() + " نتیجه",
+                        Modifier.padding(start = 6.dp, top = 8.dp),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
 
             if (tab == "sources") {
                 ConfigExplorerEngine.sources.forEach { source ->
@@ -191,7 +300,7 @@ fun ConfigExplorerSheet(
                     }
                     HorizontalDivider()
                 }
-            } else if (entries.isEmpty()) {
+            } else if (shown.isEmpty()) {
                 Text(
                     if (state.isRunning) "هنوز نتیجه سالمی تأیید نشده؛ با پایان اولین آزمایش‌ها، نتایج همین‌جا ظاهر می‌شوند." else "هنوز کانفیگ سالم تأییدشده‌ای در این فهرست وجود ندارد.",
                     style = MaterialTheme.typography.bodyMedium,
@@ -199,7 +308,7 @@ fun ConfigExplorerSheet(
                     modifier = Modifier.padding(vertical = 18.dp),
                 )
             } else {
-                entries.forEachIndexed { index, entry ->
+                shown.forEachIndexed { index, entry ->
                     ExplorerEntryRow(
                         index = index + 1,
                         entry = entry,
@@ -233,7 +342,8 @@ fun ConfigExplorerSheet(
                     Text("نمونه‌های تأخیر: " + entry.samplesMs.joinToString("، ") + " ms")
                     Text("میانه: " + entry.medianMs + " ms · میانگین: " + entry.meanMs + " ms")
                     Text("نوسان: " + entry.jitterMs + " ms")
-                    Text("آخرین بررسی: " + entry.lastCheckedAt)
+                    Text("امتیاز کیفیت: " + explorerQuality(entry) + " / 100")
+                    Text("آخرین بررسی: " + relativeAgo(entry.lastCheckedAt))
                 }
             },
             confirmButton = {
@@ -242,7 +352,12 @@ fun ConfigExplorerSheet(
                     selectedEntry = null
                 }, enabled = entry.profileId != null) { Text("اتصال به این سرور") }
             },
-            dismissButton = { TextButton(onClick = { selectedEntry = null }) { Text("بستن") } },
+            dismissButton = {
+                Row {
+                    TextButton(onClick = { platform.copyToClipboard(entry.link); platform.toast("لینک کپی شد") }) { Text("کپی لینک") }
+                    TextButton(onClick = { selectedEntry = null }) { Text("بستن") }
+                }
+            },
         )
     }
 }
@@ -308,6 +423,7 @@ private fun ExplorerEntryRow(
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(entry.medianMs.toString() + " ms", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Text("★ " + explorerQuality(entry), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.tertiary)
                 Text("نوسان " + entry.jitterMs + " ms", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
@@ -328,4 +444,23 @@ private fun explorerPhaseLabel(phase: String): String = when (phase) {
     "publishing" -> "در حال همگام‌سازی ۱۰۰ سرور برتر"
     "error" -> "چرخه با خطا متوقف شد"
     else -> "در حال اجرا"
+}
+
+/** 0..100 score from median latency and jitter: lower is better, stable beats fast-but-jumpy. */
+internal fun explorerQuality(entry: ConfigExplorerEntry): Int =
+    (100 - entry.medianMs / 12 - entry.jitterMs / 8).coerceIn(1, 100)
+
+private fun relativeAgo(timestamp: Long): String {
+    val minutes = ((currentTimeMillis() - timestamp) / 60_000L).coerceAtLeast(0L)
+    return when {
+        minutes < 1 -> "هم‌اکنون"
+        minutes < 60 -> minutes.toString() + " دقیقه پیش"
+        minutes < 1_440 -> (minutes / 60).toString() + " ساعت پیش"
+        else -> (minutes / 1_440).toString() + " روز پیش"
+    }
+}
+
+private fun relativeIn(timestamp: Long): String {
+    val minutes = ((timestamp - currentTimeMillis()) / 60_000L)
+    return if (minutes <= 0L) "به‌زودی" else "تا " + minutes.toString() + " دقیقه دیگر"
 }

@@ -1882,4 +1882,8 @@
     <string name="aether_smart_ok">Доступно</string>
     <string name="aether_smart_blocked">Заблокировано</string>
     <string name="aether_smart_na">Недоступно</string>
+    <string name="aether_smart_goal_auto">Авто</string>
+    <string name="aether_smart_goal_speed">Скорость</string>
+    <string name="aether_smart_goal_stealth">Скрытность</string>
+    <string name="aether_smart_rescan">Сканировать снова</string>
 </resources>

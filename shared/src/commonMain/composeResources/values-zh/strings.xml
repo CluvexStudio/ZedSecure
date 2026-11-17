@@ -1882,4 +1882,8 @@
     <string name="aether_smart_ok">可用</string>
     <string name="aether_smart_blocked">被阻断</string>
     <string name="aether_smart_na">不可用</string>
+    <string name="aether_smart_goal_auto">自动</string>
+    <string name="aether_smart_goal_speed">速度</string>
+    <string name="aether_smart_goal_stealth">隐蔽</string>
+    <string name="aether_smart_rescan">重新扫描</string>
 </resources>

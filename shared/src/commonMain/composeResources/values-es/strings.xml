@@ -1835,4 +1835,8 @@
     <string name="aether_smart_ok">Accesible</string>
     <string name="aether_smart_blocked">Bloqueado</string>
     <string name="aether_smart_na">No disponible</string>
+    <string name="aether_smart_goal_auto">Auto</string>
+    <string name="aether_smart_goal_speed">Velocidad</string>
+    <string name="aether_smart_goal_stealth">Sigilo</string>
+    <string name="aether_smart_rescan">Escanear de nuevo</string>
 </resources>

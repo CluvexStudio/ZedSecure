@@ -1429,6 +1429,7 @@ fun ServersScreen(
                 val created = repository.addAether(profile, profile.profileName)
                 repository.setActive(created.id)
                 toastRes(Res.string.aether_smart_done)
+                onServerActivated()
             },
             onCustomize = {
                 showAetherSmart = false
@@ -2840,7 +2841,12 @@ private fun AetherSmartDialog(
     var apiMs by remember { mutableStateOf<Int?>(null) }
     var ipv6 by remember { mutableStateOf<Boolean?>(null) }
     var probed by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
+    var goal by remember { mutableStateOf(dev.cluvex.zedsecure.domain.config.AetherSmartGoal.Auto) }
+    var edgeJitter by remember { mutableStateOf<Int?>(null) }
+    var scanNonce by remember { mutableStateOf(0) }
+    var lastInput by remember { mutableStateOf<dev.cluvex.zedsecure.domain.config.AetherSmartInput?>(null) }
+    LaunchedEffect(scanNonce) {
+        profile = null; probed = false; ipv6 = null; edgeMs = null; apiMs = null
         val kind = dev.cluvex.zedsecure.platform.detectNetworkKind()
         network = kind
         val infoJob = async {
@@ -2851,20 +2857,25 @@ private fun AetherSmartDialog(
         val probe = dev.cluvex.zedsecure.domain.config.AetherSmartProbe.run()
         edgeMs = probe.edgeMs
         apiMs = probe.apiMs
+        edgeJitter = probe.edgeJitterMs
         probed = true
         val info = infoJob.await()
         ipv6 = !info?.ipv6.isNullOrBlank()
-        profile = dev.cluvex.zedsecure.domain.config.AetherSmartConfig.build(
-            dev.cluvex.zedsecure.domain.config.AetherSmartInput(
-                network = kind,
-                hasIpv6 = ipv6 == true,
-                pingMs = info?.pingMs,
-                countryCode = info?.countryCode,
-                edgeReachable = probe.edgeMs != null,
-                edgeMs = probe.edgeMs,
-                apiReachable = probe.apiMs != null,
-            ),
+        val input = dev.cluvex.zedsecure.domain.config.AetherSmartInput(
+            network = kind,
+            hasIpv6 = ipv6 == true,
+            pingMs = info?.pingMs,
+            countryCode = info?.countryCode,
+            edgeReachable = probe.edgeMs != null,
+            edgeMs = probe.edgeMs,
+            apiReachable = probe.apiMs != null,
+            edgeJitterMs = probe.edgeJitterMs,
         )
+        lastInput = input
+        profile = dev.cluvex.zedsecure.domain.config.AetherSmartConfig.build(input.copy(goal = goal))
+    }
+    LaunchedEffect(goal) {
+        lastInput?.let { profile = dev.cluvex.zedsecure.domain.config.AetherSmartConfig.build(it.copy(goal = goal)) }
     }
     val netLabel = stringResource(
         when (network) {
@@ -2901,6 +2912,23 @@ private fun AetherSmartDialog(
                 )
                 val p = profile
                 if (p != null) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        androidx.compose.material3.FilterChip(
+                            selected = goal == dev.cluvex.zedsecure.domain.config.AetherSmartGoal.Auto,
+                            onClick = { goal = dev.cluvex.zedsecure.domain.config.AetherSmartGoal.Auto },
+                            label = { Text(stringResource(Res.string.aether_smart_goal_auto)) },
+                        )
+                        androidx.compose.material3.FilterChip(
+                            selected = goal == dev.cluvex.zedsecure.domain.config.AetherSmartGoal.Speed,
+                            onClick = { goal = dev.cluvex.zedsecure.domain.config.AetherSmartGoal.Speed },
+                            label = { Text(stringResource(Res.string.aether_smart_goal_speed)) },
+                        )
+                        androidx.compose.material3.FilterChip(
+                            selected = goal == dev.cluvex.zedsecure.domain.config.AetherSmartGoal.Stealth,
+                            onClick = { goal = dev.cluvex.zedsecure.domain.config.AetherSmartGoal.Stealth },
+                            label = { Text(stringResource(Res.string.aether_smart_goal_stealth)) },
+                        )
+                    }
                     Surface(
                         shape = MaterialTheme.shapes.large,
                         color = MaterialTheme.colorScheme.primaryContainer,
@@ -2936,6 +2964,7 @@ private fun AetherSmartDialog(
         },
         dismissButton = {
             Row {
+                TextButton(onClick = { scanNonce++ }) { Text(stringResource(Res.string.aether_smart_rescan)) }
                 TextButton(onClick = onCustomize) { Text(stringResource(Res.string.aether_smart_customize)) }
                 TextButton(onClick = onDismiss) { Text(stringResource(Res.string.action_cancel)) }
             }

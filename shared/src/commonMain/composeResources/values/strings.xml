@@ -1919,4 +1919,8 @@
     <string name="aether_smart_ok">Reachable</string>
     <string name="aether_smart_blocked">Blocked</string>
     <string name="aether_smart_na">Not available</string>
+    <string name="aether_smart_goal_auto">Auto</string>
+    <string name="aether_smart_goal_speed">Speed</string>
+    <string name="aether_smart_goal_stealth">Stealth</string>
+    <string name="aether_smart_rescan">Scan again</string>
 </resources>

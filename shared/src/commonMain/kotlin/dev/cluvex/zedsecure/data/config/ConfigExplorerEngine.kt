@@ -67,7 +67,7 @@ data class ConfigExplorerSourceStatus(
 
 @Serializable
 data class ConfigExplorerSnapshot(
-    val enabled: Boolean = true,
+    val enabled: Boolean = false,
     val groupId: String? = null,
     val managedProfileIds: List<String> = emptyList(),
     val healthyPool: List<ConfigExplorerEntry> = emptyList(),
@@ -181,6 +181,7 @@ object ConfigExplorerEngine {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val cycleMutex = Mutex()
     private var schedulerJob: Job? = null
+    @Volatile private var runJob: Job? = null
 
     fun start(repository: ConfigRepository) {
         if (schedulerJob?.isActive == true) return
@@ -194,7 +195,11 @@ object ConfigExplorerEngine {
                 val dueAt = explorer.state.value.lastRunAt?.plus(INTERVAL_MS) ?: (currentTimeMillis() + INTERVAL_MS)
                 val waitMs = (dueAt - currentTimeMillis()).coerceAtLeast(0L)
                 if (waitMs > 0L) delay(waitMs)
-                if (explorer.state.value.enabled) runCycle(repository)
+                if (explorer.state.value.enabled) {
+                    val job = scope.launch { runCycle(repository) }
+                    runJob = job
+                    job.join()
+                }
                 val nextAt = explorer.state.value.lastRunAt?.plus(INTERVAL_MS)
                     ?: (currentTimeMillis() + INTERVAL_MS)
                 delay((nextAt - currentTimeMillis()).coerceAtLeast(1_000L))
@@ -203,7 +208,16 @@ object ConfigExplorerEngine {
     }
 
     fun runNow(repository: ConfigRepository) {
-        scope.launch { runCycle(repository, force = true) }
+        if (repository.configExplorer.state.value.isRunning) return
+        runJob = scope.launch { runCycle(repository, force = true) }
+    }
+
+    /** Stops the running cycle at once; results found so far stay visible. */
+    fun stop(repository: ConfigRepository) {
+        runJob?.cancel()
+        repository.configExplorer.updateRuntime {
+            it.copy(isRunning = false, phase = "idle", lastError = "کاوش توسط شما متوقف شد؛ یافته‌های تا این لحظه حفظ شد")
+        }
     }
 
     fun setEnabled(repository: ConfigRepository, enabled: Boolean) {
@@ -211,7 +225,7 @@ object ConfigExplorerEngine {
         if (enabled) {
             start(repository)
             if (!repository.configExplorer.state.value.isRunning) {
-                scope.launch { runCycle(repository) }
+                runJob = scope.launch { runCycle(repository) }
             }
         }
     }
@@ -361,6 +375,45 @@ object ConfigExplorerEngine {
                     },
             )
 
+            // Show results as soon as two independent real tests passed — the user sees healthy
+            // servers within minutes instead of waiting for the slow third confirmation pass.
+            val early = preliminary.filter { it.firstMs != null && it.secondMs != null }.take(HEALTHY_LIMIT).map { item ->
+                val profile = item.parsed.profile
+                val samples = listOfNotNull(item.firstMs, item.secondMs).sorted()
+                ConfigExplorerEntry(
+                    id = item.parsed.candidate.source.id + "-" + canonicalKey(item.parsed.candidate.link).hashCode(),
+                    name = profile.name,
+                    protocol = profile.protocol,
+                    address = profile.address,
+                    port = profile.port,
+                    sourceId = item.parsed.candidate.source.id,
+                    sourceName = item.parsed.candidate.source.name,
+                    link = item.parsed.candidate.link,
+                    samplesMs = samples,
+                    medianMs = medianOf(samples),
+                    meanMs = samples.average().toInt(),
+                    jitterMs = samples.last() - samples.first(),
+                    lastCheckedAt = currentTimeMillis(),
+                )
+            }
+            if (early.isNotEmpty()) {
+                explorer.updateRuntime { state ->
+                    state.copy(liveEntries = (early + state.liveEntries).distinctBy { it.id }
+                        .sortedWith(entryComparator()).take(HEALTHY_LIMIT))
+                }
+                scope.launch {
+                    early.take(60).forEach { entry ->
+                        val ip = runCatching { resolveHostAddress(entry.address) }.getOrNull()
+                        val country = runCatching { GeoLookup.countryOf(entry.address) }.getOrNull()
+                        explorer.updateRuntime { state ->
+                            state.copy(liveEntries = state.liveEntries.map { current ->
+                                if (current.id == entry.id) current.copy(ipAddress = ip, countryCode = country) else current
+                            })
+                        }
+                    }
+                }
+            }
+
             val confirmed = mutableListOf<ConfigExplorerEntry>()
             var offset = 0
             var rechecked = 0
@@ -424,7 +477,7 @@ object ConfigExplorerEngine {
                 .sortedWith(entryComparator()).take(HEALTHY_LIMIT)
             val finishedAt = currentTimeMillis()
 
-            if (healthy.size < BEST_LIMIT) {
+            if (healthy.isEmpty()) {
                 explorer.publish(
                     explorer.state.value.copy(
                         sourceStatuses = statuses,
@@ -433,7 +486,7 @@ object ConfigExplorerEngine {
                         testedCount = parsed.size * 2 + rechecked,
                         cycleCount = explorer.state.value.cycleCount + 1,
                         lastRunAt = finishedAt,
-                        lastError = "فقط " + healthy.size + " کانفیگ حداقل دو تست واقعی موفق داشتند؛ فهرست قبلی برای جلوگیری از جایگزینی ناقص حفظ شد",
+                        lastError = "در این چرخه هیچ کانفیگی دو تست واقعی موفق نداشت؛ فهرست قبلی حفظ شد. شبکه یا منابع را بررسی و دوباره تلاش کنید",
                         isRunning = false,
                         phase = "idle",
                         progressDone = rechecked,

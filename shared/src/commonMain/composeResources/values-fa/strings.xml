@@ -1912,4 +1912,8 @@
     <string name="aether_smart_ok">در دسترس</string>
     <string name="aether_smart_blocked">مسدود</string>
     <string name="aether_smart_na">ندارد</string>
+    <string name="aether_smart_goal_auto">خودکار</string>
+    <string name="aether_smart_goal_speed">سرعت</string>
+    <string name="aether_smart_goal_stealth">مخفی‌کاری</string>
+    <string name="aether_smart_rescan">اسکن مجدد</string>
 </resources>
