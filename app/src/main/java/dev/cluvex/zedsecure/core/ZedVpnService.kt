@@ -67,7 +67,7 @@ class ZedVpnService : VpnService() {
     private var sniSpoofEdge: String? = null
     private var openConnect: OpenConnectController? = null
     private var singBox: SingBoxEngine? = null
-    private var aetherEngine: AetherEngineProcess? = null
+    @Volatile private var aetherEngine: AetherEngineProcess? = null
     private var aetherWatch: Job? = null
 
     private var singBoxLastUp = 0L
@@ -782,6 +782,7 @@ class ZedVpnService : VpnService() {
                 val deadline = System.currentTimeMillis() + 180_000L
                 var ready = false
                 while (System.currentTimeMillis() < deadline) {
+                    if (userStop) return@launch
                     if (!process.isAlive()) throw IllegalStateException("Aether exited before opening its SOCKS5 listener")
                     val listening = runCatching {
                         java.net.Socket().use { socket ->
@@ -796,6 +797,7 @@ class ZedVpnService : VpnService() {
                 bridgeEngine(descriptor, port, tunMtu)
                 LogBus.append("I/Aether: native engine ready on 127.0.0.1:$port")
             } catch (e: Exception) {
+                if (userStop) return@launch
                 Log.e(TAG, "Aether startup failed", e)
                 VpnManager.onError(e.message ?: getString(R.string.engine_failed_tunnel))
                 stopEverything()
