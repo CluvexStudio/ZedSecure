@@ -1,6 +1,5 @@
 package dev.cluvex.zedsecure.core
 
-import android.util.Log
 import java.io.File
 
 /**
@@ -19,6 +18,8 @@ internal class AetherEngineProcess(
     @Synchronized
     fun start(arguments: List<String>, environment: Map<String, String> = emptyMap()) {
         check(process?.isAlive != true) { "Aether is already running" }
+        AetherIdentityVault.sealAndShred(workingDirectory)
+        AetherIdentityVault.unsealInto(workingDirectory)
         val executable = File(nativeLibraryDir, "libaether.so")
         check(executable.isFile) { "Aether engine is not packaged for this device ABI" }
         check(executable.canExecute()) { "Aether engine is not executable" }
@@ -45,9 +46,9 @@ internal class AetherEngineProcess(
         Thread({
             runCatching {
                 child.inputStream.bufferedReader().useLines { lines ->
-                    lines.forEach { Log.i(TAG, it.take(MAX_LOG_LINE)) }
+                    lines.forEach { LogBus.append("I/Aether: " + it.take(MAX_LOG_LINE)) }
                 }
-            }.onFailure { Log.w(TAG, "Aether output reader stopped", it) }
+            }.onFailure { LogBus.append("W/Aether: output reader stopped (" + it.javaClass.simpleName + ")") }
         }, "ZX-Aether-logs").apply { isDaemon = true; start() }
     }
 
@@ -58,13 +59,16 @@ internal class AetherEngineProcess(
 
     @Synchronized
     fun stop() {
-        val child = process ?: return
-        child.destroy()
-        if (!child.waitFor(STOP_TIMEOUT_MS, java.util.concurrent.TimeUnit.MILLISECONDS)) {
-            child.destroyForcibly()
-            child.waitFor(STOP_TIMEOUT_MS, java.util.concurrent.TimeUnit.MILLISECONDS)
+        val child = process
+        if (child != null) {
+            child.destroy()
+            if (!child.waitFor(STOP_TIMEOUT_MS, java.util.concurrent.TimeUnit.MILLISECONDS)) {
+                child.destroyForcibly()
+                child.waitFor(STOP_TIMEOUT_MS, java.util.concurrent.TimeUnit.MILLISECONDS)
+            }
+            process = null
         }
-        process = null
+        AetherIdentityVault.sealAndShred(workingDirectory)
     }
 
     companion object {
