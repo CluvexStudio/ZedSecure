@@ -474,7 +474,7 @@ data class VpnProfile(
             id = id, name = name.ifBlank { "Aether" }, protocol = "AETHER",
             address = "Cloudflare WARP", port = 0,
             transportLabel = "Aether · ${settings.protocol.uppercase()}",
-            source = ProfileSource.RawJson(AetherProfile.encode(settings)), addedAt = addedAt,
+            source = ProfileSource.RawJson(AetherProfile.encode(settings.copy(profileName = name.ifBlank { "Aether" }))), addedAt = addedAt,
         )
 
         fun fromTor(id: String, addedAt: Long, name: String): VpnProfile = VpnProfile(

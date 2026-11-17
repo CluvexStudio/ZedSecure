@@ -109,6 +109,11 @@ class ConfigRepository(private val store: KeyValueStore) {
         val trimmed = text.trim()
         require(trimmed.isNotEmpty()) { "empty" }
 
+        dev.cluvex.zedsecure.domain.config.AetherProfile.decode(trimmed)?.let { aether ->
+            addAether(aether, aether.profileName)
+            return@runCatching 1
+        }
+
         val sshLines = trimmed.lines().map { it.trim() }.filter { SshLink.isSshLink(it) }
         if (sshLines.isNotEmpty()) {
             var added = 0

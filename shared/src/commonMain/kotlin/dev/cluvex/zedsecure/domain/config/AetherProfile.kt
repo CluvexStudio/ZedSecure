@@ -9,6 +9,7 @@ import kotlinx.serialization.json.Json
 @Serializable
 data class AetherProfile(
     val marker: String = MARKER,
+    val profileName: String = "Aether",
     val protocol: String = "masque",
     val scanMode: String = "balanced",
     val ipVersion: String = "v4",
