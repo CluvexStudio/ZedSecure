@@ -191,7 +191,7 @@ object ConfigExplorerEngine {
                     delay(30_000L)
                     continue
                 }
-                val dueAt = explorer.state.value.lastRunAt?.plus(INTERVAL_MS) ?: 0L
+                val dueAt = explorer.state.value.lastRunAt?.plus(INTERVAL_MS) ?: (currentTimeMillis() + INTERVAL_MS)
                 val waitMs = (dueAt - currentTimeMillis()).coerceAtLeast(0L)
                 if (waitMs > 0L) delay(waitMs)
                 if (explorer.state.value.enabled) runCycle(repository)
@@ -204,7 +204,7 @@ object ConfigExplorerEngine {
 
     fun runNow(repository: ConfigRepository) {
         if (repository.configExplorer.state.value.enabled) {
-            scope.launch { runCycle(repository) }
+            scope.launch { runCycle(repository, force = true) }
         }
     }
 
@@ -247,9 +247,9 @@ object ConfigExplorerEngine {
         }
     }
 
-    private suspend fun runCycle(repository: ConfigRepository) = cycleMutex.withLock {
+    private suspend fun runCycle(repository: ConfigRepository, force: Boolean = false) = cycleMutex.withLock {
         val explorer = repository.configExplorer
-        if (!explorer.state.value.enabled) return@withLock
+        if (!force && !explorer.state.value.enabled) return@withLock
 
         explorer.updateRuntime {
             it.copy(
@@ -576,7 +576,7 @@ object ConfigExplorerEngine {
             delayUrl = url,
             detectCountry = false,
             onProgress = { done, total ->
-                explorer.updateRuntime { it.copy(phase = phase, progressDone = done, progressTotal = total) }
+                explorer.updateRuntime { it.copy(phase = phase, progressDone = done.coerceIn(0, total.coerceAtLeast(0)), progressTotal = total.coerceAtLeast(0)) }
             },
             onResult = { id, ms, _ ->
                 results.update { current -> current + (id to (ms ?: PingService.FAILED_PING)) }
