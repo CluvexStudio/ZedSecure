@@ -21,10 +21,10 @@ export ANDROID_NDK_HOME="$NDK" ANDROID_NDK_ROOT="$NDK"
 command -v cargo-ndk >/dev/null || { echo "cargo-ndk is required" >&2; exit 1; }
 build_one() {
   local abi="$1" triple="$2"
-  echo "==> Building pinned Aether for $abi"
+  echo "==> Building pinned Aether for $abi ($triple)"
   (cd "$SRC" && cargo ndk -t "$abi" --platform "$API" build --release --locked --features tor)
   local bin="$SRC/target/$triple/release/aether"
-  [ -x "$bin" ] || { echo "Aether executable missing: $bin" >&2; exit 1; }
+  [ -x "$bin" ] || { echo "Aether executable missing: $bin" >&2; find "$SRC/target" -maxdepth 4 -type f -name aether -print >&2 || true; exit 1; }
   mkdir -p "$JNI/$abi"
   install -m 755 "$bin" "$JNI/$abi/libaether.so"
   local syslib="$NDK/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/$triple/libc++_shared.so"
@@ -32,5 +32,5 @@ build_one() {
   echo "    packaged $JNI/$abi/libaether.so"
 }
 build_one arm64-v8a aarch64-linux-android
-build_one armeabi-v7a arm-linux-androideabi
+build_one armeabi-v7a armv7-linux-androideabi
 build_one x86_64 x86_64-linux-android
