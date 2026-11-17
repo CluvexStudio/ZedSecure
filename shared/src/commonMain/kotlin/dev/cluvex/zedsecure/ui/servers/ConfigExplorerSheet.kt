@@ -1,0 +1,292 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+
+package dev.cluvex.zedsecure.ui.servers
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.cluvex.zedsecure.data.config.ConfigExplorerEngine
+import dev.cluvex.zedsecure.data.config.ConfigExplorerEntry
+import dev.cluvex.zedsecure.data.config.ConfigRepository
+import dev.cluvex.zedsecure.ui.platform.rememberAppSheetState
+
+@Composable
+fun ConfigExplorerSheet(
+    repository: ConfigRepository,
+    onDismiss: () -> Unit,
+    onServerActivated: () -> Unit,
+) {
+    val state by repository.configExplorer.state.collectAsStateWithLifecycle()
+    var tab by rememberSaveable { mutableStateOf("best") }
+
+    LaunchedEffect(repository) { ConfigExplorerEngine.start(repository) }
+
+    val entries = when (tab) {
+        "reserve" -> state.healthyPool.drop(ConfigExplorerEngine.BEST_LIMIT)
+        "pool" -> state.healthyPool
+        else -> state.healthyPool.take(ConfigExplorerEngine.BEST_LIMIT)
+    }
+
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberAppSheetState()) {
+        Column(
+            Modifier.fillMaxWidth().padding(horizontal = 18.dp).padding(bottom = 28.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text("کاوشگر ZX", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    Text(
+                        "کشف خودکار، آزمایش واقعی و رتبه‌بندی سرورها",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                TextButton(onClick = onDismiss) { Text("بستن") }
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ExplorerMetric("کاندید", state.candidateCount.toString(), Modifier.weight(1f))
+                ExplorerMetric("قابل‌تحلیل", state.parsedCount.toString(), Modifier.weight(1f))
+                ExplorerMetric("سالم", state.healthyPool.size.toString(), Modifier.weight(1f))
+                ExplorerMetric("برتر", state.healthyPool.take(ConfigExplorerEngine.BEST_LIMIT).size.toString(), Modifier.weight(1f))
+            }
+
+            Surface(
+                shape = RoundedCornerShape(18.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("چرخه خودکار", fontWeight = FontWeight.SemiBold)
+                            Text(
+                                "اجرای مجدد هر ۱۵ دقیقه؛ بدون هم‌پوشانی چرخه‌ها",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Switch(
+                            checked = state.enabled,
+                            onCheckedChange = { ConfigExplorerEngine.setEnabled(repository, it) },
+                        )
+                    }
+                    if (state.isRunning) {
+                        Text(explorerPhaseLabel(state.phase), style = MaterialTheme.typography.labelMedium)
+                        val fraction = if (state.progressTotal > 0) {
+                            state.progressDone.toFloat() / state.progressTotal.toFloat()
+                        } else 0f
+                        LinearProgressIndicator(
+                            progress = fraction.coerceIn(0f, 1f),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Text(
+                            state.progressDone.toString() + " / " + state.progressTotal,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    } else {
+                        Text(
+                            state.lastError ?: if (state.lastRunAt == null) "هنوز چرخه‌ای اجرا نشده است" else "آخرین چرخه پایان یافته است",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (state.lastError != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Button(
+                        onClick = { ConfigExplorerEngine.runNow(repository) },
+                        enabled = state.enabled && !state.isRunning,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text("شروع کاوش فوری") }
+                    Text(
+                        "چرخه " + state.cycleCount + " · تعداد تست‌ها " + state.testedCount,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
+            Row(
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                ExplorerTab("۱۰۰ برتر", tab == "best") { tab = "best" }
+                ExplorerTab("ذخیره جایگزین", tab == "reserve") { tab = "reserve" }
+                ExplorerTab("همه سالم‌ها", tab == "pool") { tab = "pool" }
+                ExplorerTab("منابع", tab == "sources") { tab = "sources" }
+            }
+
+            HorizontalDivider()
+
+            if (tab == "sources") {
+                ConfigExplorerEngine.sources.forEach { source ->
+                    val status = state.sourceStatuses.firstOrNull { it.sourceId == source.id }
+                    Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(source.name, Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
+                            Text(
+                                when {
+                                    source.feedUrl == null -> "مرجع مکمل"
+                                    status == null -> "در انتظار"
+                                    status.ok -> "دریافت موفق"
+                                    else -> "خطا"
+                                },
+                                style = MaterialTheme.typography.labelSmall,
+                                color = when {
+                                    source.feedUrl == null -> MaterialTheme.colorScheme.onSurfaceVariant
+                                    status?.ok == true -> MaterialTheme.colorScheme.primary
+                                    status == null -> MaterialTheme.colorScheme.onSurfaceVariant
+                                    else -> MaterialTheme.colorScheme.error
+                                },
+                            )
+                        }
+                        Text(
+                            source.repositoryUrl,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            status?.let { it.fetchedCount.toString() + " لینک · " + it.message } ?: source.description,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    HorizontalDivider()
+                }
+            } else if (entries.isEmpty()) {
+                Text(
+                    if (state.isRunning) "در حال آماده‌سازی نتایج..." else "هنوز کانفیگ سالم تأییدشده‌ای در این فهرست وجود ندارد.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 18.dp),
+                )
+            } else {
+                entries.forEachIndexed { index, entry ->
+                    ExplorerEntryRow(
+                        index = index + 1,
+                        entry = entry,
+                        isReserve = tab == "reserve",
+                        onClick = {
+                            val profileId = entry.profileId ?: return@ExplorerEntryRow
+                            repository.setActive(profileId)
+                            onServerActivated()
+                            onDismiss()
+                        },
+                        onPromote = { ConfigExplorerEngine.promoteReserve(repository, entry.id) },
+                    )
+                    HorizontalDivider()
+                }
+            }
+
+            Text(
+                "سلامت یعنی حداقل دو موفقیت از سه آزمایش HTTPS از مسیر هسته ZX؛ تست TCP به‌تنهایی کافی نیست.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ExplorerMetric(label: String, value: String, modifier: Modifier = Modifier) {
+    Surface(modifier = modifier, shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
+        Column(Modifier.padding(horizontal = 9.dp, vertical = 11.dp)) {
+            Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+@Composable
+private fun ExplorerTab(label: String, selected: Boolean, onClick: () -> Unit) {
+    TextButton(onClick = onClick) {
+        Text(
+            label,
+            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+        )
+    }
+}
+
+@Composable
+private fun ExplorerEntryRow(
+    index: Int,
+    entry: ConfigExplorerEntry,
+    isReserve: Boolean,
+    onClick: () -> Unit,
+    onPromote: () -> Unit,
+) {
+    Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+        Row(
+            Modifier.fillMaxWidth()
+                .clickable(enabled = !isReserve && entry.profileId != null, onClick = onClick)
+                .padding(vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(index.toString().padStart(2, '0'), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Column(Modifier.weight(1f)) {
+                Text(entry.name.ifBlank { entry.protocol + " · " + entry.address }, fontWeight = FontWeight.SemiBold)
+                Text(
+                    entry.protocol + " · " + entry.address + ":" + entry.port + " · " + entry.sourceName,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Text(entry.medianMs.toString() + " ms", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Text("نوسان " + entry.jitterMs + " ms", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        if (isReserve) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                TextButton(onClick = onPromote) { Text("جایگزین در ۱۰۰ برتر") }
+            }
+        }
+    }
+}
+
+private fun explorerPhaseLabel(phase: String): String = when (phase) {
+    "collecting" -> "در حال دریافت فیدهای کانفیگ"
+    "parsing" -> "در حال بررسی ساختار و سازگاری کانفیگ‌ها"
+    "testing_first" -> "تست واقعی تأخیر · مرحله اول"
+    "testing_second" -> "تست واقعی تأخیر · مرحله دوم"
+    "rechecking" -> "تأیید مجدد پایداری کانفیگ‌های برتر"
+    "publishing" -> "در حال همگام‌سازی ۱۰۰ سرور برتر"
+    "error" -> "چرخه با خطا متوقف شد"
+    else -> "در حال اجرا"
+}

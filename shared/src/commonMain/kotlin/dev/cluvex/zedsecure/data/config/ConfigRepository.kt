@@ -72,6 +72,7 @@ class CrossChainUdpUnsupportedException(val protocol: String, val carrier: Strin
     Exception("$protocol needs UDP, which $carrier cannot relay")
 
 class ConfigRepository(private val store: KeyValueStore) {
+    val configExplorer: ConfigExplorerRepository by lazy { ConfigExplorerRepository(store) }
     private val json = Json { ignoreUnknownKeys = true }
     private val lenientJson = Json { ignoreUnknownKeys = true; isLenient = true }
     private val prettyJson = Json { prettyPrint = true }

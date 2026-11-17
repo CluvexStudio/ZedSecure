@@ -88,6 +88,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.cluvex.zedsecure.shared.resources.Res
 import dev.cluvex.zedsecure.shared.resources.*
 import dev.cluvex.zedsecure.data.config.ConfigRepository
+import dev.cluvex.zedsecure.data.config.ConfigExplorerEngine
 import dev.cluvex.zedsecure.data.net.GeoLookup
 import dev.cluvex.zedsecure.data.net.PingCoordinator
 import dev.cluvex.zedsecure.data.net.PingService
@@ -306,7 +307,10 @@ fun ServersScreen(
     val activeId by repository.activeId.collectAsStateWithLifecycle()
 
     var showAddSheet by remember { mutableStateOf(false) }
+    var showExplorer by remember { mutableStateOf(false) }
     var showManual by remember { mutableStateOf(false) }
+
+    LaunchedEffect(repository) { ConfigExplorerEngine.start(repository) }
 
     var fanOpen by remember { mutableStateOf(false) }
     var showSubs by remember { mutableStateOf(false) }
@@ -1402,6 +1406,18 @@ fun ServersScreen(
                 showAddSheet = false
                 showSubs = true
             },
+            onExplorer = {
+                showAddSheet = false
+                showExplorer = true
+            },
+        )
+    }
+
+    if (showExplorer) {
+        ConfigExplorerSheet(
+            repository = repository,
+            onDismiss = { showExplorer = false },
+            onServerActivated = onServerActivated,
         )
     }
 
@@ -2344,6 +2360,7 @@ private fun AddServerSheet(
     onProxyChain: () -> Unit,
     onCrossChain: () -> Unit,
     onSubscription: () -> Unit,
+    onExplorer: () -> Unit,
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberAppSheetState()) {
         Column(
@@ -2410,6 +2427,9 @@ private fun AddServerSheet(
 
             OptionGroup(Res.string.add_group_subscription)
             Option(Res.drawable.ic_add_link, Res.string.subs_add, onSubscription)
+
+            OptionGroup(Res.string.add_group_import)
+            OptionText(Res.drawable.ic_search, "کاوشگر ZX", onExplorer)
         }
     }
 }
