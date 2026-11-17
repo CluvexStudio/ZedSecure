@@ -28,6 +28,8 @@ tunnel settings and connection diagnostics in one application.
 - [Highlights](#highlights)
 - [Engines and protocol support](#engines-and-protocol-support)
 - [Aether integration](#aether-integration)
+- [GHOST MOD](#ghost-mod)
+- [Themes](#themes)
 - [Configuration import and management](#configuration-import-and-management)
 - [Connection tools](#connection-tools)
 - [Platform support](#platform-support)
@@ -92,6 +94,54 @@ validated independently for each release.
 
 Upstream projects: [CluvexStudio/Aether](https://github.com/CluvexStudio/Aether) ·
 [QW-AI-Code/Aether](https://github.com/QW-AI-Code/Aether)
+
+### Smart config
+
+**Servers → “+” → Smart config** builds a ready-to-use Aether profile from your own network:
+
+- Detects the network type (mobile data, Wi-Fi, Ethernet) and your country/IPv6 status.
+- Runs a fast parallel reachability probe of the Cloudflare edge and the WARP registration API
+  (about 3.5 s at most) and shows each step live with its latency.
+- Picks the transport (HTTP/3 or HTTP/2), anti-DPI profile (`noize`), scan depth, ClientHello
+  fragmentation and an alternate API address for registration when the default one is blocked.
+- Creates and activates the profile in one tap, or opens the manual editor with everything
+  pre-filled.
+
+### Connection ladder
+
+When an Aether profile starts, ZX tries the profile first and then progressively more conservative
+variants (other HTTP version, fragmented ClientHello with the strongest obfuscation, alternate API
+address, WireGuard, plain) until real traffic passes through the local SOCKS listener. If nothing
+works, the error contains the engine's last output lines so the cause can be reported.
+
+> The ladder and Smart config improve the odds on filtered networks; they cannot guarantee a
+> connection. Validate on a real device for each release.
+
+## GHOST MOD
+
+GHOST MOD groups ZX's anti-censorship helpers: anti-DPI tuning, the auto-tuner and related
+options (see the in-app descriptions). It also includes **Anti-Porn** (family-safe browsing):
+
+- Blocks adult domains and keywords at the routing layer and uses a family-filtering DNS.
+- Blocks well-known DNS-over-HTTPS endpoints so browsers cannot bypass the DNS filter.
+- Lets you add your own domains to block (up to 500).
+
+Anti-Porn is a best-effort filter: access by raw IP address or through another VPN is outside
+its reach.
+
+## Themes
+
+ZX VPN ships several complete interface designs, selectable in Settings:
+
+| Design | Character |
+|---|---|
+| **Bento** | Rounded tiles, calm Material 3 Expressive look |
+| **Pixel** | Pixel/Material-You flavored layout |
+| **Old** | The classic layout |
+| **ZX** | Cyberpunk neon design with day/night modes, an adjustable animation level and a PS5-style home (card deck, dynamic accent background, button glyph hints) |
+| **ZX PS** | Glass-style design with personalizable palettes, tile shapes and a floating glass navigation bar |
+
+The launcher icon and the app label (“ZX VPN”) are the same in every theme.
 
 ## Configuration import and management
 
