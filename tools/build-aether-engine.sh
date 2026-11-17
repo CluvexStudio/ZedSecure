@@ -45,7 +45,7 @@ build_one() {
   local llvm_bin="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin"
   "$llvm_bin/llvm-strip" "$JNI/$abi/libaether.so"
   local needed
-  needed="$("$llvm_bin/llvm-readelf" -d "$JNI/$abi/libaether.so" 2>/dev/null | sed -n 's/.*Shared library: \\[\\([^]]*\\)\\].*/\\1/p')"
+  needed="$("$llvm_bin/llvm-readelf" -d "$JNI/$abi/libaether.so" 2>/dev/null | sed -n 's/.*Shared library: \[\([^]]*\)\].*/\1/p')"
   if [ -z "$needed" ]; then
     echo "Could not read dynamic dependencies from $JNI/$abi/libaether.so" >&2
     exit 1
