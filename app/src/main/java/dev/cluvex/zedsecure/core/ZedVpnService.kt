@@ -1045,6 +1045,7 @@ class ZedVpnService : VpnService() {
             VpnManager.KIND_SSH -> "SSH"
             VpnManager.KIND_OPENCONNECT -> "OpenConnect"
             VpnManager.KIND_SINGBOX -> "sing-box"
+            VpnManager.KIND_AETHER -> "Aether"
             VpnManager.KIND_IKEV2 -> "IKEv2"
             VpnManager.KIND_SNISPOOF -> "Xray · SNI"
 
@@ -1062,6 +1063,7 @@ class ZedVpnService : VpnService() {
         VpnManager.KIND_DNS_RESOLVER -> "DNS"
         VpnManager.KIND_TOR -> "Tor"
         VpnManager.KIND_SSH -> "SSH"
+        VpnManager.KIND_AETHER -> "Aether"
         else -> "Xray"
     }
 
