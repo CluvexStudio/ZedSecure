@@ -22,7 +22,7 @@ command -v cargo-ndk >/dev/null || { echo "cargo-ndk is required" >&2; exit 1; }
 build_one() {
   local abi="$1" triple="$2"
   echo "==> Building pinned Aether for $abi ($triple)"
-  (cd "$SRC" && cargo ndk -t "$abi" --platform "$API" build --release --locked --features tor)
+  (cd "$SRC" && cargo ndk -t "$abi" --platform "$API" build --bin aether --release --locked --features tor)
   local bin="$SRC/target/$triple/release/aether"
   [ -x "$bin" ] || { echo "Aether executable missing: $bin" >&2; find "$SRC/target" -maxdepth 4 -type f -name aether -print >&2 || true; exit 1; }
   mkdir -p "$JNI/$abi"
