@@ -45,10 +45,12 @@ fun ConfigExplorerSheet(
     onServerActivated: () -> Unit,
 ) {
     val state by repository.configExplorer.state.collectAsStateWithLifecycle()
-    var tab by rememberSaveable { mutableStateOf("best") }
+    var tab by rememberSaveable { mutableStateOf("live") }
     var selectedEntry by rememberSaveable { mutableStateOf<ConfigExplorerEntry?>(null) }
 
     LaunchedEffect(repository) { ConfigExplorerEngine.start(repository) }
+
+    val visibleHealthyCount = (state.healthyPool + state.liveEntries).distinctBy { it.id }.size
 
     val entries = when (tab) {
         "live" -> state.liveEntries
@@ -81,7 +83,7 @@ fun ConfigExplorerSheet(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ExplorerMetric("کاندید", state.candidateCount.toString(), Modifier.weight(1f))
                 ExplorerMetric("قابل‌تحلیل", state.parsedCount.toString(), Modifier.weight(1f))
-                ExplorerMetric("سالم", state.healthyPool.size.toString(), Modifier.weight(1f))
+                ExplorerMetric("سالم", visibleHealthyCount.toString(), Modifier.weight(1f))
                 ExplorerMetric("برتر", state.healthyPool.take(ConfigExplorerEngine.BEST_LIMIT).size.toString(), Modifier.weight(1f))
             }
 
@@ -128,9 +130,9 @@ fun ConfigExplorerSheet(
                     }
                     Button(
                         onClick = { ConfigExplorerEngine.runNow(repository) },
-                        enabled = state.enabled && !state.isRunning,
+                        enabled = !state.isRunning,
                         modifier = Modifier.fillMaxWidth(),
-                    ) { Text("شروع کاوش فوری") }
+                    ) { Text(if (state.isRunning) "کاوش در حال اجراست..." else "شروع کاوش فوری") }
                     Text(
                         "چرخه " + state.cycleCount + " · تعداد تست‌ها " + state.testedCount,
                         style = MaterialTheme.typography.labelSmall,
@@ -191,7 +193,7 @@ fun ConfigExplorerSheet(
                 }
             } else if (entries.isEmpty()) {
                 Text(
-                    if (state.isRunning) "در حال آماده‌سازی نتایج..." else "هنوز کانفیگ سالم تأییدشده‌ای در این فهرست وجود ندارد.",
+                    if (state.isRunning) "هنوز نتیجه سالمی تأیید نشده؛ با پایان اولین آزمایش‌ها، نتایج همین‌جا ظاهر می‌شوند." else "هنوز کانفیگ سالم تأییدشده‌ای در این فهرست وجود ندارد.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(vertical = 18.dp),
