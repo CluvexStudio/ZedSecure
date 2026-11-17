@@ -44,9 +44,44 @@ object AdultBlocklist {
         "bellesa.co", "manyvids.com",
     )
 
+    /** More adult hosts, kept apart from the base list above. */
+    private val moreDomains = listOf(
+        "xhamster2.com", "xhamster3.com", "pornone.com", "pornhd.com", "pornhat.com", "porndig.com",
+        "porn300.com", "sxyprn.com", "daftsex.com", "hqporner.com", "nuvid.com", "sunporno.com",
+        "tube8.com", "spankwire.com", "extremetube.com", "gotporn.com", "analdin.com", "pornpics.com",
+        "imagefap.com", "luscious.net", "hentai2read.com", "hitomi.la", "e621.net", "fansly.com",
+        "clips4sale.com", "iwara.tv", "missav.com", "supjav.com", "jable.tv", "flirt4free.com",
+        "imlive.com", "streamate.com", "xlovecam.com", "jerkmate.com", "adultfriendfinder.com",
+        "nubiles.net", "fakehub.com", "evilangel.com", "hotmovies.com", "adultempire.com",
+    )
+
+    /**
+     * Encrypted-DNS endpoints that browsers use to skip the system resolver. Blocking them while the
+     * adult filter is on makes those apps fall back to the filtered DNS instead of bypassing it.
+     */
+    private val dohBypass = listOf(
+        "dns.google", "dns.google.com", "cloudflare-dns.com", "mozilla.cloudflare-dns.com",
+        "chrome.cloudflare-dns.com", "one.one.one.one", "dns.quad9.net", "doh.opendns.com",
+        "dns.nextdns.io", "doh.dns.sb", "dns.adguard.com", "dns.adguard-dns.com",
+    )
+
     /** Stable, de-duplicated Xray routing rules. */
     val rules: List<String> = buildList {
         keywords.forEach { add("keyword:$it") }
         domains.forEach { add("domain:$it") }
+        moreDomains.forEach { add("domain:$it") }
+        dohBypass.forEach { add("domain:$it") }
     }.distinct()
+
+    /** Turns the user's own list (one host per line, or comma separated) into routing rules. */
+    fun userRules(raw: String): List<String> = raw
+        .split('\n', ',', ';', ' ')
+        .map { it.trim().lowercase().removePrefix("https://").removePrefix("http://").substringBefore('/') }
+        .filter { host ->
+            host.isNotEmpty() && host.length <= 253 && '.' in host &&
+                host.all { it.isLetterOrDigit() || it == '.' || it == '-' }
+        }
+        .distinct()
+        .take(500)
+        .map { "domain:$it" }
 }
