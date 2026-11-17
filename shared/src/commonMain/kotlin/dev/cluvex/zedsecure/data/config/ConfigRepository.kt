@@ -925,12 +925,23 @@ class ConfigRepository(private val store: KeyValueStore) {
     fun addAether(
         settings: dev.cluvex.zedsecure.domain.config.AetherProfile = dev.cluvex.zedsecure.domain.config.AetherProfile(),
         name: String = "Aether",
+        id: String? = null,
     ): VpnProfile {
-        val profile = VpnProfile.fromAether(settings, newId(), currentTimeMillis(), name)
-        _profiles.value = listOf(profile) + _profiles.value
+        val existing = id?.let { profile(it) }
+        val updated = VpnProfile.fromAether(
+            settings = settings,
+            id = existing?.id ?: newId(),
+            addedAt = existing?.addedAt ?: currentTimeMillis(),
+            name = name,
+        ).let { carryOver(existing, it) }
+        _profiles.value = if (existing != null) {
+            _profiles.value.map { if (it.id == updated.id) updated else it }
+        } else {
+            listOf(updated) + _profiles.value
+        }
         persistProfiles()
-        if (_activeId.value == null) setActive(profile.id)
-        return profile
+        if (_activeId.value == null) setActive(updated.id)
+        return updated
     }
 
     fun update(profile: VpnProfile) {

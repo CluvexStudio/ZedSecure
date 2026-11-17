@@ -1401,9 +1401,9 @@ fun ServersScreen(
     if (showAether) {
         AetherProfileSheet(
             onDismiss = { showAether = false },
-            onSave = { profile ->
+            onSave = { name, profile ->
                 showAether = false
-                repository.addAether(profile)
+                repository.addAether(profile, name)
                 scope.launch { platform.toast("Aether profile added") }
             },
         )
@@ -1624,6 +1624,18 @@ fun ServersScreen(
     editTarget?.let { target ->
         val singBoxFormLink = remember(target.id, editAsJson) { if (editAsJson) null else singBoxFormLinkOf(target) }
         when {
+            target.isAether -> {
+                AetherProfileSheet(
+                    initial = target.aetherSettings() ?: dev.cluvex.zedsecure.domain.config.AetherProfile(),
+                    initialName = target.name,
+                    onDismiss = { editTarget = null },
+                    onSave = { name, profile ->
+                        repository.addAether(profile, name, id = target.id)
+                        toastRes(Res.string.saved)
+                        editTarget = null
+                    },
+                )
+            }
             singBoxFormLink != null -> {
                 ManualConfigSheet(
                     initialSingBoxLink = singBoxFormLink,
@@ -2379,14 +2391,17 @@ private fun AddServerSheet(
 
 @Composable
 private fun AetherProfileSheet(
+    initial: dev.cluvex.zedsecure.domain.config.AetherProfile = dev.cluvex.zedsecure.domain.config.AetherProfile(),
+    initialName: String = "Aether",
     onDismiss: () -> Unit,
-    onSave: (dev.cluvex.zedsecure.domain.config.AetherProfile) -> Unit,
+    onSave: (String, dev.cluvex.zedsecure.domain.config.AetherProfile) -> Unit,
 ) {
-    var protocol by rememberSaveable { mutableStateOf("masque") }
-    var scan by rememberSaveable { mutableStateOf("balanced") }
-    var ip by rememberSaveable { mutableStateOf("v4") }
-    var noize by rememberSaveable { mutableStateOf("firewall") }
-    var http2 by rememberSaveable { mutableStateOf(false) }
+    var name by rememberSaveable(initialName) { mutableStateOf(initialName) }
+    var protocol by rememberSaveable(initial.protocol) { mutableStateOf(initial.protocol) }
+    var scan by rememberSaveable(initial.scanMode) { mutableStateOf(initial.scanMode) }
+    var ip by rememberSaveable(initial.ipVersion) { mutableStateOf(initial.ipVersion) }
+    var noize by rememberSaveable(initial.noize) { mutableStateOf(initial.noize) }
+    var http2 by rememberSaveable(initial.http2) { mutableStateOf(initial.http2) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -2394,6 +2409,13 @@ private fun AetherProfileSheet(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("A separate WARP-based tunnel engine. Choose its transport and connection profile.")
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    singleLine = true,
+                    label = { Text("Profile name") },
+                    modifier = Modifier.fillMaxWidth(),
+                )
                 AetherChoice("Protocol", protocol, listOf("masque", "wg", "gool", "mim")) { protocol = it }
                 AetherChoice("Scan mode", scan, listOf("turbo", "balanced", "thorough", "verified", "ironclad")) { scan = it }
                 AetherChoice("IP version", ip, listOf("v4", "v6", "both")) { ip = it }
@@ -2406,6 +2428,7 @@ private fun AetherProfileSheet(
         confirmButton = {
             TextButton(onClick = {
                 onSave(
+                    name.trim().ifBlank { "Aether" },
                     dev.cluvex.zedsecure.domain.config.AetherProfile(
                         protocol = protocol,
                         scanMode = scan,
