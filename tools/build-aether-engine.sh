@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build the pinned upstream Aether Rust engine for ZX's Android ABIs.
+# Build the merged QW-patched Aether engine (based on Cluvex upstream) for ZX Android ABIs.
 # This is additive: no existing ZX engine or source is replaced.
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

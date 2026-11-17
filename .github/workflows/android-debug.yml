@@ -12,7 +12,10 @@ on:
       - "build.gradle.kts"
       - "settings.gradle.kts"
       - "tools/**"
+      - ".gitmodules"
       - "native/aether"
+      - "native/aether-qw"
+      - "native/aether-qw/**"
   workflow_dispatch:
 
 permissions:
@@ -41,7 +44,7 @@ jobs:
           rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android
           cargo install cargo-ndk --locked
 
-      - name: Build pinned Aether native engine
+      - name: Build merged QW/Cluvex Aether native engine
         run: bash ./tools/build-aether-engine.sh
 
       - name: Download and verify Android engines
