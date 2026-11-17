@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -45,10 +46,12 @@ fun ConfigExplorerSheet(
 ) {
     val state by repository.configExplorer.state.collectAsStateWithLifecycle()
     var tab by rememberSaveable { mutableStateOf("best") }
+    var selectedEntry by rememberSaveable { mutableStateOf<ConfigExplorerEntry?>(null) }
 
     LaunchedEffect(repository) { ConfigExplorerEngine.start(repository) }
 
     val entries = when (tab) {
+        "live" -> state.liveEntries
         "reserve" -> state.healthyPool.drop(ConfigExplorerEngine.BEST_LIMIT)
         "pool" -> state.healthyPool
         else -> state.healthyPool.take(ConfigExplorerEngine.BEST_LIMIT)
@@ -140,6 +143,7 @@ fun ConfigExplorerSheet(
                 Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
+                ExplorerTab("یافته‌های زنده " + state.liveEntries.size, tab == "live") { tab = "live" }
                 ExplorerTab("۱۰۰ برتر", tab == "best") { tab = "best" }
                 ExplorerTab("ذخیره جایگزین", tab == "reserve") { tab = "reserve" }
                 ExplorerTab("همه سالم‌ها", tab == "pool") { tab = "pool" }
@@ -198,12 +202,7 @@ fun ConfigExplorerSheet(
                         index = index + 1,
                         entry = entry,
                         isReserve = tab == "reserve",
-                        onClick = {
-                            val profileId = entry.profileId ?: return@ExplorerEntryRow
-                            repository.setActive(profileId)
-                            onServerActivated()
-                            onDismiss()
-                        },
+                        onClick = { selectedEntry = entry },
                         onPromote = { ConfigExplorerEngine.promoteReserve(repository, entry.id) },
                     )
                     HorizontalDivider()
@@ -211,12 +210,45 @@ fun ConfigExplorerSheet(
             }
 
             Text(
-                "سلامت یعنی حداقل دو موفقیت از سه آزمایش HTTPS از مسیر هسته ZX؛ تست TCP به‌تنهایی کافی نیست.",
+                if (tab == "live") "نتایج به‌محض تأیید مجدد وارد این فهرست می‌شوند؛ اطلاعات IP و کشور در پس‌زمینه تکمیل می‌شود." else "سلامت یعنی حداقل دو موفقیت از سه آزمایش HTTPS از مسیر هسته ZX؛ تست TCP به‌تنهایی کافی نیست.",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
+
+    selectedEntry?.let { entry ->
+        AlertDialog(
+            onDismissRequest = { selectedEntry = null },
+            title = { Text(entry.name.ifBlank { entry.protocol + " · " + entry.address }) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text((entry.countryCode?.let(::countryFlag) ?: "🌐") + "  " + (entry.countryCode ?: "کشور نامشخص"))
+                    Text("IP: " + (entry.ipAddress ?: "در حال شناسایی یا نامشخص"))
+                    Text("سرور: " + entry.address + ":" + entry.port)
+                    Text("پروتکل: " + entry.protocol)
+                    Text("منبع: " + entry.sourceName)
+                    Text("نمونه‌های تأخیر: " + entry.samplesMs.joinToString("، ") + " ms")
+                    Text("میانه: " + entry.medianMs + " ms · میانگین: " + entry.meanMs + " ms")
+                    Text("نوسان: " + entry.jitterMs + " ms")
+                    Text("آخرین بررسی: " + entry.lastCheckedAt)
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    entry.profileId?.let { repository.setActive(it); onServerActivated(); onDismiss() }
+                    selectedEntry = null
+                }, enabled = entry.profileId != null) { Text("اتصال به این سرور") }
+            },
+            dismissButton = { TextButton(onClick = { selectedEntry = null }) { Text("بستن") } },
+        )
+    }
+}
+
+private fun countryFlag(code: String): String {
+    if (code.length != 2) return "🌐"
+    val base = 0x1F1E6
+    return code.uppercase().map { char -> String(Character.toChars(base + char.code - 'A'.code)) }.joinToString("")
 }
 
 @Composable
@@ -258,7 +290,7 @@ private fun ExplorerEntryRow(
         ) {
             Text(index.toString().padStart(2, '0'), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Column(Modifier.weight(1f)) {
-                Text(entry.name.ifBlank { entry.protocol + " · " + entry.address }, fontWeight = FontWeight.SemiBold)
+                Text((entry.countryCode?.let(::countryFlag) ?: "🌐") + "  " + entry.name.ifBlank { entry.protocol + " · " + entry.address }, fontWeight = FontWeight.SemiBold)
                 Text(
                     entry.protocol + " · " + entry.address + ":" + entry.port + " · " + entry.sourceName,
                     style = MaterialTheme.typography.labelSmall,
