@@ -48,14 +48,21 @@ private data class DnsPreset(
 )
 
 private val dnsPresets = listOf(
-    DnsPreset("Cloudflare", "doh", "https://cloudflare-dns.com/dns-query", "1.1.1.1"),
-    DnsPreset("Google", "doh", "https://dns.google/dns-query", "8.8.8.8"),
-    DnsPreset("Quad9", "doh", "https://dns.quad9.net/dns-query", "9.9.9.9"),
-    DnsPreset("AdGuard", "doh", "https://dns.adguard.com/dns-query", "94.140.14.14"),
-    DnsPreset("CleanBrowsing Family", "doh", "https://doh.cleanbrowsing.org/doh/family-filter/", "185.228.168.168"),
-    DnsPreset("Cloudflare DoT", "dot", "tls://1.1.1.1:853", "1.1.1.1"),
-    DnsPreset("Google UDP", "udp", "8.8.8.8:53", "8.8.8.8"),
-    DnsPreset("Cloudflare TCP", "tcp", "tcp://1.1.1.1:53", "1.1.1.1"),
+    DnsPreset("Cloudflare · 1.1.1.1", "doh", "https://cloudflare-dns.com/dns-query", "1.1.1.1"),
+    DnsPreset("Cloudflare Security · 1.1.1.2", "doh", "https://security.cloudflare-dns.com/dns-query", "1.1.1.2"),
+    DnsPreset("Cloudflare Family · 1.1.1.3", "doh", "https://family.cloudflare-dns.com/dns-query", "1.1.1.3"),
+    DnsPreset("Google · 8.8.8.8", "doh", "https://dns.google/dns-query", "8.8.8.8"),
+    DnsPreset("Google · 8.8.4.4", "doh", "https://dns.google/dns-query", "8.8.4.4"),
+    DnsPreset("Quad9 · 9.9.9.9", "doh", "https://dns.quad9.net/dns-query", "9.9.9.9"),
+    DnsPreset("Quad9 · 149.112.112.112", "doh", "https://dns.quad9.net/dns-query", "149.112.112.112"),
+    DnsPreset("AdGuard · 94.140.14.14", "doh", "https://dns.adguard.com/dns-query", "94.140.14.14"),
+    DnsPreset("AdGuard · 94.140.15.15", "doh", "https://dns.adguard.com/dns-query", "94.140.15.15"),
+    DnsPreset("CleanBrowsing Family · 185.228.168.168", "doh", "https://doh.cleanbrowsing.org/doh/family-filter/", "185.228.168.168"),
+    DnsPreset("OpenDNS · 208.67.222.222", "doh", "https://doh.opendns.com/dns-query", "208.67.222.222"),
+    DnsPreset("OpenDNS · 208.67.220.220", "doh", "https://doh.opendns.com/dns-query", "208.67.220.220"),
+    DnsPreset("Cloudflare DoT · 1.1.1.1", "dot", "tls://1.1.1.1:853", "1.1.1.1"),
+    DnsPreset("Google UDP · 8.8.8.8", "udp", "8.8.8.8:53", "8.8.8.8"),
+    DnsPreset("Cloudflare TCP · 1.1.1.1", "tcp", "tcp://1.1.1.1:53", "1.1.1.1"),
 )
 
 @Composable
@@ -141,6 +148,7 @@ internal fun DnsResolverSheet(
                     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                         Text(profile.name, style = MaterialTheme.typography.titleSmall)
                         Text("${profile.protocol.uppercase()} · ${profile.remoteEndpoint}", style = MaterialTheme.typography.bodySmall)
+                        Text("IP Resolver / Bootstrap: ${profile.directAddress}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             TextButton(onClick = {
                                 onUpdate { it.copy(activeDnsResolverId = profile.id) }
@@ -165,20 +173,12 @@ internal fun DnsResolverSheet(
             }
 
             Text(if (editingId == null) "افزودن پروفایل DNS" else "ویرایش پروفایل DNS", style = MaterialTheme.typography.titleMedium)
-            Text("پروفایل آماده", style = MaterialTheme.typography.labelLarge)
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                dnsPresets.take(4).forEach { preset ->
-                    AssistChip(onClick = {
-                        name = preset.name
-                        protocol = preset.protocol
-                        endpoint = preset.endpoint
-                        direct = preset.direct
-                        error = ""
-                    }, label = { Text(preset.name) })
-                }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                dnsPresets.drop(4).forEach { preset ->
+            Text("پروفایل‌های آماده و IP Resolver", style = MaterialTheme.typography.labelLarge)
+            Row(
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                dnsPresets.forEach { preset ->
                     AssistChip(onClick = {
                         name = preset.name
                         protocol = preset.protocol
