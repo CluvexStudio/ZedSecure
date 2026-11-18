@@ -69,14 +69,14 @@ data class AetherProfile(
 
         fun decode(raw: String): AetherProfile? = runCatching {
             val json = Json { ignoreUnknownKeys = true }
-            val element = json.parseToJsonElement(raw)
-            if (element !is kotlinx.serialization.json.JsonObject ||
-                element["marker"]?.toString() != "\"ZX_AETHER\""
-            ) {
-                null
-            } else {
-                json.decodeFromString<AetherProfile>(raw)
-            }
+            val obj = json.parseToJsonElement(raw) as? kotlinx.serialization.json.JsonObject
+            val marked = obj?.get("marker")?.toString() == "\"ZX_AETHER\""
+            // Profiles saved by an older build omitted the marker (defaults were not encoded), so
+            // they were mistaken for Xray configs. Recognize them by their Aether-only keys; Xray
+            // and sing-box configs never contain scanMode + noize + ipVersion together.
+            val legacy = obj != null && "marker" !in obj && "scanMode" in obj && "noize" in obj &&
+                "ipVersion" in obj && ((obj["protocol"]?.toString()?.trim('"') ?: "") in PROTOCOLS)
+            if (marked || legacy) json.decodeFromString<AetherProfile>(raw) else null
         }.getOrNull()?.takeIf { it.marker == MARKER }
 
         fun encode(profile: AetherProfile): String =

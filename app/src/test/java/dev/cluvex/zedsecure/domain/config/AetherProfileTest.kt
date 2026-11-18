@@ -56,4 +56,13 @@ class AetherProfileTest {
         assertNotNull(failure)
         assertTrue(failure is IllegalArgumentException)
     }
+
+    @Test
+    fun legacyProfileWithoutMarkerIsStillRecognizedAsAether() {
+        val legacy = """{"profileName":"Aether · Smart · Mobile","protocol":"masque","scanMode":"thorough","ipVersion":"v4","noize":"firewall","http2":true}"""
+        val decoded = AetherProfile.decode(legacy)
+        assertNotNull(decoded)
+        assertTrue(decoded!!.http2)
+        assertNull(AetherProfile.decode("""{"outbounds":[],"inbounds":[],"log":{}}"""))
+    }
 }
