@@ -5,3 +5,6 @@
 [submodule "native/aether-qw"]
 	path = native/aether-qw
 	url = https://github.com/QW-AI-Code/Aether.git
+[submodule "native/aether-pn"]
+	path = native/aether-pn
+	url = https://github.com/patterniha/Aether.git

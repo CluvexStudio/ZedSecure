@@ -1,5 +1,6 @@
 package dev.cluvex.zedsecure.domain.config
 
+import dev.cluvex.zedsecure.platform.LinkQuality
 import dev.cluvex.zedsecure.platform.NetworkKind
 
 /** What the user wants the Smart config to favor. */
@@ -19,6 +20,8 @@ data class AetherSmartInput(
     /** Spread between two edge samples; a high value marks an unstable link. */
     val edgeJitterMs: Int? = null,
     val goal: AetherSmartGoal = AetherSmartGoal.Auto,
+    /** Local link estimates (bandwidth, signal, generation); null when unavailable. */
+    val link: LinkQuality? = null,
 )
 
 /**
@@ -46,7 +49,7 @@ object AetherSmartConfig {
         val strict = filtered || edgeBlocked || input.goal == AetherSmartGoal.Stealth
         val noize = when {
             strict -> "gfw"
-            cellular -> "firewall"
+            cellular || weak -> "firewall"
             else -> "balanced"
         }
         val scan = when {
@@ -55,10 +58,26 @@ object AetherSmartConfig {
             edgeBlocked || unstable -> "thorough"
             fastEdge && !filtered -> "turbo"
             slow -> "turbo"
+            weak -> "turbo"
             cellular || filtered -> "thorough"
             else -> "balanced"
         }
-        val h2 = (cellular || strict) && !(input.goal == AetherSmartGoal.Speed && !edgeBlocked && !filtered)
+        // Link-quality rules (idea from the V-RZEX "AI Config" advisor): signal strength and
+        // advertised bandwidth never prove UDP/QUIC works, so HTTP/3 is chosen only on a strong,
+        // unmetered Wi-Fi link; weak links keep the robust TCP/HTTP/2 path. When the platform cannot
+        // report link estimates, the previous network-kind rule applies unchanged.
+        val link = input.link
+        val strongWifi = link != null && input.network == NetworkKind.Wifi && !link.metered &&
+            link.validated && link.downKbps >= STRONG_DOWN_KBPS && link.upKbps >= STRONG_UP_KBPS &&
+            (link.signalDbm == null || link.signalDbm >= STRONG_SIGNAL_DBM)
+        val weak = link != null && (
+            link.generation == "2G" || link.generation == "3G" ||
+                link.downKbps in 1 until WEAK_DOWN_KBPS || link.upKbps in 1..WEAK_UP_KBPS ||
+                (link.signalDbm != null && link.signalDbm < WEAK_SIGNAL_DBM)
+            )
+        val udpFriendly = if (link == null) !cellular else strongWifi || (input.network == NetworkKind.Ethernet && !weak)
+        val speedOverride = input.goal == AetherSmartGoal.Speed && !edgeBlocked && !filtered
+        val h2 = !speedOverride && (cellular || strict || weak || !udpFriendly)
         return AetherProfile(
             profileName = nameFor(input.network),
             protocol = "masque",
@@ -81,4 +100,10 @@ object AetherSmartConfig {
     private const val SLOW_PING_MS = 350
     private const val FAST_EDGE_MS = 220
     private const val UNSTABLE_JITTER_MS = 150
+    private const val STRONG_DOWN_KBPS = 15_000
+    private const val STRONG_UP_KBPS = 3_000
+    private const val STRONG_SIGNAL_DBM = -85
+    private const val WEAK_DOWN_KBPS = 5_000
+    private const val WEAK_UP_KBPS = 1_000
+    private const val WEAK_SIGNAL_DBM = -105
 }
