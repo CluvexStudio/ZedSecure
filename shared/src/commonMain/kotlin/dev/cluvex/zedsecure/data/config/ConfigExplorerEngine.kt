@@ -89,6 +89,10 @@ data class ConfigExplorerSnapshot(
     val startedAt: Long = 0L,
     /** When true, the automatic 15-minute cycle is skipped on mobile data (manual runs still work). */
     val wifiOnly: Boolean = false,
+    /** Extra feed URLs added by the user (plain or Base64 subscription lists). */
+    val customSources: List<String> = emptyList(),
+    /** Servers the user starred; kept until removed, independent of cycles. */
+    val favorites: List<ConfigExplorerEntry> = emptyList(),
 )
 
 class ConfigExplorerRepository(private val store: KeyValueStore) {
@@ -106,6 +110,33 @@ class ConfigExplorerRepository(private val store: KeyValueStore) {
         persist(next)
     }
 
+    fun addCustomSource(url: String): Boolean {
+        val clean = url.trim()
+        if (!(clean.startsWith("https://") || clean.startsWith("http://")) || clean.length > 500 || clean.any { it.isWhitespace() }) return false
+        val current = _state.value
+        if (clean in current.customSources || current.customSources.size >= MAX_CUSTOM_SOURCES) return false
+        val next = current.copy(customSources = current.customSources + clean)
+        _state.value = next
+        persist(next)
+        return true
+    }
+
+    fun removeCustomSource(url: String) {
+        val next = _state.value.copy(customSources = _state.value.customSources - url)
+        _state.value = next
+        persist(next)
+    }
+
+    fun toggleFavorite(entry: ConfigExplorerEntry) {
+        val current = _state.value
+        val exists = current.favorites.any { it.link == entry.link }
+        val next = current.copy(
+            favorites = if (exists) current.favorites.filterNot { it.link == entry.link } else current.favorites + entry,
+        )
+        _state.value = next
+        persist(next)
+    }
+
     fun setWifiOnly(wifiOnly: Boolean) {
         val next = _state.value.copy(wifiOnly = wifiOnly)
         _state.value = next
@@ -119,7 +150,13 @@ class ConfigExplorerRepository(private val store: KeyValueStore) {
     }
 
     fun publish(snapshot: ConfigExplorerSnapshot) {
-        val next = snapshot.copy(enabled = _state.value.enabled)
+        val current = _state.value
+        val next = snapshot.copy(
+            enabled = current.enabled,
+            wifiOnly = current.wifiOnly,
+            customSources = current.customSources,
+            favorites = current.favorites,
+        )
         _state.value = next
         persist(next)
     }
@@ -134,6 +171,7 @@ class ConfigExplorerRepository(private val store: KeyValueStore) {
     }
 
     private companion object {
+        const val MAX_CUSTOM_SOURCES = 20
         const val KEY_STATE = "zx_config_explorer_state_v1"
     }
 }
@@ -188,6 +226,18 @@ object ConfigExplorerEngine {
         ConfigExplorerSource("wzdnzd", "wzdnzd aggregator", "https://github.com/wzdnzd/aggregator", null, "ابزار تجمیع؛ فید مستقیم پایدار در این تنظیمات تعریف نشده است"),
         ConfigExplorerSource("whitedns", "WhiteDNS subs-check", "https://github.com/WhiteDNS/subs-check", null, "ابزار بررسی اشتراک؛ منبع مستقیم کانفیگ نیست"),
     )
+
+    /** Built-in feeds plus the user's own. */
+    fun allSources(snapshot: ConfigExplorerSnapshot): List<ConfigExplorerSource> =
+        sources + snapshot.customSources.map { url ->
+            ConfigExplorerSource(
+                id = "custom-" + url.hashCode(),
+                name = url.substringAfter("://").substringBefore('/').take(40),
+                repositoryUrl = url,
+                feedUrl = url,
+                description = "منبع دلخواه شما",
+            )
+        }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val cycleMutex = Mutex()
@@ -300,13 +350,13 @@ object ConfigExplorerEngine {
 
         try {
             val fetched = coroutineScope {
-                sources.map { source -> async(Dispatchers.IO) { fetchSource(source) } }.awaitAll()
+                allSources(explorer.state.value).map { source -> async(Dispatchers.IO) { fetchSource(source) } }.awaitAll()
             }
             val statuses = fetched.map { it.status }
             val discovered = linkedMapOf<String, Candidate>()
 
             explorer.state.value.healthyPool.forEach { old ->
-                val source = sources.firstOrNull { it.id == old.sourceId }
+                val source = allSources(explorer.state.value).firstOrNull { it.id == old.sourceId }
                     ?: ConfigExplorerSource(old.sourceId, old.sourceName, "", null, "ذخیره قبلی کاوشگر")
                 val key = canonicalKey(old.link)
                 if (key.isNotBlank() && !discovered.containsKey(key)) discovered[key] = Candidate(source, old.link)

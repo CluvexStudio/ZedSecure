@@ -55,6 +55,8 @@ fun ConfigExplorerSheet(
     var protoFilter by rememberSaveable { mutableStateOf<String?>(null) }
     var sort by rememberSaveable { mutableStateOf("latency") }
     var countryFilter by rememberSaveable { mutableStateOf<String?>(null) }
+    var fastOnly by rememberSaveable { mutableStateOf(false) }
+    var newSource by rememberSaveable { mutableStateOf("") }
     val platform = LocalPlatform.current
 
     LaunchedEffect(repository) { ConfigExplorerEngine.start(repository) }
@@ -67,6 +69,7 @@ fun ConfigExplorerSheet(
 
     val entries = when (tab) {
         "live" -> state.liveEntries
+        "stars" -> state.favorites
         "reserve" -> state.healthyPool.drop(ConfigExplorerEngine.BEST_LIMIT)
         "pool" -> state.healthyPool
         else -> state.healthyPool.take(ConfigExplorerEngine.BEST_LIMIT)
@@ -77,6 +80,7 @@ fun ConfigExplorerSheet(
     val shown = entries
         .filter { protoFilter == null || it.protocol == protoFilter }
         .filter { countryFilter == null || it.countryCode == countryFilter }
+        .filter { !fastOnly || it.medianMs in 1..300 }
         .filter {
             val q = query.trim().lowercase()
             q.isEmpty() || it.name.lowercase().contains(q) || it.address.lowercase().contains(q) ||
@@ -86,6 +90,7 @@ fun ConfigExplorerSheet(
         .let { list ->
             when (sort) {
                 "jitter" -> list.sortedBy { it.jitterMs }
+                "recent" -> list.sortedByDescending { it.lastCheckedAt }
                 "quality" -> list.sortedByDescending { explorerQuality(it) }
                 else -> list
             }
@@ -241,6 +246,7 @@ fun ConfigExplorerSheet(
                 ExplorerTab("۱۰۰ برتر", tab == "best") { tab = "best" }
                 ExplorerTab("ذخیره جایگزین", tab == "reserve") { tab = "reserve" }
                 ExplorerTab("همه سالم‌ها", tab == "pool") { tab = "pool" }
+                ExplorerTab("★ نشان‌دارها " + state.favorites.size, tab == "stars") { tab = "stars" }
                 ExplorerTab("منابع", tab == "sources") { tab = "sources" }
             }
 
@@ -274,6 +280,8 @@ fun ConfigExplorerSheet(
                     FilterChip(selected = sort == "latency", onClick = { sort = "latency" }, label = { Text("تأخیر") })
                     FilterChip(selected = sort == "jitter", onClick = { sort = "jitter" }, label = { Text("کمترین نوسان") })
                     FilterChip(selected = sort == "quality", onClick = { sort = "quality" }, label = { Text("امتیاز کیفیت") })
+                    FilterChip(selected = sort == "recent", onClick = { sort = "recent" }, label = { Text("جدیدترین") })
+                    FilterChip(selected = fastOnly, onClick = { fastOnly = !fastOnly }, label = { Text("فقط سریع (≤۳۰۰ms)") })
                     Text(
                         shown.size.toString() + " نتیجه",
                         Modifier.padding(start = 6.dp, top = 8.dp),
@@ -305,7 +313,22 @@ fun ConfigExplorerSheet(
             }
 
             if (tab == "sources") {
-                ConfigExplorerEngine.sources.forEach { source ->
+                OutlinedTextField(
+                    value = newSource,
+                    onValueChange = { newSource = it },
+                    singleLine = true,
+                    label = { Text("افزودن منبع دلخواه (آدرس https فید یا اشتراک)") },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                TextButton(onClick = {
+                    if (repository.configExplorer.addCustomSource(newSource)) {
+                        newSource = ""
+                        platform.toast("منبع افزوده شد؛ از چرخهٔ بعدی بررسی می‌شود")
+                    } else {
+                        platform.toast("آدرس معتبر نیست یا تکراری است (https، بدون فاصله، حداکثر ۲۰ منبع)")
+                    }
+                }) { Text("افزودن منبع") }
+                ConfigExplorerEngine.allSources(state).forEach { source ->
                     val status = state.sourceStatuses.firstOrNull { it.sourceId == source.id }
                     Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -338,6 +361,9 @@ fun ConfigExplorerSheet(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                    }
+                    if (source.id.startsWith("custom-")) {
+                        TextButton(onClick = { repository.configExplorer.removeCustomSource(source.repositoryUrl) }) { Text("حذف این منبع") }
                     }
                     HorizontalDivider()
                 }
@@ -405,6 +431,9 @@ fun ConfigExplorerSheet(
             },
             dismissButton = {
                 Row {
+                    TextButton(onClick = { repository.configExplorer.toggleFavorite(entry) }) {
+                        Text(if (state.favorites.any { it.link == entry.link }) "★ برداشتن نشان" else "☆ نشان‌دار")
+                    }
                     TextButton(onClick = { platform.copyToClipboard(entry.link); platform.toast("لینک کپی شد") }) { Text("کپی لینک") }
                     TextButton(onClick = { selectedEntry = null }) { Text("بستن") }
                 }
