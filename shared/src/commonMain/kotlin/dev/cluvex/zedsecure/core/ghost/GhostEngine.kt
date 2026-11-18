@@ -31,6 +31,7 @@ object GhostEngine {
     @Volatile private var lastAutoPlan: GhostAutoTuner.Plan? = null
     @Volatile private var lastStrategy: String = "-"
     @Volatile private var nativeCap: NativeDesyncCapability = GhostNativeDesync.probe()
+    @Volatile private var nativeArmedProfile: DesyncProfile? = null
 
     private val recentResults = ArrayDeque<Boolean>(64)
 
@@ -151,23 +152,54 @@ object GhostEngine {
 
     fun updateSettings(settings: GhostSettings) {
         currentSettings = settings
+        // Native mode must follow live settings changes too, not just the next
+        // VPN reconnect. This keeps every core on the same GHOST lifecycle.
+        reconcileNativeDesync()
         reconcile()
     }
 
     fun onTunnelConnected() {
         tunnelConnected = true
         Log.i("GhostEngine", "tunnel connected")
-        if (currentSettings.enabled && currentSettings.packetDesyncEnabled && currentSettings.preferNativeDesync) {
-            val profile = DesyncProfile.fromRaw(currentSettings.desyncProfile)
-            GhostNativeDesync.tryArm(profile)
-        }
+        reconcileNativeDesync()
         reconcile()
     }
 
     fun onTunnelDisconnected() {
         tunnelConnected = false
-        GhostNativeDesync.disarm()
+        reconcileNativeDesync()
         stop()
+    }
+
+    /** Keep native GHOST state exactly aligned with the active tunnel and user settings. */
+    @Synchronized
+    private fun reconcileNativeDesync() {
+        val settings = currentSettings
+        val requested = if (
+            tunnelConnected && settings.enabled && settings.packetDesyncEnabled &&
+            settings.preferNativeDesync
+        ) DesyncProfile.fromRaw(settings.desyncProfile).takeIf { it != DesyncProfile.Off }
+        else null
+
+        if (requested == nativeArmedProfile) return
+
+        // Always disarm the previous profile before changing modes. This also
+        // makes disabling GHOST or packet desync take effect immediately.
+        if (nativeArmedProfile != null) {
+            GhostNativeDesync.disarm()
+            nativeArmedProfile = null
+        }
+        if (requested != null && nativeCap.available) {
+            val armed = runCatching { GhostNativeDesync.tryArm(requested) }.getOrDefault(false)
+            if (armed) {
+                nativeArmedProfile = requested
+                Log.i("GhostEngine", "native GHOST profile armed: $requested")
+            } else {
+                // A partial native startup must not be left behind after a failed arm.
+                runCatching { GhostNativeDesync.disarm() }
+                Log.w("GhostEngine", "native GHOST unavailable; using the supported app-layer mode")
+            }
+        }
     }
 
     private fun reconcile() {
