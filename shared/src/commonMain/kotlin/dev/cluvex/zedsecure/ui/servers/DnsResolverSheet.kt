@@ -2,6 +2,7 @@
 
 package dev.cluvex.zedsecure.ui.servers
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
