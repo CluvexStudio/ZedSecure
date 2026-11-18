@@ -1427,6 +1427,7 @@ fun ServersScreen(
             onCreate = { profile ->
                 showAetherSmart = false
                 val created = repository.addAether(profile, profile.profileName)
+                check(created.isAether) { "Smart config must create an Aether profile" }
                 repository.setActive(created.id)
                 toastRes(Res.string.aether_smart_done)
                 onServerActivated()

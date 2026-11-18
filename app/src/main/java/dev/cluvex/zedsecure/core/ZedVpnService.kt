@@ -762,6 +762,7 @@ class ZedVpnService : VpnService() {
             return
         }
         val workDir = java.io.File(filesDir, "aether").apply { mkdirs() }
+        LogBus.append("I/ZX: core = Aether (${profile.protocol.uppercase()}, h2=${profile.http2}, noize=${profile.noize}); Xray only serves as the local routing front, all traffic leaves through Aether")
         VpnManager.setActiveKind(kind)
         advance(VpnNotifications.Stage.Engine)
         scope.launch(Dispatchers.IO) {
