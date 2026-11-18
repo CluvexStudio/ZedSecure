@@ -45,6 +45,21 @@ object AetherSmartConfig {
         val apiBlocked = input.apiReachable == false
         val fastEdge = input.edgeReachable == true && (input.edgeMs ?: Int.MAX_VALUE) < FAST_EDGE_MS
 
+        // Link-quality rules (idea from the V-RZEX "AI Config" advisor): signal strength and
+        // advertised bandwidth never prove UDP/QUIC works, so HTTP/3 is chosen only on a strong,
+        // unmetered Wi-Fi link; weak links keep the robust TCP/HTTP/2 path. When the platform cannot
+        // report link estimates, the previous network-kind rule applies unchanged.
+        val link = input.link
+        val strongWifi = link != null && input.network == NetworkKind.Wifi && !link.metered &&
+            link.validated && link.downKbps >= STRONG_DOWN_KBPS && link.upKbps >= STRONG_UP_KBPS &&
+            (link.signalDbm == null || link.signalDbm >= STRONG_SIGNAL_DBM)
+        val weak = link != null && (
+            link.generation == "2G" || link.generation == "3G" ||
+                link.downKbps in 1 until WEAK_DOWN_KBPS || link.upKbps in 1..WEAK_UP_KBPS ||
+                (link.signalDbm != null && link.signalDbm < WEAK_SIGNAL_DBM)
+            )
+        val udpFriendly = if (link == null) !cellular else strongWifi || (input.network == NetworkKind.Ethernet && !weak)
+        val speedOverride = input.goal == AetherSmartGoal.Speed && !edgeBlocked && !filtered
         val unstable = (input.edgeJitterMs ?: 0) >= UNSTABLE_JITTER_MS
         val strict = filtered || edgeBlocked || input.goal == AetherSmartGoal.Stealth
         val noize = when {
@@ -62,21 +77,6 @@ object AetherSmartConfig {
             cellular || filtered -> "thorough"
             else -> "balanced"
         }
-        // Link-quality rules (idea from the V-RZEX "AI Config" advisor): signal strength and
-        // advertised bandwidth never prove UDP/QUIC works, so HTTP/3 is chosen only on a strong,
-        // unmetered Wi-Fi link; weak links keep the robust TCP/HTTP/2 path. When the platform cannot
-        // report link estimates, the previous network-kind rule applies unchanged.
-        val link = input.link
-        val strongWifi = link != null && input.network == NetworkKind.Wifi && !link.metered &&
-            link.validated && link.downKbps >= STRONG_DOWN_KBPS && link.upKbps >= STRONG_UP_KBPS &&
-            (link.signalDbm == null || link.signalDbm >= STRONG_SIGNAL_DBM)
-        val weak = link != null && (
-            link.generation == "2G" || link.generation == "3G" ||
-                link.downKbps in 1 until WEAK_DOWN_KBPS || link.upKbps in 1..WEAK_UP_KBPS ||
-                (link.signalDbm != null && link.signalDbm < WEAK_SIGNAL_DBM)
-            )
-        val udpFriendly = if (link == null) !cellular else strongWifi || (input.network == NetworkKind.Ethernet && !weak)
-        val speedOverride = input.goal == AetherSmartGoal.Speed && !edgeBlocked && !filtered
         val h2 = !speedOverride && (cellular || strict || weak || !udpFriendly)
         return AetherProfile(
             profileName = nameFor(input.network),
