@@ -54,6 +54,7 @@ fun ConfigExplorerSheet(
     var query by rememberSaveable { mutableStateOf("") }
     var protoFilter by rememberSaveable { mutableStateOf<String?>(null) }
     var sort by rememberSaveable { mutableStateOf("latency") }
+    var countryFilter by rememberSaveable { mutableStateOf<String?>(null) }
     val platform = LocalPlatform.current
 
     LaunchedEffect(repository) { ConfigExplorerEngine.start(repository) }
@@ -72,8 +73,10 @@ fun ConfigExplorerSheet(
     }
 
     val protocols = entries.map { it.protocol }.distinct().sorted()
+    val countries = entries.mapNotNull { it.countryCode }.distinct().sorted()
     val shown = entries
         .filter { protoFilter == null || it.protocol == protoFilter }
+        .filter { countryFilter == null || it.countryCode == countryFilter }
         .filter {
             val q = query.trim().lowercase()
             q.isEmpty() || it.name.lowercase().contains(q) || it.address.lowercase().contains(q) ||
@@ -171,8 +174,25 @@ fun ConfigExplorerSheet(
                             onCheckedChange = { ConfigExplorerEngine.setEnabled(repository, it) },
                         )
                     }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            "چرخهٔ خودکار فقط روی Wi-Fi (صرفه‌جویی در دیتای موبایل)",
+                            Modifier.weight(1f),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                        Switch(
+                            checked = state.wifiOnly,
+                            onCheckedChange = { repository.configExplorer.setWifiOnly(it) },
+                        )
+                    }
                     if (state.isRunning) {
                         Text(explorerPhaseLabel(state.phase), style = MaterialTheme.typography.labelMedium)
+                        Text(
+                            "زمان سپری‌شده " + (((currentTimeMillis() - state.startedAt) / 1000).coerceAtLeast(0)) +
+                                " ثانیه · سالم‌های تأییدشده تا اینجا: " + visibleHealthyCount,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                         val fraction = if (state.progressTotal > 0) {
                             state.progressDone.toFloat() / state.progressTotal.toFloat()
                         } else 0f
@@ -261,6 +281,27 @@ fun ConfigExplorerSheet(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+                if (countries.size > 1) {
+                    Row(
+                        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        FilterChip(selected = countryFilter == null, onClick = { countryFilter = null }, label = { Text("همه کشورها") })
+                        countries.forEach { code ->
+                            FilterChip(
+                                selected = countryFilter == code,
+                                onClick = { countryFilter = if (countryFilter == code) null else code },
+                                label = { Text(countryFlag(code) + " " + code) },
+                            )
+                        }
+                    }
+                }
+                if (shown.isNotEmpty()) {
+                    TextButton(onClick = {
+                        platform.copyToClipboard(shown.joinToString("\n") { it.link })
+                        platform.toast(shown.size.toString() + " لینک کپی شد")
+                    }) { Text("کپی همهٔ لینک‌های این فهرست (" + shown.size + ")") }
+                }
             }
 
             if (tab == "sources") {
@@ -348,9 +389,19 @@ fun ConfigExplorerSheet(
             },
             confirmButton = {
                 TextButton(onClick = {
-                    entry.profileId?.let { repository.setActive(it); onServerActivated(); onDismiss() }
+                    // Entries still in the live list are not saved yet: add them to Servers first.
+                    val id = entry.profileId
+                        ?: run {
+                            repository.importText(entry.link, repository.configExplorer.state.value.groupId.orEmpty())
+                            repository.profiles.value.firstOrNull { it.rawPayload()?.trim() == entry.link.trim() }?.id
+                        }
+                    if (id != null) {
+                        repository.setActive(id); onServerActivated(); onDismiss()
+                    } else {
+                        platform.toast("افزودن این سرور انجام نشد")
+                    }
                     selectedEntry = null
-                }, enabled = entry.profileId != null) { Text("اتصال به این سرور") }
+                }) { Text(if (entry.profileId != null) "اتصال به این سرور" else "افزودن و اتصال") }
             },
             dismissButton = {
                 Row {

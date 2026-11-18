@@ -7,6 +7,8 @@ import dev.cluvex.zedsecure.data.net.PingService
 import dev.cluvex.zedsecure.domain.config.SubscriptionParser
 import dev.cluvex.zedsecure.domain.config.VpnProfile
 import dev.cluvex.zedsecure.platform.KeyValueStore
+import dev.cluvex.zedsecure.platform.NetworkKind
+import dev.cluvex.zedsecure.platform.detectNetworkKind
 import dev.cluvex.zedsecure.platform.currentTimeMillis
 import dev.cluvex.zedsecure.platform.httpGetResponse
 import dev.cluvex.zedsecure.platform.newId
@@ -84,6 +86,9 @@ data class ConfigExplorerSnapshot(
     val phase: String = "idle",
     val progressDone: Int = 0,
     val progressTotal: Int = 0,
+    val startedAt: Long = 0L,
+    /** When true, the automatic 15-minute cycle is skipped on mobile data (manual runs still work). */
+    val wifiOnly: Boolean = false,
 )
 
 class ConfigExplorerRepository(private val store: KeyValueStore) {
@@ -97,6 +102,12 @@ class ConfigExplorerRepository(private val store: KeyValueStore) {
 
     fun setEnabled(enabled: Boolean) {
         val next = _state.value.copy(enabled = enabled)
+        _state.value = next
+        persist(next)
+    }
+
+    fun setWifiOnly(wifiOnly: Boolean) {
+        val next = _state.value.copy(wifiOnly = wifiOnly)
         _state.value = next
         persist(next)
     }
@@ -195,6 +206,10 @@ object ConfigExplorerEngine {
                 val dueAt = explorer.state.value.lastRunAt?.plus(INTERVAL_MS) ?: (currentTimeMillis() + INTERVAL_MS)
                 val waitMs = (dueAt - currentTimeMillis()).coerceAtLeast(0L)
                 if (waitMs > 0L) delay(waitMs)
+                if (explorer.state.value.enabled && explorer.state.value.wifiOnly && detectNetworkKind() == NetworkKind.Cellular) {
+                    delay(60_000L)
+                    continue
+                }
                 if (explorer.state.value.enabled) {
                     val job = scope.launch { runCycle(repository) }
                     runJob = job
@@ -271,6 +286,7 @@ object ConfigExplorerEngine {
         explorer.updateRuntime {
             it.copy(
                 isRunning = true,
+                startedAt = currentTimeMillis(),
                 phase = "collecting",
                 progressDone = 0,
                 progressTotal = 0,
