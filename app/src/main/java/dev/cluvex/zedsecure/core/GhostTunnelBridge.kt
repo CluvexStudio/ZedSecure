@@ -14,6 +14,9 @@ internal object GhostTunnelBridge {
         // updateSettings is idempotent while the existing engine is running
         // and respects the user's existing GHOST switches and profiles.
         GhostEngine.updateSettings(settings)
+        // finishConnected() is shared by every core; explicitly publish the
+        // tunnel lifecycle so GHOST is core-agnostic instead of remaining idle.
+        GhostEngine.onTunnelConnected()
     }
 
     fun onTunnelStopped() {

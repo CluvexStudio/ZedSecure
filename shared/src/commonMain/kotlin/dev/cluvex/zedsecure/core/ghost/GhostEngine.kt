@@ -157,7 +157,7 @@ object GhostEngine {
     fun onTunnelConnected() {
         tunnelConnected = true
         Log.i("GhostEngine", "tunnel connected")
-        if (currentSettings.packetDesyncEnabled && currentSettings.preferNativeDesync) {
+        if (currentSettings.enabled && currentSettings.packetDesyncEnabled && currentSettings.preferNativeDesync) {
             val profile = DesyncProfile.fromRaw(currentSettings.desyncProfile)
             GhostNativeDesync.tryArm(profile)
         }

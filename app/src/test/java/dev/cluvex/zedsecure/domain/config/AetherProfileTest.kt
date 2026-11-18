@@ -48,6 +48,15 @@ class AetherProfileTest {
     }
 
     @Test
+    fun startupBudgetAllowsNativeScanToFinish() {
+        assertEquals(60_000L, AetherProfile(scanMode = "turbo").startupBudgetMs())
+        assertEquals(120_000L, AetherProfile(scanMode = "balanced").startupBudgetMs())
+        assertEquals(330_000L, AetherProfile(scanMode = "thorough").startupBudgetMs())
+        assertEquals(330_000L, AetherProfile(scanMode = "verified").startupBudgetMs())
+        assertEquals(330_000L, AetherProfile(scanMode = "ironclad").startupBudgetMs())
+    }
+
+    @Test
     fun invalidProtocolIsRejectedBeforeProcessLaunch() {
         val failure = runCatching {
             AetherProfile(protocol = "unknown").toArgs(10991, "/tmp/aether")

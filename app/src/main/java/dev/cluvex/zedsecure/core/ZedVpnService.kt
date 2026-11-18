@@ -786,7 +786,8 @@ class ZedVpnService : VpnService() {
                             onTunnelFailed("Aether engine stopped unexpectedly (exit ${exitCode ?: "unknown"})")
                         }
                     }
-                    val budget = if (index == 0) 70_000L else 50_000L
+                    val budget = variant.startupBudgetMs()
+                    LogBus.append("I/Aether: startup window ${budget / 1000}s for scan=${variant.scanMode}")
                     val deadline = System.currentTimeMillis() + budget
                     var ready = false
                     while (System.currentTimeMillis() < deadline) {

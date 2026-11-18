@@ -47,6 +47,18 @@ data class AetherProfile(
     }
 
     /**
+     * The native thorough/verified/ironclad scans have a 300-second internal
+     * budget. The Android service must not kill the process before that scan
+     * can finish and select a gateway.
+     */
+    fun startupBudgetMs(): Long = when (scanMode) {
+        "turbo" -> 60_000L
+        "balanced" -> 120_000L
+        "thorough", "verified", "ironclad" -> 330_000L
+        else -> 120_000L
+    }
+
+    /**
      * Ordered connection attempts: this profile first, then progressively more conservative
      * variants (other transport, stronger obfuscation, WireGuard, plain). The service tries each
      * until real traffic passes, so one unlucky setting never leaves the user with an error.
