@@ -5,6 +5,34 @@
 
 package dev.cluvex.zedsecure.ui.vault
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.material3.MaterialShapes
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.sp
+import androidx.graphics.shapes.RoundedPolygon
+import dev.cluvex.zedsecure.ui.bento.Bento
+import dev.cluvex.zedsecure.ui.bento.BentoCard
+import dev.cluvex.zedsecure.ui.bento.BentoTone
+import dev.cluvex.zedsecure.ui.bento.BentoToneKind
+import dev.cluvex.zedsecure.ui.bento.BentoType
+import dev.cluvex.zedsecure.ui.glass.Glass
+import dev.cluvex.zedsecure.ui.glass.GlassIcons
+import dev.cluvex.zedsecure.ui.glass.GlassShapes
+import dev.cluvex.zedsecure.ui.glass.GlassType
+import dev.cluvex.zedsecure.ui.glass.glassCell
+import dev.cluvex.zedsecure.ui.glass.glassChrome
+import dev.cluvex.zedsecure.ui.glass.glassHighlight
+import dev.cluvex.zedsecure.ui.glass.GlassArtBadge
+import dev.cluvex.zedsecure.ui.settings.SettingsArts
+import dev.cluvex.zedsecure.ui.settings.SettingsGroup
+import dev.cluvex.zedsecure.ui.settings.SettingsInfoRow
+import dev.cluvex.zedsecure.ui.settings.SettingsPageScaffold
+import dev.cluvex.zedsecure.ui.settings.SettingsRow
+import org.jetbrains.compose.resources.DrawableResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -67,7 +95,6 @@ import dev.cluvex.zedsecure.crypto.ZsxSealRequest
 import dev.cluvex.zedsecure.data.config.ConfigRepository
 import dev.cluvex.zedsecure.domain.config.VpnProfile
 import dev.cluvex.zedsecure.ui.components.MorphingBlob
-import dev.cluvex.zedsecure.ui.components.PageHeader
 import dev.cluvex.zedsecure.ui.theme.ZedGradients
 import dev.cluvex.zedsecure.ui.platform.appVerticalScroll
 import dev.cluvex.zedsecure.ui.platform.mouseDragScrollVertical
@@ -98,103 +125,55 @@ fun VaultScreen(
     var showCreate by remember { mutableStateOf(false) }
     var sealing by remember { mutableStateOf(false) }
     val sealScope = rememberCoroutineScope()
+    val activeLabel = stringResource(Res.string.config_active)
+    val lockedLabel = stringResource(Res.string.locked_badge)
 
-    Column(modifier.fillMaxSize().padding(contentPadding)) {
-        Spacer(Modifier.height(8.dp))
-        PageHeader(
-            title = stringResource(Res.string.vault_title),
-            subtitle = stringResource(Res.string.vault_intro_body),
+    SettingsPageScaffold(
+        title = stringResource(Res.string.vault_title),
+        subtitle = stringResource(Res.string.vault_intro_body),
+        art = SettingsArts.Vault,
+        contentPadding = contentPadding,
+        modifier = modifier,
+    ) {
+        if (Glass.active) PageNote(stringResource(Res.string.vault_intro_body))
+        VaultActions(
+            onCreate = {
+                if (sources.isEmpty()) platform.toast(needConfigMsg) else showCreate = true
+            },
+            onImport = onImportRequested,
         )
-
-        Surface(
-            shape = RoundedCornerShape(14.dp),
-            color = MaterialTheme.colorScheme.tertiaryContainer,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp),
-        ) {
-            Row(
-                Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    painterResource(Res.drawable.ic_info),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                    modifier = Modifier.size(18.dp),
-                )
-                Spacer(Modifier.width(10.dp))
-                Column {
-                    Text(
-                        stringResource(Res.string.vault_experimental_badge),
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer,
-                    )
-                    Text(
-                        stringResource(Res.string.vault_experimental_note),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.85f),
+        if (locked.isEmpty()) {
+            VaultEmpty()
+        } else {
+            SettingsGroup(stringResource(Res.string.vault_list_title, locked.size)) {
+                locked.forEach { profile ->
+                    val active = profile.id == activeId
+                    val selectedMsg = stringResource(Res.string.vault_selected, profile.name)
+                    SettingsRow(
+                        title = profile.name,
+                        description = listOfNotNull(
+                            if (active) activeLabel else lockedLabel,
+                            profile.note?.trim()?.takeIf { it.isNotEmpty() },
+                        ).joinToString(" · "),
+                        art = SettingsArts.Vault,
+                        trailing = { VaultRowTrailing(active) { repository.remove(profile.id) } },
+                        onClick = {
+                            val changed = profile.id != activeId
+                            repository.setActive(profile.id)
+                            if (changed) onActiveChanged()
+                            platform.toast(selectedMsg)
+                        },
                     )
                 }
             }
         }
-
-        Box(Modifier.weight(1f).fillMaxWidth()) {
-            if (locked.isEmpty()) {
-                VaultEmptyState(Modifier.fillMaxSize())
-            } else {
-                val listState = rememberLazyListState()
-                LazyColumn(
-                    Modifier.fillMaxSize().mouseDragScrollVertical(listState).padding(horizontal = 20.dp),
-                    state = listState,
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    items(locked, key = { it.id }) { profile ->
-                        val selectedMsg = stringResource(Res.string.vault_selected, profile.name)
-                        LockedCard(
-                            profile = profile,
-                            active = profile.id == activeId,
-                            onUse = {
-                                val changed = profile.id != activeId
-                                repository.setActive(profile.id)
-                                if (changed) onActiveChanged()
-                                platform.toast(selectedMsg)
-                            },
-                            onDelete = { repository.remove(profile.id) },
-                        )
-                    }
-                }
-            }
+        SettingsGroup {
+            SettingsInfoRow(
+                stringResource(Res.string.vault_experimental_badge),
+                stringResource(Res.string.vault_experimental_note),
+            )
         }
-
-        Column(
-            Modifier.fillMaxWidth().padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Button(
-                onClick = {
-                    if (sources.isEmpty()) {
-                        platform.toast(needConfigMsg)
-                    } else {
-                        showCreate = true
-                    }
-                },
-                shape = RoundedCornerShape(18.dp),
-                modifier = Modifier.fillMaxWidth().height(54.dp),
-            ) {
-                Icon(painterResource(Res.drawable.ic_lock), null, Modifier.size(20.dp))
-                Spacer(Modifier.width(10.dp))
-                Text(stringResource(Res.string.vault_create), fontWeight = FontWeight.SemiBold)
-            }
-            FilledTonalButton(
-                onClick = onImportRequested,
-                shape = RoundedCornerShape(18.dp),
-                modifier = Modifier.fillMaxWidth().height(54.dp),
-            ) {
-                Icon(painterResource(Res.drawable.ic_ios_share), null, Modifier.size(20.dp))
-                Spacer(Modifier.width(10.dp))
-                Text(stringResource(Res.string.vault_import), fontWeight = FontWeight.SemiBold)
-            }
-        }
+        Spacer(Modifier.height(24.dp))
     }
 
     if (showCreate) {
@@ -223,105 +202,200 @@ fun VaultScreen(
 }
 
 @Composable
-private fun VaultEmptyState(modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier.padding(horizontal = 32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        MorphingBlob(progress = 0.5f, brush = ZedGradients.connected, modifier = Modifier.size(132.dp)) {
-            Icon(
-                painterResource(Res.drawable.ic_encrypted),
-                null,
-                tint = Color.White,
-                modifier = Modifier.size(48.dp),
-            )
+private fun VaultActions(onCreate: () -> Unit, onImport: () -> Unit) {
+    val create = stringResource(Res.string.vault_create)
+    val import = stringResource(Res.string.vault_import)
+    when {
+        Glass.active -> Column(
+            Modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            GlassWideButton(create, GlassIcons.Lock, primary = true, onClick = onCreate)
+            GlassWideButton(import, GlassIcons.Doc, primary = false, onClick = onImport)
         }
-        Spacer(Modifier.height(22.dp))
-        Text(
-            stringResource(Res.string.vault_empty_title),
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-            textAlign = TextAlign.Center,
-        )
-        Spacer(Modifier.height(8.dp))
-        Text(
-            stringResource(Res.string.vault_empty_body),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
+        Bento.active -> Row(
+            Modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            BentoActionTile(create, Res.drawable.ic_lock, Bento.colors.limeTone, MaterialShapes.Cookie6Sided, Modifier.weight(1f), onCreate)
+            BentoActionTile(import, Res.drawable.ic_download, Bento.colors.tone(BentoToneKind.Violet), MaterialShapes.Clover4Leaf, Modifier.weight(1f), onImport)
+        }
+        else -> Column(
+            Modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Button(
+                onClick = onCreate,
+                shape = RoundedCornerShape(28.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+            ) {
+                Icon(painterResource(Res.drawable.ic_lock), null, Modifier.size(20.dp))
+                Spacer(Modifier.width(10.dp))
+                Text(create, fontWeight = FontWeight.SemiBold)
+            }
+            FilledTonalButton(
+                onClick = onImport,
+                shape = RoundedCornerShape(28.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+            ) {
+                Icon(painterResource(Res.drawable.ic_download), null, Modifier.size(20.dp))
+                Spacer(Modifier.width(10.dp))
+                Text(import, fontWeight = FontWeight.SemiBold)
+            }
+        }
     }
 }
 
 @Composable
-private fun LockedCard(
-    profile: VpnProfile,
-    active: Boolean,
-    onUse: () -> Unit,
-    onDelete: () -> Unit,
-) {
-    Surface(
-        onClick = onUse,
-        shape = RoundedCornerShape(22.dp),
-
-        color = if (active) MaterialTheme.colorScheme.primaryContainer
-        else MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = Modifier.fillMaxWidth(),
+private fun GlassWideButton(text: String, icon: ImageVector, primary: Boolean, onClick: () -> Unit) {
+    val c = Glass.colors
+    val shape = RoundedCornerShape(percent = 50)
+    val surface = if (primary) {
+        Modifier
+            .shadow(12.dp, shape, clip = false, ambientColor = c.tint.copy(alpha = 0.5f), spotColor = c.tint.copy(alpha = 0.5f))
+            .clip(shape)
+            .background(c.tint)
+            .background(Brush.verticalGradient(0f to Color.White.copy(alpha = 0.24f), 0.52f to Color.Transparent))
+            .glassHighlight(shape, Color.White.copy(alpha = 0.55f))
+    } else {
+        Modifier.glassChrome(c, GlassShapes.capsule, elevated = false)
+    }
+    val content = if (primary) Color.White else c.tint
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .height(54.dp)
+            .then(surface)
+            .clickable(onClick = onClick),
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            Modifier.fillMaxWidth().padding(start = 14.dp, end = 4.dp, top = 12.dp, bottom = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                painterResource(Res.drawable.ic_encrypted),
-                null,
-                tint = MaterialTheme.colorScheme.primary,
-            )
-            Spacer(Modifier.width(12.dp))
-            Column(Modifier.weight(1f)) {
-                Text(
-                    profile.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    stringResource(if (active) Res.string.config_active else Res.string.locked_badge),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-                profile.note?.takeIf { it.isNotBlank() }?.let { note ->
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        note,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
+        Icon(icon, contentDescription = null, tint = content, modifier = Modifier.size(18.dp))
+        Text(text, color = content, fontWeight = FontWeight.SemiBold, fontSize = 17.sp)
+    }
+}
+
+@Composable
+private fun BentoActionTile(
+    text: String,
+    icon: DrawableResource,
+    tone: BentoTone,
+    motif: RoundedPolygon,
+    modifier: Modifier,
+    onClick: () -> Unit,
+) {
+    BentoCard(
+        tone = tone,
+        modifier = modifier.heightIn(min = 112.dp),
+        onClick = onClick,
+        motif = motif,
+        motifSize = 128.dp,
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp),
+    ) {
+        Icon(painterResource(icon), contentDescription = null, tint = tone.content, modifier = Modifier.size(26.dp))
+        Text(text, style = BentoType.rowTitle(), color = tone.content, maxLines = 2, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+@Composable
+private fun VaultRowTrailing(active: Boolean, onDelete: () -> Unit) {
+    val accent = if (Glass.active) Glass.colors.tint else MaterialTheme.colorScheme.primary
+    val danger = if (Glass.active) Glass.colors.red else MaterialTheme.colorScheme.error
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        if (active) {
+            if (Glass.active) {
+                Icon(GlassIcons.CheckCircle, contentDescription = stringResource(Res.string.config_active), tint = accent, modifier = Modifier.size(20.dp))
+            } else {
+                Icon(painterResource(Res.drawable.ic_check_circle), contentDescription = stringResource(Res.string.config_active), tint = accent, modifier = Modifier.size(20.dp))
             }
-            if (active) {
-                Icon(
-                    painterResource(Res.drawable.ic_check_circle),
-                    contentDescription = stringResource(Res.string.config_active),
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp),
-                )
-                Spacer(Modifier.width(4.dp))
-            }
-            IconButton(onClick = onDelete) {
-                Icon(
-                    painterResource(Res.drawable.ic_delete),
-                    contentDescription = stringResource(Res.string.action_delete),
-                )
+        }
+        IconButton(onClick = onDelete) {
+            if (Glass.active) {
+                Icon(GlassIcons.Trash, contentDescription = stringResource(Res.string.action_delete), tint = danger, modifier = Modifier.size(20.dp))
+            } else {
+                Icon(painterResource(Res.drawable.ic_delete), contentDescription = stringResource(Res.string.action_delete), tint = danger.copy(alpha = 0.85f))
             }
         }
     }
+}
+
+@Composable
+private fun VaultEmpty() {
+    val title = stringResource(Res.string.vault_empty_title)
+    val body = stringResource(Res.string.vault_empty_body)
+    when {
+        Glass.active -> {
+            val c = Glass.colors
+            Column(
+                Modifier
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .fillMaxWidth()
+                    .glassCell(c, RoundedCornerShape(26.dp))
+                    .padding(horizontal = 22.dp, vertical = 28.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                GlassArtBadge(SettingsArts.Vault, size = 64.dp)
+                Spacer(Modifier.height(4.dp))
+                Text(title, style = GlassType.title2(), color = c.label, textAlign = TextAlign.Center)
+                Text(body, style = GlassType.footnote(), color = c.label2, textAlign = TextAlign.Center)
+            }
+        }
+        Bento.active -> {
+            val tone = Bento.colors.tone(BentoToneKind.Violet)
+            BentoCard(
+                tone = tone,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth(),
+                motif = MaterialShapes.Cookie6Sided,
+                motifSize = 210.dp,
+                contentPadding = PaddingValues(horizontal = 22.dp, vertical = 22.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Icon(painterResource(Res.drawable.ic_encrypted), contentDescription = null, tint = tone.content, modifier = Modifier.size(40.dp))
+                Text(title, style = BentoType.title(22.sp), color = tone.content)
+                Text(body, style = BentoType.body(), color = tone.content.copy(alpha = 0.8f))
+            }
+        }
+        else -> Column(
+            Modifier
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(32.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                .padding(horizontal = 24.dp, vertical = 28.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            MorphingBlob(progress = 0.5f, brush = ZedGradients.connected, modifier = Modifier.size(104.dp)) {
+                Icon(painterResource(Res.drawable.ic_encrypted), null, tint = Color.White, modifier = Modifier.size(40.dp))
+            }
+            Spacer(Modifier.height(6.dp))
+            Text(
+                title,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center,
+            )
+            Text(
+                body,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+        }
+    }
+}
+
+@Composable
+private fun PageNote(text: String) {
+    Text(
+        text,
+        style = GlassType.footnote(),
+        color = Glass.colors.label2,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp, vertical = 4.dp),
+    )
 }
 
 @Composable
@@ -379,7 +453,7 @@ private fun CreateLockedSheet(
                     onClick = { selected = if (checked) selected - profile.id else selected + profile.id },
                     shape = RoundedCornerShape(16.dp),
                     color = if (checked) MaterialTheme.colorScheme.primaryContainer
-                    else MaterialTheme.colorScheme.surfaceContainerHigh,
+                    else dev.cluvex.zedsecure.ui.glass.glassSurface(MaterialTheme.colorScheme.surfaceContainerHigh),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Row(

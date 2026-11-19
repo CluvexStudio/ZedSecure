@@ -273,7 +273,7 @@
     <string name="group_manual">دستی</string>
 
     <string name="about_version">نسخه %1$s</string>
-    <string name="about_built_on">ساخته شده بر پایهٔ هستهٔ Xray، همراه با Psiphon، Tor، Snowflake، obfs4، Conjure، DNSTT، VayDNS، MasterDNS، AmneziaWG، OpenConnect و IKEv2.</string>
+    <string name="about_built_on">ساخته شده بر پایهٔ هسته‌های Xray و sing-box، همراه با Psiphon، Tor، Snowflake، obfs4، Conjure، DNSTT، VayDNS، MasterDNS، AmneziaWG، OpenVPN، OpenConnect و IKEv2.</string>
     <string name="about_telegram">کانال تلگرام</string>
     <string name="about_github">گیت‌هاب</string>
     <string name="about_source_title">هستهٔ اوپن‌سورس</string>
@@ -2016,4 +2016,8 @@
     <string name="dnsscan_vpn_title">یک VPN دیگر روشن است</string>
     <string name="dnsscan_vpn_body">اسکن از داخل آن رد می‌شود و نتیجه‌ها مال شبکهٔ آن VPN است، نه شبکهٔ شما. قبل از اسکن خاموشش کنید.</string>
     <string name="mux_concurrency_note">Xray هر عدد از ۰ تا ۱۲۸ را ۱۲۸ در نظر می‌گیرد. برای تغییرش عددی بیشتر از ۱۲۸ بدهید، یا ‎-1 برای خاموش کردن ماکس TCP.</string>
+    <string name="about_community">ارتباط با ما</string>
+    <string name="about_source_app">خود اپ ZedSecure</string>
+    <string name="about_license">مجوز</string>
+    <string name="vault_list_title">کانفیگ‌های قفل‌دار (%1$d)</string>
 </resources>

@@ -320,7 +320,7 @@
     <string name="group_manual">Manual</string>
 
     <string name="about_version">Version %1$s</string>
-    <string name="about_built_on">Built on the Xray core, with Psiphon, Tor, Snowflake, obfs4, Conjure, DNSTT, VayDNS, MasterDNS, AmneziaWG, OpenConnect and IKEv2.</string>
+    <string name="about_built_on">Built on the Xray and sing-box cores, with Psiphon, Tor, Snowflake, obfs4, Conjure, DNSTT, VayDNS, MasterDNS, AmneziaWG, OpenVPN, OpenConnect and IKEv2.</string>
     <string name="about_telegram">Telegram channel</string>
     <string name="about_github">GitHub</string>
     <string name="about_source_title">Open-source core</string>
@@ -2023,4 +2023,8 @@
     <string name="dnsscan_vpn_title">Another VPN is on</string>
     <string name="dnsscan_vpn_body">The scan goes through it, so the results show that VPN's network, not yours. Turn it off before scanning.</string>
     <string name="mux_concurrency_note">Xray runs any value from 0 to 128 as 128. Set more than 128 to change it, or -1 to turn mux off for TCP.</string>
+    <string name="about_community">Community</string>
+    <string name="about_source_app">ZedSecure app</string>
+    <string name="about_license">Licence</string>
+    <string name="vault_list_title">Locked configs (%1$d)</string>
 </resources>

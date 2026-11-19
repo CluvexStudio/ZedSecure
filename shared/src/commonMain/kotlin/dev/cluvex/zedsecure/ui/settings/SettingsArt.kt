@@ -75,6 +75,10 @@ object SettingsArts {
     val Rate = SettingsArt("rate", Res.drawable.ic_fill_star, MaterialShapes.Burst, 1)
     val Privacy = SettingsArt("privacy", Res.drawable.ic_fill_policy, MaterialShapes.Pentagon, 0)
     val About = SettingsArt("about", Res.drawable.ic_fill_info, MaterialShapes.Circle, 4)
+    val Telegram = SettingsArt("telegram", Res.drawable.ic_add_link, MaterialShapes.Pill, 2)
+    val GitHub = SettingsArt("github", Res.drawable.ic_fill_deployed_code, MaterialShapes.Cookie4Sided, 0)
+    val License = SettingsArt("license", Res.drawable.ic_description, MaterialShapes.Square, 3)
+    val AppSource = SettingsArt("app-source", Res.drawable.ic_fill_public, MaterialShapes.Gem, 5)
 }
 
 @Immutable

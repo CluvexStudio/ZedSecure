@@ -321,7 +321,7 @@
     <string name="group_manual">手动</string>
 
     <string name="about_version">版本 %1$s</string>
-    <string name="about_built_on">基于 Xray 核心构建，并集成 Psiphon、Tor、Snowflake、obfs4、Conjure、DNSTT、VayDNS、MasterDNS、AmneziaWG、OpenConnect 与 IKEv2。</string>
+    <string name="about_built_on">基于 Xray 与 sing-box 核心构建，并集成 Psiphon、Tor、Snowflake、obfs4、Conjure、DNSTT、VayDNS、MasterDNS、AmneziaWG、OpenVPN、OpenConnect 与 IKEv2。</string>
     <string name="about_telegram">Telegram 频道</string>
     <string name="about_github">GitHub</string>
     <string name="about_source_title">开源核心</string>
@@ -2024,4 +2024,8 @@
     <string name="dnsscan_vpn_title">另一个 VPN 已开启</string>
     <string name="dnsscan_vpn_body">扫描会经过它，结果反映的是该 VPN 的网络而不是你的网络。扫描前请先关闭它。</string>
     <string name="mux_concurrency_note">Xray 会把 0 到 128 之间的值都按 128 处理。要改变它请填大于 128 的值，或填 -1 关闭 TCP 的 mux。</string>
+    <string name="about_community">社区</string>
+    <string name="about_source_app">ZedSecure 应用</string>
+    <string name="about_license">许可证</string>
+    <string name="vault_list_title">锁定的配置（%1$d）</string>
 </resources>

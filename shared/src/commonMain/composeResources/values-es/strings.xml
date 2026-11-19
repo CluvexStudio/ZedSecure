@@ -298,7 +298,7 @@
     <string name="group_all">Todos</string>
     <string name="group_manual">Manual</string>
     <string name="about_version">Versión %1$s</string>
-    <string name="about_built_on">Basado en el núcleo de Xray, con Psiphon, Tor, Snowflake, obfs4, Conjure, DNSTT, VayDNS, MasterDNS, AmneziaWG, OpenConnect e IKEv2.</string>
+    <string name="about_built_on">Basado en los núcleos de Xray y sing-box, con Psiphon, Tor, Snowflake, obfs4, Conjure, DNSTT, VayDNS, MasterDNS, AmneziaWG, OpenVPN, OpenConnect e IKEv2.</string>
     <string name="about_telegram">Canal de Telegram</string>
     <string name="about_github">GitHub</string>
     <string name="about_source_title">Núcleo de código abierto</string>
@@ -1977,4 +1977,8 @@
     <string name="dnsscan_vpn_title">Hay otra VPN activa</string>
     <string name="dnsscan_vpn_body">El escaneo pasa por ella, así que los resultados muestran la red de esa VPN, no la tuya. Apágala antes de escanear.</string>
     <string name="mux_concurrency_note">Xray trata cualquier valor de 0 a 128 como 128. Pon más de 128 para cambiarlo, o -1 para desactivar mux en TCP.</string>
+    <string name="about_community">Comunidad</string>
+    <string name="about_source_app">App ZedSecure</string>
+    <string name="about_license">Licencia</string>
+    <string name="vault_list_title">Configuraciones bloqueadas (%1$d)</string>
 </resources>

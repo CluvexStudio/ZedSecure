@@ -321,7 +321,7 @@
     <string name="group_manual">Вручную</string>
 
     <string name="about_version">Версия %1$s</string>
-    <string name="about_built_on">Построено на ядре Xray, вместе с Psiphon, Tor, Snowflake, obfs4, Conjure, DNSTT, VayDNS, MasterDNS, AmneziaWG, OpenConnect и IKEv2.</string>
+    <string name="about_built_on">Построено на ядрах Xray и sing-box, вместе с Psiphon, Tor, Snowflake, obfs4, Conjure, DNSTT, VayDNS, MasterDNS, AmneziaWG, OpenVPN, OpenConnect и IKEv2.</string>
     <string name="about_telegram">Канал в Telegram</string>
     <string name="about_github">GitHub</string>
     <string name="about_source_title">Открытое ядро</string>
@@ -2024,4 +2024,8 @@
     <string name="dnsscan_vpn_title">Включён другой VPN</string>
     <string name="dnsscan_vpn_body">Сканирование идёт через него, и результаты покажут сеть этого VPN, а не вашу. Выключите его перед сканированием.</string>
     <string name="mux_concurrency_note">Xray считает любое значение от 0 до 128 равным 128. Укажите больше 128, чтобы изменить, или -1, чтобы выключить mux для TCP.</string>
+    <string name="about_community">Сообщество</string>
+    <string name="about_source_app">Приложение ZedSecure</string>
+    <string name="about_license">Лицензия</string>
+    <string name="vault_list_title">Заблокированные конфигурации (%1$d)</string>
 </resources>

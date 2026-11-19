@@ -86,7 +86,7 @@ import dev.cluvex.zedsecure.ui.platform.appVerticalScroll
 
 enum class SettingsPage {
     Root, Ui, Vpn, Core, Routing, PerApp, Mux, Fragment, Observatory, Advanced, Mode, Assets, SingBox,
-    DnsProtocols, Tor, TorBridges, Ssh, Support, SpeedTest, Map, Privacy, Monitor, Ai, AiChat, NavBar, DnsScanner,
+    DnsProtocols, Tor, TorBridges, Ssh, Support, SpeedTest, Map, Privacy, Monitor, Ai, AiChat, NavBar, DnsScanner, About,
 }
 
 @Composable
@@ -121,7 +121,6 @@ fun SettingsScreen(
     configRepository: dev.cluvex.zedsecure.data.config.ConfigRepository? = null,
 ) {
     var page by rememberSaveable { mutableStateOf(SettingsPage.Root) }
-    var showAbout by rememberSaveable { mutableStateOf(false) }
 
     var deepLinked by rememberSaveable { mutableStateOf(false) }
 
@@ -149,8 +148,6 @@ fun SettingsScreen(
             }
         }
     }
-
-    if (showAbout) AboutSheet(onDismiss = { showAbout = false })
 
     BackHandler(enabled = page != SettingsPage.Root) { goUp() }
 
@@ -200,7 +197,7 @@ fun SettingsScreen(
                     contentPadding = contentPadding,
                     modifier = modifier,
                     onOpen = { page = it },
-                    onAbout = { showAbout = true },
+                    onAbout = { page = SettingsPage.About },
                     onReplayTour = onReplayTour,
                     onReplaySetup = onReplaySetup,
                     onOpenVault = onOpenVault,
@@ -212,7 +209,7 @@ fun SettingsScreen(
                     contentPadding = contentPadding,
                     modifier = modifier,
                     onOpen = { page = it },
-                    onAbout = { showAbout = true },
+                    onAbout = { page = SettingsPage.About },
                     onReplayTour = onReplayTour,
                     onReplaySetup = onReplaySetup,
                     onOpenVault = onOpenVault,
@@ -225,7 +222,7 @@ fun SettingsScreen(
                     contentPadding = contentPadding,
                     modifier = modifier,
                     onOpen = { page = it },
-                    onAbout = { showAbout = true },
+                    onAbout = { page = SettingsPage.About },
                     onReplayTour = onReplayTour,
                     onReplaySetup = onReplaySetup,
                     hasAi = ai != null,
@@ -245,6 +242,7 @@ fun SettingsScreen(
             SettingsPage.PerApp -> PerAppProxyScreen(settings, contentPadding, onUpdate, modifier)
             SettingsPage.Assets -> AssetsScreen(settings, contentPadding, modifier, onUpdate)
             SettingsPage.DnsProtocols -> DnsProtocolsPage(settings, contentPadding, modifier, onUpdate) { page = SettingsPage.DnsScanner }
+            SettingsPage.About -> AboutPage(contentPadding, modifier)
             SettingsPage.DnsScanner -> DnsScannerPage(
                 contentPadding,
                 modifier,

@@ -101,6 +101,10 @@ object BentoTiles {
         "rate" to BentoToneKind.Lime,
         "privacy" to BentoToneKind.Surface,
         "about" to BentoToneKind.Stage,
+        "telegram" to BentoToneKind.Blue,
+        "github" to BentoToneKind.Surface,
+        "license" to BentoToneKind.Violet,
+        "app-source" to BentoToneKind.Lime,
     )
 
     fun isProminent(key: String): Boolean = key in PROMINENT
