@@ -89,9 +89,8 @@ class AppAiBridge(
     }
 
     override fun logsText(lines: Int): String {
-        val all = LogBus.lines.value
-        if (all.isEmpty()) return "the log is empty — nothing has been recorded since the app started"
-        return all.takeLast(lines).joinToString("\n")
+        if (LogBus.entries.value.isEmpty()) return "the log is empty — nothing has been recorded since the app started"
+        return LogBus.recent(lines).joinToString("\n")
     }
 
     override fun coreReport(): String = runCatching { coreReportFn() }.getOrElse { it.message ?: AI_UNSUPPORTED }

@@ -22,15 +22,27 @@ class XrayCore(private val workDir: File, private val engineCgroup: String? = nu
 
     val isRunning: Boolean get() = process?.isAlive == true
 
+    @Volatile private var logSource = dev.cluvex.zedsecure.core.LogSource.Xray
+
     fun start(configJson: String, configName: String = "xray-config.json"): Boolean {
+        logSource = dev.cluvex.zedsecure.core.LogSource.Xray
         val cfg = File(workDir, configName).apply { writeText(configJson) }
         return launch(localPorts(configJson)) { bin -> arrayOf(bin.absolutePath, "run", "-c", cfg.absolutePath) }
     }
 
     fun startSingBox(configJson: String): Boolean {
+        logSource = dev.cluvex.zedsecure.core.LogSource.SingBox
         val cfg = File(workDir, "sing-box-config.json").apply { writeText(configJson) }
         val dir = File(workDir, "sing-box").apply { mkdirs() }
         return launch(localPorts(configJson)) { bin -> arrayOf(bin.absolutePath, "singbox", "-c", cfg.absolutePath, "-D", dir.absolutePath) }
+    }
+
+    private fun echo(source: dev.cluvex.zedsecure.core.LogSource, line: String) {
+        println("[xray] $line")
+        if (line.isNotBlank()) {
+            val text = line.replace(Regex("^\\d{4}/\\d\\d/\\d\\d \\d\\d:\\d\\d:\\d\\d(\\.\\d+)? "), "")
+            dev.cluvex.zedsecure.core.LogBus.log(source, dev.cluvex.zedsecure.core.LogBus.levelIn(text), text)
+        }
     }
 
     private fun launch(readyPorts: List<Int>, command: (File) -> Array<String>): Boolean {
@@ -53,9 +65,10 @@ class XrayCore(private val workDir: File, private val engineCgroup: String? = nu
                 stopProcess(started)
                 return false
             }
-            Thread { runCatching { started.inputStream.bufferedReader().forEachLine { println("[xray] $it") } } }
+            val source = logSource
+            Thread { runCatching { started.inputStream.bufferedReader().forEachLine { echo(source, it) } } }
                 .apply { isDaemon = true }.start()
-            Thread { runCatching { started.errorStream.bufferedReader().forEachLine { println("[xray] $it") } } }
+            Thread { runCatching { started.errorStream.bufferedReader().forEachLine { echo(source, it) } } }
                 .apply { isDaemon = true }.start()
             if (readyPorts.isEmpty()) {
                 Thread.sleep(300)

@@ -48,6 +48,13 @@ class DesktopTor(
             runCatching {
                 started.inputStream.bufferedReader().forEachLine { line ->
                     println("[tor] $line")
+                    if (line.isNotBlank()) {
+                        dev.cluvex.zedsecure.core.LogBus.log(
+                            dev.cluvex.zedsecure.core.LogSource.Tor,
+                            dev.cluvex.zedsecure.core.LogBus.levelIn(line),
+                            line.substringAfter("] ", line),
+                        )
+                    }
                     if (" [err] " in line || " [warn] " in line) {
                         lastProblem.setLength(0)
                         lastProblem.append(line.substringAfter("] ").trim())

@@ -6,6 +6,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.util.Calendar
 
 object LogcatTail {
     private const val SEED_LINES = 400
@@ -27,36 +28,84 @@ object LogcatTail {
                     "logcat", "-v", "time", "-T", SEED_LINES.toString(), "--pid=${android.os.Process.myPid()}",
                 ).redirectErrorStream(true).start()
                 process = proc
-                val batch = ArrayList<String>(64)
+                val batch = ArrayList<LogEntry>(64)
                 var lastFlush = SystemClock.elapsedRealtime()
                 val reader = proc.inputStream.bufferedReader()
                 reader.use {
                     while (isActive) {
                         val line = reader.readLine() ?: break
-
-                        if (tagOf(line)?.let { it in LogBus.ownTags.value } == true) continue
-
-                        if (MASTERDNS_CONSOLE in line) continue
-                        batch += line
+                        parse(line)?.let { batch += it }
                         val now = SystemClock.elapsedRealtime()
-
                         if (batch.size >= 200 || now - lastFlush >= BATCH_MS || !reader.ready()) {
-                            LogBus.appendAll(batch.toList())
+                            if (batch.isNotEmpty()) LogBus.add(batch.toList())
                             batch.clear()
                             lastFlush = now
                         }
                     }
                 }
-                if (batch.isNotEmpty()) LogBus.appendAll(batch.toList())
+                if (batch.isNotEmpty()) LogBus.add(batch.toList())
             }
         }
     }
 
     private const val MASTERDNS_CONSOLE = "[MasterDnsVPN Client]"
 
-    private val TAG_OF = Regex("^\\S+ \\S+ [VDIWEF]/([^(]+)\\(")
+    private val SYSTEM_TAGS = setOf("AndroidRuntime", "System.err", "libc", "DEBUG", "CRASH")
 
-    private fun tagOf(line: String): String? = TAG_OF.find(line)?.groupValues?.get(1)?.trim()
+    private val LINE = Regex("^(\\d\\d)-(\\d\\d) (\\d\\d):(\\d\\d):(\\d\\d)\\.(\\d{3}) ([VDIWEF])/([^(]+)\\(\\s*\\d+\\): ?(.*)$")
+
+    private val LOGRUS = Regex("^time=\"[^\"]*\" level=(\\w+) msg=(?:\"((?:[^\"\\\\]|\\\\.)*)\"|(\\S+))(.*)$")
+
+    private val XRAY_LEVEL = Regex("\\[(Debug|Info|Warning|Error)\\]")
+
+    private val XRAY_STAMP = Regex("^\\d{4}/\\d\\d/\\d\\d \\d\\d:\\d\\d:\\d\\d(\\.\\d+)? ")
+
+    private fun parse(line: String): LogEntry? {
+        if (line.isBlank() || line.startsWith("---------")) return null
+        val m = LINE.find(line) ?: return LogEntry(System.currentTimeMillis(), LogSource.App, 'I', LogBus.clean(line))
+        val (month, day, hour, minute, second, millis, level, rawTag, message) = m.destructured
+        val tag = rawTag.trim()
+        if (tag in LogBus.ownTags.value) return null
+        val time = stamp(month.toInt(), day.toInt(), hour.toInt(), minute.toInt(), second.toInt(), millis.toInt())
+        if (tag == "GoLog") {
+            if (MASTERDNS_CONSOLE in message) return null
+            LOGRUS.find(message)?.let { r ->
+                val lv = when (r.groupValues[1].lowercase()) {
+                    "trace", "debug" -> 'D'
+                    "warning", "warn" -> 'W'
+                    "error", "fatal", "panic" -> 'E'
+                    else -> 'I'
+                }
+                val text = r.groupValues[2].ifEmpty { r.groupValues[3] }.replace("\\\"", "\"") + r.groupValues[4]
+                return LogEntry(time, LogSource.DnsTunnel, lv, LogBus.clean(text.trim()))
+            }
+            val lv = when (XRAY_LEVEL.find(message)?.groupValues?.get(1)) {
+                "Debug" -> 'D'
+                "Warning" -> 'W'
+                "Error" -> 'E'
+                "Info" -> 'I'
+                else -> level.first()
+            }
+            return LogEntry(time, LogSource.Xray, lv, LogBus.clean(XRAY_STAMP.replace(message, "")))
+        }
+        val source = LogBus.sourceOfTag(tag)
+        if (source == LogSource.App && tag !in SYSTEM_TAGS) return null
+        val text = if (source == LogSource.App) "$tag: $message" else message
+        return LogEntry(time, source, level.first(), LogBus.clean(text))
+    }
+
+    private fun stamp(month: Int, day: Int, hour: Int, minute: Int, second: Int, millis: Int): Long {
+        val cal = Calendar.getInstance()
+        val nowMonth = cal.get(Calendar.MONTH) + 1
+        if (month > nowMonth) cal.add(Calendar.YEAR, -1)
+        cal.set(Calendar.MONTH, month - 1)
+        cal.set(Calendar.DAY_OF_MONTH, day)
+        cal.set(Calendar.HOUR_OF_DAY, hour)
+        cal.set(Calendar.MINUTE, minute)
+        cal.set(Calendar.SECOND, second)
+        cal.set(Calendar.MILLISECOND, millis)
+        return cal.timeInMillis
+    }
 
     fun stop() {
         job?.cancel()

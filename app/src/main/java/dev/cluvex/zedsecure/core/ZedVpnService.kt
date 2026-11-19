@@ -615,7 +615,7 @@ class ZedVpnService : VpnService() {
             service = this,
             profile = profile,
             filesDir = filesDir,
-            onLog = { level, msg -> Log.println(if (level <= 0) Log.ERROR else Log.INFO, TAG, msg) },
+            onLog = { level, msg -> Log.println(if (level <= 0) Log.ERROR else Log.INFO, "OpenConnect", msg) },
 
             configureBuilder = { b -> b.applyAppRules(appSettings, selfInTunnel = true) },
 

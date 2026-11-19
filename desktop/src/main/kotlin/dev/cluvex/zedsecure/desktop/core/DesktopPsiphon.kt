@@ -48,10 +48,16 @@ class DesktopPsiphon(
             runCatching {
                 started.inputStream.bufferedReader().forEachLine { line ->
                     val notice = Notice.parse(line) ?: run {
-                        if (line.isNotBlank()) println("[psiphon] $line")
+                        if (line.isNotBlank()) {
+                            println("[psiphon] $line")
+                            dev.cluvex.zedsecure.core.LogBus.log(dev.cluvex.zedsecure.core.LogSource.Psiphon, dev.cluvex.zedsecure.core.LogBus.levelIn(line), line)
+                        }
                         return@forEachLine
                     }
-                    if (notice.type in LOGGED_NOTICES) println("[psiphon] ${notice.type} ${notice.data}")
+                    if (notice.type in LOGGED_NOTICES) {
+                        println("[psiphon] ${notice.type} ${notice.data}")
+                        dev.cluvex.zedsecure.core.LogBus.log(dev.cluvex.zedsecure.core.LogSource.Psiphon, 'I', "${notice.type} ${notice.data}")
+                    }
                     runCatching { onNotice(notice) }
                     if (notice.tunnels > 0 && connected.compareAndSet(false, true)) settled.countDown()
                 }

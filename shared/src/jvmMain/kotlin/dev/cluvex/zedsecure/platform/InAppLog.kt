@@ -1,24 +1,22 @@
 package dev.cluvex.zedsecure.platform
 
 import dev.cluvex.zedsecure.core.LogBus
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import dev.cluvex.zedsecure.core.LogEntry
+import dev.cluvex.zedsecure.core.LogSource
 
 object InAppLog {
-    private val time = ThreadLocal.withInitial { SimpleDateFormat("MM-dd HH:mm:ss.SSS", Locale.US) }
-
     fun write(level: Char, tag: String, message: String, error: Throwable?, pid: Int) {
         LogBus.noteOwnTag(tag)
-        val head = "${time.get()!!.format(Date())} $level/$tag(${pid.toString().padStart(5)}): "
-        val lines = buildList {
-            message.lines().forEach { add(head + it) }
-
+        val source = LogBus.sourceOfTag(tag)
+        val now = System.currentTimeMillis()
+        val prefix = if (source == LogSource.App) "$tag: " else ""
+        val entries = buildList {
+            message.lines().filter { it.isNotBlank() }.forEach { add(LogEntry(now, source, level, LogBus.clean(prefix + it))) }
             error?.let { t ->
-                add(head + t.toString())
-                t.stackTrace.take(6).forEach { add("$head\tat $it") }
+                add(LogEntry(now, source, level, prefix + t.toString()))
+                t.stackTrace.take(6).forEach { add(LogEntry(now, source, level, "    at $it")) }
             }
         }
-        LogBus.appendAll(lines)
+        LogBus.add(entries)
     }
 }
