@@ -7,18 +7,22 @@
   };
 
   outputs = { self, nixpkgs, flake-utils }:
-    flake-utils.lib.eachSystem [ "x86_64-linux" ] (system:
+    flake-utils.lib.eachSystem [ "x86_64-linux" "aarch64-linux" ] (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
-        version = "3.1.8";
+        version = "3.2.0";
+        tarball = {
+          x86_64-linux = { arch = "x86_64"; hash = "sha256-iHuEAmC1IBPSaN9IsDtGTJiXod9NgbZM80Lncvj9dEY="; };
+          aarch64-linux = { arch = "aarch64"; hash = "sha256-lIa/ZyRpnFV8rlekna7QjIjsPm/SuAM3369OU3Q8K50="; };
+        }.${system};
 
         zedsecure = pkgs.stdenv.mkDerivation {
           pname = "zedsecure";
           inherit version;
 
           src = pkgs.fetchurl {
-            url = "https://github.com/CluvexStudio/ZedSecure/releases/download/v${version}/ZedSecure-${version}-linux-x86_64.tar.gz";
-            hash = "sha256-XPrxz7qdzFyaUoXN8WHhjifvnNPjFp9R+YXyeJamR68=";
+            url = "https://github.com/CluvexStudio/ZedSecure/releases/download/v${version}/ZedSecure-${version}-linux-${tarball.arch}.tar.gz";
+            inherit (tarball) hash;
           };
 
           nativeBuildInputs = with pkgs; [ autoPatchelfHook makeWrapper copyDesktopItems ];
@@ -61,7 +65,7 @@
             description = "VPN client with Xray, sing-box, Psiphon, Tor and DNS tunnels";
             homepage = "https://github.com/CluvexStudio/ZedSecure";
             license = licenses.agpl3Plus;
-            platforms = [ "x86_64-linux" ];
+            platforms = [ "x86_64-linux" "aarch64-linux" ];
             mainProgram = "zedsecure";
           };
         };
