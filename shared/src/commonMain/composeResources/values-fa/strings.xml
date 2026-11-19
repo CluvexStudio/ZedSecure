@@ -703,6 +703,7 @@
     <string name="dns_override">override سراسری رزالور</string>
     <string name="dns_override_sum">یک لیست رزالور ثابت را روی همهٔ پروفایل‌های تونل DNS اعمال کن.</string>
     <string name="dns_resolver_ips">IPهای رزالور</string>
+    <string name="dns_changer_add_title">تغییر DNS (DNS Changer)</string>
     <string name="dns_pool_group">استخر DNS</string>
     <string name="dns_pool_enable">استخر DNS</string>
     <string name="dns_pool_enable_sum">در هر اتصال خودکار سریع‌ترین رزالورها را انتخاب کن.</string>

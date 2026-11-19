@@ -6,11 +6,20 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.SmallFloatingActionButton
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.AlertDialog
@@ -79,6 +88,7 @@ fun ConfigExplorerSheet(
     val protocols = entries.map { it.protocol }.distinct().sorted()
     val countries = entries.mapNotNull { it.countryCode }.distinct().sorted()
     val shown = entries
+        .distinctBy { it.id }
         .filter { protoFilter == null || it.protocol == protoFilter }
         .filter { countryFilter == null || it.countryCode == countryFilter }
         .filter { !fastOnly || it.medianMs in 1..300 }
@@ -97,12 +107,20 @@ fun ConfigExplorerSheet(
             }
         }
 
+    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+    // Reset the scroll position when the list being viewed changes.
+    LaunchedEffect(tab, sort, protoFilter, countryFilter, fastOnly) { listState.scrollToItem(0) }
+
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberAppSheetState()) {
-        Column(
-            Modifier.fillMaxWidth().verticalScroll(rememberScrollState())
-                .padding(horizontal = 18.dp).padding(bottom = 28.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+      Box(Modifier.fillMaxWidth()) {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp),
+            contentPadding = PaddingValues(bottom = 28.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
+            item {
             Row(
                 Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -118,16 +136,18 @@ fun ConfigExplorerSheet(
                 }
                 TextButton(onClick = onDismiss) { Text("بستن") }
             }
-
+            }
+            item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ExplorerMetric("کاندید", state.candidateCount.toString(), Modifier.weight(1f))
                 ExplorerMetric("قابل‌تحلیل", state.parsedCount.toString(), Modifier.weight(1f))
                 ExplorerMetric("سالم", visibleHealthyCount.toString(), Modifier.weight(1f))
                 ExplorerMetric("برتر", state.healthyPool.take(ConfigExplorerEngine.BEST_LIMIT).size.toString(), Modifier.weight(1f))
             }
-
+            }
             val best = state.healthyPool.firstOrNull { it.profileId != null }
             if (best != null) {
+            item {
                 Surface(
                     shape = RoundedCornerShape(18.dp),
                     color = MaterialTheme.colorScheme.primaryContainer,
@@ -160,7 +180,8 @@ fun ConfigExplorerSheet(
                     }
                 }
             }
-
+            }
+            item {
             Surface(
                 shape = RoundedCornerShape(18.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant,
@@ -239,7 +260,8 @@ fun ConfigExplorerSheet(
                     )
                 }
             }
-
+            }
+            item {
             Row(
                 Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -251,10 +273,13 @@ fun ConfigExplorerSheet(
                 ExplorerTab("★ نشان‌دارها " + state.favorites.size, tab == "stars") { tab = "stars" }
                 ExplorerTab("منابع", tab == "sources") { tab = "sources" }
             }
-
+            }
+            item {
             HorizontalDivider()
-
+            }
             if (tab != "sources") {
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it },
@@ -312,9 +337,12 @@ fun ConfigExplorerSheet(
                         platform.toast(shown.size.toString() + " لینک کپی شد")
                     }) { Text("کپی همهٔ لینک‌های این فهرست (" + shown.size + ")") }
                 }
+                }
             }
-
+            }
             if (tab == "sources") {
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 OutlinedTextField(
                     value = newSource,
                     onValueChange = { newSource = it },
@@ -369,15 +397,19 @@ fun ConfigExplorerSheet(
                     }
                     HorizontalDivider()
                 }
+                }
+            }
             } else if (shown.isEmpty()) {
+            item {
                 Text(
                     if (state.isRunning) "هنوز نتیجه سالمی تأیید نشده؛ با پایان اولین آزمایش‌ها، نتایج همین‌جا ظاهر می‌شوند." else "هنوز کانفیگ سالم تأییدشده‌ای در این فهرست وجود ندارد.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(vertical = 18.dp),
                 )
+            }
             } else {
-                shown.forEachIndexed { index, entry ->
+                itemsIndexed(shown, key = { _, e -> e.id }) { index, entry ->
                     ExplorerEntryRow(
                         index = index + 1,
                         entry = entry,
@@ -388,13 +420,22 @@ fun ConfigExplorerSheet(
                     HorizontalDivider()
                 }
             }
-
+            item {
             Text(
                 if (tab == "live") "نتایج به‌محض تأیید مجدد وارد این فهرست می‌شوند؛ اطلاعات IP و کشور در پس‌زمینه تکمیل می‌شود." else "سلامت یعنی حداقل دو موفقیت از سه آزمایش HTTPS از مسیر هسته ZX؛ تست TCP به‌تنهایی کافی نیست.",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            }
         }
+        val showTop by remember { derivedStateOf { listState.firstVisibleItemIndex > 4 } }
+        if (showTop) {
+            SmallFloatingActionButton(
+                onClick = { scope.launch { listState.animateScrollToItem(0) } },
+                modifier = Modifier.align(Alignment.BottomEnd).padding(18.dp),
+            ) { Text("↑") }
+        }
+      }
     }
 
     selectedEntry?.let { entry ->
@@ -484,7 +525,7 @@ private fun ExplorerEntryRow(
     onClick: () -> Unit,
     onPromote: () -> Unit,
 ) {
-    Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+    Column(Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
         Row(
             Modifier.fillMaxWidth()
                 .clickable(onClick = onClick)

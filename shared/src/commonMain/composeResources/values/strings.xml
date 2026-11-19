@@ -710,6 +710,7 @@
     <string name="dns_override">Global resolver override</string>
     <string name="dns_override_sum">Force a fixed resolver list across all DNS-tunnel profiles.</string>
     <string name="dns_resolver_ips">Resolver IPs</string>
+    <string name="dns_changer_add_title">DNS Changer (change DNS)</string>
     <string name="dns_pool_group">DNS pool</string>
     <string name="dns_pool_enable">DNS pool</string>
     <string name="dns_pool_enable_sum">Auto-pick the fastest resolvers on each connect.</string>

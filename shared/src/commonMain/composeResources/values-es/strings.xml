@@ -675,6 +675,7 @@
     <string name="dns_override">Reemplazo global del resolvedor</string>
     <string name="dns_override_sum">Fuerza una lista fija de resolvedores en todos los perfiles de túnel DNS.</string>
     <string name="dns_resolver_ips">IP de los resolvedores</string>
+    <string name="dns_changer_add_title">Cambiar DNS (DNS Changer)</string>
     <string name="dns_pool_group">Conjunto de DNS</string>
     <string name="dns_pool_enable">Conjunto de DNS</string>
     <string name="dns_pool_enable_sum">Elige automáticamente los resolvedores más rápidos en cada conexión.</string>

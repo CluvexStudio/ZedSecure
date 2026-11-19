@@ -711,6 +711,7 @@
     <string name="dns_override">全局解析器覆盖</string>
     <string name="dns_override_sum">对所有 DNS 隧道配置强制使用固定的解析器列表。</string>
     <string name="dns_resolver_ips">解析器 IP</string>
+    <string name="dns_changer_add_title">更改 DNS (DNS Changer)</string>
     <string name="dns_pool_group">DNS 池</string>
     <string name="dns_pool_enable">DNS 池</string>
     <string name="dns_pool_enable_sum">每次连接时自动选用最快的解析器。</string>

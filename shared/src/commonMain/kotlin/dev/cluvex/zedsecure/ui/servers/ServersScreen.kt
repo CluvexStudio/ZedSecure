@@ -2415,7 +2415,7 @@ private fun AddServerSheet(
 
             OptionGroup(Res.string.add_group_dns)
             Option(Res.drawable.ic_dns, Res.string.dns_resolver_ips, onDnsResolver)
-            Option(Res.drawable.ic_dns, Res.string.dns_resolver_ips, onDnsProfile)
+            Option(Res.drawable.ic_dns, Res.string.dns_changer_add_title, onDnsProfile)
             Option(Res.drawable.ic_public, Res.string.dns_tunnel_add_title, onDnsTunnel)
             Option(Res.drawable.ic_public, Res.string.master_dns_add_title, onMasterDns)
 

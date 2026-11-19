@@ -711,6 +711,7 @@
     <string name="dns_override">Глобальное переопределение резолвера</string>
     <string name="dns_override_sum">Принудительно задать фиксированный список резолверов для всех профилей DNS-туннелей.</string>
     <string name="dns_resolver_ips">IP резолверов</string>
+    <string name="dns_changer_add_title">Смена DNS (DNS Changer)</string>
     <string name="dns_pool_group">Пул DNS</string>
     <string name="dns_pool_enable">Пул DNS</string>
     <string name="dns_pool_enable_sum">Автоматически выбирать самые быстрые резолверы при каждом подключении.</string>
