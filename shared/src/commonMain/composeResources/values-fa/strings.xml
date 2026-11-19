@@ -10,7 +10,7 @@
     <string name="servers_add_manual">افزودن دستی</string>
     <string name="servers_add_custom">کانفیگ سفارشی (JSON)</string>
     <string name="servers_imported">%1$d سرور اضافه شد</string>
-    <string name="servers_add_file">از فایل ovpn، conf یا json</string>
+    <string name="servers_add_file">از فایل ovpn، conf، json یا zip</string>
     <string name="ovpn_credentials_title">ورود OpenVPN</string>
     <string name="ovpn_credentials_body">%1$s نام کاربری و رمز عبور می‌خواهد.</string>
     <string name="ovpn_username">نام کاربری</string>
@@ -1869,4 +1869,6 @@
     <string name="backup_restore_title">بازگردانی پشتیبان</string>
     <string name="backup_restore_sum">اشتراک‌ها و سرورهای فایل پشتیبان را اضافه می‌کند و تنظیماتش را اعمال می‌کند. سرورهایی که از قبل دارید دوباره اضافه نمی‌شوند.</string>
     <string name="backup_restored">%1$d سرور و %2$d اشتراک بازگردانی شد</string>
+    <string name="archive_imported">%1$d سرور از %2$d فایل وارد شد</string>
+    <string name="archive_no_configs">در این فایل فشرده کانفیگی پیدا نشد</string>
 </resources>

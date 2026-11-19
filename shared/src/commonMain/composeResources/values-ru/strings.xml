@@ -12,7 +12,7 @@
     <string name="servers_add_manual">Добавить вручную</string>
     <string name="servers_add_custom">Своя конфигурация (JSON)</string>
     <string name="servers_imported">Импортировано серверов: %1$d</string>
-    <string name="servers_add_file">Из файла (.ovpn, .conf, .json)</string>
+    <string name="servers_add_file">Из файла (.ovpn, .conf, .json, .zip)</string>
     <string name="ovpn_credentials_title">Вход OpenVPN</string>
     <string name="ovpn_credentials_body">%1$s запрашивает имя пользователя и пароль.</string>
     <string name="ovpn_username">Имя пользователя</string>
@@ -1877,4 +1877,6 @@
     <string name="backup_restore_title">Восстановить из копии</string>
     <string name="backup_restore_sum">Добавляет подписки и серверы из файла копии и применяет его настройки. Уже имеющиеся серверы пропускаются.</string>
     <string name="backup_restored">Восстановлено серверов: %1$d, подписок: %2$d</string>
+    <string name="archive_imported">Импортировано серверов: %1$d (файлов в архиве: %2$d)</string>
+    <string name="archive_no_configs">В архиве не найдено конфигов</string>
 </resources>

@@ -10,7 +10,7 @@
     <string name="servers_add_manual">Añadir manualmente</string>
     <string name="servers_add_custom">Configuración personalizada (JSON)</string>
     <string name="servers_imported">Servidores importados: %1$d</string>
-    <string name="servers_add_file">Desde un archivo (.ovpn, .conf, .json)</string>
+    <string name="servers_add_file">Desde un archivo (.ovpn, .conf, .json, .zip)</string>
     <string name="ovpn_credentials_title">Inicio de sesión de OpenVPN</string>
     <string name="ovpn_credentials_body">%1$s pide un nombre de usuario y una contraseña.</string>
     <string name="ovpn_username">Nombre de usuario</string>
@@ -1830,4 +1830,6 @@
     <string name="backup_restore_title">Restaurar una copia</string>
     <string name="backup_restore_sum">Añade las suscripciones y los servidores de una copia y aplica sus ajustes. Se omiten los servidores que ya tienes.</string>
     <string name="backup_restored">Se restauraron %1$d servidores y %2$d suscripciones</string>
+    <string name="archive_imported">Se importaron %1$d servidores de %2$d archivos</string>
+    <string name="archive_no_configs">No se encontraron configuraciones en este archivo comprimido</string>
 </resources>

@@ -230,9 +230,35 @@ fun ServersScreen(
         }
     }
 
+    suspend fun importArchive(bytes: ByteArray) {
+        val entries = withContext(kotlinx.coroutines.Dispatchers.Default) {
+            dev.cluvex.zedsecure.data.config.ConfigArchive.entries(bytes)
+        }
+        if (entries.isEmpty()) {
+            toastRes(Res.string.archive_no_configs)
+            return
+        }
+        var outcome: dev.cluvex.zedsecure.data.config.ConfigRepository.ArchiveImport? = null
+        withContext(kotlinx.coroutines.Dispatchers.Default) {
+            offerObfuscationAfter { outcome = repository.importArchive(entries) }
+        }
+        val r = outcome ?: return
+        platform.toast(
+            when {
+                r.added > 0 -> getString(Res.string.archive_imported, r.added, entries.size)
+                r.duplicates > 0 -> getString(Res.string.servers_already_added, r.duplicates)
+                else -> getString(Res.string.archive_no_configs)
+            },
+        )
+    }
+
     fun importFromFile() {
         scope.launch {
             val picked = platform.pickFileBytes() ?: return@launch
+            if (dev.cluvex.zedsecure.data.config.ConfigArchive.isZip(picked.bytes)) {
+                importArchive(picked.bytes)
+                return@launch
+            }
             val text = picked.bytes.decodeToString()
             if (text.isBlank()) {
                 toastRes(Res.string.config_invalid)

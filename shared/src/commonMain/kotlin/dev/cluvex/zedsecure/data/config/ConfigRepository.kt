@@ -1067,6 +1067,51 @@ class ConfigRepository(private val store: KeyValueStore) {
         return RestoreResult(addedSubs.size, addedProfiles.size)
     }
 
+    data class ArchiveImport(val added: Int, val duplicates: Int, val skipped: Int)
+
+    fun importArchive(entries: List<ConfigArchive.Entry>): ArchiveImport {
+        var added = 0
+        var duplicates = 0
+        var skipped = 0
+        val wireguard = ArrayList<String>()
+        val others = ArrayList<ConfigArchive.Entry>()
+        entries.forEach { entry ->
+            if (!entry.isOvpn && ConfigParser.looksLikeWireguardConf(entry.text)) {
+                val name = ConfigParser.wireguardConfName(entry.text).ifBlank { entry.baseName }
+                runCatching { ShareLink.build(ConfigParser.parseWireguardConf(entry.text, remark = name)) }
+                    .onSuccess { wireguard += it }
+                    .onFailure { skipped++ }
+            } else {
+                others += entry
+            }
+        }
+        others.asReversed().forEach { entry ->
+            val text = entry.text
+            lastImportDuplicates = 0
+            val outcome = runCatching {
+                if (entry.isOvpn || OvpnConfig.looksLikeOvpn(text)) {
+                    val info = OvpnConfig.inspect(text)
+                    require(!info.needsCredentials || info.hasInlineCredentials) { "needs a username and password" }
+                    addOvpn(text, name = entry.baseName.ifBlank { info.name }).getOrThrow()
+                    1
+                } else {
+                    importText(text).getOrThrow()
+                }
+            }
+            val dupes = lastImportDuplicates
+            duplicates += dupes
+            outcome.onSuccess { added += it }.onFailure { if (dupes == 0) skipped++ }
+        }
+        if (wireguard.isNotEmpty()) {
+            lastImportDuplicates = 0
+            importText(wireguard.joinToString("\n"))
+                .onSuccess { added += it }
+                .onFailure { skipped += wireguard.size }
+            duplicates += lastImportDuplicates
+        }
+        return ArchiveImport(added, duplicates, skipped)
+    }
+
     fun setActive(id: String?) {
         _activeId.value = id
         store.putString(KEY_ACTIVE, id)

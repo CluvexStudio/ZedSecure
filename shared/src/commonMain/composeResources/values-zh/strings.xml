@@ -12,7 +12,7 @@
     <string name="servers_add_manual">手动添加</string>
     <string name="servers_add_custom">自定义配置 (JSON)</string>
     <string name="servers_imported">已导入 %1$d 个服务器</string>
-    <string name="servers_add_file">从文件导入（.ovpn、.conf、.json）</string>
+    <string name="servers_add_file">从文件导入（.ovpn、.conf、.json、.zip）</string>
     <string name="ovpn_credentials_title">OpenVPN 登录</string>
     <string name="ovpn_credentials_body">%1$s 需要用户名和密码。</string>
     <string name="ovpn_username">用户名</string>
@@ -1877,4 +1877,6 @@
     <string name="backup_restore_title">恢复备份</string>
     <string name="backup_restore_sum">从备份文件添加订阅和服务器，并应用其中的设置。已有的服务器会被跳过。</string>
     <string name="backup_restored">已恢复 %1$d 个服务器和 %2$d 个订阅</string>
+    <string name="archive_imported">已从 %2$d 个文件导入 %1$d 个服务器</string>
+    <string name="archive_no_configs">压缩包中没有找到配置</string>
 </resources>
