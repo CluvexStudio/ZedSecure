@@ -101,12 +101,13 @@ class AppContainer(context: Context) {
         }
 
         scope.launch {
+            kotlinx.coroutines.delay(SUBSCRIPTION_FIRST_CHECK_MS)
             while (true) {
-                kotlinx.coroutines.delay(SUBSCRIPTION_CHECK_MS)
                 runCatching {
                     dev.cluvex.zedsecure.data.config.SubscriptionAutoUpdate
                         .runDue(configRepository, settingsRepository.settings.value)
                 }
+                kotlinx.coroutines.delay(SUBSCRIPTION_CHECK_MS)
             }
         }
 
@@ -116,6 +117,13 @@ class AppContainer(context: Context) {
                 if (s.state == ConnectionState.Connected && s.sessionId != counted) {
                     counted = s.sessionId
                     settingsRepository.update { it.copy(successfulConnections = it.successfulConnections + 1) }
+                    scope.launch {
+                        kotlinx.coroutines.delay(SUBSCRIPTION_AFTER_CONNECT_MS)
+                        runCatching {
+                            dev.cluvex.zedsecure.data.config.SubscriptionAutoUpdate
+                                .runDue(configRepository, settingsRepository.settings.value)
+                        }
+                    }
                 }
             }
         }
@@ -123,6 +131,8 @@ class AppContainer(context: Context) {
 
     private companion object {
         const val SUBSCRIPTION_CHECK_MS = 15 * 60_000L
+        const val SUBSCRIPTION_FIRST_CHECK_MS = 20_000L
+        const val SUBSCRIPTION_AFTER_CONNECT_MS = 8_000L
     }
 }
 
