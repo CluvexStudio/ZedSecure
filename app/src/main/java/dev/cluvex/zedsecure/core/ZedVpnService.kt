@@ -807,7 +807,10 @@ class ZedVpnService : VpnService() {
                         val ok = runCatching {
                             TunnelReadiness.verifyAny(
                                 port,
-                                timeoutMs = 1_800,
+                                // Once a gateway answered, the tunnel is real but slow (the scan saw RTTs
+                                // above 1.5s): SOCKS connect + HTTP needs several round trips, so a 1.8s
+                                // read timeout can never pass. Give it a realistic window.
+                                timeoutMs = if (process.candidateSeen) 12_000 else 2_500,
                                 hosts = listOf("cp.cloudflare.com", "www.cloudflare.com", "example.com"),
                                 connectTimeoutMs = 1_200,
                             )

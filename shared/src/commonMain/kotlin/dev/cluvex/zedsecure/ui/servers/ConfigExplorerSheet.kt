@@ -59,7 +59,8 @@ fun ConfigExplorerSheet(
     onServerActivated: () -> Unit,
 ) {
     val state by repository.configExplorer.state.collectAsStateWithLifecycle()
-    var tab by rememberSaveable { mutableStateOf("live") }
+    var tab by rememberSaveable { mutableStateOf("found") }
+    val discovered by repository.configExplorer.discovered.collectAsStateWithLifecycle()
     var selectedEntry by rememberSaveable { mutableStateOf<ConfigExplorerEntry?>(null) }
     var query by rememberSaveable { mutableStateOf("") }
     var protoFilter by rememberSaveable { mutableStateOf<String?>(null) }
@@ -78,6 +79,7 @@ fun ConfigExplorerSheet(
     val visibleHealthyCount = (state.healthyPool + state.liveEntries).distinctBy { it.id }.size
 
     val entries = when (tab) {
+        "found" -> emptyList()
         "live" -> state.liveEntries
         "stars" -> state.favorites
         "reserve" -> state.healthyPool.drop(ConfigExplorerEngine.BEST_LIMIT)
@@ -85,7 +87,19 @@ fun ConfigExplorerSheet(
         else -> state.healthyPool.take(ConfigExplorerEngine.BEST_LIMIT)
     }
 
-    val protocols = entries.map { it.protocol }.distinct().sorted()
+    val foundShown = discovered
+        .filter { protoFilter == null || it.protocol == protoFilter }
+        .filter {
+            val q = query.trim().lowercase()
+            q.isEmpty() || it.name.lowercase().contains(q) || it.address.lowercase().contains(q) ||
+                it.protocol.lowercase().contains(q) || it.sourceName.lowercase().contains(q)
+        }
+        .sortedWith(compareBy<dev.cluvex.zedsecure.data.config.DiscoveredConfig> {
+            when (it.status) { 1 -> 0; 0 -> 1; else -> 2 }
+        }.thenBy { if (it.status == 1) it.ms else 0 })
+    val foundAlive = discovered.count { it.status == 1 }
+    val foundDone = discovered.count { it.status != 0 }
+    val protocols = (if (tab == "found") discovered.map { it.protocol } else entries.map { it.protocol }).distinct().sorted()
     val countries = entries.mapNotNull { it.countryCode }.distinct().sorted()
     val shown = entries
         .distinctBy { it.id }
@@ -266,6 +280,7 @@ fun ConfigExplorerSheet(
                 Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
+                ExplorerTab("کشف‌شده‌ها " + foundAlive + "/" + discovered.size, tab == "found") { tab = "found" }
                 ExplorerTab("یافته‌های زنده " + state.liveEntries.size, tab == "live") { tab = "live" }
                 ExplorerTab("۱۰۰ برتر", tab == "best") { tab = "best" }
                 ExplorerTab("ذخیره جایگزین", tab == "reserve") { tab = "reserve" }
@@ -399,6 +414,52 @@ fun ConfigExplorerSheet(
                 }
                 }
             }
+            } else if (tab == "found") {
+                if (foundShown.isEmpty()) {
+                    item {
+                        Text(
+                            if (state.isRunning) "در حال دریافت و بررسی منابع؛ هر کانفیگی که پیدا شود همین‌جا بلافاصله نمایش داده می‌شود." else "کانفیگی کشف نشده؛ «شروع کاوش» را بزنید یا تب منابع را بررسی کنید.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(vertical = 18.dp),
+                        )
+                    }
+                } else {
+                    item {
+                        Text(
+                            "سالم: " + foundAlive + " · آزمایش‌شده: " + foundDone + " از " + discovered.size,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    itemsIndexed(foundShown, key = { _, d -> d.id }) { index, d ->
+                        Row(
+                            Modifier.fillMaxWidth()
+                                .clickable { platform.copyToClipboard(d.link); platform.toast("لینک کپی شد") }
+                                .padding(vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Text((index + 1).toString().padStart(2, '0'), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Column(Modifier.weight(1f)) {
+                                Text(d.name.ifBlank { d.protocol + " · " + d.address }, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(
+                                    d.protocol + " · " + d.address + ":" + d.port + " · " + d.sourceName,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                            when (d.status) {
+                                1 -> Text("✓ " + d.ms + " ms", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                2 -> Text("✗ ناموفق", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
+                                else -> Text("در حال تست…", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                        HorizontalDivider()
+                    }
+                }
             } else if (shown.isEmpty()) {
             item {
                 Text(

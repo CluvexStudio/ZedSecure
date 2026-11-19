@@ -96,7 +96,38 @@ data class ConfigExplorerSnapshot(
     val favorites: List<ConfigExplorerEntry> = emptyList(),
 )
 
+/** One config found by the current cycle, shown immediately (status 0 = testing, 1 = alive, 2 = failed). */
+data class DiscoveredConfig(
+    val id: String,
+    val name: String,
+    val protocol: String,
+    val address: String,
+    val port: Int,
+    val sourceName: String,
+    val link: String,
+    val status: Int = 0,
+    val ms: Int = 0,
+)
+
 class ConfigExplorerRepository(private val store: KeyValueStore) {
+    private val _discovered = MutableStateFlow<List<DiscoveredConfig>>(emptyList())
+    val discovered: StateFlow<List<DiscoveredConfig>> = _discovered.asStateFlow()
+
+    fun setDiscovered(list: List<DiscoveredConfig>) { _discovered.value = list }
+
+    fun markDiscovered(id: String, ms: Int?) {
+        _discovered.update { list ->
+            list.map { item ->
+                when {
+                    item.id != id -> item
+                    ms != null && ms > 0 -> item.copy(status = 1, ms = if (item.status == 1 && item.ms in 1 until ms) item.ms else ms)
+                    item.status == 0 -> item.copy(status = 2)
+                    else -> item
+                }
+            }
+        }
+    }
+
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
     private val _state = MutableStateFlow(load())
     val state: StateFlow<ConfigExplorerSnapshot> = _state.asStateFlow()
@@ -335,6 +366,7 @@ object ConfigExplorerEngine {
         val explorer = repository.configExplorer
         if (!force && !explorer.state.value.enabled) return@withLock
 
+        explorer.setDiscovered(emptyList())
         explorer.updateRuntime {
             it.copy(
                 isRunning = true,
@@ -408,6 +440,17 @@ object ConfigExplorerEngine {
                 result
             }
 
+            explorer.setDiscovered(parsed.map { item ->
+                DiscoveredConfig(
+                    id = item.profile.id,
+                    name = item.profile.name,
+                    protocol = item.profile.protocol,
+                    address = item.profile.address,
+                    port = item.profile.port,
+                    sourceName = item.candidate.source.name,
+                    link = item.candidate.link,
+                )
+            })
             explorer.updateRuntime {
                 it.copy(
                     phase = "testing_first",
@@ -786,6 +829,7 @@ object ConfigExplorerEngine {
             },
             onResult = { id, ms, _ ->
                 results.update { current -> current + (id to (ms ?: PingService.FAILED_PING)) }
+                explorer.markDiscovered(id, ms)
                 // Stream every success the moment it is measured, not when the whole pass ends.
                 if (ms != null && ms > 0) onHit?.invoke(id, ms)
             },
