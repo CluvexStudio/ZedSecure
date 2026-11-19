@@ -59,7 +59,8 @@ ZedSecure یک کلاینت VPN و پروکسی برای اندروید، لین
 
 **اندروید:** از [گوگل پلی](https://play.google.com/store/apps/details?id=com.zedsecure.vpn)، یا
 APK مخصوص دستگاهتان از [Releases](https://github.com/CluvexStudio/ZedSecure/releases/latest)
-(`arm64-v8a` برای تقریباً همهٔ گوشی‌ها، `armeabi-v7a` برای گوشی‌های قدیمی‌تر).
+(`arm64-v8a` برای تقریباً همهٔ گوشی‌ها، `armeabi-v7a` برای گوشی‌های قدیمی‌تر، `x86` و `x86_64` برای تبلت‌های اینتلی،
+کروم‌بوک‌ها و شبیه‌سازها).
 
 **لینوکس:** فایل `.deb`، `.rpm`، `.AppImage` یا `.tar.gz` از Releases. روی آرچ لینوکس، بستهٔ
 [`zedsecure-bin`](https://aur.archlinux.org/packages/zedsecure-bin) که کاربران ساخته‌اند در AUR هست:
@@ -77,7 +78,7 @@ APK مخصوص دستگاهتان از [Releases](https://github.com/CluvexStudi
 
 ```sh
 ./tools/get-cores.sh android     # or linux, windows, macos-arm64, macos-x86_64
-./gradlew :app:assembleRelease   # three APKs, one per ABI
+./gradlew :app:assembleRelease   # four APKs, one per ABI
 ./gradlew :desktop:packageDeb    # or packageRpm, packageMsi, packageDmg
 ```
 

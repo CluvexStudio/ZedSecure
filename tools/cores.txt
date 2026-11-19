@@ -1,10 +1,10 @@
-zedcore      CluvexStudio/ZedSecure-Cores   zedcore-r7
+zedcore      CluvexStudio/ZedSecure-Cores   zedcore-r9
 xray         CluvexStudio/ZedSecure-Cores   xray-r7
 dns-tunnels  CluvexStudio/ZedSecure-Cores   dns-tunnels-r2
 psiphon      CluvexStudio/ZedSecure-Cores   psiphon-r2
-tor          CluvexStudio/ZedSecure-Cores   tor-r4
-snispoof     CluvexStudio/ZedSecure-Cores   snispoof-r3
-hev          CluvexStudio/ZedSecure-Cores   hev-r3
-openconnect  CluvexStudio/ZedSecure-Cores   openconnect-r2
-zedscan      CluvexStudio/ZedSecure-Cores   zedscan-r1
+tor          CluvexStudio/ZedSecure-Cores   tor-r5
+snispoof     CluvexStudio/ZedSecure-Cores   snispoof-r4
+hev          CluvexStudio/ZedSecure-Cores   hev-r4
+openconnect  CluvexStudio/ZedSecure-Cores   openconnect-r4
+zedscan      CluvexStudio/ZedSecure-Cores   zedscan-r2
 zeptun       Noisemux/zeptun                v1.1.3

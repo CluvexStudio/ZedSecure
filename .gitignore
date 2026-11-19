@@ -47,7 +47,6 @@ ref*.png
 /app/libs/*.aar
 /app/libs/*-sources.jar
 /app/src/main/jniLibs/
-!/app/src/main/jniLibs/*/libopenconnect.so
 
 __pycache__/
 *.pyc

@@ -17,10 +17,11 @@ WINDOW = "data:image/svg+xml;base64," + base64.b64encode(
 ).decode()
 
 PLATFORMS = [
-    ("Android 7+", "Not sure which one? universal installs on every phone. arm64-v8a is smaller for 64-bit phones; armeabi-v7a is for phones with 32-bit Android.", [
+    ("Android 7+", "Not sure which one? universal installs on every phone. arm64-v8a is smaller for 64-bit phones; armeabi-v7a is for phones with 32-bit Android; x86 and x86_64 are for Intel tablets, Chromebooks and emulators.", [
         ("-universal.apk", "APK", "universal", "android"),
         ("-arm64-v8a.apk", "APK", "arm64-v8a", "android"),
         ("-armeabi-v7a.apk", "APK", "armeabi-v7a", "android"),
+        ("-x86.apk", "APK", "x86", "android"),
         ("-x86_64.apk", "APK", "x86_64", "android"),
     ]),
     ("Windows 10+", None, [

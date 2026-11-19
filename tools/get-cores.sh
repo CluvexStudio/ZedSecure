@@ -50,9 +50,9 @@ case "$TARGET" in
     jni="$ROOT/app/src/main/jniLibs"
     mkdir -p "$ROOT/app/libs" "$jni"
     cp "$(fetch zedcore zedcore.aar)" "$ROOT/app/libs/zedcore.aar"
-    for abi in arm64-v8a armeabi-v7a x86_64; do
+    for abi in arm64-v8a armeabi-v7a x86 x86_64; do
       mkdir -p "$jni/$abi"
-      for core in tor snispoof hev zedscan; do
+      for core in tor snispoof hev zedscan openconnect; do
         unzip -q -o "$(fetch "$core" "$core-android-$abi.zip")" -d "$jni/$abi"
       done
     done

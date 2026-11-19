@@ -50,7 +50,7 @@ Android ではすべてのエンジンを使えます。Linux、Windows、macOS 
 
 ## ダウンロード
 
-**Android:** [Google Play](https://play.google.com/store/apps/details?id=com.zedsecure.vpn)、または [Releases](https://github.com/CluvexStudio/ZedSecure/releases/latest) からお使いのデバイス向けの APK を入手してください（ほぼすべてのスマートフォンは `arm64-v8a`、古い機種は `armeabi-v7a`）。
+**Android:** [Google Play](https://play.google.com/store/apps/details?id=com.zedsecure.vpn)、または [Releases](https://github.com/CluvexStudio/ZedSecure/releases/latest) からお使いのデバイス向けの APK を入手してください（ほぼすべてのスマートフォンは `arm64-v8a`、古い機種は `armeabi-v7a`、Intel 搭載のタブレット、Chromebook、エミュレーターは `x86` と `x86_64`）。
 
 **Linux:** Releases から `.deb`、`.rpm`、`.AppImage`、`.tar.gz` を入手できます。Arch Linux では、コミュニティパッケージ [`zedsecure-bin`](https://aur.archlinux.org/packages/zedsecure-bin) が AUR にあります：`yay -S zedsecure-bin`。NixOS では `nix run github:CluvexStudio/ZedSecure` を実行します。
 
@@ -62,7 +62,7 @@ Android ではすべてのエンジンを使えます。Linux、Windows、macOS 
 
 ```sh
 ./tools/get-cores.sh android     # or linux, windows, macos-arm64, macos-x86_64
-./gradlew :app:assembleRelease   # three APKs, one per ABI
+./gradlew :app:assembleRelease   # four APKs, one per ABI
 ./gradlew :desktop:packageDeb    # or packageRpm, packageMsi, packageDmg
 ```
 

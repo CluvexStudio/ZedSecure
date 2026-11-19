@@ -38,7 +38,7 @@ jobs:
         run: |
           set -e
           ls -l app/libs/zedcore.aar
-          for abi in arm64-v8a armeabi-v7a x86_64; do
+          for abi in arm64-v8a armeabi-v7a x86 x86_64; do
             for lib in libtor libobfs4proxy libsnowflake libconjure libsnispoof libhev-socks5-tunnel libopenconnect libzeptun-jni; do
               [ -f "app/src/main/jniLibs/$abi/$lib.so" ] || echo "::warning::$abi/$lib.so is missing; that protocol will not work"
             done
@@ -85,7 +85,7 @@ jobs:
           set -e
           mkdir -p dist
           V='${{ steps.v.outputs.name }}'
-          for abi in arm64-v8a armeabi-v7a x86_64; do
+          for abi in arm64-v8a armeabi-v7a x86 x86_64; do
             src="app/build/outputs/apk/release/app-$abi-release.apk"
             [ -f "$src" ] || { echo "::error::$src was not built"; exit 1; }
             cp "$src" "dist/ZedSecure-$V-$abi.apk"

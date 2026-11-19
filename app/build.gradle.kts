@@ -82,7 +82,7 @@ android {
         abi {
             isEnable = !buildingBundle
             reset()
-            include("arm64-v8a", "armeabi-v7a", "x86_64")
+            include("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
             isUniversalApk = false
         }
     }
@@ -93,8 +93,6 @@ android {
         }
         jniLibs {
             useLegacyPackaging = true
-
-            excludes += "**/x86/*.so"
             keepDebugSymbols += "**/*.so"
         }
     }

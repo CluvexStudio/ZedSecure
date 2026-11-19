@@ -57,7 +57,8 @@ Android has all of them. Linux, Windows and macOS carry Xray, sing-box, the DNS 
 
 **Android:** [Google Play](https://play.google.com/store/apps/details?id=com.zedsecure.vpn), or the
 APK for your device from [Releases](https://github.com/CluvexStudio/ZedSecure/releases/latest)
-(`arm64-v8a` for almost every phone, `armeabi-v7a` for older ones).
+(`arm64-v8a` for almost every phone, `armeabi-v7a` for older ones, `x86` and `x86_64` for Intel tablets,
+Chromebooks and emulators).
 
 **Linux:** `.deb`, `.rpm`, `.AppImage` or `.tar.gz` from Releases. On Arch Linux, the community
 package [`zedsecure-bin`](https://aur.archlinux.org/packages/zedsecure-bin) is in the AUR:
@@ -72,7 +73,7 @@ first time with right-click, then Open.
 
 ```sh
 ./tools/get-cores.sh android     # or linux, windows, macos-arm64, macos-x86_64
-./gradlew :app:assembleRelease   # three APKs, one per ABI
+./gradlew :app:assembleRelease   # four APKs, one per ABI
 ./gradlew :desktop:packageDeb    # or packageRpm, packageMsi, packageDmg
 ```
 
