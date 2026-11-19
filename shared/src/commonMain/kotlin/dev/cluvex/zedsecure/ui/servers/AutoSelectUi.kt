@@ -8,6 +8,7 @@ package dev.cluvex.zedsecure.ui.servers
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,6 +38,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import dev.cluvex.zedsecure.ui.glass.glassCell
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
@@ -101,6 +103,58 @@ fun AutoSelectCard(
         else -> MaterialTheme.colorScheme.onSurface
     }
     val phase = live?.status?.phase
+    if (dev.cluvex.zedsecure.ui.glass.Glass.active) {
+        val c = dev.cluvex.zedsecure.ui.glass.Glass.colors
+        val line = live?.let { autoSelectLiveLine(it, memberName) }
+            ?: phase?.let { phaseLabel(it) }
+            ?: stringResource(Res.string.auto_card_idle, memberCount.toString())
+        Row(
+            modifier
+                .fillMaxWidth()
+                .glassCell(c)
+                .clickable(onClick = onSelect)
+                .padding(start = 14.dp, end = 4.dp, top = 12.dp, bottom = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            dev.cluvex.zedsecure.ui.glass.GlassBadge(
+                color = if (phase == null) c.tint else phaseColor(phase),
+                icon = dev.cluvex.zedsecure.ui.glass.GlassIcons.Bolt,
+                size = 34.dp,
+            )
+            Column(Modifier.weight(1f)) {
+                Text(
+                    stringResource(Res.string.auto_title_for, groupLabel),
+                    style = dev.cluvex.zedsecure.ui.glass.GlassType.headline(),
+                    color = c.label,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    line,
+                    style = dev.cluvex.zedsecure.ui.glass.GlassType.footnote(),
+                    color = c.label2,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            if (active) {
+                Icon(
+                    dev.cluvex.zedsecure.ui.glass.GlassIcons.Check,
+                    contentDescription = stringResource(Res.string.config_active),
+                    tint = c.tint,
+                    modifier = Modifier.size(19.dp),
+                )
+            }
+            dev.cluvex.zedsecure.ui.glass.GlassToolIcon(
+                icon = dev.cluvex.zedsecure.ui.glass.GlassIcons.Info,
+                label = stringResource(Res.string.auto_details),
+                onClick = onDetails,
+                tint = c.tint,
+            )
+        }
+        return
+    }
     Surface(
         onClick = onSelect,
         shape = if (bento) dev.cluvex.zedsecure.ui.bento.BentoShapes.small() else RoundedCornerShape(personalization.cornerStyle.serverCardDp.dp),

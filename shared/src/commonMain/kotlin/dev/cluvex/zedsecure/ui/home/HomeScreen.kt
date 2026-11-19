@@ -179,6 +179,7 @@ fun HomeScreen(
 
     connectStyle: ConnectButtonStyle = ConnectButtonStyle.Pill,
     design: AppDesign = AppDesign.Bento,
+    showLocation: Boolean = false,
     homeVm: HomeViewModel = viewModel { HomeViewModel() },
     bentoActive: dev.cluvex.zedsecure.ui.bento.BentoActiveServer? = null,
     bentoPicks: List<dev.cluvex.zedsecure.ui.bento.BentoServerPick> = emptyList(),
@@ -208,7 +209,36 @@ fun HomeScreen(
 
     if (design != AppDesign.Old) {
         Box(modifier.fillMaxSize()) {
-            if (design == AppDesign.Bento) {
+            if (design == AppDesign.Glass) {
+                val budget = dev.cluvex.zedsecure.ui.theme.LocalMotionBudget.current
+                dev.cluvex.zedsecure.ui.glass.GlassHome(
+                    ui = ui,
+                    info = info,
+                    active = bentoActive,
+                    showLocation = showLocation,
+                    lockedNote = lockedNote,
+                    localProxyAddress = localProxyAddress,
+                    showConnectionInfo = showConnectionInfo,
+                    animate = !reduceMotion && budget != dev.cluvex.zedsecure.ui.theme.MotionBudget.Paused,
+                    contentPadding = contentPadding,
+                    onToggleConnection = onToggleConnection,
+                    onBrowseConfigs = onBrowseConfigs,
+                    onOpenSpeedTest = onOpenSpeedTest,
+                    onOpenMap = onOpenMap,
+                    onRefreshInfo = { homeVm.refresh(force = true) },
+                    onShowLogs = { showLogs = true },
+                    onStatusTap = {
+                        val now = System.currentTimeMillis()
+                        statusTaps = if (now - statusLastTap < TAP_WINDOW_MS) statusTaps + 1 else 1
+                        statusLastTap = now
+                        if (statusTaps >= 3) {
+                            statusTaps = 0
+                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                            laser++
+                        }
+                    },
+                )
+            } else if (design == AppDesign.Bento) {
                 val budget = dev.cluvex.zedsecure.ui.theme.LocalMotionBudget.current
                 dev.cluvex.zedsecure.ui.bento.BentoHome(
                     ui = ui,

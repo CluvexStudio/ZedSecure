@@ -97,6 +97,7 @@ import dev.cluvex.zedsecure.domain.config.ConfigParseException
 import dev.cluvex.zedsecure.domain.config.VpnProfile
 import dev.cluvex.zedsecure.ui.onboarding.TourTargets
 import dev.cluvex.zedsecure.ui.onboarding.tourTarget
+import dev.cluvex.zedsecure.ui.glass.glassChrome
 import dev.cluvex.zedsecure.ui.platform.LocalPlatform
 import dev.cluvex.zedsecure.ui.format.formatBytes
 import dev.cluvex.zedsecure.ui.components.MorphingBlob
@@ -139,14 +140,18 @@ fun ServersScreen(
     personalization: Personalization = Personalization.Default,
     reduceMotion: Boolean = false,
     detectServerLocation: Boolean = false,
+    onDetectServerLocation: ((Boolean) -> Unit)? = null,
 ) {
     val platform = LocalPlatform.current
     val scope = rememberCoroutineScope()
     val entranceStart = remember { System.currentTimeMillis() }
     val design = dev.cluvex.zedsecure.ui.theme.LocalAppDesign.current
     val bento = design == dev.cluvex.zedsecure.domain.model.AppDesign.Bento
-    val springIn = !reduceMotion && (design == dev.cluvex.zedsecure.domain.model.AppDesign.Pixel || bento)
+    val glass = design == dev.cluvex.zedsecure.domain.model.AppDesign.Glass
+    val modern = bento || glass
+    val springIn = !reduceMotion && (design == dev.cluvex.zedsecure.domain.model.AppDesign.Pixel || modern)
     var query by rememberSaveable { mutableStateOf("") }
+    val glassSearch = dev.cluvex.zedsecure.ui.glass.LocalGlassSearch.current
     val lockedCannotShare = stringResource(Res.string.locked_cannot_share)
 
     fun toastImportFailure(e: Throwable) {
@@ -479,8 +484,10 @@ fun ServersScreen(
     }
 
     val pingMenuItems: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit = {
-        DropdownMenuItem(
-            text = { Text(stringResource(Res.string.ping_tcp_all)) },
+        dev.cluvex.zedsecure.ui.glass.ZedMenuItem(
+            text = stringResource(Res.string.ping_tcp_all),
+            icon = null,
+            glassIcon = dev.cluvex.zedsecure.ui.glass.GlassIcons.Speed,
             onClick = {
                 pingMenu = false
 
@@ -500,8 +507,10 @@ fun ServersScreen(
                 )
             },
         )
-        DropdownMenuItem(
-            text = { Text(stringResource(Res.string.ping_real_all)) },
+        dev.cluvex.zedsecure.ui.glass.ZedMenuItem(
+            text = stringResource(Res.string.ping_real_all),
+            icon = null,
+            glassIcon = dev.cluvex.zedsecure.ui.glass.GlassIcons.Bolt,
             onClick = {
                 pingMenu = false
                 PingCoordinator.start(
@@ -525,9 +534,10 @@ fun ServersScreen(
         )
     }
     val overflowItems: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit = {
-        DropdownMenuItem(
-            text = { Text(stringResource(Res.string.subs_update_all)) },
-            leadingIcon = { Icon(painterResource(Res.drawable.ic_schedule), null) },
+        dev.cluvex.zedsecure.ui.glass.ZedMenuItem(
+            text = stringResource(Res.string.subs_update_all),
+            icon = Res.drawable.ic_schedule,
+            glassIcon = dev.cluvex.zedsecure.ui.glass.GlassIcons.Sync,
             enabled = subscriptions.isNotEmpty() && !updating,
             onClick = {
                 overflowOpen = false
@@ -543,9 +553,10 @@ fun ServersScreen(
                 }
             },
         )
-        DropdownMenuItem(
-            text = { Text(stringResource(Res.string.select_multiple)) },
-            leadingIcon = { Icon(painterResource(Res.drawable.ic_check_circle), null) },
+        dev.cluvex.zedsecure.ui.glass.ZedMenuItem(
+            text = stringResource(Res.string.select_multiple),
+            icon = Res.drawable.ic_check_circle,
+            glassIcon = dev.cluvex.zedsecure.ui.glass.GlassIcons.CheckCircle,
             enabled = shown.isNotEmpty(),
             onClick = {
                 overflowOpen = false
@@ -553,27 +564,32 @@ fun ServersScreen(
                 selected = emptySet()
             },
         )
-        DropdownMenuItem(
-            text = { Text(stringResource(Res.string.sort_by_results)) },
-            leadingIcon = { Icon(painterResource(Res.drawable.ic_tune), null) },
+        dev.cluvex.zedsecure.ui.glass.ZedMenuItem(
+            text = stringResource(Res.string.sort_by_results),
+            icon = Res.drawable.ic_tune,
+            glassIcon = dev.cluvex.zedsecure.ui.glass.GlassIcons.Sort,
             onClick = {
                 overflowOpen = false
                 repository.sortByTestResults()
             },
         )
-        HorizontalDivider()
-        DropdownMenuItem(
-            text = { Text(stringResource(Res.string.del_duplicates)) },
-            leadingIcon = { Icon(painterResource(Res.drawable.ic_delete), null) },
+        dev.cluvex.zedsecure.ui.glass.ZedMenuDivider()
+        dev.cluvex.zedsecure.ui.glass.ZedMenuItem(
+            text = stringResource(Res.string.del_duplicates),
+            icon = Res.drawable.ic_delete,
+            glassIcon = dev.cluvex.zedsecure.ui.glass.GlassIcons.Copy,
+            destructive = true,
             onClick = {
                 overflowOpen = false
                 val n = repository.removeDuplicates()
                 toastRes(Res.string.removed_count, n)
             },
         )
-        DropdownMenuItem(
-            text = { Text(stringResource(Res.string.del_invalid)) },
-            leadingIcon = { Icon(painterResource(Res.drawable.ic_delete), null) },
+        dev.cluvex.zedsecure.ui.glass.ZedMenuItem(
+            text = stringResource(Res.string.del_invalid),
+            icon = Res.drawable.ic_delete,
+            glassIcon = dev.cluvex.zedsecure.ui.glass.GlassIcons.Trash,
+            destructive = true,
             onClick = {
                 overflowOpen = false
                 scope.launch {
@@ -583,9 +599,10 @@ fun ServersScreen(
                 }
             },
         )
-        DropdownMenuItem(
-            text = { Text(stringResource(Res.string.export_all)) },
-            leadingIcon = { Icon(painterResource(Res.drawable.ic_ios_share), null) },
+        dev.cluvex.zedsecure.ui.glass.ZedMenuItem(
+            text = stringResource(Res.string.export_all),
+            icon = Res.drawable.ic_ios_share,
+            glassIcon = dev.cluvex.zedsecure.ui.glass.GlassIcons.Share,
             onClick = {
                 overflowOpen = false
                 val payload = repository.exportAllPayloads()
@@ -596,9 +613,11 @@ fun ServersScreen(
                 }
             },
         )
-        DropdownMenuItem(
-            text = { Text(stringResource(Res.string.del_all)) },
-            leadingIcon = { Icon(painterResource(Res.drawable.ic_delete), null) },
+        dev.cluvex.zedsecure.ui.glass.ZedMenuItem(
+            text = stringResource(Res.string.del_all),
+            icon = Res.drawable.ic_delete,
+            glassIcon = dev.cluvex.zedsecure.ui.glass.GlassIcons.Trash,
+            destructive = true,
             onClick = {
                 overflowOpen = false
                 confirmDeleteAll = true
@@ -609,7 +628,84 @@ fun ServersScreen(
     Box(modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().padding(top = contentPadding.calculateTopPadding())) {
             Spacer(Modifier.height(8.dp))
-            if (bento) {
+            if (glass) {
+                val gc = dev.cluvex.zedsecure.ui.glass.Glass.colors
+                Row(
+                    Modifier.fillMaxWidth().height(44.dp).padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Spacer(Modifier.weight(1f))
+                    Row(
+                        Modifier
+                            .height(44.dp)
+                            .glassChrome(gc, dev.cluvex.zedsecure.ui.glass.GlassShapes.capsule)
+                            .padding(horizontal = 3.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Box {
+                            dev.cluvex.zedsecure.ui.glass.GlassToolIcon(
+                                icon = if (testing) dev.cluvex.zedsecure.ui.glass.GlassIcons.Stop else dev.cluvex.zedsecure.ui.glass.GlassIcons.Bolt,
+                                label = stringResource(if (testing) Res.string.ping_stop else Res.string.ping_test),
+                                onClick = { if (testing) PingCoordinator.cancel() else { pingMenu = true } },
+                                modifier = Modifier.tourTarget(TourTargets.SERVERS_PING),
+                            )
+                            DropdownMenu(
+                                expanded = pingMenu,
+                                onDismissRequest = { pingMenu = false },
+                                shape = RoundedCornerShape(24.dp),
+                                containerColor = gc.menu,
+                            ) {
+                                pingMenuItems()
+                            }
+                        }
+                        dev.cluvex.zedsecure.ui.glass.GlassToolIcon(
+                            icon = dev.cluvex.zedsecure.ui.glass.GlassIcons.Plus,
+                            label = stringResource(Res.string.servers_add),
+                            onClick = { showAddSheet = true },
+                            modifier = Modifier.tourTarget(TourTargets.SERVERS_ADD),
+                        )
+                        Box {
+                            dev.cluvex.zedsecure.ui.glass.GlassToolIcon(
+                                icon = dev.cluvex.zedsecure.ui.glass.GlassIcons.More,
+                                label = stringResource(Res.string.servers_actions),
+                                onClick = { overflowOpen = true },
+                                modifier = Modifier.tourTarget(TourTargets.SERVERS_MORE),
+                            )
+                            DropdownMenu(
+                                expanded = overflowOpen,
+                                onDismissRequest = { overflowOpen = false },
+                                shape = RoundedCornerShape(24.dp),
+                                containerColor = gc.menu,
+                            ) {
+                                if (onDetectServerLocation != null) {
+                                    dev.cluvex.zedsecure.ui.glass.ZedMenuItem(
+                                        text = stringResource(Res.string.bento_detect_location_title),
+                                        icon = null,
+                                        glassIcon = dev.cluvex.zedsecure.ui.glass.GlassIcons.Pin,
+                                        checked = detectServerLocation,
+                                        onClick = {
+                                            overflowOpen = false
+                                            onDetectServerLocation(!detectServerLocation)
+                                        },
+                                    )
+                                }
+                                dev.cluvex.zedsecure.ui.glass.ZedMenuItem(
+                                    text = stringResource(Res.string.subs_title),
+                                    icon = null,
+                                    glassIcon = dev.cluvex.zedsecure.ui.glass.GlassIcons.Subscriptions,
+                                    onClick = {
+                                        overflowOpen = false
+                                        showSubs = true
+                                    },
+                                )
+                                dev.cluvex.zedsecure.ui.glass.ZedMenuDivider()
+                                overflowItems()
+                            }
+                        }
+                    }
+                }
+                dev.cluvex.zedsecure.ui.glass.GlassLargeTitle(stringResource(Res.string.nav_servers), Modifier.padding(top = 4.dp, bottom = 8.dp))
+            } else if (bento) {
                 dev.cluvex.zedsecure.ui.bento.BentoTopBar(title = stringResource(Res.string.nav_servers)) {
                     Box {
                         if (testing) {
@@ -629,7 +725,8 @@ fun ServersScreen(
                         DropdownMenu(
                             expanded = pingMenu,
                             onDismissRequest = { pingMenu = false },
-                            shape = MaterialTheme.shapes.largeIncreased,
+                            shape = dev.cluvex.zedsecure.ui.glass.zedMenuShape(MaterialTheme.shapes.largeIncreased),
+                            containerColor = dev.cluvex.zedsecure.ui.glass.zedMenuContainer(),
                         ) {
                             pingMenuItems()
                         }
@@ -644,7 +741,8 @@ fun ServersScreen(
                         DropdownMenu(
                             expanded = overflowOpen,
                             onDismissRequest = { overflowOpen = false },
-                            shape = MaterialTheme.shapes.largeIncreased,
+                            shape = dev.cluvex.zedsecure.ui.glass.zedMenuShape(MaterialTheme.shapes.largeIncreased),
+                            containerColor = dev.cluvex.zedsecure.ui.glass.zedMenuContainer(),
                         ) {
                             overflowItems()
                         }
@@ -695,7 +793,8 @@ fun ServersScreen(
                     DropdownMenu(
                         expanded = pingMenu,
                         onDismissRequest = { pingMenu = false },
-                        shape = MaterialTheme.shapes.largeIncreased,
+                        shape = dev.cluvex.zedsecure.ui.glass.zedMenuShape(MaterialTheme.shapes.largeIncreased),
+                        containerColor = dev.cluvex.zedsecure.ui.glass.zedMenuContainer(),
                     ) {
                         pingMenuItems()
                     }
@@ -753,7 +852,8 @@ fun ServersScreen(
                     DropdownMenu(
                         expanded = overflowOpen,
                         onDismissRequest = { overflowOpen = false },
-                        shape = MaterialTheme.shapes.largeIncreased,
+                        shape = dev.cluvex.zedsecure.ui.glass.zedMenuShape(MaterialTheme.shapes.largeIncreased),
+                        containerColor = dev.cluvex.zedsecure.ui.glass.zedMenuContainer(),
                     ) {
                         overflowItems()
                     }
@@ -780,14 +880,24 @@ fun ServersScreen(
                 }
             }
 
-            if (subscriptions.isEmpty() && bento) {
+            if (subscriptions.isEmpty() && modern) {
                 Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
-                    dev.cluvex.zedsecure.ui.bento.BentoChip(
-                        label = stringResource(Res.string.subs_title),
-                        selected = false,
-                        onClick = { showSubs = true },
-                        modifier = Modifier.tourTarget(TourTargets.SERVERS_SUBS),
-                    )
+                    if (glass) {
+                        dev.cluvex.zedsecure.ui.glass.GlassGroupChip(
+                            label = stringResource(Res.string.subs_title),
+                            count = null,
+                            selected = false,
+                            onClick = { showSubs = true },
+                            modifier = Modifier.tourTarget(TourTargets.SERVERS_SUBS),
+                        )
+                    } else {
+                        dev.cluvex.zedsecure.ui.bento.BentoChip(
+                            label = stringResource(Res.string.subs_title),
+                            selected = false,
+                            onClick = { showSubs = true },
+                            modifier = Modifier.tourTarget(TourTargets.SERVERS_SUBS),
+                        )
+                    }
                 }
             }
             if (subscriptions.isNotEmpty()) {
@@ -825,14 +935,24 @@ fun ServersScreen(
                             )
                         }
                     }
-                    if (bento) {
+                    if (modern) {
                         item(key = "group-subs") {
-                            dev.cluvex.zedsecure.ui.bento.BentoChip(
-                                label = stringResource(Res.string.subs_title),
-                                selected = false,
-                                onClick = { showSubs = true },
-                                modifier = Modifier.tourTarget(TourTargets.SERVERS_SUBS),
-                            )
+                            if (glass) {
+                                dev.cluvex.zedsecure.ui.glass.GlassGroupChip(
+                                    label = stringResource(Res.string.subs_title),
+                                    count = null,
+                                    selected = false,
+                                    onClick = { showSubs = true },
+                                    modifier = Modifier.tourTarget(TourTargets.SERVERS_SUBS),
+                                )
+                            } else {
+                                dev.cluvex.zedsecure.ui.bento.BentoChip(
+                                    label = stringResource(Res.string.subs_title),
+                                    selected = false,
+                                    onClick = { showSubs = true },
+                                    modifier = Modifier.tourTarget(TourTargets.SERVERS_SUBS),
+                                )
+                            }
                         }
                     }
                     itemsIndexed(subscriptions, key = { _, sub -> sub.id }) { index, sub ->
@@ -848,20 +968,23 @@ fun ServersScreen(
                             DropdownMenu(
                                 expanded = menuOpen,
                                 onDismissRequest = { menuOpen = false },
-                                shape = MaterialTheme.shapes.largeIncreased,
+                                shape = dev.cluvex.zedsecure.ui.glass.zedMenuShape(MaterialTheme.shapes.largeIncreased),
+                                containerColor = dev.cluvex.zedsecure.ui.glass.zedMenuContainer(),
                             ) {
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(Res.string.subs_update)) },
-                                    leadingIcon = { Icon(painterResource(Res.drawable.ic_sync), null) },
+                                dev.cluvex.zedsecure.ui.glass.ZedMenuItem(
+                                    text = stringResource(Res.string.subs_update),
+                                    icon = Res.drawable.ic_sync,
+                                    glassIcon = dev.cluvex.zedsecure.ui.glass.GlassIcons.Sync,
                                     enabled = updatingSubId == null,
                                     onClick = {
                                         menuOpen = false
                                         updateSubscription(sub)
                                     },
                                 )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(Res.string.subs_title)) },
-                                    leadingIcon = { Icon(painterResource(Res.drawable.ic_edit), null) },
+                                dev.cluvex.zedsecure.ui.glass.ZedMenuItem(
+                                    text = stringResource(Res.string.subs_title),
+                                    icon = Res.drawable.ic_edit,
+                                    glassIcon = dev.cluvex.zedsecure.ui.glass.GlassIcons.Pencil,
                                     onClick = {
                                         menuOpen = false
                                         showSubs = true
@@ -964,10 +1087,10 @@ fun ServersScreen(
                 )
             } else {
                 val gridPadding = PaddingValues(
-                    start = if (bento) 16.dp else 20.dp,
-                    end = if (bento) 16.dp else 20.dp,
-                    top = if (bento) 4.dp else 0.dp,
-                    bottom = contentPadding.calculateBottomPadding() + if (bento) 16.dp else 88.dp,
+                    start = if (modern) 16.dp else 20.dp,
+                    end = if (modern) 16.dp else 20.dp,
+                    top = if (modern) 4.dp else 0.dp,
+                    bottom = contentPadding.calculateBottomPadding() + if (modern) 16.dp else 88.dp,
                 )
 
                 val card: @Composable (VpnProfile, Int, Int) -> Unit = { profile, position, count ->
@@ -1015,7 +1138,42 @@ fun ServersScreen(
                         if (confirmRemove) deleteTarget = profile else repository.remove(profile.id)
                     }
                     val subscriptionName = subscriptions.firstOrNull { it.id == profile.subscriptionId }?.name
-                    if (bento) {
+                    if (glass) {
+                        val typeLabel = if (profile.isCustom) stringResource(Res.string.servers_custom_config) else profile.transportLabel
+                        dev.cluvex.zedsecure.ui.glass.GlassServerRow(
+                            name = profile.name,
+                            detail = if (groupIndex == 0 && subscriptionName != null) {
+                                typeLabel.removeSuffix(" · sing-box") + " · " + subscriptionName +
+                                    if (typeLabel.endsWith(" · sing-box")) " · sing-box" else ""
+                            } else {
+                                typeLabel
+                            },
+                            country = if (detectServerLocation) dev.cluvex.zedsecure.domain.config.ProfileCountry.of(profile) else null,
+                            pingMs = profile.lastPingMs,
+                            active = profile.id == activeId,
+                            selecting = selecting,
+                            selected = profile.id in selected,
+                            position = position,
+                            count = count,
+                            twoColumns = twoColumns,
+                            onClick = onCardClick,
+                            modifier = if (twoColumns) Modifier.fillMaxHeight() else Modifier,
+                        ) { close ->
+                            ServerMenuItems(
+                                profile = profile,
+                                shareLink = shareLink,
+                                onShare = onShare,
+                                onShareQr = onShareQr,
+                                onEdit = onEdit,
+                                onRename = onRename,
+                                onMoveGroup = onMoveGroup,
+                                onPingTcp = onPingTcp,
+                                onPingReal = onPingReal,
+                                onDelete = onDelete,
+                                close = close,
+                            )
+                        }
+                    } else if (bento) {
                         val typeLabel = if (profile.isCustom) stringResource(Res.string.servers_custom_config) else profile.transportLabel
                         dev.cluvex.zedsecure.ui.bento.BentoServerRow(
                             name = profile.name,
@@ -1090,9 +1248,31 @@ fun ServersScreen(
                         columns = GridCells.Fixed(if (twoColumns) 2 else 1),
                         modifier = Modifier.fillMaxSize().then(groupSwipe).mouseDragScrollVertical(gridState),
                         contentPadding = gridPadding,
-                        horizontalArrangement = Arrangement.spacedBy(if (bento) 8.dp else personalization.density.gapDp.dp),
-                        verticalArrangement = Arrangement.spacedBy(if (bento && !twoColumns) 2.dp else if (bento) 8.dp else personalization.density.gapDp.dp),
+                        horizontalArrangement = Arrangement.spacedBy(if (modern) 8.dp else personalization.density.gapDp.dp),
+                        verticalArrangement = Arrangement.spacedBy(
+                            when {
+                                glass && !twoColumns -> 0.dp
+                                bento && !twoColumns -> 2.dp
+                                modern -> 8.dp
+                                else -> personalization.density.gapDp.dp
+                            },
+                        ),
                     ) {
+                        if (glass && openSubscription != null) {
+                            item(key = "provider-${openSubscription.id}", span = { GridItemSpan(maxLineSpan) }) {
+                                dev.cluvex.zedsecure.ui.glass.GlassProviderCard(
+                                    sub = openSubscription,
+                                    serverCount = shown.size,
+                                    updatedAgo = dev.cluvex.zedsecure.ui.bento.bentoUpdatedAgo(openSubscription.lastUpdated),
+                                    updating = updatingSubId == openSubscription.id,
+                                    animate = !reduceMotion,
+                                    onUpdate = { updateSubscription(openSubscription) },
+                                    onManage = { showSubs = true },
+                                    onOpenUrl = { platform.openUri(it) },
+                                    modifier = Modifier.padding(bottom = 12.dp),
+                                )
+                            }
+                        }
                         if (bento && openSubscription != null) {
                             item(key = "provider-${openSubscription.id}", span = { GridItemSpan(maxLineSpan) }) {
                                 dev.cluvex.zedsecure.ui.bento.BentoProviderCard(
@@ -1121,11 +1301,11 @@ fun ServersScreen(
                                     },
                                     onDetails = { showAutoSheet = true },
                                     personalization = personalization,
-                                    modifier = if (bento) Modifier.padding(bottom = 8.dp) else Modifier,
+                                    modifier = if (modern) Modifier.padding(bottom = if (glass) 12.dp else 8.dp) else Modifier,
                                 )
                             }
                         }
-                        val needle = query.trim().lowercase()
+                        val needle = (if (glass) glassSearch?.query.orEmpty() else query).trim().lowercase()
                         val visibleOrder = if (needle.isEmpty()) order else order.filter { p ->
                             p.name.lowercase().contains(needle) || p.address.lowercase().contains(needle) ||
                                 p.transportLabel.lowercase().contains(needle) || p.protocol.lowercase().contains(needle)
@@ -1184,7 +1364,7 @@ fun ServersScreen(
             )
         }
 
-        if (!bento) Column(
+        if (!modern) Column(
             horizontalAlignment = Alignment.End,
             verticalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier
@@ -1990,6 +2170,17 @@ private fun GroupTab(
     onClick: () -> Unit,
     onMenu: (() -> Unit)? = null,
 ) {
+    if (dev.cluvex.zedsecure.ui.glass.Glass.active) {
+        dev.cluvex.zedsecure.ui.glass.GlassGroupChip(
+            label = label,
+            count = count,
+            selected = selected,
+            onClick = onClick,
+            onLongClick = onMenu,
+            modifier = if (onMenu != null) Modifier.onSecondaryClick(onMenu) else Modifier,
+        )
+        return
+    }
     if (dev.cluvex.zedsecure.ui.bento.Bento.active) {
         dev.cluvex.zedsecure.ui.bento.BentoChip(
             label = label,
@@ -2154,7 +2345,8 @@ private fun ServerCard(
                 DropdownMenu(
                     expanded = menuOpen,
                     onDismissRequest = { menuOpen = false },
-                    shape = MaterialTheme.shapes.largeIncreased,
+                    shape = dev.cluvex.zedsecure.ui.glass.zedMenuShape(MaterialTheme.shapes.largeIncreased),
+                    containerColor = dev.cluvex.zedsecure.ui.glass.zedMenuContainer(),
                 ) {
                     ServerMenuItems(
                         profile = profile,
@@ -2246,6 +2438,13 @@ private fun AddServerSheet(
     onCrossChain: () -> Unit,
     onSubscription: () -> Unit,
 ) {
+    if (dev.cluvex.zedsecure.ui.glass.Glass.active) {
+        GlassAddServerSheet(
+            onDismiss, onPasteLink, onImportFile, onScanQr, onScanQrImage, onManual, onCustom, onPsiphon, onDnsTunnel,
+            onMasterDns, onOpenConnect, onIkev2, onTor, onSsh, onWarp, onSniSpoof, onProxyChain, onCrossChain, onSubscription,
+        )
+        return
+    }
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberAppSheetState()) {
         Column(
             Modifier
@@ -2307,6 +2506,75 @@ private fun AddServerSheet(
 
             OptionGroup(Res.string.add_group_subscription)
             Option(Res.drawable.ic_add_link, Res.string.subs_add, onSubscription)
+        }
+    }
+}
+
+@Composable
+private fun GlassAddServerSheet(
+    onDismiss: () -> Unit,
+    onPasteLink: () -> Unit,
+    onImportFile: () -> Unit,
+    onScanQr: () -> Unit,
+    onScanQrImage: () -> Unit,
+    onManual: () -> Unit,
+    onCustom: () -> Unit,
+    onPsiphon: () -> Unit,
+    onDnsTunnel: () -> Unit,
+    onMasterDns: () -> Unit,
+    onOpenConnect: () -> Unit,
+    onIkev2: () -> Unit,
+    onTor: () -> Unit,
+    onSsh: () -> Unit,
+    onWarp: () -> Unit,
+    onSniSpoof: () -> Unit,
+    onProxyChain: () -> Unit,
+    onCrossChain: () -> Unit,
+    onSubscription: () -> Unit,
+) {
+    val ios = dev.cluvex.zedsecure.ui.glass.IosColors
+    val icons = dev.cluvex.zedsecure.ui.glass.GlassIcons
+    val free = stringResource(Res.string.add_free_badge)
+    val platform = LocalPlatform.current
+    dev.cluvex.zedsecure.ui.glass.GlassSheet(
+        title = stringResource(Res.string.servers_add),
+        sheetState = rememberAppSheetState(),
+        onDismiss = onDismiss,
+    ) {
+        dev.cluvex.zedsecure.ui.glass.GlassFooter(stringResource(Res.string.add_free_hint), Modifier.padding(bottom = 4.dp))
+        dev.cluvex.zedsecure.ui.glass.GlassSheetGroup(stringResource(Res.string.add_group_import)) {
+            dev.cluvex.zedsecure.ui.glass.GlassSheetRow(stringResource(Res.string.servers_add_clipboard), ios.blue(false), icons.Clipboard, onPasteLink)
+            dev.cluvex.zedsecure.ui.glass.GlassSheetRow(stringResource(Res.string.servers_add_file), ios.teal(false), icons.Folder, onImportFile)
+            if (platform.supportsQrScan) {
+                dev.cluvex.zedsecure.ui.glass.GlassSheetRow(stringResource(Res.string.servers_add_scan_qr), ios.gray(false), icons.QrFill, onScanQr)
+            }
+            dev.cluvex.zedsecure.ui.glass.GlassSheetRow(stringResource(Res.string.servers_add_scan_image), ios.indigo(false), icons.Qr, onScanQrImage)
+            dev.cluvex.zedsecure.ui.glass.GlassSheetRow(stringResource(Res.string.servers_add_manual), ios.orange(false), icons.Pencil, onManual)
+            dev.cluvex.zedsecure.ui.glass.GlassSheetRow(stringResource(Res.string.servers_add_custom), ios.gray(false), icons.Code, onCustom)
+        }
+        dev.cluvex.zedsecure.ui.glass.GlassSheetGroup(stringResource(Res.string.add_group_tunnels)) {
+            dev.cluvex.zedsecure.ui.glass.GlassSheetRow(stringResource(Res.string.psiphon_add_title), ios.green(false), icons.Bolt, onPsiphon, badge = free)
+            dev.cluvex.zedsecure.ui.glass.GlassSheetRow(stringResource(Res.string.tor_add_title), ios.purple(false), icons.Layers, onTor, badge = free)
+            dev.cluvex.zedsecure.ui.glass.GlassSheetRow(stringResource(Res.string.ssh_add_title), ios.gray(false), icons.Code, onSsh)
+            dev.cluvex.zedsecure.ui.glass.GlassSheetRow(stringResource(Res.string.warp_add_title), ios.orange(false), icons.Cloud, onWarp, badge = free)
+            if (platform.supportsSniSpoof) {
+                dev.cluvex.zedsecure.ui.glass.GlassSheetRow(stringResource(Res.string.snispoof_add_title), ios.pink(false), icons.Wand, onSniSpoof)
+            }
+        }
+        dev.cluvex.zedsecure.ui.glass.GlassSheetGroup(stringResource(Res.string.add_group_dns)) {
+            dev.cluvex.zedsecure.ui.glass.GlassSheetRow(stringResource(Res.string.dns_tunnel_add_title), ios.blue(false), icons.Globe, onDnsTunnel)
+            dev.cluvex.zedsecure.ui.glass.GlassSheetRow(stringResource(Res.string.master_dns_add_title), ios.teal(false), icons.Globe, onMasterDns)
+        }
+        dev.cluvex.zedsecure.ui.glass.GlassSheetGroup(stringResource(Res.string.add_group_vpn)) {
+            dev.cluvex.zedsecure.ui.glass.GlassSheetRow(stringResource(Res.string.openconnect_add_title), ios.indigo(false), icons.LockShield, onOpenConnect)
+            dev.cluvex.zedsecure.ui.glass.GlassSheetRow(stringResource(Res.string.ikev2_add_title), ios.blue(false), icons.Lock, onIkev2)
+        }
+        dev.cluvex.zedsecure.ui.glass.GlassSheetGroup(stringResource(Res.string.add_group_chains)) {
+            dev.cluvex.zedsecure.ui.glass.GlassSheetRow(stringResource(Res.string.proxychain_add_title), ios.mint(false), icons.Link, onProxyChain)
+            dev.cluvex.zedsecure.ui.glass.GlassSheetRow(stringResource(Res.string.crosschain_add_title), ios.purple(false), icons.Merge, onCrossChain)
+        }
+        dev.cluvex.zedsecure.ui.glass.GlassSheetGroup(stringResource(Res.string.add_group_subscription)) {
+            dev.cluvex.zedsecure.ui.glass.GlassSheetRow(stringResource(Res.string.subs_add), ios.purple(false), icons.Subscriptions, onSubscription)
         }
     }
 }
@@ -2562,54 +2830,63 @@ private fun androidx.compose.foundation.layout.ColumnScope.ServerMenuItems(
     onDelete: () -> Unit,
     close: () -> Unit,
 ) {
-    DropdownMenuItem(
-        text = { Text(stringResource(Res.string.action_share)) },
-        leadingIcon = { Icon(painterResource(Res.drawable.ic_ios_share), null) },
+    dev.cluvex.zedsecure.ui.glass.ZedMenuItem(
+        text = stringResource(Res.string.action_share),
+        icon = Res.drawable.ic_ios_share,
+        glassIcon = dev.cluvex.zedsecure.ui.glass.GlassIcons.Share,
 
         enabled = shareLink != null,
         onClick = { close(); onShare() },
     )
-    DropdownMenuItem(
-        text = { Text(stringResource(Res.string.action_share_qr)) },
-        leadingIcon = { Icon(painterResource(Res.drawable.ic_qr_code_2), null) },
+    dev.cluvex.zedsecure.ui.glass.ZedMenuItem(
+        text = stringResource(Res.string.action_share_qr),
+        icon = Res.drawable.ic_qr_code_2,
+        glassIcon = dev.cluvex.zedsecure.ui.glass.GlassIcons.Qr,
         enabled = shareLink != null,
         onClick = { close(); onShareQr() },
     )
-    DropdownMenuItem(
-        text = { Text(stringResource(Res.string.action_edit)) },
-        leadingIcon = { Icon(painterResource(Res.drawable.ic_edit), null) },
+    dev.cluvex.zedsecure.ui.glass.ZedMenuItem(
+        text = stringResource(Res.string.action_edit),
+        icon = Res.drawable.ic_edit,
+        glassIcon = dev.cluvex.zedsecure.ui.glass.GlassIcons.Pencil,
         enabled = profile.isEditable,
         onClick = { close(); onEdit() },
     )
-    DropdownMenuItem(
-        text = { Text(stringResource(Res.string.servers_rename)) },
-        leadingIcon = { Icon(painterResource(Res.drawable.ic_description), null) },
+    dev.cluvex.zedsecure.ui.glass.ZedMenuItem(
+        text = stringResource(Res.string.servers_rename),
+        icon = Res.drawable.ic_description,
+        glassIcon = dev.cluvex.zedsecure.ui.glass.GlassIcons.Doc,
         onClick = { close(); onRename() },
     )
     onMoveGroup?.let { move ->
-        DropdownMenuItem(
-            text = { Text(stringResource(Res.string.groups_move)) },
-            leadingIcon = { Icon(painterResource(Res.drawable.ic_add_link), null) },
+        dev.cluvex.zedsecure.ui.glass.ZedMenuItem(
+            text = stringResource(Res.string.groups_move),
+            icon = Res.drawable.ic_add_link,
+            glassIcon = dev.cluvex.zedsecure.ui.glass.GlassIcons.Folder,
             onClick = { close(); move() },
         )
     }
 
     if ((!profile.isManagedTunnel || profile.isSingBoxConfig) && !profile.isDnsBasedTunnel) {
-        DropdownMenuItem(
-            text = { Text(stringResource(Res.string.ping_tcp)) },
-            leadingIcon = { Icon(painterResource(Res.drawable.ic_speed), null) },
+        dev.cluvex.zedsecure.ui.glass.ZedMenuItem(
+            text = stringResource(Res.string.ping_tcp),
+            icon = Res.drawable.ic_speed,
+            glassIcon = dev.cluvex.zedsecure.ui.glass.GlassIcons.Speed,
             onClick = { close(); onPingTcp() },
         )
-        DropdownMenuItem(
-            text = { Text(stringResource(Res.string.ping_real)) },
-            leadingIcon = { Icon(painterResource(Res.drawable.ic_bolt), null) },
+        dev.cluvex.zedsecure.ui.glass.ZedMenuItem(
+            text = stringResource(Res.string.ping_real),
+            icon = Res.drawable.ic_bolt,
+            glassIcon = dev.cluvex.zedsecure.ui.glass.GlassIcons.Bolt,
             onClick = { close(); onPingReal() },
         )
     }
-    HorizontalDivider()
-    DropdownMenuItem(
-        text = { Text(stringResource(Res.string.action_delete)) },
-        leadingIcon = { Icon(painterResource(Res.drawable.ic_delete), null) },
+    dev.cluvex.zedsecure.ui.glass.ZedMenuDivider()
+    dev.cluvex.zedsecure.ui.glass.ZedMenuItem(
+        text = stringResource(Res.string.action_delete),
+        icon = Res.drawable.ic_delete,
+        glassIcon = dev.cluvex.zedsecure.ui.glass.GlassIcons.Trash,
+        destructive = true,
         onClick = { close(); onDelete() },
     )
 }

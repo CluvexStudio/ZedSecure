@@ -7,6 +7,7 @@ import dev.cluvex.zedsecure.domain.ai.AiSettings
 import dev.cluvex.zedsecure.domain.model.AppDesign
 import dev.cluvex.zedsecure.domain.model.AppSettings
 import dev.cluvex.zedsecure.domain.model.BentoPrefs
+import dev.cluvex.zedsecure.domain.model.GlassPrefs
 import dev.cluvex.zedsecure.domain.model.DomainStrategy
 import dev.cluvex.zedsecure.domain.model.FragmentPackets
 import dev.cluvex.zedsecure.domain.model.GeoFilesSource
@@ -259,6 +260,9 @@ class SettingsRepository(context: Context) {
             bento = prefs.getString("bento_prefs", null)
                 ?.let { runCatching { aiJson.decodeFromString(BentoPrefs.serializer(), it) }.getOrNull() }
                 ?: d.bento,
+            glass = prefs.getString("glass_prefs", null)
+                ?.let { runCatching { aiJson.decodeFromString(GlassPrefs.serializer(), it) }.getOrNull() }
+                ?: d.glass,
             detectServerLocation = prefs.getBoolean("detect_server_location", d.detectServerLocation),
             localProxyAuth = prefs.getBoolean("local_proxy_auth", d.localProxyAuth),
             reconnectOnNetworkChange = prefs.getBoolean("reconnect_on_network_change", d.reconnectOnNetworkChange),
@@ -482,6 +486,7 @@ class SettingsRepository(context: Context) {
             putBoolean("kill_switch", s.killSwitch)
 
             putString("bento_prefs", aiJson.encodeToString(BentoPrefs.serializer(), s.bento))
+            putString("glass_prefs", aiJson.encodeToString(GlassPrefs.serializer(), s.glass))
             putBoolean("detect_server_location", s.detectServerLocation)
             putBoolean("local_proxy_auth", s.localProxyAuth)
             putBoolean("reconnect_on_network_change", s.reconnectOnNetworkChange)

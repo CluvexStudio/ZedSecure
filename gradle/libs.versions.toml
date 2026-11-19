@@ -68,6 +68,7 @@ lifecycle-runtime-compose-mp = { group = "org.jetbrains.androidx.lifecycle", nam
 kotlinx-coroutines-swing = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-swing", version.ref = "coroutines" }
 material-kolor = { group = "com.materialkolor", name = "material-kolor", version.ref = "materialKolor" }
 reorderable = { group = "sh.calvin.reorderable", name = "reorderable", version.ref = "reorderable" }
+backdrop = { module = "io.github.kyant0:backdrop", version = "2.0.1" }
 jsch = { group = "com.github.mwiede", name = "jsch", version = "2.27.7" }
 
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }

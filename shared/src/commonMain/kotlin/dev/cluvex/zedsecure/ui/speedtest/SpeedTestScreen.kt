@@ -95,6 +95,21 @@ fun SpeedTestScreen(
         }
     }
 
+    if (dev.cluvex.zedsecure.ui.glass.Glass.active) {
+        GlassSpeedTestLayout(
+            st = st,
+            contentPadding = contentPadding,
+            modifier = modifier,
+            connected = connected,
+            viaDefaultRoute = viaDefaultRoute,
+            unsupported = unsupported,
+            saveData = saveData,
+            onSaveData = { saveData = it },
+            onStart = { job = scope.launch { engine.run() } },
+            onStop = { engine.cancel() },
+        )
+        return
+    }
     if (dev.cluvex.zedsecure.ui.bento.Bento.active) {
         BentoSpeedTestLayout(
             st = st,

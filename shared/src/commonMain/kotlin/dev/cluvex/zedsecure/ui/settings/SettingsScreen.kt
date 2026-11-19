@@ -30,6 +30,15 @@ import dev.cluvex.zedsecure.ui.onboarding.TourTargets
 import dev.cluvex.zedsecure.ui.onboarding.tourTargetInPage
 import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.text.intl.Locale
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.sp
+import dev.cluvex.zedsecure.ui.glass.glassHighlight
 import dev.cluvex.zedsecure.shared.resources.Res
 import dev.cluvex.zedsecure.shared.resources.*
 import dev.cluvex.zedsecure.platform.AppInfo
@@ -149,7 +158,11 @@ fun SettingsScreen(
     val goBack: (() -> Unit)? = if (page == SettingsPage.Root) null else goUp
     dev.cluvex.zedsecure.ui.components.ProvidePageBack(goBack) {
     val sign = dev.cluvex.zedsecure.ui.motion.layoutSign()
-    val scrim = androidx.compose.material3.MaterialTheme.colorScheme.background
+    val scrim = if (settings.appDesign == AppDesign.Glass) {
+        androidx.compose.ui.graphics.Color.Transparent
+    } else {
+        androidx.compose.material3.MaterialTheme.colorScheme.background
+    }
     val statusBar = contentPadding.calculateTopPadding()
     androidx.compose.animation.SharedTransitionLayout(Modifier.statusBarScrim(scrim, statusBar)) {
     val sharedScope = this
@@ -179,7 +192,19 @@ fun SettingsScreen(
     ) {
     stateHolder.SaveableStateProvider(shown) {
         when (shown) {
-            SettingsPage.Root -> if (settings.appDesign == AppDesign.Bento) {
+            SettingsPage.Root -> if (settings.appDesign == AppDesign.Glass) {
+                GlassRoot(
+                    settings = settings,
+                    contentPadding = contentPadding,
+                    modifier = modifier,
+                    onOpen = { page = it },
+                    onAbout = { showAbout = true },
+                    onReplayTour = onReplayTour,
+                    onReplaySetup = onReplaySetup,
+                    onOpenVault = onOpenVault,
+                    hasAi = ai != null,
+                )
+            } else if (settings.appDesign == AppDesign.Bento) {
                 BentoRoot(
                     settings = settings,
                     contentPadding = contentPadding,
@@ -531,6 +556,198 @@ private fun RootPage(
     }
 }
 
+private class GlassEntry(
+    val title: String,
+    val value: String?,
+    val art: SettingsArt,
+    val words: List<String>,
+    val busy: Boolean = false,
+    val onClick: () -> Unit,
+)
+
+@Composable
+private fun GlassRoot(
+    settings: AppSettings,
+    contentPadding: PaddingValues,
+    modifier: Modifier,
+    onOpen: (SettingsPage) -> Unit,
+    onAbout: () -> Unit,
+    onReplayTour: (() -> Unit)?,
+    onReplaySetup: (() -> Unit)?,
+    onOpenVault: (() -> Unit)?,
+    hasAi: Boolean,
+) {
+    val platform = LocalPlatform.current
+    var checkTrigger by androidx.compose.runtime.remember { androidx.compose.runtime.mutableIntStateOf(0) }
+    var checking by androidx.compose.runtime.remember { mutableStateOf(false) }
+    val fromPlay = platform.distribution == Distribution.PlayStore
+    val query = dev.cluvex.zedsecure.ui.glass.LocalGlassSearch.current?.query?.trim().orEmpty()
+    val modeName = stringResource(
+        when (settings.runMode) {
+            dev.cluvex.zedsecure.domain.model.RunMode.Vpn -> Res.string.bento_live_mode_vpn
+            dev.cluvex.zedsecure.domain.model.RunMode.ProxyOnly -> Res.string.bento_live_mode_proxy
+            dev.cluvex.zedsecure.domain.model.RunMode.SystemProxy -> Res.string.bento_live_mode_system
+        },
+    )
+    val perAppValue = if (settings.perAppProxyEnabled) {
+        stringResource(Res.string.per_app_selected, settings.perAppPackages.size)
+    } else {
+        stringResource(Res.string.per_app_mode_off)
+    }
+    val groups = listOf(
+        listOf(
+            GlassEntry(stringResource(Res.string.title_mode_settings), modeName, SettingsArts.Mode, listOf(stringResource(Res.string.summary_mode_settings))) { onOpen(SettingsPage.Mode) },
+            GlassEntry(stringResource(Res.string.title_vpn_settings), null, SettingsArts.Vpn, listOf(stringResource(Res.string.summary_vpn_settings), "MTU", "IPv6", "TUN")) { onOpen(SettingsPage.Vpn) },
+            GlassEntry(stringResource(Res.string.title_core_settings), null, SettingsArts.Core, listOf(stringResource(Res.string.summary_core_settings))) { onOpen(SettingsPage.Core) },
+            GlassEntry(stringResource(Res.string.routing_title), null, SettingsArts.Routing, listOf(stringResource(Res.string.routing_subtitle))) { onOpen(SettingsPage.Routing) },
+            GlassEntry(stringResource(Res.string.title_dns_protocols), null, SettingsArts.Dns, listOf(stringResource(Res.string.summary_dns_protocols), "DNS")) { onOpen(SettingsPage.DnsProtocols) },
+            GlassEntry(stringResource(Res.string.per_app_title), perAppValue, SettingsArts.PerApp, emptyList()) { onOpen(SettingsPage.PerApp) },
+            GlassEntry(stringResource(Res.string.assets_title), null, SettingsArts.Assets, listOf(stringResource(Res.string.assets_subtitle))) { onOpen(SettingsPage.Assets) },
+        ),
+        listOf(
+            GlassEntry(stringResource(Res.string.title_mux_settings), null, SettingsArts.Mux, listOf(stringResource(Res.string.summary_mux_settings))) { onOpen(SettingsPage.Mux) },
+            GlassEntry(stringResource(Res.string.title_fragment_settings), null, SettingsArts.Fragment, listOf(stringResource(Res.string.summary_fragment_settings))) { onOpen(SettingsPage.Fragment) },
+            GlassEntry(stringResource(Res.string.title_singbox_settings), null, SettingsArts.SingBox, listOf(stringResource(Res.string.summary_singbox_settings))) { onOpen(SettingsPage.SingBox) },
+            GlassEntry(stringResource(Res.string.title_observatory_settings), null, SettingsArts.Observatory, listOf(stringResource(Res.string.summary_observatory_settings))) { onOpen(SettingsPage.Observatory) },
+            GlassEntry(stringResource(Res.string.title_tor_settings), null, SettingsArts.Tor, listOf(stringResource(Res.string.summary_tor_settings))) { onOpen(SettingsPage.Tor) },
+            GlassEntry(stringResource(Res.string.title_ssh_settings), null, SettingsArts.Ssh, listOf(stringResource(Res.string.summary_ssh_settings))) { onOpen(SettingsPage.Ssh) },
+            GlassEntry(stringResource(Res.string.title_advanced), null, SettingsArts.Advanced, listOf(stringResource(Res.string.summary_advanced))) { onOpen(SettingsPage.Advanced) },
+        ),
+        buildList {
+            add(GlassEntry(stringResource(Res.string.title_ui_settings), stringResource(Res.string.glass_design_name), SettingsArts.Appearance, listOf(stringResource(Res.string.summary_ui_settings), stringResource(Res.string.home_design_title))) { onOpen(SettingsPage.Ui) })
+            add(GlassEntry(stringResource(Res.string.nav_style_title), null, SettingsArts.Mode, listOf(navTabsSummary(settings))) { onOpen(SettingsPage.NavBar) })
+            add(GlassEntry(stringResource(Res.string.monitor_title), null, SettingsArts.Monitor, listOf(stringResource(Res.string.monitor_subtitle))) { onOpen(SettingsPage.Monitor) })
+            if (hasAi) add(GlassEntry(stringResource(Res.string.ai_title), null, SettingsArts.Ai, listOf(stringResource(Res.string.ai_subtitle))) { onOpen(SettingsPage.Ai) })
+            if (onReplayTour != null) add(GlassEntry(stringResource(Res.string.tour_replay_title), null, SettingsArts.Tour, listOf(stringResource(Res.string.tour_replay_subtitle))) { onReplayTour() })
+            if (onReplaySetup != null) add(GlassEntry(stringResource(Res.string.onb_replay_title), null, SettingsArts.Setup, listOf(stringResource(Res.string.onb_replay_sub))) { onReplaySetup() })
+        },
+        buildList {
+            add(GlassEntry(stringResource(Res.string.title_speedtest), null, SettingsArts.SpeedTest, listOf(stringResource(Res.string.summary_speedtest))) { onOpen(SettingsPage.SpeedTest) })
+            add(GlassEntry(stringResource(Res.string.map_title), null, SettingsArts.Map, listOf(stringResource(Res.string.map_settings_sub))) { onOpen(SettingsPage.Map) })
+            if (onOpenVault != null) add(GlassEntry(stringResource(Res.string.nav_locked), null, SettingsArts.Vault, emptyList()) { onOpenVault() })
+        },
+        listOf(
+            GlassEntry(stringResource(Res.string.support_title), null, SettingsArts.Support, listOf(stringResource(Res.string.support_subtitle))) { onOpen(SettingsPage.Support) },
+            GlassEntry(
+                stringResource(Res.string.update_check_title),
+                if (checking) stringResource(Res.string.update_checking) else null,
+                SettingsArts.Update,
+                emptyList(),
+                busy = checking,
+            ) { if (!checking) { checking = true; checkTrigger++ } },
+            GlassEntry(
+                stringResource(if (fromPlay) Res.string.rate_title else Res.string.rate_title_github),
+                null,
+                SettingsArts.Rate,
+                emptyList(),
+            ) { platform.openStorePage() },
+            GlassEntry(stringResource(Res.string.privacy_title), null, SettingsArts.Privacy, listOf(stringResource(Res.string.privacy_settings_sub))) { onOpen(SettingsPage.Privacy) },
+            GlassEntry(stringResource(Res.string.settings_about), AppInfo.versionName, SettingsArts.About, emptyList()) { onAbout() },
+        ),
+    )
+    androidx.compose.foundation.layout.Column(
+        modifier
+            .fillMaxWidth()
+            .appVerticalScroll(rememberScrollState(), contentPadding)
+            .padding(contentPadding),
+    ) {
+        Spacer(Modifier.height(8.dp))
+        dev.cluvex.zedsecure.ui.glass.GlassLargeTitle(stringResource(Res.string.settings_title), Modifier.padding(top = 6.dp))
+        if (query.isEmpty()) {
+            Spacer(Modifier.height(16.dp))
+            dev.cluvex.zedsecure.ui.glass.GlassGroup {
+                GlassAppCard(onAbout)
+            }
+            groups.filter { it.isNotEmpty() }.forEach { group ->
+                Spacer(Modifier.height(28.dp))
+                dev.cluvex.zedsecure.ui.glass.GlassGroup(inset = 58.dp) {
+                    group.forEach { GlassEntryRow(it) }
+                }
+            }
+        } else {
+            val matches = groups.flatten().filter { entry ->
+                entry.title.contains(query, ignoreCase = true) || entry.words.any { it.contains(query, ignoreCase = true) }
+            }
+            Spacer(Modifier.height(16.dp))
+            if (matches.isEmpty()) {
+                dev.cluvex.zedsecure.ui.glass.GlassFooter(stringResource(Res.string.glass_no_results))
+            } else {
+                dev.cluvex.zedsecure.ui.glass.GlassGroup(inset = 58.dp) {
+                    matches.forEach { GlassEntryRow(it) }
+                }
+            }
+        }
+        ManualUpdateCheckHost(
+            settings = settings,
+            trigger = checkTrigger,
+            onFinished = { checking = false },
+        )
+        Spacer(Modifier.height(28.dp))
+    }
+}
+
+@Composable
+private fun GlassEntryRow(entry: GlassEntry) {
+    dev.cluvex.zedsecure.ui.glass.GlassRow(
+        title = entry.title,
+        value = entry.value,
+        leading = { dev.cluvex.zedsecure.ui.glass.GlassArtBadge(entry.art) },
+        trailing = if (entry.busy) ({ dev.cluvex.zedsecure.ui.glass.GlassBusy() }) else null,
+        chevron = !entry.busy,
+        onClick = entry.onClick,
+    )
+}
+
+@Composable
+private fun GlassAppCard(onClick: () -> Unit) {
+    val c = dev.cluvex.zedsecure.ui.glass.Glass.colors
+    val shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp)
+    androidx.compose.foundation.layout.Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable(androidx.compose.runtime.remember { MutableInteractionSource() }, dev.cluvex.zedsecure.ui.glass.glassRowIndication(), onClick = onClick)
+            .heightIn(min = 76.dp)
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        androidx.compose.foundation.layout.Box(
+            Modifier
+                .size(56.dp)
+                .clip(shape)
+                .background(
+                    androidx.compose.ui.graphics.Brush.verticalGradient(
+                        0f to androidx.compose.ui.graphics.Color(0xFFDDFB86),
+                        0.6f to androidx.compose.ui.graphics.Color(0xFFC7F24E),
+                        1f to androidx.compose.ui.graphics.Color(0xFFB6E23B),
+                    ),
+                )
+                .glassHighlight(shape, androidx.compose.ui.graphics.Color.White.copy(alpha = 0.7f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            dev.cluvex.zedsecure.ui.glass.GlassZMark(androidx.compose.ui.graphics.Color(0xFF15170B), Modifier.size(36.dp))
+        }
+        androidx.compose.foundation.layout.Column(Modifier.weight(1f)) {
+            androidx.compose.material3.Text(
+                stringResource(Res.string.app_name),
+                style = dev.cluvex.zedsecure.ui.glass.GlassType.title2().copy(fontSize = 20.sp, lineHeight = 25.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold),
+                color = c.label,
+            )
+            androidx.compose.material3.Text(
+                stringResource(Res.string.glass_app_sub, AppInfo.versionName),
+                style = dev.cluvex.zedsecure.ui.glass.GlassType.footnote(),
+                color = c.label2,
+            )
+        }
+        androidx.compose.material3.Icon(
+            dev.cluvex.zedsecure.ui.glass.GlassIcons.ChevronRight,
+            contentDescription = null,
+            tint = c.label3,
+            modifier = Modifier.size(15.dp),
+        )
+    }
+}
+
 @Composable
 private fun BentoRoot(
     settings: AppSettings,
@@ -554,6 +771,7 @@ private fun BentoRoot(
             AppDesign.Bento -> Res.string.home_design_bento
             AppDesign.Pixel -> Res.string.home_design_pixel
             AppDesign.Old -> Res.string.home_design_old
+            AppDesign.Glass -> Res.string.glass_design_name
         },
     )
     val paletteName = stringResource(
@@ -1224,21 +1442,39 @@ private fun UiPage(
     ) {
         val dynamicActive = s.dynamicColor && LocalPlatform.current.supportsDynamicColor
         val oldHome = s.appDesign == AppDesign.Old
-        SettingsGroup {
+        val glassDesign = s.appDesign == AppDesign.Glass
+        val bentoDesign = s.appDesign == AppDesign.Bento
+        val pixelFamily = s.appDesign == AppDesign.Pixel || oldHome
+        val bentoSeeded = bentoDesign && s.bento.palette in BentoSeededPalettes
+        SettingsGroup(title = if (glassDesign) stringResource(Res.string.home_design_title) else null) {
             AppDesignPicker(
                 selected = s.appDesign,
                 onSelect = { v -> onUpdate { it.copy(appDesign = v) } },
             )
-            if (!oldHome) {
+            if (!glassDesign) {
                 SettingsInfoRow(
                     title = stringResource(Res.string.home_design_title),
-                    body = stringResource(Res.string.home_design_old_note),
+                    body = stringResource(Res.string.design_settings_note),
                 )
             }
         }
-
-        if (s.appDesign == AppDesign.Bento) {
+        if (glassDesign) {
+            dev.cluvex.zedsecure.ui.glass.GlassFooter(stringResource(Res.string.design_settings_note))
+            dev.cluvex.zedsecure.ui.glass.GlassAppearanceSection(s, onUpdate)
+            dev.cluvex.zedsecure.ui.glass.GlassLookSection(s, onUpdate)
+        } else {
+            DesignColors(s, onUpdate, dynamicActive, pixelFamily, bentoSeeded)
+        }
+        if (bentoDesign) {
             dev.cluvex.zedsecure.ui.bento.BentoLookSection(s, onUpdate)
+            SettingsGroup {
+                SettingsSwitchRow(
+                    title = stringResource(Res.string.personalize_show_ping),
+                    summary = stringResource(Res.string.personalize_show_ping_sub),
+                    checked = s.showServerPing,
+                    onCheckedChange = { v -> onUpdate { it.copy(showServerPing = v) } },
+                )
+            }
         }
 
         if (LocalPlatform.current.hasStatusNotification) {
@@ -1283,74 +1519,6 @@ private fun UiPage(
                     summary = stringResource(Res.string.summary_pref_speed_enabled),
                     checked = s.speedInNotification,
                     onCheckedChange = { v -> onUpdate { it.copy(speedInNotification = v) } },
-                )
-            }
-        }
-
-        SettingsGroup(title = stringResource(Res.string.settings_group_colors)) {
-            SettingsChoiceRow(
-                title = stringResource(Res.string.title_pref_ui_mode_night),
-                summary = null,
-                options = listOf(
-                    ThemeMode.System to stringResource(Res.string.settings_theme_system),
-                    ThemeMode.Light to stringResource(Res.string.settings_theme_light),
-                    ThemeMode.Dark to stringResource(Res.string.settings_theme_dark),
-                ),
-                selected = s.themeMode,
-                icons = listOf(Res.drawable.ic_fill_brightness_auto, Res.drawable.ic_fill_light_mode, Res.drawable.ic_fill_dark_mode),
-                onSelected = { v -> onUpdate { it.copy(themeMode = v) } },
-            )
-            SettingsSwitchRow(
-                title = stringResource(Res.string.title_pref_dynamic_color),
-                summary = stringResource(Res.string.summary_pref_dynamic_color),
-                checked = s.dynamicColor,
-                enabled = LocalPlatform.current.supportsDynamicColor,
-                onCheckedChange = { v -> onUpdate { it.copy(dynamicColor = v) } },
-            )
-            if (!dynamicActive) {
-                ColorStylePicker(
-                    selected = s.colorStyle,
-                    accent = s.accentColor,
-                    contrast = s.colorContrast,
-                    onSelect = { style -> onUpdate { it.copy(colorStyle = style) } },
-                )
-                AccentPicker(
-                    selected = s.accentColor,
-                    onSelect = { idx -> onUpdate { it.copy(accentColor = idx) } },
-                )
-                SettingsChoiceRow(
-                    title = stringResource(Res.string.contrast_title),
-                    summary = null,
-                    options = listOf(
-                        ColorContrast.Standard to stringResource(Res.string.contrast_standard),
-                        ColorContrast.Medium to stringResource(Res.string.contrast_medium),
-                        ColorContrast.High to stringResource(Res.string.contrast_high),
-                    ),
-                    selected = s.colorContrast,
-                    onSelected = { v -> onUpdate { it.copy(colorContrast = v) } },
-                )
-            }
-            SettingsSwitchRow(
-                title = stringResource(Res.string.title_pref_amoled),
-                summary = stringResource(Res.string.summary_pref_amoled),
-                checked = s.amoledBlack,
-                onCheckedChange = { v -> onUpdate { it.copy(amoledBlack = v) } },
-            )
-        }
-
-        SettingsGroup {
-            SettingsSegment {
-                ThemeProfileRow(
-                    label = stringResource(Res.string.theme_profile_title),
-                    subtitle = stringResource(Res.string.theme_profile_sub),
-                    defaultLabel = stringResource(Res.string.theme_profile_none),
-                    selectedId = s.themeProfileId,
-                    onSelect = { profile ->
-                        onUpdate {
-                            if (profile == null) it.resetPersonalization()
-                            else it.applyThemeProfile(profile)
-                        }
-                    },
                 )
             }
         }
@@ -1545,69 +1713,71 @@ private fun UiPage(
                 )
             }
         }
-        SettingsGroup(title = stringResource(Res.string.personalize_servers_title)) {
-            val cs = androidx.compose.material3.MaterialTheme.colorScheme
-            PersonalizeColorRow(
-                title = stringResource(Res.string.personalize_server_card),
-                subtitle = stringResource(Res.string.personalize_server_card_sub),
-                stored = s.customServerCardColor,
-                default = cs.surfaceContainerHigh,
-                preview = { c -> ServerCardPreview(c, active = false) },
-                onChange = { v -> onUpdate { it.copy(customServerCardColor = v) } },
-            )
-            PersonalizeColorRow(
-                title = stringResource(Res.string.personalize_server_active),
-                subtitle = stringResource(Res.string.personalize_server_active_sub),
-                stored = s.customServerActiveColor,
-                default = cs.primaryContainer,
-                preview = { c -> ServerCardPreview(c, active = true) },
-                onChange = { v -> onUpdate { it.copy(customServerActiveColor = v) } },
-            )
-            SettingsSwitchRow(
-                title = stringResource(Res.string.personalize_show_ping),
-                summary = stringResource(Res.string.personalize_show_ping_sub),
-                checked = s.showServerPing,
-                onCheckedChange = { v -> onUpdate { it.copy(showServerPing = v) } },
-            )
-            SettingsSwitchRow(
-                title = stringResource(Res.string.personalize_show_usage),
-                summary = stringResource(Res.string.personalize_show_usage_sub),
-                checked = s.showServerUsage,
-                onCheckedChange = { v -> onUpdate { it.copy(showServerUsage = v) } },
-            )
-            SettingsSwitchRow(
-                title = stringResource(Res.string.personalize_monospace),
-                summary = stringResource(Res.string.personalize_monospace_sub),
-                checked = s.monospaceAddress,
-                onCheckedChange = { v -> onUpdate { it.copy(monospaceAddress = v) } },
-            )
-        }
-        SettingsGroup(title = stringResource(Res.string.personalize_shape_title)) {
-            SettingsListRow(
-                title = stringResource(Res.string.personalize_corner),
-                options = listOf(
-                    CardCornerStyle.Squared to stringResource(Res.string.personalize_corner_squared),
-                    CardCornerStyle.Rounded to stringResource(Res.string.personalize_corner_rounded),
-                    CardCornerStyle.Pill to stringResource(Res.string.personalize_corner_pill),
-                ),
-                selected = s.cardCornerStyle,
-                onSelected = { v -> onUpdate { it.copy(cardCornerStyle = v) } },
-            )
-            SettingsListRow(
-                title = stringResource(Res.string.personalize_density),
-                options = listOf(
-                    ListDensity.Comfortable to stringResource(Res.string.personalize_density_comfortable),
-                    ListDensity.Compact to stringResource(Res.string.personalize_density_compact),
-                ),
-                selected = s.listDensity,
-                onSelected = { v -> onUpdate { it.copy(listDensity = v) } },
-            )
-            SettingsActionRow(
-                title = stringResource(Res.string.personalize_reset_all),
-                summary = stringResource(Res.string.personalize_reset_all_sub),
-                enabled = s.hasPersonalization,
-                onClick = { onUpdate { it.resetPersonalization() } },
-            )
+        if (pixelFamily) {
+            SettingsGroup(title = stringResource(Res.string.personalize_servers_title)) {
+                val cs = androidx.compose.material3.MaterialTheme.colorScheme
+                PersonalizeColorRow(
+                    title = stringResource(Res.string.personalize_server_card),
+                    subtitle = stringResource(Res.string.personalize_server_card_sub),
+                    stored = s.customServerCardColor,
+                    default = cs.surfaceContainerHigh,
+                    preview = { c -> ServerCardPreview(c, active = false) },
+                    onChange = { v -> onUpdate { it.copy(customServerCardColor = v) } },
+                )
+                PersonalizeColorRow(
+                    title = stringResource(Res.string.personalize_server_active),
+                    subtitle = stringResource(Res.string.personalize_server_active_sub),
+                    stored = s.customServerActiveColor,
+                    default = cs.primaryContainer,
+                    preview = { c -> ServerCardPreview(c, active = true) },
+                    onChange = { v -> onUpdate { it.copy(customServerActiveColor = v) } },
+                )
+                SettingsSwitchRow(
+                    title = stringResource(Res.string.personalize_show_ping),
+                    summary = stringResource(Res.string.personalize_show_ping_sub),
+                    checked = s.showServerPing,
+                    onCheckedChange = { v -> onUpdate { it.copy(showServerPing = v) } },
+                )
+                SettingsSwitchRow(
+                    title = stringResource(Res.string.personalize_show_usage),
+                    summary = stringResource(Res.string.personalize_show_usage_sub),
+                    checked = s.showServerUsage,
+                    onCheckedChange = { v -> onUpdate { it.copy(showServerUsage = v) } },
+                )
+                SettingsSwitchRow(
+                    title = stringResource(Res.string.personalize_monospace),
+                    summary = stringResource(Res.string.personalize_monospace_sub),
+                    checked = s.monospaceAddress,
+                    onCheckedChange = { v -> onUpdate { it.copy(monospaceAddress = v) } },
+                )
+            }
+            SettingsGroup(title = stringResource(Res.string.personalize_shape_title)) {
+                SettingsListRow(
+                    title = stringResource(Res.string.personalize_corner),
+                    options = listOf(
+                        CardCornerStyle.Squared to stringResource(Res.string.personalize_corner_squared),
+                        CardCornerStyle.Rounded to stringResource(Res.string.personalize_corner_rounded),
+                        CardCornerStyle.Pill to stringResource(Res.string.personalize_corner_pill),
+                    ),
+                    selected = s.cardCornerStyle,
+                    onSelected = { v -> onUpdate { it.copy(cardCornerStyle = v) } },
+                )
+                SettingsListRow(
+                    title = stringResource(Res.string.personalize_density),
+                    options = listOf(
+                        ListDensity.Comfortable to stringResource(Res.string.personalize_density_comfortable),
+                        ListDensity.Compact to stringResource(Res.string.personalize_density_compact),
+                    ),
+                    selected = s.listDensity,
+                    onSelected = { v -> onUpdate { it.copy(listDensity = v) } },
+                )
+                SettingsActionRow(
+                    title = stringResource(Res.string.personalize_reset_all),
+                    summary = stringResource(Res.string.personalize_reset_all_sub),
+                    enabled = s.hasPersonalization,
+                    onClick = { onUpdate { it.resetPersonalization() } },
+                )
+            }
         }
         SettingsGroup(title = stringResource(Res.string.settings_group_behaviour)) {
             SettingsSwitchRow(
@@ -1671,6 +1841,100 @@ private fun UiPage(
                     selected = s.trafficTileSize,
                     enabled = s.showTrafficTiles,
                     onSelected = { v -> onUpdate { it.copy(trafficTileSize = v) } },
+                )
+            }
+        }
+    }
+}
+
+private val BentoSeededPalettes = setOf(
+    dev.cluvex.zedsecure.domain.model.BentoPalette.Accent,
+    dev.cluvex.zedsecure.domain.model.BentoPalette.Pastel,
+    dev.cluvex.zedsecure.domain.model.BentoPalette.Vivid,
+    dev.cluvex.zedsecure.domain.model.BentoPalette.Mono,
+)
+
+@Composable
+private fun DesignColors(
+    s: AppSettings,
+    onUpdate: ((AppSettings) -> AppSettings) -> Unit,
+    dynamicActive: Boolean,
+    pixelFamily: Boolean,
+    bentoSeeded: Boolean,
+) {
+    SettingsGroup(title = stringResource(Res.string.settings_group_colors)) {
+        SettingsChoiceRow(
+            title = stringResource(Res.string.title_pref_ui_mode_night),
+            summary = null,
+            options = listOf(
+                ThemeMode.System to stringResource(Res.string.settings_theme_system),
+                ThemeMode.Light to stringResource(Res.string.settings_theme_light),
+                ThemeMode.Dark to stringResource(Res.string.settings_theme_dark),
+            ),
+            selected = s.themeMode,
+            icons = listOf(Res.drawable.ic_fill_brightness_auto, Res.drawable.ic_fill_light_mode, Res.drawable.ic_fill_dark_mode),
+            onSelected = { v -> onUpdate { it.copy(themeMode = v) } },
+        )
+        if (pixelFamily || bentoSeeded) {
+            SettingsSwitchRow(
+                title = stringResource(Res.string.title_pref_dynamic_color),
+                summary = stringResource(Res.string.summary_pref_dynamic_color),
+                checked = s.dynamicColor,
+                enabled = LocalPlatform.current.supportsDynamicColor,
+                onCheckedChange = { v -> onUpdate { it.copy(dynamicColor = v) } },
+            )
+        }
+        if (!dynamicActive && bentoSeeded) {
+            AccentPicker(
+                selected = s.accentColor,
+                onSelect = { idx -> onUpdate { it.copy(accentColor = idx) } },
+            )
+        }
+        if (!dynamicActive && pixelFamily) {
+            ColorStylePicker(
+                selected = s.colorStyle,
+                accent = s.accentColor,
+                contrast = s.colorContrast,
+                onSelect = { style -> onUpdate { it.copy(colorStyle = style) } },
+            )
+            AccentPicker(
+                selected = s.accentColor,
+                onSelect = { idx -> onUpdate { it.copy(accentColor = idx) } },
+            )
+            SettingsChoiceRow(
+                title = stringResource(Res.string.contrast_title),
+                summary = null,
+                options = listOf(
+                    ColorContrast.Standard to stringResource(Res.string.contrast_standard),
+                    ColorContrast.Medium to stringResource(Res.string.contrast_medium),
+                    ColorContrast.High to stringResource(Res.string.contrast_high),
+                ),
+                selected = s.colorContrast,
+                onSelected = { v -> onUpdate { it.copy(colorContrast = v) } },
+            )
+        }
+        SettingsSwitchRow(
+            title = stringResource(Res.string.title_pref_amoled),
+            summary = stringResource(Res.string.summary_pref_amoled),
+            checked = s.amoledBlack,
+            onCheckedChange = { v -> onUpdate { it.copy(amoledBlack = v) } },
+        )
+    }
+
+    if (pixelFamily) {
+        SettingsGroup {
+            SettingsSegment {
+                ThemeProfileRow(
+                    label = stringResource(Res.string.theme_profile_title),
+                    subtitle = stringResource(Res.string.theme_profile_sub),
+                    defaultLabel = stringResource(Res.string.theme_profile_none),
+                    selectedId = s.themeProfileId,
+                    onSelect = { profile ->
+                        onUpdate {
+                            if (profile == null) it.resetPersonalization()
+                            else it.applyThemeProfile(profile)
+                        }
+                    },
                 )
             }
         }

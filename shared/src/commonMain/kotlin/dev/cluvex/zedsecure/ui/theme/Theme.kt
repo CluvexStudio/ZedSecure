@@ -20,6 +20,11 @@ import com.materialkolor.dynamiccolor.ColorSpec
 import com.materialkolor.ktx.animateColorScheme
 import dev.cluvex.zedsecure.domain.model.AppDesign
 import dev.cluvex.zedsecure.domain.model.BentoPrefs
+import dev.cluvex.zedsecure.domain.model.GlassPrefs
+import dev.cluvex.zedsecure.ui.glass.GlassLook
+import dev.cluvex.zedsecure.ui.glass.GlassPalette
+import dev.cluvex.zedsecure.ui.glass.LocalGlassLook
+import dev.cluvex.zedsecure.ui.glass.glassColorScheme
 import dev.cluvex.zedsecure.ui.bento.BentoPalettes
 import dev.cluvex.zedsecure.ui.bento.BentoStyle
 import dev.cluvex.zedsecure.ui.bento.LocalBentoStyle
@@ -44,6 +49,8 @@ fun ZedSecureTheme(
 
     bento: BentoPrefs = BentoPrefs(),
 
+    glass: GlassPrefs = GlassPrefs(),
+
     languageTag: String = "en",
 
     fontScale: Float = 1f,
@@ -58,13 +65,15 @@ fun ZedSecureTheme(
     val bentoColors = remember(bento.palette, darkTheme, bentoSeed, amoledBlack) {
         BentoPalettes.of(bento.palette, darkTheme, bentoSeed, amoledBlack)
     }
-    val scheme = if (design == AppDesign.Bento) {
-        remember(bentoColors) { bentoColorScheme(bentoColors) }
-    } else {
-        (system ?: rememberZedColorScheme(darkTheme, accentColor, colorStyle, colorContrast))
+    val glassColors = remember(glass, darkTheme) { GlassPalette.of(darkTheme, glass) }
+    val scheme = when (design) {
+        AppDesign.Bento -> remember(bentoColors) { bentoColorScheme(bentoColors) }
+        AppDesign.Glass -> remember(glassColors) { glassColorScheme(glassColors) }
+        else -> (system ?: rememberZedColorScheme(darkTheme, accentColor, colorStyle, colorContrast))
             .let { if (amoledBlack) it.amoled(darkTheme) else it }
     }
     val bentoStyle = remember(bentoColors, bento, languageTag) { BentoStyle(bentoColors, bento, latin = languageTag != "fa") }
+    val glassLook = remember(glassColors, glass, languageTag) { GlassLook(glassColors, glass, latin = languageTag != "fa") }
     val colorScheme = if (animateColors) {
         animateColorScheme(scheme, animationSpec = { spring(stiffness = Spring.StiffnessMediumLow) })
     } else {
@@ -86,6 +95,7 @@ fun ZedSecureTheme(
             LocalDensity provides scaled,
             LocalAppDesign provides design,
             LocalBentoStyle provides bentoStyle,
+            LocalGlassLook provides glassLook,
             content = content,
         )
     }

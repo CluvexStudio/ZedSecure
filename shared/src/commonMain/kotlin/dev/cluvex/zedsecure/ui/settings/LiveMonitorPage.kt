@@ -397,7 +397,7 @@ private fun CoreCard(stats: LiveStats, crypto: String, modifier: Modifier) {
 private fun MonitorCard(modifier: Modifier = Modifier, content: @Composable ColumnScopeAlias.() -> Unit) {
     Surface(
         shape = RoundedCornerShape(26.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        color = dev.cluvex.zedsecure.ui.glass.glassSurface(MaterialTheme.colorScheme.surfaceContainerHigh),
         modifier = modifier,
     ) {
         Column(Modifier.padding(18.dp), content = content)

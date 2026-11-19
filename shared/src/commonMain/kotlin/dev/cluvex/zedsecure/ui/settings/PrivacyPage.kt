@@ -144,7 +144,7 @@ fun PrivacyPage(
 private fun Section(title: String, body: String) {
     Surface(
         shape = MaterialTheme.shapes.largeIncreased,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        color = dev.cluvex.zedsecure.ui.glass.glassSurface(MaterialTheme.colorScheme.surfaceContainerHigh),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {

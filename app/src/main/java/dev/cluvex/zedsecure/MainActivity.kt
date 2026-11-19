@@ -299,6 +299,7 @@ class MainActivity : ComponentActivity() {
                 colorContrast = settings.colorContrast,
                 design = settings.appDesign,
                 bento = settings.bento,
+                glass = settings.glass,
                 animateColors = !settings.reduceMotion,
                 languageTag = langTag,
                 fontScale = settings.uiFontScale.scale,

@@ -49,6 +49,7 @@ kotlin {
                 implementation(libs.androidx.graphics.shapes)
                 implementation(libs.kotlinx.serialization.json)
                 implementation(libs.reorderable)
+                implementation(libs.backdrop)
             }
         }
         getByName("androidMain") {

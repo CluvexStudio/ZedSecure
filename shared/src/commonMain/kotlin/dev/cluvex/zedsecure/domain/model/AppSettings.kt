@@ -8,7 +8,7 @@ enum class ColorStyle { ZedSecure, TonalSpot, Vibrant, Expressive, Rainbow, Frui
 
 enum class ColorContrast(val level: Double) { Standard(0.0), Medium(0.5), High(1.0) }
 
-enum class AppDesign { Bento, Pixel, Old }
+enum class AppDesign { Bento, Pixel, Old, Glass }
 
 enum class ScreenTransition {
     Fade,
@@ -252,6 +252,7 @@ data class AppSettings(
     val appDesign: AppDesign = AppDesign.Bento,
 
     val bento: BentoPrefs = BentoPrefs(),
+    val glass: GlassPrefs = GlassPrefs(),
 
     val connectButtonStyle: ConnectButtonStyle = ConnectButtonStyle.Hero,
 

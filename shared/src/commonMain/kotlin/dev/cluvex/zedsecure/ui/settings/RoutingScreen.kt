@@ -453,7 +453,7 @@ private fun RuleRow(
 
     Surface(
         shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        color = dev.cluvex.zedsecure.ui.glass.glassSurface(MaterialTheme.colorScheme.surfaceContainerHigh),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
@@ -560,7 +560,7 @@ private fun ToggleRow(
 private fun RoutingCard(content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
     Surface(
         shape = RoundedCornerShape(22.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        color = dev.cluvex.zedsecure.ui.glass.glassSurface(MaterialTheme.colorScheme.surfaceContainerHigh),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(Modifier.fillMaxWidth().padding(16.dp), content = content)

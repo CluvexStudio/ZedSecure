@@ -33,6 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import com.kyant.backdrop.backdrops.layerBackdrop
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import org.jetbrains.compose.resources.painterResource
@@ -93,6 +94,7 @@ fun MainScaffold(
         mutableStateOf(dev.cluvex.zedsecure.ui.settings.SettingsPage.Root)
     }
     val bento = settings.appDesign == dev.cluvex.zedsecure.domain.model.AppDesign.Bento
+    val glass = settings.appDesign == dev.cluvex.zedsecure.domain.model.AppDesign.Glass
     val tabs = androidx.compose.runtime.remember(settings.navTabs, platform.supportsPerAppProxy) {
         val available = dev.cluvex.zedsecure.domain.model.NavTab.entries
             .filter { it != dev.cluvex.zedsecure.domain.model.NavTab.Apps || platform.supportsPerAppProxy }
@@ -103,7 +105,27 @@ fun MainScaffold(
     val barStyle = if (bento) settings.bento.navStyle else settings.navBarStyle
     val dock = bento && barStyle == dev.cluvex.zedsecure.domain.model.NavBarStyle.Dock
     var dockShown by rememberSaveable { mutableStateOf(true) }
-    androidx.compose.runtime.LaunchedEffect(current) { dockShown = true }
+    var glassMini by rememberSaveable { mutableStateOf(false) }
+    androidx.compose.runtime.LaunchedEffect(current) {
+        dockShown = true
+        glassMini = false
+    }
+    val glassSearch = androidx.compose.runtime.remember { dev.cluvex.zedsecure.ui.glass.GlassSearchState() }
+    val glassShrink = settings.glass.shrinkTabBar
+    val glassScroll = androidx.compose.runtime.remember(glassShrink) {
+        object : androidx.compose.ui.input.nestedscroll.NestedScrollConnection {
+            override fun onPostScroll(
+                consumed: androidx.compose.ui.geometry.Offset,
+                available: androidx.compose.ui.geometry.Offset,
+                source: androidx.compose.ui.input.nestedscroll.NestedScrollSource,
+            ): androidx.compose.ui.geometry.Offset {
+                if (glassShrink) {
+                    if (consumed.y < -4f) glassMini = true else if (consumed.y > 4f || available.y > 24f) glassMini = false
+                }
+                return androidx.compose.ui.geometry.Offset.Zero
+            }
+        }
+    }
     val autoHide = settings.bento.dockAutoHide
     val dockScroll = androidx.compose.runtime.remember(autoHide) {
         object : androidx.compose.ui.input.nestedscroll.NestedScrollConnection {
@@ -159,6 +181,8 @@ fun MainScaffold(
 
     BackHandler(enabled = current != TopDestination.Home) { current = TopDestination.Home }
 
+    BackHandler(enabled = glass && glassSearch.active) { glassSearch.close() }
+
     BackHandler(enabled = tourStep >= 0) {
         tourStep = -1
         current = TopDestination.Home
@@ -205,10 +229,16 @@ fun MainScaffold(
         dev.cluvex.zedsecure.domain.config.AutoSelectIds.of(sub.id) to stringResource(Res.string.auto_title_for, sub.name)
     }
 
+    val glassChrome = if (glass) dev.cluvex.zedsecure.ui.glass.rememberGlassChrome() else null
     Box(Modifier.fillMaxSize()) {
+    if (glassChrome != null) {
+        dev.cluvex.zedsecure.ui.glass.GlassWallpaperLayer(glassChrome.wall)
+    }
     Scaffold(
+        containerColor = if (glass) androidx.compose.ui.graphics.Color.Transparent else MaterialTheme.colorScheme.background,
+        contentColor = MaterialTheme.colorScheme.onBackground,
         bottomBar = {
-            if (!dock) {
+            if (!dock && !glass) {
                 dev.cluvex.zedsecure.ui.navigation.ZedNavBar(
                     style = barStyle,
                     tabs = tabs,
@@ -219,13 +249,16 @@ fun MainScaffold(
         },
     ) { scaffoldPadding ->
       val layoutDirection = androidx.compose.ui.platform.LocalLayoutDirection.current
-      val innerPadding = if (dock) {
+      val innerPadding = if (dock || glass) {
           PaddingValues(
               start = scaffoldPadding.calculateStartPadding(layoutDirection),
               top = scaffoldPadding.calculateTopPadding(),
               end = scaffoldPadding.calculateEndPadding(layoutDirection),
-              bottom = scaffoldPadding.calculateBottomPadding() + dev.cluvex.zedsecure.ui.bento.BentoDockHeight +
-                  dev.cluvex.zedsecure.ui.bento.BentoDockMargin + 8.dp,
+              bottom = scaffoldPadding.calculateBottomPadding() + if (glass) {
+                  dev.cluvex.zedsecure.ui.glass.GlassTabBarHeight + dev.cluvex.zedsecure.ui.glass.GlassTabBarMargin + 10.dp
+              } else {
+                  dev.cluvex.zedsecure.ui.bento.BentoDockHeight + dev.cluvex.zedsecure.ui.bento.BentoDockMargin + 8.dp
+              },
           )
       } else {
           scaffoldPadding
@@ -233,7 +266,18 @@ fun MainScaffold(
       androidx.compose.foundation.layout.Box(
           Modifier
               .fillMaxSize()
-              .then(if (dock) Modifier.nestedScroll(dockScroll) else Modifier),
+              .then(
+                  when {
+                      dock -> Modifier.nestedScroll(dockScroll)
+                      glassChrome != null -> Modifier
+                          .nestedScroll(glassScroll)
+                          .layerBackdrop(glassChrome.page)
+                      else -> Modifier
+                  },
+              ),
+      ) {
+      androidx.compose.runtime.CompositionLocalProvider(
+          dev.cluvex.zedsecure.ui.glass.LocalGlassSearch provides (if (glass) glassSearch else null),
       ) {
         val sign = dev.cluvex.zedsecure.ui.motion.layoutSign()
         AnimatedContent(
@@ -294,6 +338,7 @@ fun MainScaffold(
                     personalization = settings.toPersonalization(),
                     connectStyle = settings.connectButtonStyle,
                     design = settings.appDesign,
+                    showLocation = settings.detectServerLocation,
                     contentPadding = innerPadding,
                     onToggleConnection = onToggleConnection,
 
@@ -377,6 +422,7 @@ fun MainScaffold(
                         onActiveServerChanged()
                     },
                     detectServerLocation = settings.detectServerLocation,
+                    onDetectServerLocation = { v -> onUpdateSettings { it.copy(detectServerLocation = v) } },
                 )
                 TopDestination.Vault -> VaultScreen(
                     repository = configRepository,
@@ -475,7 +521,7 @@ fun MainScaffold(
         val vpnStatus by dev.cluvex.zedsecure.core.VpnManager.status.collectAsStateWithLifecycle()
         val detailsOpen by homeVm.expanded.collectAsStateWithLifecycle()
         HomeFabCluster(
-            visible = current == TopDestination.Home && !bento &&
+            visible = current == TopDestination.Home && !bento && !glass &&
                 !(detailsOpen && settings.appDesign == dev.cluvex.zedsecure.domain.model.AppDesign.Pixel),
             showSpeedTest = vpnStatus.state == dev.cluvex.zedsecure.domain.model.ConnectionState.Connected &&
                 activeProfile?.isDnsBasedTunnel != true,
@@ -496,6 +542,7 @@ fun MainScaffold(
             modifier = Modifier.padding(innerPadding),
         )
       }
+      }
     }
 
     if (dock) {
@@ -505,6 +552,28 @@ fun MainScaffold(
             onSelect = { current = it },
             visible = dockShown || !autoHide,
             modifier = Modifier.align(Alignment.BottomCenter),
+        )
+    }
+
+    if (glassChrome != null) {
+        dev.cluvex.zedsecure.ui.glass.GlassTopEdge(glassChrome.combined, Modifier.align(Alignment.TopCenter))
+        dev.cluvex.zedsecure.ui.glass.GlassTabBar(
+            tabs = tabs,
+            current = current,
+            onSelect = {
+                glassSearch.close()
+                current = it
+            },
+            backdrop = glassChrome.combined,
+            minimized = glassMini,
+            onExpand = { glassMini = false },
+            search = glassSearch,
+            onOpenSearch = {
+                if (current != TopDestination.Servers && current != TopDestination.Settings) current = TopDestination.Servers
+                glassSearch.active = true
+            },
+            modifier = Modifier.align(Alignment.BottomCenter),
+            tilt = dev.cluvex.zedsecure.ui.glass.rememberGlassTilt(settings.glass.motionHighlights),
         )
     }
 

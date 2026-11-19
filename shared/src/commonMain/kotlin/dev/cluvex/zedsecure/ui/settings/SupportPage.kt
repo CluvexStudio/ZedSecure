@@ -118,7 +118,7 @@ private fun WalletCard(
 ) {
     Surface(
         shape = MaterialTheme.shapes.largeIncreased,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        color = dev.cluvex.zedsecure.ui.glass.glassSurface(MaterialTheme.colorScheme.surfaceContainerHigh),
         modifier = Modifier.fillMaxWidth().clickable { onCopy(address) },
     ) {
         Row(

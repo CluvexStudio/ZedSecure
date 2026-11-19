@@ -76,7 +76,7 @@ fun PerAppProxyScreen(
             Spacer(Modifier.height(12.dp))
             Surface(
                 shape = RoundedCornerShape(20.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                color = dev.cluvex.zedsecure.ui.glass.glassSurface(MaterialTheme.colorScheme.surfaceContainerHigh),
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
             ) {
                 Text(

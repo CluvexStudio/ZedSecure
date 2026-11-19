@@ -49,6 +49,10 @@ import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun AppDesignPicker(selected: AppDesign, onSelect: (AppDesign) -> Unit) {
+    if (dev.cluvex.zedsecure.ui.glass.Glass.active) {
+        GlassDesignPicker(selected, onSelect)
+        return
+    }
     SettingsSegment {
         Column(Modifier.fillMaxWidth().padding(top = 14.dp, bottom = 16.dp)) {
             Column(Modifier.padding(horizontal = 16.dp)) {
@@ -69,6 +73,12 @@ fun AppDesignPicker(selected: AppDesign, onSelect: (AppDesign) -> Unit) {
                 Modifier.fillMaxWidth().selectableGroup().padding(horizontal = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
+                DesignCard(
+                    name = stringResource(Res.string.glass_design_name),
+                    selected = selected == AppDesign.Glass,
+                    modifier = Modifier.weight(1f),
+                    onClick = { onSelect(AppDesign.Glass) },
+                ) { dev.cluvex.zedsecure.ui.glass.GlassDesignPreview() }
                 DesignCard(
                     name = stringResource(Res.string.home_design_bento),
                     selected = selected == AppDesign.Bento,
@@ -215,5 +225,55 @@ private fun OldPreview() {
         }
         Box(Modifier.fillMaxWidth().height(18.dp).clip(RoundedCornerShape(7.dp)).background(cs.primaryContainer))
         Box(Modifier.fillMaxWidth().height(18.dp).clip(RoundedCornerShape(9.dp)).background(cs.primary))
+    }
+}
+
+@Composable
+private fun GlassDesignPicker(selected: AppDesign, onSelect: (AppDesign) -> Unit) {
+    val c = dev.cluvex.zedsecure.ui.glass.Glass.colors
+    Row(
+        Modifier.fillMaxWidth().selectableGroup().padding(start = 12.dp, end = 12.dp, top = 14.dp, bottom = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        val items = listOf(
+            Triple(AppDesign.Glass, Res.string.glass_design_name, 0),
+            Triple(AppDesign.Bento, Res.string.home_design_bento, 1),
+            Triple(AppDesign.Pixel, Res.string.home_design_pixel, 2),
+            Triple(AppDesign.Old, Res.string.home_design_old, 3),
+        )
+        items.forEach { (design, label, kind) ->
+            val on = selected == design
+            val shape = RoundedCornerShape(13.dp)
+            Column(
+                Modifier
+                    .weight(1f)
+                    .selectable(on, remember { MutableInteractionSource() }, null, true, Role.RadioButton) { onSelect(design) },
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(7.dp),
+            ) {
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(120.dp)
+                        .border(if (on) 2.dp else 0.5.dp, if (on) c.tint else c.separator, shape)
+                        .padding(if (on) 2.dp else 0.5.dp)
+                        .clip(shape),
+                ) {
+                    when (kind) {
+                        0 -> dev.cluvex.zedsecure.ui.glass.GlassDesignPreview()
+                        1 -> BentoPreviewCard()
+                        2 -> PixelPreview()
+                        else -> OldPreview()
+                    }
+                }
+                Text(
+                    stringResource(label),
+                    style = dev.cluvex.zedsecure.ui.glass.GlassType.caption().copy(fontWeight = FontWeight.Medium),
+                    color = c.label,
+                    maxLines = 1,
+                )
+                dev.cluvex.zedsecure.ui.glass.GlassRadio(on)
+            }
+        }
     }
 }

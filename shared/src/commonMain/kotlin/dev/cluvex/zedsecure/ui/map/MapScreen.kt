@@ -141,6 +141,34 @@ fun MapScreen(
         )
     }
 
+    if (dev.cluvex.zedsecure.ui.glass.Glass.active) {
+        GlassMapLayout(
+            contentPadding = contentPadding,
+            modifier = modifier,
+            countries = countries,
+            origin = origin,
+            exit = exit,
+            labels = labels,
+            reduceMotion = reduceMotion,
+            vpnOn = vpnOn,
+            connected = connected,
+            info = info,
+            originCode = originCode,
+            originLabel = originLabel,
+            exitCode = exitCode,
+            exitLabel = exitLabel,
+            savedOrigin = vpnOn && savedOriginCode.isNotBlank(),
+            needsVpnOff = needsVpnOff,
+            note = when {
+                !vpnOn -> Res.string.map_offline_here
+                deviceVpn && !ownTunnel && !needsVpnOff -> Res.string.map_other_vpn
+                else -> null
+            },
+            serverName = status.serverName,
+            onRefresh = { vm.refresh(force = true) },
+        )
+        return
+    }
     if (dev.cluvex.zedsecure.ui.bento.Bento.active) {
         var showDetails by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
         if (showDetails) {

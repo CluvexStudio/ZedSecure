@@ -57,6 +57,7 @@ import dev.cluvex.zedsecure.domain.model.NavTab
 import dev.cluvex.zedsecure.domain.model.NavTabs
 import dev.cluvex.zedsecure.shared.resources.Res
 import dev.cluvex.zedsecure.shared.resources.bento_dock_autohide
+import dev.cluvex.zedsecure.shared.resources.glass_shrink
 import dev.cluvex.zedsecure.shared.resources.bento_dock_autohide_sum
 import dev.cluvex.zedsecure.shared.resources.bento_dock_labels_active
 import dev.cluvex.zedsecure.shared.resources.bento_dock_labels_always
@@ -109,6 +110,7 @@ fun NavBarSettingsPage(
     onUpdate: ((AppSettings) -> AppSettings) -> Unit,
 ) {
     val bento = settings.appDesign == AppDesign.Bento
+    val glass = settings.appDesign == AppDesign.Glass
     val perApp = LocalPlatform.current.supportsPerAppProxy
     val available = remember(perApp) { availableNavTabs(perApp) }
     val tabs = remember(settings.navTabs, available) { NavTabs.parse(settings.navTabs, available) }
@@ -126,7 +128,7 @@ fun NavBarSettingsPage(
         contentPadding = contentPadding,
         modifier = modifier,
     ) {
-        NavPreview(tabs.map { TopDestination.of(it) }, style, bento)
+        NavPreview(tabs.map { TopDestination.of(it) }, style, bento, glass)
 
         SettingsGroup(title = stringResource(Res.string.navbar_tabs)) {
             SettingsSegment {
@@ -157,7 +159,15 @@ fun NavBarSettingsPage(
             }
         }
 
-        SettingsGroup(title = stringResource(Res.string.navbar_style)) {
+        if (glass) {
+            SettingsGroup(title = stringResource(Res.string.navbar_style)) {
+                SettingsSwitchRow(
+                    title = stringResource(Res.string.glass_shrink),
+                    checked = settings.glass.shrinkTabBar,
+                    onCheckedChange = { v -> onUpdate { it.copy(glass = it.glass.copy(shrinkTabBar = v)) } },
+                )
+            }
+        } else SettingsGroup(title = stringResource(Res.string.navbar_style)) {
             val styles = buildList {
                 if (bento) add(NavBarStyle.Dock to stringResource(Res.string.nav_style_dock))
                 add(NavBarStyle.FloatingPill to stringResource(Res.string.nav_style_floating))
@@ -197,7 +207,7 @@ fun NavBarSettingsPage(
 }
 
 @Composable
-private fun NavPreview(tabs: List<TopDestination>, style: NavBarStyle, bento: Boolean) {
+private fun NavPreview(tabs: List<TopDestination>, style: NavBarStyle, bento: Boolean, glass: Boolean) {
     var current by remember(tabs) { mutableStateOf(tabs.first()) }
     if (current !in tabs) current = tabs.first()
     Box(
@@ -210,7 +220,18 @@ private fun NavPreview(tabs: List<TopDestination>, style: NavBarStyle, bento: Bo
             .padding(vertical = 18.dp),
         contentAlignment = Alignment.Center,
     ) {
-        if (bento && style == NavBarStyle.Dock) {
+        if (glass) {
+            dev.cluvex.zedsecure.ui.glass.GlassTabBar(
+                tabs = tabs,
+                current = current,
+                onSelect = { current = it },
+                backdrop = null,
+                minimized = false,
+                onExpand = {},
+                search = remember { dev.cluvex.zedsecure.ui.glass.GlassSearchState() },
+                onOpenSearch = {},
+            )
+        } else if (bento && style == NavBarStyle.Dock) {
             BentoDock(tabs = tabs, current = current, onSelect = { current = it }, visible = true)
         } else {
             ZedNavBar(style = style, tabs = tabs, current = current, onSelect = { current = it })

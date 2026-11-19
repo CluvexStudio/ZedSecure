@@ -180,7 +180,7 @@ private fun formatBytes(bytes: Long): String {
 private fun AssetCard(asset: GeoAsset, onImport: () -> Unit) {
     Surface(
         shape = RoundedCornerShape(22.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        color = dev.cluvex.zedsecure.ui.glass.glassSurface(MaterialTheme.colorScheme.surfaceContainerHigh),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(

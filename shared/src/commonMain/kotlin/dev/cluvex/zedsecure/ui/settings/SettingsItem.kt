@@ -97,6 +97,22 @@ import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import dev.cluvex.zedsecure.ui.platform.appVerticalScroll
+import dev.cluvex.zedsecure.ui.glass.Glass
+import dev.cluvex.zedsecure.ui.glass.GlassArtBadge
+import dev.cluvex.zedsecure.ui.glass.GlassBanner
+import dev.cluvex.zedsecure.ui.glass.GlassBusy
+import dev.cluvex.zedsecure.ui.glass.GlassChip
+import dev.cluvex.zedsecure.ui.glass.GlassChoiceRow
+import dev.cluvex.zedsecure.ui.glass.GlassChoices
+import dev.cluvex.zedsecure.ui.glass.GlassInfoRow
+import dev.cluvex.zedsecure.ui.glass.GlassListRow
+import dev.cluvex.zedsecure.ui.glass.GlassRow
+import dev.cluvex.zedsecure.ui.glass.GlassRowIcon
+import dev.cluvex.zedsecure.ui.glass.GlassSectionHeader
+import dev.cluvex.zedsecure.ui.glass.GlassSettingsGroup
+import dev.cluvex.zedsecure.ui.glass.GlassSettingsHeader
+import dev.cluvex.zedsecure.ui.glass.GlassSettingsPage
+import dev.cluvex.zedsecure.ui.glass.GlassSwitchRow
 
 private const val DisabledAlpha = 0.38f
 private val SegmentGap = 2.dp
@@ -171,6 +187,10 @@ fun SettingsGroup(
     inset: Dp = 16.dp,
     content: @Composable () -> Unit,
 ) {
+    if (Glass.active) {
+        GlassSettingsGroup(title, modifier, content)
+        return
+    }
     Column(modifier.fillMaxWidth().padding(top = if (title == null) 14.dp else 6.dp)) {
         if (title != null) SettingsGroupLabel(title)
         SegmentedColumn(Modifier.fillMaxWidth().padding(horizontal = inset), content)
@@ -179,6 +199,10 @@ fun SettingsGroup(
 
 @Composable
 fun SettingsGroupLabel(title: String, modifier: Modifier = Modifier) {
+    if (Glass.active) {
+        GlassSectionHeader(title, modifier)
+        return
+    }
     if (dev.cluvex.zedsecure.ui.bento.Bento.active) {
         dev.cluvex.zedsecure.ui.bento.BentoGroupLabel(title, modifier)
         return
@@ -230,6 +254,10 @@ fun SettingsSegment(
     brush: Brush? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    if (Glass.active) {
+        Column(modifier.fillMaxWidth(), content = content)
+        return
+    }
     SegmentSurface(modifier, interactionSource?.let { rememberInteractionLevel(it) }, color, brush, content)
 }
 
@@ -350,6 +378,17 @@ fun SettingsRow(
     trailing: (@Composable () -> Unit)? = null,
     onClick: () -> Unit,
 ) {
+    if (Glass.active) {
+        GlassRow(
+            title = title,
+            subtitle = description,
+            enabled = enabled,
+            leading = art?.let { { GlassArtBadge(it) } },
+            trailing = trailing,
+            onClick = onClick,
+        )
+        return
+    }
     ClickableSegment(enabled, onClick) { pressed ->
         RowBody(
             title = title,
@@ -382,6 +421,21 @@ fun SettingsMenuRow(
     trailing: (@Composable () -> Unit)? = null,
     onClick: () -> Unit,
 ) {
+    if (Glass.active) {
+        GlassRow(
+            title = title,
+            subtitle = subtitle,
+            leading = when {
+                art != null -> { { GlassArtBadge(art) } }
+                leadingIcon != null -> { { GlassRowIcon(leadingIcon, iconTint ?: Glass.colors.tint) } }
+                else -> null
+            },
+            trailing = trailing,
+            chevron = trailing == null,
+            onClick = onClick,
+        )
+        return
+    }
     ClickableSegment(true, onClick) { pressed ->
         RowBody(
             title = title,
@@ -413,6 +467,10 @@ fun SettingsBannerRow(
     art: SettingsArt,
     onClick: () -> Unit,
 ) {
+    if (Glass.active) {
+        GlassBanner(title, subtitle, art, onClick)
+        return
+    }
     val cs = MaterialTheme.colorScheme
     val brush = remember(cs.tertiaryContainer, cs.primaryContainer) {
         Brush.linearGradient(listOf(cs.tertiaryContainer, cs.primaryContainer))
@@ -438,6 +496,10 @@ fun SettingsSwitchRow(
     enabled: Boolean = true,
     onCheckedChange: (Boolean) -> Unit,
 ) {
+    if (Glass.active) {
+        GlassSwitchRow(title = title, checked = checked, onCheckedChange = onCheckedChange, subtitle = summary, enabled = enabled)
+        return
+    }
     val source = remember { MutableInteractionSource() }
     SettingsSegment(interactionSource = source) {
         Box(
@@ -496,20 +558,30 @@ fun SettingsEditRow(
         else -> placeholder
     }
 
-    ClickableSegment(enabled, { showDialog = true }) {
-        RowBody(
+    if (Glass.active) {
+        GlassRow(
             title = title,
-            description = description,
+            subtitle = description,
             enabled = enabled,
-            trailing = {
-                Icon(
-                    painterResource(Res.drawable.ic_edit),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (enabled) 0.8f else DisabledAlpha),
-                    modifier = Modifier.size(20.dp),
-                )
-            },
+            chevron = true,
+            onClick = { showDialog = true },
         )
+    } else {
+        ClickableSegment(enabled, { showDialog = true }) {
+            RowBody(
+                title = title,
+                description = description,
+                enabled = enabled,
+                trailing = {
+                    Icon(
+                        painterResource(Res.drawable.ic_edit),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (enabled) 0.8f else DisabledAlpha),
+                        modifier = Modifier.size(20.dp),
+                    )
+                },
+            )
+        }
     }
 
     if (showDialog) {
@@ -595,6 +667,10 @@ fun <T> SettingsListRow(
         SettingsChoiceRow(title, null, labelled, selected, enabled, onSelected = onSelected)
         return
     }
+    if (Glass.active) {
+        GlassListRow(title, labelled, selected, enabled, onSelected)
+        return
+    }
     val selectedLabel = labelled.firstOrNull { it.first == selected }?.second ?: labelled.firstOrNull()?.second.orEmpty()
     var open by rememberSaveable(title) { mutableStateOf(false) }
     val source = remember { MutableInteractionSource() }
@@ -643,6 +719,10 @@ fun <T> SettingsListRow(
 
 @Composable
 fun ChoiceChip(label: String, selected: Boolean, enabled: Boolean = true, onClick: () -> Unit) {
+    if (Glass.active) {
+        GlassChip(label, selected, enabled, onClick)
+        return
+    }
     val cs = MaterialTheme.colorScheme
     val source = remember { MutableInteractionSource() }
     val pressed by source.collectIsPressedAsState()
@@ -693,6 +773,10 @@ fun <T> SettingsChoiceRow(
     icons: List<DrawableResource>? = null,
     onSelected: (T) -> Unit,
 ) {
+    if (Glass.active) {
+        GlassChoiceRow(title, summary, options, selected, enabled, onSelected)
+        return
+    }
     SettingsSegment {
         Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 16.dp)) {
             val alpha = if (enabled) 1f else DisabledAlpha
@@ -715,6 +799,10 @@ fun <T> ConnectedChoices(
     icons: List<DrawableResource>? = null,
     onSelected: (T) -> Unit,
 ) {
+    if (Glass.active) {
+        GlassChoices(options, selected, enabled, onSelected)
+        return
+    }
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         val measurer = rememberTextMeasurer()
         val style = MaterialTheme.typography.labelLarge
@@ -829,6 +917,10 @@ private fun ConnectedChoice(
 
 @Composable
 fun SettingsInfoRow(title: String, body: String) {
+    if (Glass.active) {
+        GlassInfoRow(title, body)
+        return
+    }
     SettingsSegment {
         Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.Top) {
             Box(
@@ -865,6 +957,10 @@ fun SettingsInfoRow(title: String, body: String) {
 
 @Composable
 fun SettingsBusyIndicator() {
+    if (Glass.active) {
+        GlassBusy()
+        return
+    }
     LoadingIndicator(Modifier.size(32.dp))
 }
 
@@ -879,6 +975,10 @@ fun SettingsHeader(
     scroll: ScrollState? = null,
     modifier: Modifier = Modifier,
 ) {
+    if (Glass.active) {
+        GlassSettingsHeader(title, modifier)
+        return
+    }
     if (dev.cluvex.zedsecure.ui.bento.Bento.active) {
         dev.cluvex.zedsecure.ui.bento.BentoPageHeader(title, subtitle, art, modifier, scroll)
         return
@@ -934,6 +1034,10 @@ fun SettingsPageScaffold(
     art: SettingsArt? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    if (Glass.active) {
+        GlassSettingsPage(title = title, contentPadding = contentPadding, modifier = modifier, content = content)
+        return
+    }
     val scroll = rememberScrollState()
     Column(
         modifier
