@@ -29,7 +29,7 @@ enum class Protocol(val id: String, val label: String) {
 
     val supportsMux: Boolean get() = this == VLESS || this == VMESS
 
-    val sharedWithSingBox: Boolean get() = this != MASQUE && this != AMNEZIAWG
+    val sharedWithSingBox: Boolean get() = this != AMNEZIAWG
 
     companion object {
         fun fromScheme(scheme: String): Protocol? = when (scheme.lowercase()) {

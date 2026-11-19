@@ -38,6 +38,14 @@ object SingBoxConvert {
 
     val FINGERPRINTS = setOf("chrome", "firefox", "edge", "safari", "360", "qq", "ios", "android", "random", "randomized")
 
+    private fun singBoxFingerprint(raw: String?): String? {
+        val fp = raw?.trim()?.lowercase().orEmpty()
+        if (fp.isEmpty()) return null
+        if (fp in FINGERPRINTS) return fp
+        if (!fp.startsWith("hello")) return null
+        return FINGERPRINTS.firstOrNull { family -> fp.removePrefix("hello").startsWith(family) }
+    }
+
     private val SS_METHODS = mapOf(
         "aes-128-gcm" to "aes-128-gcm",
         "aes-256-gcm" to "aes-256-gcm",
@@ -59,14 +67,14 @@ object SingBoxConvert {
     fun canRun(s: ServerConfig): Boolean = problems(s).isEmpty()
 
     fun problems(s: ServerConfig): List<Problem> = buildList {
-        if (!s.protocol.sharedWithSingBox) {
-            add(Problem(Blocker.Protocol, s.protocol.label))
+        if (!s.protocol.sharedWithSingBox || s.isWarp) {
+            add(Problem(Blocker.Protocol, if (s.isWarp) "WARP" else s.protocol.label))
             return@buildList
         }
         val security = s.tls.security.lowercase()
         val network = s.transport.network.lowercase()
         if (!s.transport.finalMask.isNullOrBlank()) add(Problem(Blocker.FinalMask))
-        if (!s.pinnedCertSha256.isNullOrBlank() && (security.isNotEmpty() || s.protocol == Protocol.HYSTERIA)) {
+        if (!s.pinnedCertSha256.isNullOrBlank() && pinsOf(s) == null) {
             add(Problem(Blocker.PinnedCert))
         }
         val vcn = s.tls.verifyPeerCertByName?.trim()?.takeIf { it.isNotEmpty() }
@@ -74,7 +82,7 @@ object SingBoxConvert {
         if (security == "reality") add(Problem(Blocker.Reality))
         if (security == "tls" || security == "reality") {
             val fp = s.tls.fingerprint?.trim()?.lowercase().orEmpty()
-            if (fp.isNotEmpty() && fp !in FINGERPRINTS) add(Problem(Blocker.Fingerprint, s.tls.fingerprint.orEmpty()))
+            if (fp.isNotEmpty() && singBoxFingerprint(fp) == null) add(Problem(Blocker.Fingerprint, s.tls.fingerprint.orEmpty()))
         }
 
         when (s.protocol) {
@@ -131,7 +139,22 @@ object SingBoxConvert {
 
     fun tagOf(s: ServerConfig): String = s.remark.trim().ifEmpty { "${s.address}:${s.port}" }
 
-    fun isEndpoint(s: ServerConfig): Boolean = s.protocol == Protocol.WIREGUARD
+    fun isEndpoint(s: ServerConfig): Boolean = s.protocol == Protocol.WIREGUARD || s.protocol == Protocol.MASQUE
+
+    private fun pinsOf(s: ServerConfig): List<String>? {
+        val raw = s.pinnedCertSha256?.trim()?.takeIf { it.isNotEmpty() } ?: return emptyList()
+        val pins = raw.split(',').map { it.trim().replace(":", "") }.filter { it.isNotEmpty() }
+        if (pins.isEmpty()) return emptyList()
+        return pins.map { hex ->
+            if (hex.length != 64 || !hex.all { it.isDigit() || it.lowercaseChar() in 'a'..'f' }) return null
+            val bytes = ByteArray(32) { i -> hex.substring(i * 2, i * 2 + 2).toInt(16).toByte() }
+            java.util.Base64.getEncoder().encodeToString(bytes)
+        }
+    }
+
+    private fun JsonObjectBuilder.pins(s: ServerConfig) {
+        pinsOf(s)?.takeIf { it.isNotEmpty() }?.let { list -> putJsonArray("certificate_sha256") { list.forEach { add(it) } } }
+    }
 
     fun fragment(s: ServerConfig, tag: String = tagOf(s)): String {
         val built = outbound(s, tag)
@@ -215,7 +238,34 @@ object SingBoxConvert {
                     s.tls.sni?.trim()?.takeIf { it.isNotEmpty() }?.let { put("server_name", it) }
                     if (s.tls.allowInsecure) put("insecure", true)
                     alpnOf(s)?.let { alpn -> putJsonArray("alpn") { alpn.forEach { add(it) } } }
+                    pins(s)
                     ech(s)
+                }
+            }
+            Protocol.MASQUE -> buildJsonObject {
+                put("type", "masque-client")
+                put("tag", tag)
+                put("server", s.address)
+                put("server_port", s.port)
+                if (s.username.isNotBlank()) put("username", s.username)
+                if (s.userId.isNotBlank()) put("password", s.userId)
+                val h2 = alpnOf(s)?.firstOrNull { it == "h3" || it == "h2" } == "h2"
+                put("version", if (h2) 2 else 3)
+                s.transport.path?.trim()?.takeIf { it.isNotEmpty() }?.let { put("path", it) }
+                XrayJsonBuilder.masqueHeaders(s.transport.headers)?.let { headers ->
+                    putJsonObject("headers") { headers.forEach { (k, v) -> put(k, v) } }
+                }
+                putJsonObject("tls") {
+                    put("enabled", true)
+                    (s.tls.sni?.trim()?.takeIf { it.isNotEmpty() } ?: hostHeaderOf(s))?.let { put("server_name", it) }
+                    if (s.tls.allowInsecure) put("insecure", true)
+                    pins(s)
+                    if (h2) {
+                        putJsonObject("utls") {
+                            put("enabled", true)
+                            put("fingerprint", singBoxFingerprint(s.tls.fingerprint) ?: "chrome")
+                        }
+                    }
                 }
             }
             Protocol.WIREGUARD -> buildJsonObject {
@@ -242,7 +292,7 @@ object SingBoxConvert {
                     }
                 }
             }
-            Protocol.AMNEZIAWG, Protocol.MASQUE -> error("unreachable")
+            Protocol.AMNEZIAWG -> error("unreachable")
         }
     }
 
@@ -272,13 +322,14 @@ object SingBoxConvert {
             (s.tls.sni?.trim()?.takeIf { it.isNotEmpty() } ?: hostHeaderOf(s))?.let { put("server_name", it) }
             if (s.tls.allowInsecure) put("insecure", true)
             alpnOf(s)?.let { alpn -> putJsonArray("alpn") { alpn.forEach { add(it) } } }
+            pins(s)
             s.tls.cipherSuites?.split(':', ',')?.map { it.trim() }?.filter { it.isNotEmpty() }
                 ?.takeIf { it.isNotEmpty() }
                 ?.let { suites -> putJsonArray("cipher_suites") { suites.forEach { add(it) } } }
             ech(s)
             putJsonObject("utls") {
                 put("enabled", true)
-                put("fingerprint", s.tls.fingerprint?.trim()?.lowercase()?.takeIf { it in FINGERPRINTS } ?: "chrome")
+                put("fingerprint", singBoxFingerprint(s.tls.fingerprint) ?: "chrome")
             }
         }
     }

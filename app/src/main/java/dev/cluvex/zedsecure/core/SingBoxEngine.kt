@@ -18,6 +18,8 @@ import java.io.File
 import java.io.IOException
 import java.net.InetSocketAddress
 import java.util.concurrent.atomic.AtomicBoolean
+import libbox.AutoRedirectHandler
+import libbox.AutoRedirectSession
 import libbox.BridgeOptions
 import libbox.BridgeSession
 import libbox.CommandClient
@@ -197,6 +199,10 @@ class SingBoxEngine(
         override fun usePlatformBridge(): Boolean = false
         override fun createBridge(options: BridgeOptions?): BridgeSession =
             throw UnsupportedOperationException("bridges need root")
+
+        override fun usePlatformAutoRedirect(): Boolean = false
+        override fun createAutoRedirect(options: ByteArray?, handler: AutoRedirectHandler?): AutoRedirectSession =
+            throw UnsupportedOperationException("auto-redirect needs root")
     }
 
     private fun openTunInterface(options: TunOptions): Int {

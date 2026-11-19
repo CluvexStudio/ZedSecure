@@ -1248,7 +1248,7 @@
     <string name="title_singbox_uot">UDP sobre TCP</string>
     <string name="summary_singbox_uot">Lleva UDP dentro de la conexión, para los servidores cuyo protocolo lo admite</string>
     <string name="title_singbox_stack">Pila de red</string>
-    <string name="singbox_stack_auto">Según la configuración</string>
+    <string name="singbox_stack_auto">Automático: la nueva pila integrada de sing-box, salvo que la configuración indique otra</string>
     <string name="title_singbox_strict_route">Ruta estricta</string>
     <string name="summary_singbox_strict_route">Rechaza el tráfico que intenta salir por fuera del túnel</string>
     <string name="title_singbox_nat">Mantener un puerto por app (UDP)</string>
@@ -1976,4 +1976,5 @@
     <string name="dnsscan_src_ranges">Rangos IP</string>
     <string name="dnsscan_vpn_title">Hay otra VPN activa</string>
     <string name="dnsscan_vpn_body">El escaneo pasa por ella, así que los resultados muestran la red de esa VPN, no la tuya. Apágala antes de escanear.</string>
+    <string name="mux_concurrency_note">Xray trata cualquier valor de 0 a 128 como 128. Pon más de 128 para cambiarlo, o -1 para desactivar mux en TCP.</string>
 </resources>

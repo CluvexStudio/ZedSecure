@@ -154,7 +154,7 @@ object SingBoxConfigs {
         }
         put("auto_route", true)
 
-        put("stack", device.stack.ifBlank { "mixed" })
+        if (device.stack.isNotBlank()) put("stack", device.stack)
         if (device.mtu > 0) put("mtu", device.mtu)
         if (device.strictRoute) put("strict_route", true)
         if (device.endpointIndependentNat) put("endpoint_independent_nat", true)

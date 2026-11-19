@@ -71,7 +71,7 @@ private val SS_METHODS = listOf(
 )
 
 private val UTLS_FINGERPRINTS = listOf(
-    "" to "None", "chrome" to "chrome", "firefox" to "firefox", "safari" to "safari",
+    "" to "None", "chrome" to "chrome", "hellochrome_155" to "chrome 155", "firefox" to "firefox", "safari" to "safari",
     "ios" to "ios", "android" to "android", "edge" to "edge", "360" to "360", "qq" to "qq",
     "random" to "random", "randomized" to "randomized",
 
@@ -174,7 +174,8 @@ fun ManualConfigSheet(
 
     val proxyProtocol = protocol == Protocol.SOCKS || protocol == Protocol.HTTP
     val tlsCapable = protocol.supportsTransport || proxyProtocol
-    val singBoxChosen = runOnSingBox && protocol.sharedWithSingBox
+    val canSingBox = protocol.sharedWithSingBox && !(protocol == Protocol.MASQUE && warp)
+    val singBoxChosen = runOnSingBox && canSingBox
 
     fun buildConfig(): ServerConfig {
         val masque = protocol == Protocol.MASQUE
@@ -315,7 +316,7 @@ fun ManualConfigSheet(
                 return@Column
             }
 
-            if (protocol.sharedWithSingBox) {
+            if (canSingBox) {
                 PickerField(
                     label = stringResource(Res.string.manual_core),
                     options = CORES,

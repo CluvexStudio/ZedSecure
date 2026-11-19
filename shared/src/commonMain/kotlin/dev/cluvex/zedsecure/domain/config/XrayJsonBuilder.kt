@@ -552,7 +552,7 @@ object XrayJsonBuilder {
         val endpointHosts = endpointHosts(serverOutbounds)
         val config = buildJsonObject {
             putJsonObject("log") {
-                put("loglevel", options.logLevel)
+                put("logLevel", options.logLevel)
 
                 put("access", if (options.logLevel == "debug" || options.logLevel == "info") "" else "none")
             }
@@ -1430,7 +1430,7 @@ object XrayJsonBuilder {
 
 private fun quietAccessLog(value: JsonElement): JsonElement {
     val log = value as? JsonObject ?: return value
-    val level = (log["loglevel"] as? JsonPrimitive)?.content
+    val level = (log.entries.firstOrNull { it.key.equals("loglevel", ignoreCase = true) }?.value as? JsonPrimitive)?.content
     if (level == "debug" || level == "info") return log
     return JsonObject(log + ("access" to JsonPrimitive("none")))
 }

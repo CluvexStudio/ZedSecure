@@ -1286,7 +1286,7 @@
     <string name="title_singbox_uot">UDP روی TCP</string>
     <string name="summary_singbox_uot">برای سرورهایی که پروتکلشان اجازه می‌دهد، UDP را داخل همان اتصال می‌برد</string>
     <string name="title_singbox_stack">پشته‌ی شبکه</string>
-    <string name="singbox_stack_auto">همان چیزی که کانفیگ گفته</string>
+    <string name="singbox_stack_auto">خودکار: پشتهٔ جدید و سریع خود sing-box، مگر کانفیگ پشتهٔ دیگری گفته باشد</string>
     <string name="title_singbox_strict_route">مسیر سخت‌گیرانه</string>
     <string name="summary_singbox_strict_route">جلوی ترافیکی که می‌خواهد از کنار تونل خارج شود را می‌گیرد</string>
     <string name="title_singbox_nat">حفظ یک پورت برای هر برنامه (UDP)</string>
@@ -2015,4 +2015,5 @@
     <string name="dnsscan_src_ranges">رنج IP</string>
     <string name="dnsscan_vpn_title">یک VPN دیگر روشن است</string>
     <string name="dnsscan_vpn_body">اسکن از داخل آن رد می‌شود و نتیجه‌ها مال شبکهٔ آن VPN است، نه شبکهٔ شما. قبل از اسکن خاموشش کنید.</string>
+    <string name="mux_concurrency_note">Xray هر عدد از ۰ تا ۱۲۸ را ۱۲۸ در نظر می‌گیرد. برای تغییرش عددی بیشتر از ۱۲۸ بدهید، یا ‎-1 برای خاموش کردن ماکس TCP.</string>
 </resources>

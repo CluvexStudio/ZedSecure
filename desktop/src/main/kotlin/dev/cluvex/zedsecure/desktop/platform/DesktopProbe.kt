@@ -228,7 +228,7 @@ object DesktopProbe {
         val drop = setOf("inbounds", "routing", "dns", "metrics", "stats", "policy", "log", "api", "observatory", "burstObservatory")
         val out = buildJsonObject {
             root.forEach { (k, v) -> if (k !in drop) put(k, v) }
-            put("log", buildJsonObject { put("loglevel", "none") })
+            put("log", buildJsonObject { put("logLevel", "none") })
             putJsonArray("inbounds") {
                 addJsonObject {
                     put("tag", "probe")

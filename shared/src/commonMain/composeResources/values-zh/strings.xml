@@ -1294,7 +1294,7 @@
     <string name="title_singbox_uot">UDP over TCP</string>
     <string name="summary_singbox_uot">在协议支持时把 UDP 放入该连接中传输</string>
     <string name="title_singbox_stack">网络栈</string>
-    <string name="singbox_stack_auto">按配置文件所写</string>
+    <string name="singbox_stack_auto">自动：使用 sing-box 新的内置协议栈，除非配置另有指定</string>
     <string name="title_singbox_strict_route">严格路由</string>
     <string name="summary_singbox_strict_route">阻止绕过隧道外发的流量</string>
     <string name="title_singbox_nat">每个应用保留一个端口（UDP）</string>
@@ -2023,4 +2023,5 @@
     <string name="dnsscan_src_ranges">IP 范围</string>
     <string name="dnsscan_vpn_title">另一个 VPN 已开启</string>
     <string name="dnsscan_vpn_body">扫描会经过它，结果反映的是该 VPN 的网络而不是你的网络。扫描前请先关闭它。</string>
+    <string name="mux_concurrency_note">Xray 会把 0 到 128 之间的值都按 128 处理。要改变它请填大于 128 的值，或填 -1 关闭 TCP 的 mux。</string>
 </resources>

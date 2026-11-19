@@ -2609,6 +2609,12 @@ private fun MuxPage(
                     }
                 },
             )
+            if (s.muxEnabled && s.muxConcurrency in 0..128) {
+                SettingsInfoRow(
+                    title = stringResource(Res.string.title_pref_mux_concurrency),
+                    body = stringResource(Res.string.mux_concurrency_note),
+                )
+            }
             SettingsEditRow(
                 title = stringResource(Res.string.title_pref_mux_xudp_concurrency),
                 value = s.muxXudpConcurrency.toString(),

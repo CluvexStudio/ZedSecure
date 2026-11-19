@@ -27,7 +27,7 @@ object ConfigParser {
 
     fun parse(link: String): ServerConfig {
         val parsed = parseScheme(link)
-        return if (parsed.runOnSingBox && !parsed.protocol.sharedWithSingBox) parsed.copy(runOnSingBox = false) else parsed
+        return if (parsed.runOnSingBox && (!parsed.protocol.sharedWithSingBox || parsed.isWarp)) parsed.copy(runOnSingBox = false) else parsed
     }
 
     private fun wantsSingBox(value: String?): Boolean =

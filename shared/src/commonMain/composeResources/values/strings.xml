@@ -1293,7 +1293,7 @@
     <string name="title_singbox_uot">UDP over TCP</string>
     <string name="summary_singbox_uot">Carries UDP inside the connection, for servers whose protocol offers it</string>
     <string name="title_singbox_stack">Network stack</string>
-    <string name="singbox_stack_auto">Leave as the config says</string>
+    <string name="singbox_stack_auto">Automatic: sing-box's new built-in stack, unless the config sets one</string>
     <string name="title_singbox_strict_route">Strict route</string>
     <string name="summary_singbox_strict_route">Refuses traffic that tries to leave around the tunnel</string>
     <string name="title_singbox_nat">Keep one port per app (UDP)</string>
@@ -2022,4 +2022,5 @@
     <string name="dnsscan_src_ranges">IP ranges</string>
     <string name="dnsscan_vpn_title">Another VPN is on</string>
     <string name="dnsscan_vpn_body">The scan goes through it, so the results show that VPN's network, not yours. Turn it off before scanning.</string>
+    <string name="mux_concurrency_note">Xray runs any value from 0 to 128 as 128. Set more than 128 to change it, or -1 to turn mux off for TCP.</string>
 </resources>
