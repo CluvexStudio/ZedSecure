@@ -10,6 +10,7 @@ import dev.cluvex.zedsecure.platform.KeyValueStore
 import dev.cluvex.zedsecure.platform.NetworkKind
 import dev.cluvex.zedsecure.platform.detectNetworkKind
 import dev.cluvex.zedsecure.platform.currentTimeMillis
+import dev.cluvex.zedsecure.platform.HttpTextResponse
 import dev.cluvex.zedsecure.platform.httpGetResponse
 import dev.cluvex.zedsecure.platform.newId
 import kotlinx.coroutines.CancellationException
@@ -189,6 +190,7 @@ object ConfigExplorerEngine {
     const val CANDIDATE_LIMIT = 2_000
     const val HEALTHY_LIMIT = 200
     const val BEST_LIMIT = 100
+    private const val LIVE_LIMIT = 400
     private const val RECHECK_BATCH_SIZE = 200
     private const val TEST_CONCURRENCY = 16
     private const val GROUP_NAME = "ZX Explorer · Top 100"
@@ -416,11 +418,63 @@ object ConfigExplorerEngine {
             }
             if (parsed.isEmpty()) throw IllegalStateException("هیچ کانفیگ سازگار و قابل‌آزمایشی از منابع دریافت نشد")
 
-            val firstResults = measure(parsed.map { it.profile }, FIRST_TEST_URL, explorer, "testing_first")
+            val byProfileId = parsed.associateBy { it.profile.id }
+            val geoBudget = MutableStateFlow(0)
+            val stream: (String, Int) -> Unit = hit@{ profileId, ms ->
+                val item = byProfileId[profileId] ?: return@hit
+                val entryId = item.candidate.source.id + "-" + canonicalKey(item.candidate.link).hashCode()
+                var created: ConfigExplorerEntry? = null
+                explorer.updateRuntime { state ->
+                    val existing = state.liveEntries.firstOrNull { it.id == entryId }
+                    val samples = ((existing?.samplesMs ?: emptyList()) + ms).sorted().takeLast(4)
+                    val entry = (existing ?: ConfigExplorerEntry(
+                        id = entryId,
+                        name = item.profile.name,
+                        protocol = item.profile.protocol,
+                        address = item.profile.address,
+                        port = item.profile.port,
+                        sourceId = item.candidate.source.id,
+                        sourceName = item.candidate.source.name,
+                        link = item.candidate.link,
+                        samplesMs = samples,
+                        medianMs = ms,
+                        meanMs = ms,
+                        jitterMs = 0,
+                        lastCheckedAt = currentTimeMillis(),
+                    )).copy(
+                        samplesMs = samples,
+                        medianMs = medianOf(samples),
+                        meanMs = samples.average().toInt(),
+                        jitterMs = samples.last() - samples.first(),
+                        lastCheckedAt = currentTimeMillis(),
+                    )
+                    created = if (existing == null) entry else null
+                    state.copy(
+                        liveEntries = (state.liveEntries.filterNot { it.id == entryId } + entry)
+                            .sortedWith(entryComparator()).take(LIVE_LIMIT),
+                    )
+                }
+                created?.let { entry ->
+                    if (geoBudget.value < 120) {
+                        geoBudget.update { it + 1 }
+                        scope.launch {
+                            val ip = runCatching { resolveHostAddress(entry.address) }.getOrNull()
+                            val country = runCatching { GeoLookup.countryOf(entry.address) }.getOrNull()
+                            explorer.updateRuntime { state ->
+                                state.copy(liveEntries = state.liveEntries.map { current ->
+                                    if (current.id == entry.id) current.copy(ipAddress = ip, countryCode = country) else current
+                                })
+                            }
+                        }
+                    }
+                }
+            }
+
+            val firstResults = measure(parsed.map { it.profile }, FIRST_TEST_URL, explorer, "testing_first", stream)
             explorer.updateRuntime {
                 it.copy(phase = "testing_second", testedCount = firstResults.size, progressDone = 0, progressTotal = parsed.size)
             }
-            val secondResults = measure(parsed.map { it.profile }, SECOND_TEST_URL, explorer, "testing_second")
+            val secondResults = measure(parsed.map { it.profile }, SECOND_TEST_URL, explorer, "testing_second", stream)
             explorer.updateRuntime { it.copy(testedCount = firstResults.size + secondResults.size) }
 
             val preliminary = parsed.mapNotNull { item ->
@@ -607,6 +661,20 @@ object ConfigExplorerEngine {
         }
     }
 
+    private fun feedMirrors(feed: String): List<String> {
+        val prefix = "https://raw.githubusercontent.com/"
+        if (!feed.startsWith(prefix)) return listOf(feed)
+        val parts = feed.removePrefix(prefix).split('/')
+        if (parts.size < 4) return listOf(feed)
+        val (user, repo, branch) = parts
+        val path = parts.drop(3).joinToString("/")
+        return listOf(
+            feed,
+            "https://cdn.jsdelivr.net/gh/$user/$repo@$branch/$path",
+            "https://fastly.jsdelivr.net/gh/$user/$repo@$branch/$path",
+        )
+    }
+
     private suspend fun fetchSource(source: ConfigExplorerSource): SourceFetch {
         val feed = source.feedUrl
         if (feed == null) {
@@ -627,12 +695,27 @@ object ConfigExplorerEngine {
 
         return runCatching {
             withContext(Dispatchers.IO) {
-                httpGetResponse(
-                    url = feed,
-                    userAgent = "ZX-Config-Explorer/1.0",
-                    connectTimeoutMs = 8_000,
-                    readTimeoutMs = 15_000,
-                )
+                // raw.githubusercontent.com is blocked on many networks: fall back to a CDN mirror
+                // of the very same file so the feed is still reachable.
+                var last: Throwable? = null
+                var result: HttpTextResponse? = null
+                for (url in feedMirrors(feed)) {
+                    val attempt = runCatching {
+                        httpGetResponse(
+                            url = url,
+                            userAgent = "ZX-Config-Explorer/1.0",
+                            connectTimeoutMs = 8_000,
+                            readTimeoutMs = 15_000,
+                        )
+                    }
+                    attempt.onFailure { last = it }
+                    val response = attempt.getOrNull()
+                    if (response != null) {
+                        result = response
+                        if (response.code in 200..299) break
+                    }
+                }
+                result ?: throw (last ?: IllegalStateException("no response"))
             }
         }.fold(
             onSuccess = { response ->
@@ -688,6 +771,7 @@ object ConfigExplorerEngine {
         url: String,
         explorer: ConfigExplorerRepository,
         phase: String,
+        onHit: ((String, Int) -> Unit)? = null,
     ): Map<String, Int> {
         if (profiles.isEmpty()) return emptyMap()
         val results = MutableStateFlow<Map<String, Int>>(emptyMap())
@@ -702,6 +786,8 @@ object ConfigExplorerEngine {
             },
             onResult = { id, ms, _ ->
                 results.update { current -> current + (id to (ms ?: PingService.FAILED_PING)) }
+                // Stream every success the moment it is measured, not when the whole pass ends.
+                if (ms != null && ms > 0) onHit?.invoke(id, ms)
             },
         )
         return results.value

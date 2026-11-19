@@ -16,6 +16,10 @@ internal class AetherEngineProcess(
     @Volatile private var process: Process? = null
     private val recent = java.util.ArrayDeque<String>()
 
+    /** True once the engine's scanner has reported at least one reachable gateway candidate. */
+    @Volatile var candidateSeen: Boolean = false
+        private set
+
     /** Last few engine output lines, for a readable error when the engine dies or never connects. */
     fun lastLines(): String = synchronized(recent) { recent.joinToString(" | ") }
 
@@ -52,6 +56,7 @@ internal class AetherEngineProcess(
                 child.inputStream.bufferedReader().useLines { lines ->
                     lines.forEach {
                         LogBus.append("I/Aether: " + it.take(MAX_LOG_LINE))
+                        if (it.contains("candidate ok")) candidateSeen = true
                         synchronized(recent) {
                             recent.addLast(it.take(160))
                             while (recent.size > 4) recent.removeFirst()

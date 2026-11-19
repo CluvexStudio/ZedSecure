@@ -788,11 +788,22 @@ class ZedVpnService : VpnService() {
                     }
                     val budget = variant.startupBudgetMs()
                     LogBus.append("I/Aether: startup window ${budget / 1000}s for scan=${variant.scanMode}")
-                    val deadline = System.currentTimeMillis() + budget
+                    val attemptStartedAt = System.currentTimeMillis()
+                    val deadline = attemptStartedAt + budget
                     var ready = false
                     while (System.currentTimeMillis() < deadline) {
                         if (userStop) return@launch
                         if (!process.isAlive()) break
+                        // A scan that has not reached a single gateway after this long will not
+                        // succeed on this network with these settings: move on to the next variant
+                        // instead of making the user wait the full window.
+                        if (!process.candidateSeen &&
+                            System.currentTimeMillis() - attemptStartedAt > NO_CANDIDATE_GRACE_MS &&
+                            index < variants.lastIndex
+                        ) {
+                            LogBus.append("W/Aether: no gateway candidate reachable after ${NO_CANDIDATE_GRACE_MS / 1000}s; trying the next variant")
+                            break
+                        }
                         val ok = runCatching {
                             TunnelReadiness.verifyAny(
                                 port,
@@ -2077,6 +2088,7 @@ class ZedVpnService : VpnService() {
 
     companion object {
         private const val TAG = "ZedVpnService"
+        private const val NO_CANDIDATE_GRACE_MS = 120_000L
 
         private const val ZEPTUN_PROOF_MS = 6_000L
         private const val PORT_WAIT_MS = 4_000L
