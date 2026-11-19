@@ -33,6 +33,7 @@ import org.jetbrains.compose.resources.stringResource
 import dev.cluvex.zedsecure.shared.resources.Res
 import dev.cluvex.zedsecure.shared.resources.*
 import dev.cluvex.zedsecure.domain.config.MasterDnsProfile
+import dev.cluvex.zedsecure.data.config.ConfigRepository
 import dev.cluvex.zedsecure.ui.components.PickerField
 import dev.cluvex.zedsecure.ui.platform.appVerticalScroll
 
@@ -40,6 +41,7 @@ import dev.cluvex.zedsecure.ui.platform.appVerticalScroll
 fun MasterDnsSheet(
     initial: MasterDnsProfile? = null,
     initialName: String = "",
+    repository: ConfigRepository? = null,
     onDismiss: () -> Unit,
     onSave: (name: String, MasterDnsProfile) -> Unit,
 ) {
@@ -106,6 +108,14 @@ fun MasterDnsSheet(
                     stringResource(Res.string.master_dns_resolvers_skipped, badResolvers.joinToString(", "))
                 } else null,
             ) { resolvers = it }
+            ResolverScanTools(
+                repository = repository,
+                domain = domains.split(',', '\n').map { it.trim() }.firstOrNull { it.isNotEmpty() }.orEmpty(),
+                recordType = "TXT",
+                current = resolvers,
+                profile = { null },
+                onResolvers = { resolvers = it },
+            )
             TextButton(onClick = { advancedOpen = !advancedOpen }) {
                 Text(stringResource(Res.string.master_dns_advanced))
             }

@@ -70,6 +70,7 @@ object SettingsArts {
     val Map = SettingsArt("map", Res.drawable.ic_fill_map, MaterialShapes.Oval, 2)
     val Vault = SettingsArt("vault", Res.drawable.ic_encrypted, MaterialShapes.Cookie6Sided, 1)
     val SpeedTest = SettingsArt("speed-test", Res.drawable.ic_fill_speed, MaterialShapes.Slanted, 3)
+    val Scanner = SettingsArt("scanner", Res.drawable.ic_fill_radar, MaterialShapes.Cookie7Sided, 2)
     val Update = SettingsArt("update", Res.drawable.ic_fill_sync, MaterialShapes.SoftBoom, 5)
     val Rate = SettingsArt("rate", Res.drawable.ic_fill_star, MaterialShapes.Burst, 1)
     val Privacy = SettingsArt("privacy", Res.drawable.ic_fill_policy, MaterialShapes.Pentagon, 0)

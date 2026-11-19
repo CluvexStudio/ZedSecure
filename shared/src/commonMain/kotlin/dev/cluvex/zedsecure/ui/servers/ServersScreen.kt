@@ -1612,6 +1612,7 @@ fun ServersScreen(
 
     if (showDnsTunnel) {
         DnsTunnelSheet(
+            repository = repository,
             onDismiss = { showDnsTunnel = false },
             onSave = { name, settings ->
                 showDnsTunnel = false
@@ -1623,6 +1624,7 @@ fun ServersScreen(
 
     if (showMasterDns) {
         MasterDnsSheet(
+            repository = repository,
             onDismiss = { showMasterDns = false },
             onSave = { name, settings ->
                 showMasterDns = false
@@ -1863,6 +1865,7 @@ fun ServersScreen(
                 DnsTunnelSheet(
                     initial = target.dnsTunnelSettings(),
                     initialName = target.name,
+                    repository = repository,
                     onDismiss = { editTarget = null },
                     onSave = { name, settings ->
 
@@ -1876,6 +1879,7 @@ fun ServersScreen(
                 MasterDnsSheet(
                     initial = target.masterDnsSettings(),
                     initialName = target.name,
+                    repository = repository,
                     onDismiss = { editTarget = null },
                     onSave = { name, settings ->
                         repository.addMasterDns(settings, name, id = target.id)

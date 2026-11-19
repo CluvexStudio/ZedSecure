@@ -100,6 +100,10 @@ class AppContainer(context: Context) {
                 }
         }
 
+        dev.cluvex.zedsecure.scan.DnsScanHub.onRunning = { running ->
+            if (running) dev.cluvex.zedsecure.core.ScanService.start(context)
+        }
+
         scope.launch {
             kotlinx.coroutines.delay(SUBSCRIPTION_FIRST_CHECK_MS)
             while (true) {

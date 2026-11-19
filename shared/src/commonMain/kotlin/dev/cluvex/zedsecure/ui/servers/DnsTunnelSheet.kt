@@ -42,7 +42,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.cluvex.zedsecure.shared.resources.Res
 import dev.cluvex.zedsecure.shared.resources.*
+import dev.cluvex.zedsecure.data.config.ConfigRepository
 import dev.cluvex.zedsecure.domain.config.DnsTunnelProfile
+import dev.cluvex.zedsecure.domain.config.VpnProfile
 import dev.cluvex.zedsecure.domain.config.DohPresets
 import dev.cluvex.zedsecure.ui.components.PickerField
 import dev.cluvex.zedsecure.ui.platform.draggableHorizontalScroll
@@ -52,6 +54,7 @@ import dev.cluvex.zedsecure.ui.platform.appVerticalScroll
 fun DnsTunnelSheet(
     initial: DnsTunnelProfile? = null,
     initialName: String = "",
+    repository: ConfigRepository? = null,
     onDismiss: () -> Unit,
     onSave: (name: String, DnsTunnelProfile) -> Unit,
 ) {
@@ -88,6 +91,40 @@ fun DnsTunnelSheet(
     var sshKey by remember { mutableStateOf(initial?.sshPrivateKey ?: "") }
     var sshKeyPass by remember { mutableStateOf(initial?.sshKeyPassphrase ?: "") }
     var forwardDns by remember { mutableStateOf(initial?.forwardDnsThroughSsh ?: false) }
+
+    fun current(): DnsTunnelProfile = DnsTunnelProfile(
+        engine = engine,
+        domain = domain.trim(),
+        publicKey = publicKey.trim(),
+        dnsTransport = transport,
+        resolvers = resolvers.split('\n', ',')
+            .map { it.trim() }.filter { it.isNotEmpty() }.joinToString(","),
+        dohUrl = dohUrl.trim(),
+        resolverMode = resolverMode,
+        rrSpreadCount = spread,
+        authoritative = authoritative,
+        autoTune = autoTune,
+        dnsPayloadSize = payloadSize,
+        recordType = recordType,
+        maxQnameLen = qnameLen,
+        rps = rps.toDoubleOrNull() ?: 0.0,
+        idleTimeout = idleTimeout.toIntOrNull() ?: 0,
+        keepalive = keepalive.toIntOrNull() ?: 0,
+        udpTimeout = udpTimeout.toIntOrNull() ?: 0,
+        maxNumLabels = maxLabels.toIntOrNull() ?: 0,
+        clientIdSize = clientIdSize.toIntOrNull() ?: 0,
+        socksUser = socksUser.trim(),
+        socksPass = socksPass,
+        sshEnabled = sshEnabled,
+        sshHost = sshHost.trim(),
+        sshPort = sshPort.toIntOrNull() ?: 22,
+        sshUsername = sshUser.trim(),
+        sshAuthType = sshAuth,
+        sshPassword = sshPass,
+        sshPrivateKey = sshKey.trim(),
+        sshKeyPassphrase = sshKeyPass,
+        forwardDnsThroughSsh = forwardDns,
+    )
 
     val isVaydns = engine == DnsTunnelProfile.ENGINE_VAYDNS
     val isDoh = transport == DnsTunnelProfile.TRANSPORT_DOH
@@ -149,6 +186,17 @@ fun DnsTunnelSheet(
                     resolvers, Res.string.dns_tunnel_resolver,
                     placeholder = "8.8.8.8, 1.1.1.1", minLines = 2,
                 ) { resolvers = it }
+                ResolverScanTools(
+                    repository = repository,
+                    domain = domain,
+                    recordType = if (isVaydns) recordType.uppercase() else "TXT",
+                    current = resolvers,
+                    profile = {
+                        current().takeIf { it.domain.isNotBlank() }
+                            ?.let { VpnProfile.fromDnsTunnel(it, id = "scan-preview", addedAt = 0L, name = name.trim()) }
+                    },
+                    onResolvers = { resolvers = it },
+                )
 
                 if (multiResolver) {
                     Label(Res.string.dns_tunnel_resolver_mode)
@@ -281,39 +329,7 @@ fun DnsTunnelSheet(
                 onClick = {
                     onSave(
                         name.trim(),
-                        DnsTunnelProfile(
-                            engine = engine,
-                            domain = domain.trim(),
-                            publicKey = publicKey.trim(),
-                            dnsTransport = transport,
-                            resolvers = resolvers.split('\n', ',')
-                                .map { it.trim() }.filter { it.isNotEmpty() }.joinToString(","),
-                            dohUrl = dohUrl.trim(),
-                            resolverMode = resolverMode,
-                            rrSpreadCount = spread,
-                            authoritative = authoritative,
-                            autoTune = autoTune,
-                            dnsPayloadSize = payloadSize,
-                            recordType = recordType,
-                            maxQnameLen = qnameLen,
-                            rps = rps.toDoubleOrNull() ?: 0.0,
-                            idleTimeout = idleTimeout.toIntOrNull() ?: 0,
-                            keepalive = keepalive.toIntOrNull() ?: 0,
-                            udpTimeout = udpTimeout.toIntOrNull() ?: 0,
-                            maxNumLabels = maxLabels.toIntOrNull() ?: 0,
-                            clientIdSize = clientIdSize.toIntOrNull() ?: 0,
-                            socksUser = socksUser.trim(),
-                            socksPass = socksPass,
-                            sshEnabled = sshEnabled,
-                            sshHost = sshHost.trim(),
-                            sshPort = sshPort.toIntOrNull() ?: 22,
-                            sshUsername = sshUser.trim(),
-                            sshAuthType = sshAuth,
-                            sshPassword = sshPass,
-                            sshPrivateKey = sshKey.trim(),
-                            sshKeyPassphrase = sshKeyPass,
-                            forwardDnsThroughSsh = forwardDns,
-                        ),
+                        current(),
                     )
                 },
                 shape = RoundedCornerShape(18.dp),

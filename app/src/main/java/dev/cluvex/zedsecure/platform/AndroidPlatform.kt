@@ -261,6 +261,77 @@ class AndroidPlatform(
 
     override val geoAssets: GeoAssets get() = GeoAssetsRepository(context)
 
+    private val scanner by lazy {
+        dev.cluvex.zedsecure.scan.NativeScanBackend.create(
+            load = { System.loadLibrary("zedscan") },
+            protector = { fd -> dev.cluvex.zedsecure.core.VpnSocketGuard.protect(fd) },
+        )
+    }
+
+    override val dnsScanner: dev.cluvex.zedsecure.scan.ScanBackend? get() = scanner
+
+    private val rootCli: java.io.File
+        get() = java.io.File(context.applicationInfo.nativeLibraryDir, "libzedscan_cli.so")
+
+    override val rootScanner: dev.cluvex.zedsecure.scan.ScanBackend?
+        get() = rootCli.takeIf { it.isFile }?.let {
+            dev.cluvex.zedsecure.scan.ProcessScanBackend(listOf("su", "-c", "${it.absolutePath} --stdin"))
+        }
+
+    @Volatile
+    private var rootChecked: Boolean? = null
+
+    override fun hasRoot(): Boolean {
+        if (rootChecked == true) return true
+        val ok = rootCli.isFile && dev.cluvex.zedsecure.scan.ProcessScanBackend.hasRoot()
+        rootChecked = ok
+        return ok
+    }
+
+    private val tester by lazy { dev.cluvex.zedsecure.core.AndroidTunnelTester() }
+
+    override val tunnelTester: dev.cluvex.zedsecure.scan.TunnelTester get() = tester
+
+    private fun underlyingNetworks(): List<Pair<android.net.Network, android.net.NetworkCapabilities>> = runCatching {
+        val cm = context.getSystemService(android.net.ConnectivityManager::class.java)
+        @Suppress("DEPRECATION")
+        cm.allNetworks.mapNotNull { n ->
+            val caps = cm.getNetworkCapabilities(n) ?: return@mapNotNull null
+            if (caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_VPN)) return@mapNotNull null
+            if (!caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)) return@mapNotNull null
+            n to caps
+        }
+    }.getOrDefault(emptyList())
+
+    override fun systemDnsServers(): List<String> = runCatching {
+        val cm = context.getSystemService(android.net.ConnectivityManager::class.java)
+        underlyingNetworks().flatMap { (n, _) ->
+            cm.getLinkProperties(n)?.dnsServers.orEmpty().mapNotNull { it.hostAddress?.substringBefore('%') }
+        }.distinct()
+    }.getOrDefault(emptyList())
+
+    override fun otherVpnActive(): Boolean = runCatching {
+        if (dev.cluvex.zedsecure.core.VpnSocketGuard.service != null) return@runCatching false
+        val cm = context.getSystemService(android.net.ConnectivityManager::class.java)
+        val active = cm.activeNetwork ?: return@runCatching false
+        cm.getNetworkCapabilities(active)?.hasTransport(android.net.NetworkCapabilities.TRANSPORT_VPN) == true
+    }.getOrDefault(false)
+
+    override val networkLabel: String?
+        get() = runCatching {
+            val caps = underlyingNetworks().firstOrNull()?.second ?: return@runCatching null
+            when {
+                caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI) -> "Wi-Fi"
+                caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_CELLULAR) ->
+                    context.getSystemService(android.telephony.TelephonyManager::class.java)?.networkOperatorName?.takeIf { it.isNotBlank() } ?: "Mobile"
+                caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_ETHERNET) -> "Ethernet"
+                else -> null
+            }
+        }.getOrNull()
+
+    override val geoipFile: String?
+        get() = java.io.File(GeoAssetsRepository(context).assetDir, GeoAssets.GEOIP).takeIf { it.isFile && it.length() > 0 }?.absolutePath
+
     override suspend fun pickFileBytes(): FilePick? = filePicker()
 
     override val supportsBatteryOptimization: Boolean get() = true

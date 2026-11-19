@@ -52,7 +52,7 @@ case "$TARGET" in
     cp "$(fetch zedcore zedcore.aar)" "$ROOT/app/libs/zedcore.aar"
     for abi in arm64-v8a armeabi-v7a x86_64; do
       mkdir -p "$jni/$abi"
-      for core in tor snispoof hev; do
+      for core in tor snispoof hev zedscan; do
         unzip -q -o "$(fetch "$core" "$core-android-$abi.zip")" -d "$jni/$abi"
       done
     done
@@ -65,6 +65,7 @@ case "$TARGET" in
     mkdir -p "$bin"
     cp "$(fetch xray xray-linux)" "$bin/xray"
     cp "$(fetch xray libcronet.so)" "$bin/libcronet.so"
+    cp "$(fetch zedscan libzedscan-linux.so)" "$bin/libzedscan.so"
     cp "$(fetch hev hev-linux)" "$bin/hev-socks5-tunnel"
     cp "$(fetch dns-tunnels zeddns-linux)" "$bin/zeddns"
     cp "$(fetch dns-tunnels masterdns-linux)" "$bin/masterdns"
@@ -77,6 +78,7 @@ case "$TARGET" in
     mkdir -p "$bin"
     cp "$(fetch xray xray-windows.exe)" "$bin/xray.exe"
     cp "$(fetch xray libcronet.dll)" "$bin/libcronet.dll"
+    cp "$(fetch zedscan zedscan-windows.dll)" "$bin/zedscan.dll"
     unpack "$(fetch zeptun zeptun-windows-x86_64.zip)" "$CACHE/zeptun-windows"
     for f in zeptun.exe wintun.dll wintun-LICENSE.txt; do pick "$CACHE/zeptun-windows" "$f" "$bin/$f"; done
     unpack "$(fetch hev hev-windows.zip)" "$CACHE/hev-windows"
@@ -97,6 +99,7 @@ case "$TARGET" in
     cp "$(fetch dns-tunnels "masterdns-macos-$arch")" "$bin/masterdns"
     cp "$(fetch psiphon "psiphon-macos-$arch")" "$bin/psiphon"
     cp "$(fetch hev "hev-macos-$arch")" "$bin/hev-socks5-tunnel"
+    cp "$(fetch zedscan "libzedscan-macos-$arch.dylib")" "$bin/libzedscan.dylib"
     tor_tree "$(fetch tor "tor-macos-$arch.zip")" "$bin/tor"
     chmod +x "$bin/xray" "$bin/zeptun" "$bin/zeddns" "$bin/masterdns" "$bin/psiphon" "$bin/hev-socks5-tunnel"
     ;;

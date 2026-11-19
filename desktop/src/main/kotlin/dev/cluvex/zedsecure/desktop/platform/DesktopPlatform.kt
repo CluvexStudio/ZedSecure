@@ -27,6 +27,38 @@ object DesktopPlatform : Platform {
 
     override val isMac: Boolean get() = Os.current == Os.MACOS
     override val geoAssets: dev.cluvex.zedsecure.data.assets.GeoAssets get() = dev.cluvex.zedsecure.desktop.core.DesktopGeoAssets
+
+    private val scanner by lazy {
+        dev.cluvex.zedsecure.scan.NativeScanBackend.create(
+            load = {
+                val lib = dev.cluvex.zedsecure.desktop.core.BundledBinary.extract(
+                    java.io.File(DesktopVpn.work, "scan").apply { mkdirs() },
+                    if (Os.current == Os.MACOS) "libzedscan.dylib" else "libzedscan.so",
+                    "zedscan.dll",
+                ) ?: error("zedscan is not bundled")
+                System.load(lib.absolutePath)
+            },
+            protector = null,
+        )
+    }
+
+    override val dnsScanner: dev.cluvex.zedsecure.scan.ScanBackend? get() = scanner
+
+    override fun systemDnsServers(): List<String> = runCatching {
+        if (Os.current != Os.LINUX) return@runCatching emptyList()
+        listOf("/run/systemd/resolve/resolv.conf", "/etc/resolv.conf")
+            .map { java.io.File(it) }
+            .filter { it.isFile }
+            .flatMap { f -> runCatching { f.readLines() }.getOrDefault(emptyList()) }
+            .map { it.trim() }
+            .filter { it.startsWith("nameserver") }
+            .mapNotNull { it.split(Regex("\\s+")).getOrNull(1)?.substringBefore('%') }
+            .filter { !it.startsWith("127.") && it != "::1" }
+            .distinct()
+    }.getOrDefault(emptyList())
+
+    override val geoipFile: String?
+        get() = java.io.File(dev.cluvex.zedsecure.desktop.core.DesktopGeoAssets.dir, "geoip.dat").takeIf { it.isFile && it.length() > 0 }?.absolutePath
     override val adminAccess: AdminAccess?
         get() = if (Os.current == Os.LINUX) LinuxAdminAccess else null
 

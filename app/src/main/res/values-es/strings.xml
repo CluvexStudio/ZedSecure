@@ -650,4 +650,10 @@
     <string name="widget_upload">Subida</string>
     <string name="widget_toggle_label">Interruptor de ZedSecure</string>
     <string name="widget_toggle_description">Conecta o desconecta con un toque.</string>
+    <string name="scan_channel_name">Escaneo DNS</string>
+    <string name="scan_notif_title">Escaneando resolvedores DNS</string>
+    <string name="scan_notif_progress">%1$d de %2$d revisadas · %3$d buenos</string>
+    <string name="scan_notif_tunnel">Prueba de túnel %1$d de %2$d · %3$d pasaron</string>
+    <string name="scan_notif_starting">Iniciando</string>
+    <string name="scan_notif_stop">Detener</string>
 </resources>

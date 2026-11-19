@@ -1067,6 +1067,37 @@ class ConfigRepository(private val store: KeyValueStore) {
         return RestoreResult(addedSubs.size, addedProfiles.size)
     }
 
+    fun getExtra(key: String): String? = store.getString("extra:$key")
+
+    fun putExtra(key: String, value: String?) = store.putString("extra:$key", value)
+
+    fun dnsProfiles(): List<VpnProfile> = _profiles.value.filter {
+        it.source is ProfileSource.DnsTunnel || it.source is ProfileSource.MasterDns
+    }
+
+    fun setResolvers(id: String, resolvers: List<String>): VpnProfile? {
+        val profile = _profiles.value.firstOrNull { it.id == id } ?: return null
+        val joined = resolvers.joinToString(",")
+        val updated = when (val src = profile.source) {
+            is ProfileSource.DnsTunnel -> profile.copy(source = ProfileSource.DnsTunnel(src.settings.copy(resolvers = joined)))
+            is ProfileSource.MasterDns -> profile.copy(source = ProfileSource.MasterDns(src.settings.copy(resolvers = resolvers.joinToString("\n"))))
+            else -> return null
+        }
+        update(updated)
+        return updated
+    }
+
+    fun tunnelDomainOf(profile: VpnProfile): String = when (val src = profile.source) {
+        is ProfileSource.DnsTunnel -> src.settings.domain
+        is ProfileSource.MasterDns -> src.settings.domains.split(',', '\n').map { it.trim() }.firstOrNull { it.isNotEmpty() }.orEmpty()
+        else -> ""
+    }
+
+    fun tunnelRecordTypeOf(profile: VpnProfile): String = when (val src = profile.source) {
+        is ProfileSource.DnsTunnel -> src.settings.recordType.uppercase()
+        else -> "TXT"
+    }
+
     data class ArchiveImport(val added: Int, val duplicates: Int, val skipped: Int)
 
     fun importArchive(entries: List<ConfigArchive.Entry>): ArchiveImport {

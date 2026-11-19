@@ -168,4 +168,10 @@
     <string name="widget_upload">Отдача</string>
     <string name="widget_toggle_label">Переключатель ZedSecure</string>
     <string name="widget_toggle_description">Подключение и отключение одним касанием.</string>
+    <string name="scan_channel_name">Сканирование DNS</string>
+    <string name="scan_notif_title">Сканирование DNS-резолверов</string>
+    <string name="scan_notif_progress">Проверено %1$d из %2$d · хороших %3$d</string>
+    <string name="scan_notif_tunnel">Тест туннеля %1$d из %2$d · прошли %3$d</string>
+    <string name="scan_notif_starting">Запуск</string>
+    <string name="scan_notif_stop">Стоп</string>
 </resources>

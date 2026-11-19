@@ -89,6 +89,22 @@ interface Platform {
 
     suspend fun pickFileBytes(): FilePick? = null
 
+    val dnsScanner: dev.cluvex.zedsecure.scan.ScanBackend? get() = null
+
+    val rootScanner: dev.cluvex.zedsecure.scan.ScanBackend? get() = null
+
+    fun hasRoot(): Boolean = false
+
+    val tunnelTester: dev.cluvex.zedsecure.scan.TunnelTester? get() = null
+
+    fun systemDnsServers(): List<String> = emptyList()
+
+    fun otherVpnActive(): Boolean = false
+
+    val networkLabel: String? get() = null
+
+    val geoipFile: String? get() = null
+
     val isIgnoringBatteryOptimizations: Boolean get() = true
 
     val supportsBatteryOptimization: Boolean get() = false

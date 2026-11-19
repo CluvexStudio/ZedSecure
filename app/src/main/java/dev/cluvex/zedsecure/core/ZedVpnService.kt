@@ -127,6 +127,7 @@ class ZedVpnService : VpnService() {
 
     override fun onCreate() {
         super.onCreate()
+        VpnSocketGuard.service = this
         notifications.createChannel()
 
         XrayController.warmUp(this)
@@ -1671,6 +1672,7 @@ class ZedVpnService : VpnService() {
     }
 
     override fun onDestroy() {
+        if (VpnSocketGuard.service === this) VpnSocketGuard.service = null
         XrayController.onCoreShutdown = null
         scope.cancel()
         super.onDestroy()

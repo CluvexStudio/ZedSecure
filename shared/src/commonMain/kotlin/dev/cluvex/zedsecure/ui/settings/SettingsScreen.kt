@@ -86,7 +86,7 @@ import dev.cluvex.zedsecure.ui.platform.appVerticalScroll
 
 enum class SettingsPage {
     Root, Ui, Vpn, Core, Routing, PerApp, Mux, Fragment, Observatory, Advanced, Mode, Assets, SingBox,
-    DnsProtocols, Tor, TorBridges, Ssh, Support, SpeedTest, Map, Privacy, Monitor, Ai, AiChat, NavBar,
+    DnsProtocols, Tor, TorBridges, Ssh, Support, SpeedTest, Map, Privacy, Monitor, Ai, AiChat, NavBar, DnsScanner,
 }
 
 @Composable
@@ -244,7 +244,13 @@ fun SettingsScreen(
             SettingsPage.Routing -> RoutingScreen(settings, contentPadding, onUpdate, modifier, serverTargets, groupTargets)
             SettingsPage.PerApp -> PerAppProxyScreen(settings, contentPadding, onUpdate, modifier)
             SettingsPage.Assets -> AssetsScreen(settings, contentPadding, modifier, onUpdate)
-            SettingsPage.DnsProtocols -> DnsProtocolsPage(settings, contentPadding, modifier, onUpdate)
+            SettingsPage.DnsProtocols -> DnsProtocolsPage(settings, contentPadding, modifier, onUpdate) { page = SettingsPage.DnsScanner }
+            SettingsPage.DnsScanner -> DnsScannerPage(
+                contentPadding,
+                modifier,
+                configRepository,
+                onPool = { list -> onUpdate { s -> s.copy(dnsPoolEnabled = true, dnsPoolText = mergePool(s.dnsPoolText, list)) } },
+            )
             SettingsPage.Tor -> TorPage(settings, contentPadding, modifier, onUpdate) { page = it }
             SettingsPage.TorBridges -> TorBridgesScreen(settings, contentPadding, modifier, onUpdate)
             SettingsPage.Ssh -> SshPage(settings, contentPadding, modifier, onUpdate)
@@ -511,6 +517,11 @@ private fun RootPage(
                 stringResource(Res.string.summary_speedtest),
                 art = SettingsArts.SpeedTest,
             ) { onOpen(SettingsPage.SpeedTest) }
+            SettingsMenuRow(
+                stringResource(Res.string.dnsscan_title),
+                stringResource(Res.string.dnsscan_subtitle),
+                art = SettingsArts.Scanner,
+            ) { onOpen(SettingsPage.DnsScanner) }
         }
 
         SettingsGroup(
@@ -626,6 +637,7 @@ private fun GlassRoot(
         buildList {
             add(GlassEntry(stringResource(Res.string.title_speedtest), null, SettingsArts.SpeedTest, listOf(stringResource(Res.string.summary_speedtest))) { onOpen(SettingsPage.SpeedTest) })
             add(GlassEntry(stringResource(Res.string.map_title), null, SettingsArts.Map, listOf(stringResource(Res.string.map_settings_sub))) { onOpen(SettingsPage.Map) })
+            add(GlassEntry(stringResource(Res.string.dnsscan_title), null, SettingsArts.Scanner, listOf(stringResource(Res.string.dnsscan_subtitle), "DNS", "resolver")) { onOpen(SettingsPage.DnsScanner) })
             if (onOpenVault != null) add(GlassEntry(stringResource(Res.string.nav_locked), null, SettingsArts.Vault, emptyList()) { onOpenVault() })
         },
         listOf(
@@ -889,6 +901,12 @@ private fun BentoRoot(
             art = SettingsArts.SpeedTest,
         ) { onOpen(SettingsPage.SpeedTest) })
         add(dev.cluvex.zedsecure.ui.bento.BentoHubEntry(
+            key = "dns-scanner",
+            title = stringResource(Res.string.dnsscan_title),
+            summary = stringResource(Res.string.dnsscan_subtitle),
+            art = SettingsArts.Scanner,
+        ) { onOpen(SettingsPage.DnsScanner) })
+        add(dev.cluvex.zedsecure.ui.bento.BentoHubEntry(
             key = "monitor",
             title = stringResource(Res.string.monitor_title),
             summary = stringResource(Res.string.monitor_subtitle),
@@ -1091,6 +1109,7 @@ private fun DnsProtocolsPage(
     contentPadding: PaddingValues,
     modifier: Modifier,
     onUpdate: ((AppSettings) -> AppSettings) -> Unit,
+    onOpenScanner: () -> Unit,
 ) {
     SettingsPageScaffold(
         title = stringResource(Res.string.title_dns_protocols),
@@ -1099,12 +1118,12 @@ private fun DnsProtocolsPage(
         modifier = modifier,
     ) {
         SettingsGroup {
-            SettingsInfoRow(
-                stringResource(Res.string.dns_protocols_about_title),
-                stringResource(Res.string.dns_protocols_about_body),
-            )
+            SettingsMenuRow(
+                stringResource(Res.string.dnsscan_title),
+                stringResource(Res.string.dnsscan_subtitle),
+                art = SettingsArts.Scanner,
+            ) { onOpenScanner() }
         }
-
         SettingsGroup(stringResource(Res.string.dns_global_resolver_group)) {
             SettingsSwitchRow(
                 title = stringResource(Res.string.dns_override),
@@ -1112,13 +1131,14 @@ private fun DnsProtocolsPage(
                 checked = s.dnsGlobalResolverEnabled,
                 onCheckedChange = { v -> onUpdate { it.copy(dnsGlobalResolverEnabled = v) } },
             )
-            SettingsEditRow(
-                title = stringResource(Res.string.dns_resolver_ips),
-                value = s.dnsGlobalResolvers,
-                enabled = s.dnsGlobalResolverEnabled,
-                placeholder = "8.8.8.8, 1.1.1.1",
-                onValueChanged = { v -> onUpdate { it.copy(dnsGlobalResolvers = v) } },
-            )
+            if (s.dnsGlobalResolverEnabled) {
+                SettingsEditRow(
+                    title = stringResource(Res.string.dns_resolver_ips),
+                    value = s.dnsGlobalResolvers,
+                    placeholder = "8.8.8.8, 1.1.1.1",
+                    onValueChanged = { v -> onUpdate { it.copy(dnsGlobalResolvers = v) } },
+                )
+            }
         }
 
         SettingsGroup(stringResource(Res.string.dns_pool_group)) {
@@ -1128,22 +1148,22 @@ private fun DnsProtocolsPage(
                 checked = s.dnsPoolEnabled,
                 onCheckedChange = { v -> onUpdate { it.copy(dnsPoolEnabled = v) } },
             )
-            SettingsEditRow(
-                title = stringResource(Res.string.dns_pool_list),
-                value = s.dnsPoolText,
-                enabled = s.dnsPoolEnabled,
-                placeholder = "8.8.8.8\n1.1.1.1",
-                onValueChanged = { v -> onUpdate { it.copy(dnsPoolText = v) } },
-            )
-            SettingsSwitchRow(
-                title = stringResource(Res.string.dns_pool_verify),
-                summary = stringResource(
-                    if (s.dnsPoolFullVerification) Res.string.dns_pool_verify_on else Res.string.dns_pool_verify_off,
-                ),
-                enabled = s.dnsPoolEnabled,
-                checked = s.dnsPoolFullVerification,
-                onCheckedChange = { v -> onUpdate { it.copy(dnsPoolFullVerification = v) } },
-            )
+            if (s.dnsPoolEnabled) {
+                SettingsEditRow(
+                    title = stringResource(Res.string.dns_pool_list),
+                    value = s.dnsPoolText,
+                    placeholder = "8.8.8.8\n1.1.1.1",
+                    onValueChanged = { v -> onUpdate { it.copy(dnsPoolText = v) } },
+                )
+                SettingsSwitchRow(
+                    title = stringResource(Res.string.dns_pool_verify),
+                    summary = stringResource(
+                        if (s.dnsPoolFullVerification) Res.string.dns_pool_verify_on else Res.string.dns_pool_verify_off,
+                    ),
+                    checked = s.dnsPoolFullVerification,
+                    onCheckedChange = { v -> onUpdate { it.copy(dnsPoolFullVerification = v) } },
+                )
+            }
         }
 
         SettingsGroup(stringResource(Res.string.dns_remote_group)) {
@@ -1184,6 +1204,13 @@ private fun DnsProtocolsPage(
             SettingsInfoRow(
                 title = stringResource(Res.string.dns_prevent_fallback),
                 body = stringResource(Res.string.dns_prevent_fallback_always),
+            )
+        }
+
+        SettingsGroup {
+            SettingsInfoRow(
+                stringResource(Res.string.dns_protocols_about_title),
+                stringResource(Res.string.dns_protocols_about_body),
             )
         }
     }

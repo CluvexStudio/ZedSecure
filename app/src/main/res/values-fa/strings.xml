@@ -680,4 +680,10 @@
     <string name="widget_upload">آپلود</string>
     <string name="widget_toggle_label">کلید ZedSecure</string>
     <string name="widget_toggle_description">با یک لمس وصل یا قطع کنید.</string>
+    <string name="scan_channel_name">اسکن DNS</string>
+    <string name="scan_notif_title">در حال اسکن DNS</string>
+    <string name="scan_notif_progress">%1$d از %2$d بررسی شد · %3$d خوب</string>
+    <string name="scan_notif_tunnel">تست تونل %1$d از %2$d · %3$d موفق</string>
+    <string name="scan_notif_starting">در حال شروع</string>
+    <string name="scan_notif_stop">توقف</string>
 </resources>
