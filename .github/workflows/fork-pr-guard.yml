@@ -1,0 +1,30 @@
+name: fork-pr-guard
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize]
+
+permissions:
+  actions: write
+
+jobs:
+  drop:
+    if: github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Remove the workflow runs a fork pull request asks for
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          for attempt in 1 2 3 4 5 6 7 8; do
+            ids=$(gh api "repos/$REPO/actions/runs?head_sha=$SHA&per_page=100" \
+              --jq '.workflow_runs[] | select(.event == "pull_request" or .event == "pull_request_review" or .event == "pull_request_review_comment") | .id')
+            for id in $ids; do
+              gh api -X POST "repos/$REPO/actions/runs/$id/cancel" >/dev/null 2>&1 || true
+              gh api -X DELETE "repos/$REPO/actions/runs/$id" >/dev/null 2>&1 && echo "removed run $id" || true
+            done
+            sleep 10
+          done
