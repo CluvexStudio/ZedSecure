@@ -153,6 +153,18 @@ class ConfigExplorerRepository(private val store: KeyValueStore) {
         return true
     }
 
+    /** Adds several already-verified feeds at once (Link Hunter); returns how many were new. */
+    fun addCustomSources(urls: List<String>): Int {
+        val current = _state.value
+        val fresh = urls.map { it.trim() }.filter { it.startsWith("https://") && it !in current.customSources }
+            .distinct().take((MAX_CUSTOM_SOURCES - current.customSources.size).coerceAtLeast(0))
+        if (fresh.isEmpty()) return 0
+        val next = current.copy(customSources = current.customSources + fresh)
+        _state.value = next
+        persist(next)
+        return fresh.size
+    }
+
     fun removeCustomSource(url: String) {
         val next = _state.value.copy(customSources = _state.value.customSources - url)
         _state.value = next
@@ -203,7 +215,7 @@ class ConfigExplorerRepository(private val store: KeyValueStore) {
     }
 
     private companion object {
-        const val MAX_CUSTOM_SOURCES = 20
+        const val MAX_CUSTOM_SOURCES = 40
         const val KEY_STATE = "zx_config_explorer_state_v1"
     }
 }
@@ -265,12 +277,36 @@ object ConfigExplorerEngine {
         sources + snapshot.customSources.map { url ->
             ConfigExplorerSource(
                 id = "custom-" + url.hashCode(),
-                name = url.substringAfter("://").substringBefore('/').take(40),
+                name = customSourceName(url),
                 repositoryUrl = url,
                 feedUrl = url,
                 description = "منبع دلخواه شما",
             )
         }
+
+    private fun customSourceName(url: String): String {
+        val rest = url.substringAfter("://")
+        val host = rest.substringBefore('/')
+        val parts = rest.substringAfter('/', "").split('/').filter { it.isNotEmpty() }
+        return when {
+            host == "raw.githubusercontent.com" && parts.size >= 4 ->
+                parts[0] + "/" + parts[1] + " · " + parts.last()
+            host == "gist.githubusercontent.com" && parts.isNotEmpty() -> "gist · " + parts[0]
+            else -> host.take(40)
+        }
+    }
+
+    /**
+     * Link Hunter: resolves a GitHub/raw/gist/https link into verified feeds, adds them as sources and
+     * starts a scan right away. Returns a human-readable result line.
+     */
+    suspend fun hunt(repository: ConfigRepository, input: String): Pair<Boolean, String> {
+        val result = LinkHunter.hunt(input)
+        if (result.feeds.isEmpty()) return false to result.note
+        val added = repository.configExplorer.addCustomSources(result.feeds.map { it.url })
+        if (added > 0 && !repository.configExplorer.state.value.isRunning) runNow(repository)
+        return true to (result.note + if (added > 0) " · " + added + " منبع جدید افزوده شد و کاوش شروع شد" else " · همه قبلاً افزوده شده بودند")
+    }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val cycleMutex = Mutex()

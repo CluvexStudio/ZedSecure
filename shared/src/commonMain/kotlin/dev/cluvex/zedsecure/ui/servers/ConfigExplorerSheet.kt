@@ -68,6 +68,8 @@ fun ConfigExplorerSheet(
     var countryFilter by rememberSaveable { mutableStateOf<String?>(null) }
     var fastOnly by rememberSaveable { mutableStateOf(false) }
     var newSource by rememberSaveable { mutableStateOf("") }
+    var hunting by remember { mutableStateOf(false) }
+    var huntMessage by remember { mutableStateOf<String?>(null) }
     val platform = LocalPlatform.current
 
     LaunchedEffect(repository) { ConfigExplorerEngine.start(repository) }
@@ -123,6 +125,24 @@ fun ConfigExplorerSheet(
 
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
+    val startHunt: (String) -> Unit = { input ->
+        if (!hunting) {
+            hunting = true
+            huntMessage = "در حال شکار لینک…"
+            scope.launch {
+                val (ok, message) = runCatching { ConfigExplorerEngine.hunt(repository, input) }
+                    .getOrElse { false to (it.message?.take(120) ?: "شکار لینک انجام نشد") }
+                huntMessage = message
+                hunting = false
+                if (ok) {
+                    newSource = ""
+                    query = ""
+                    tab = "found"
+                }
+                platform.toast(message)
+            }
+        }
+    }
     // Reset the scroll position when the list being viewed changes.
     LaunchedEffect(tab, sort, protoFilter, countryFilter, fastOnly) { listState.scrollToItem(0) }
 
@@ -286,7 +306,7 @@ fun ConfigExplorerSheet(
                 ExplorerTab("ذخیره جایگزین", tab == "reserve") { tab = "reserve" }
                 ExplorerTab("همه سالم‌ها", tab == "pool") { tab = "pool" }
                 ExplorerTab("★ نشان‌دارها " + state.favorites.size, tab == "stars") { tab = "stars" }
-                ExplorerTab("منابع", tab == "sources") { tab = "sources" }
+                ExplorerTab("🎯 شکارچی و منابع", tab == "sources") { tab = "sources" }
             }
             }
             item {
@@ -299,9 +319,16 @@ fun ConfigExplorerSheet(
                     value = query,
                     onValueChange = { query = it },
                     singleLine = true,
-                    label = { Text("جست‌وجو (نام، آدرس، کشور، پروتکل، منبع)") },
+                    label = { Text("جست‌وجو یا چسباندن لینک GitHub / raw") },
                     modifier = Modifier.fillMaxWidth(),
                 )
+                if (dev.cluvex.zedsecure.data.config.LinkHunter.looksLikeLink(query)) {
+                    Button(
+                        onClick = { startHunt(query) },
+                        enabled = !hunting,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text(if (hunting) "در حال شکار…" else "🎯 شکار این لینک و کاوش کانفیگ‌ها") }
+                }
                 Row(
                     Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -358,21 +385,35 @@ fun ConfigExplorerSheet(
             if (tab == "sources") {
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                OutlinedTextField(
-                    value = newSource,
-                    onValueChange = { newSource = it },
-                    singleLine = true,
-                    label = { Text("افزودن منبع دلخواه (آدرس https فید یا اشتراک)") },
+                Surface(
+                    shape = RoundedCornerShape(18.dp),
+                    color = MaterialTheme.colorScheme.secondaryContainer,
                     modifier = Modifier.fillMaxWidth(),
-                )
-                TextButton(onClick = {
-                    if (repository.configExplorer.addCustomSource(newSource)) {
-                        newSource = ""
-                        platform.toast("منبع افزوده شد؛ از چرخهٔ بعدی بررسی می‌شود")
-                    } else {
-                        platform.toast("آدرس معتبر نیست یا تکراری است (https، بدون فاصله، حداکثر ۲۰ منبع)")
+                ) {
+                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("🎯 شکارچی لینک ZX", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            "هر لینکی بدهید: صفحهٔ مخزن GitHub، یک پوشه، صفحهٔ فایل (blob)، لینک raw، Gist یا هر فید https. " +
+                                "شکارچی فایل‌های شبیه کانفیگ را پیدا می‌کند، محتوایشان را راستی‌آزمایی می‌کند و کاوش را شروع می‌کند.",
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                        OutlinedTextField(
+                            value = newSource,
+                            onValueChange = { newSource = it },
+                            singleLine = true,
+                            label = { Text("github.com/… یا raw.githubusercontent.com/… یا https://…") },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Button(
+                            onClick = { startHunt(newSource) },
+                            enabled = !hunting && newSource.isNotBlank(),
+                            modifier = Modifier.fillMaxWidth(),
+                        ) { Text(if (hunting) "در حال شکار…" else "شکار و افزودن") }
+                        huntMessage?.let {
+                            Text(it, style = MaterialTheme.typography.labelMedium)
+                        }
                     }
-                }) { Text("افزودن منبع") }
+                }
                 ConfigExplorerEngine.allSources(state).forEach { source ->
                     val status = state.sourceStatuses.firstOrNull { it.sourceId == source.id }
                     Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
