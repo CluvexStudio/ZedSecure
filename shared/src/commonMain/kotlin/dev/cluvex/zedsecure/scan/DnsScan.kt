@@ -234,7 +234,6 @@ object DnsScanHub {
 
     var onFinished: ((List<ResolverResult>) -> Unit)? = null
     var onCheckpoint: ((ScanCheckpoint?) -> Unit)? = null
-    var onRunning: ((Boolean) -> Unit)? = null
 
     private val results = ConcurrentHashMap<String, ResolverResult>()
     private val probes = ConcurrentHashMap<String, TunnelProbe>()
@@ -264,19 +263,16 @@ object DnsScanHub {
             r.e2e?.let { probes[r.endpoint] = it }
         }
         _state.value = ScanState(running = true, request = seeded, startedAt = currentTimeMillis(), results = snapshot())
-        runCatching { onRunning?.invoke(true) }
         if (plan != null && plan.auto) openE2e(plan)
         job = scope.launch(Dispatchers.IO) {
             val h = try {
                 engine.start(config)
             } catch (e: Throwable) {
                 _state.update { it.copy(running = false, error = e.message ?: e.toString()) }
-                runCatching { onRunning?.invoke(false) }
                 return@launch
             }
             if (h == 0L) {
                 _state.update { it.copy(running = false, error = "start failed") }
-                runCatching { onRunning?.invoke(false) }
                 return@launch
             }
             handle = h
@@ -308,7 +304,6 @@ object DnsScanHub {
                 e2eQueue?.close()
                 val finished = snapshot()
                 if (finished.isNotEmpty()) runCatching { onFinished?.invoke(finished) }
-                if (!e2eRunning) runCatching { onRunning?.invoke(false) }
             }
         }
     }
@@ -370,7 +365,6 @@ object DnsScanHub {
         val queue = openE2e(plan)
         endpoints.forEach { queueE2e(queue, it) }
         if (!_state.value.running) queue.close()
-        runCatching { onRunning?.invoke(true) }
     }
 
     private fun queueE2e(queue: Channel<String>, endpoint: String) {
@@ -397,7 +391,6 @@ object DnsScanHub {
                 if (!e2eRunning && !_state.value.running) {
                     val finished = snapshot()
                     if (finished.isNotEmpty()) runCatching { onFinished?.invoke(finished) }
-                    runCatching { onRunning?.invoke(false) }
                 }
             }
         }

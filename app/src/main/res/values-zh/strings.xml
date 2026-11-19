@@ -168,10 +168,4 @@
     <string name="widget_upload">上传</string>
     <string name="widget_toggle_label">ZedSecure 开关</string>
     <string name="widget_toggle_description">轻点一下即可连接或断开。</string>
-    <string name="scan_channel_name">DNS 扫描</string>
-    <string name="scan_notif_title">正在扫描 DNS 解析服务器</string>
-    <string name="scan_notif_progress">已检查 %1$d / %2$d · 良好 %3$d</string>
-    <string name="scan_notif_tunnel">隧道测试 %1$d / %2$d · 通过 %3$d</string>
-    <string name="scan_notif_starting">正在启动</string>
-    <string name="scan_notif_stop">停止</string>
 </resources>
