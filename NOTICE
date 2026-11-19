@@ -160,8 +160,10 @@ OpenConnect
 -----------
 Source: https://gitlab.com/openconnect/openconnect
 License: LGPL-2.1
-`app/src/main/jniLibs/<abi>/libopenconnect.so` is a build of our patched fork.
-Ask us for that source and we will provide it, as LGPL-2.1 section 6 requires.
+`app/src/main/jniLibs/<abi>/libopenconnect.so` is built from upstream commit
+70d1e79d1e55849dfc71dcc199b1edb535b547e4 with `patches/openconnect-android.patch` from
+https://github.com/CluvexStudio/ZedSecure-Cores applied (it binds the SSO webview callback in jni.c and
+gives lz4 an install prefix in android/Makefile). The `openconnect` workflow in that repository builds it.
 The Windows desktop build ships `openconnect.exe` built unmodified from the official 9.21 release with
 MinGW, the GnuTLS, nettle, gmp, libxml2 and zlib DLLs it loads (each under its own licence, LGPL or more permissive), the
 Wintun driver DLL (Wintun Prebuilt Binaries License) and `vpnc-script-win.js` from
