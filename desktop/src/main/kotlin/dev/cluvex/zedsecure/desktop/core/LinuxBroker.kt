@@ -362,7 +362,22 @@ object LinuxBroker {
         |MODE=${if (persistent) "persistent" else "session"}
         |HOME_DIR=$HOME_DIR
         |TUN=$TUN_NAME
-        |RUN=${'$'}(mktemp -d /run/zedsecure.XXXXXX 2>/dev/null || mktemp -d /tmp/zedsecure.XXXXXX) || { echo "ERR no private directory for the root helper"; exit 1; }
+        |make_run_dir() {
+        |  dir=${'$'}(mktemp -d "${'$'}1/zedsecure.XXXXXX") || return 1
+        |  if [ "${'$'}MODE" = session ]; then
+        |    # A noexec mount can hold the staged helper but cannot launch it.
+        |    probe="${'$'}dir/exec-probe"
+        |    (printf '%s\n' '#!/bin/sh' 'exit 0' > "${'$'}probe" && chmod 700 "${'$'}probe" && "${'$'}probe")
+        |    status=${'$'}?
+        |    rm -f "${'$'}probe"
+        |    if [ "${'$'}status" -ne 0 ]; then
+        |      rmdir "${'$'}dir"
+        |      return 1
+        |    fi
+        |  fi
+        |  printf '%s\n' "${'$'}dir"
+        |}
+        |RUN=${'$'}(make_run_dir /run 2>/dev/null || make_run_dir /tmp 2>/dev/null) || { echo "ERR no usable private directory for the root helper"; exit 1; }
         |if [ "${'$'}MODE" = persistent ]; then
         |  HEV="${'$'}HOME_DIR/hev"
         |else
