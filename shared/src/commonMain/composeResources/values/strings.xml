@@ -566,7 +566,7 @@
     <string name="title_pref_auto_test_after_update">Test after updating a subscription</string>
     <string name="title_pref_auto_remove_invalid">Delete invalid configs after testing</string>
     <string name="title_pref_auto_sort_after_test">Sort by result after testing</string>
-    <string name="settings_backup_group">Settings backup</string>
+    <string name="settings_backup_group">Backup and restore</string>
     <string name="settings_export">Export settings</string>
     <string name="settings_export_sum">Saves every setting to a file for another device. The file includes the LAN sharing password.</string>
     <string name="settings_import">Import settings</string>
@@ -1871,4 +1871,9 @@
     <string name="glass_slide_disconnect">slide to disconnect</string>
     <string name="glass_no_results">No Results</string>
     <string name="glass_app_sub">Version %1$s · About</string>
+    <string name="backup_all_title">Back up everything</string>
+    <string name="backup_all_sum">Saves settings, subscriptions and every server in one file for another device. Keep it private: it holds your server keys and passwords.</string>
+    <string name="backup_restore_title">Restore a backup</string>
+    <string name="backup_restore_sum">Adds the subscriptions and servers from a backup file and applies its settings. Servers you already have are skipped.</string>
+    <string name="backup_restored">Restored %1$d servers and %2$d subscriptions</string>
 </resources>

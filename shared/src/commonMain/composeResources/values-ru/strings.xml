@@ -567,7 +567,7 @@
     <string name="title_pref_auto_test_after_update">Тестировать после обновления подписки</string>
     <string name="title_pref_auto_remove_invalid">Удалять нерабочие конфигурации после теста</string>
     <string name="title_pref_auto_sort_after_test">Сортировать по результату после теста</string>
-    <string name="settings_backup_group">Резервная копия настроек</string>
+    <string name="settings_backup_group">Резервное копирование</string>
     <string name="settings_export">Экспорт настроек</string>
     <string name="settings_export_sum">Сохраняет все настройки в файл для другого устройства. В файле есть пароль общего доступа в локальной сети.</string>
     <string name="settings_import">Импорт настроек</string>
@@ -1872,4 +1872,9 @@
     <string name="glass_slide_disconnect">сдвиньте для отключения</string>
     <string name="glass_no_results">Ничего не найдено</string>
     <string name="glass_app_sub">Версия %1$s · О приложении</string>
+    <string name="backup_all_title">Полная резервная копия</string>
+    <string name="backup_all_sum">Сохраняет настройки, подписки и все серверы в один файл для другого устройства. Никому его не передавайте: в нём ключи и пароли ваших серверов.</string>
+    <string name="backup_restore_title">Восстановить из копии</string>
+    <string name="backup_restore_sum">Добавляет подписки и серверы из файла копии и применяет его настройки. Уже имеющиеся серверы пропускаются.</string>
+    <string name="backup_restored">Восстановлено серверов: %1$d, подписок: %2$d</string>
 </resources>

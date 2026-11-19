@@ -468,6 +468,7 @@ fun MainScaffold(
                 }
                 TopDestination.Settings -> SettingsScreen(
                     settings = settings,
+                    configRepository = configRepository,
                     contentPadding = innerPadding,
                     onUpdate = onUpdateSettings,
                     onLanguage = onLanguage,

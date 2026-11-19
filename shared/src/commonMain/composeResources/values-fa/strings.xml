@@ -554,7 +554,7 @@
     <string name="title_pref_auto_test_after_update">تست پس از به‌روزرسانی سابسکریپشن</string>
     <string name="title_pref_auto_remove_invalid">حذف کانفیگ‌های نامعتبر پس از تست</string>
     <string name="title_pref_auto_sort_after_test">مرتب‌سازی بر اساس نتیجه پس از تست</string>
-    <string name="settings_backup_group">پشتیبان تنظیمات</string>
+    <string name="settings_backup_group">پشتیبان‌گیری و بازگردانی</string>
     <string name="settings_export">خروجی گرفتن از تنظیمات</string>
     <string name="settings_export_sum">همهٔ تنظیمات را در یک فایل ذخیره می‌کند تا به دستگاه دیگری ببرید. رمز اشتراک در شبکهٔ محلی هم در فایل هست.</string>
     <string name="settings_import">وارد کردن تنظیمات</string>
@@ -1864,4 +1864,9 @@
     <string name="glass_slide_disconnect">برای قطع اتصال بکشید</string>
     <string name="glass_no_results">نتیجه‌ای پیدا نشد</string>
     <string name="glass_app_sub">نسخهٔ %1$s · درباره</string>
+    <string name="backup_all_title">پشتیبان کامل</string>
+    <string name="backup_all_sum">تنظیمات، اشتراک‌ها و همهٔ سرورها را در یک فایل ذخیره می‌کند تا به دستگاه دیگری ببرید. فایل را به کسی ندهید؛ کلیدها و رمزهای سرورهایتان در آن است.</string>
+    <string name="backup_restore_title">بازگردانی پشتیبان</string>
+    <string name="backup_restore_sum">اشتراک‌ها و سرورهای فایل پشتیبان را اضافه می‌کند و تنظیماتش را اعمال می‌کند. سرورهایی که از قبل دارید دوباره اضافه نمی‌شوند.</string>
+    <string name="backup_restored">%1$d سرور و %2$d اشتراک بازگردانی شد</string>
 </resources>

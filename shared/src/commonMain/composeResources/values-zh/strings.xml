@@ -567,7 +567,7 @@
     <string name="title_pref_auto_test_after_update">更新订阅后测试</string>
     <string name="title_pref_auto_remove_invalid">测试后删除无效配置</string>
     <string name="title_pref_auto_sort_after_test">测试后按结果排序</string>
-    <string name="settings_backup_group">设置备份</string>
+    <string name="settings_backup_group">备份与恢复</string>
     <string name="settings_export">导出设置</string>
     <string name="settings_export_sum">将所有设置保存到文件，便于迁移到其他设备。文件中包含局域网共享密码。</string>
     <string name="settings_import">导入设置</string>
@@ -1872,4 +1872,9 @@
     <string name="glass_slide_disconnect">滑动以断开</string>
     <string name="glass_no_results">无结果</string>
     <string name="glass_app_sub">版本 %1$s · 关于</string>
+    <string name="backup_all_title">完整备份</string>
+    <string name="backup_all_sum">将设置、订阅和所有服务器保存到一个文件，便于迁移到其他设备。请妥善保管：文件中包含服务器的密钥和密码。</string>
+    <string name="backup_restore_title">恢复备份</string>
+    <string name="backup_restore_sum">从备份文件添加订阅和服务器，并应用其中的设置。已有的服务器会被跳过。</string>
+    <string name="backup_restored">已恢复 %1$d 个服务器和 %2$d 个订阅</string>
 </resources>

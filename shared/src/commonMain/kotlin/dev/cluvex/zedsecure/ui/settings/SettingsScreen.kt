@@ -118,6 +118,7 @@ fun SettingsScreen(
     mtuHint: dev.cluvex.zedsecure.data.net.MtuServerHint? = null,
 
     ai: dev.cluvex.zedsecure.ui.settings.AiSection? = null,
+    configRepository: dev.cluvex.zedsecure.data.config.ConfigRepository? = null,
 ) {
     var page by rememberSaveable { mutableStateOf(SettingsPage.Root) }
     var showAbout by rememberSaveable { mutableStateOf(false) }
@@ -189,6 +190,7 @@ fun SettingsScreen(
     val artTransition = remember(sharedScope, visibilityScope) { ArtTransition(sharedScope, visibilityScope) }
     androidx.compose.runtime.CompositionLocalProvider(
         LocalArtTransition provides artTransition.takeUnless { settings.reduceMotion },
+        LocalBackupRepository provides configRepository,
     ) {
     stateHolder.SaveableStateProvider(shown) {
         when (shown) {
@@ -2826,13 +2828,66 @@ private fun AdvancedPage(
     }
 }
 
+private val LocalBackupRepository =
+    androidx.compose.runtime.staticCompositionLocalOf<dev.cluvex.zedsecure.data.config.ConfigRepository?> { null }
+
 @Composable
 private fun SettingsBackupGroup(s: AppSettings, onUpdate: ((AppSettings) -> AppSettings) -> Unit) {
     val platform = LocalPlatform.current
     val scope = rememberCoroutineScope()
     val imported = stringResource(Res.string.settings_imported)
     val invalid = stringResource(Res.string.settings_import_invalid)
+    val repository = LocalBackupRepository.current
     SettingsGroup(stringResource(Res.string.settings_backup_group)) {
+        if (repository != null) {
+            SettingsActionRow(
+                title = stringResource(Res.string.backup_all_title),
+                summary = stringResource(Res.string.backup_all_sum),
+                onClick = {
+                    scope.launch {
+                        val bytes = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+                            dev.cluvex.zedsecure.data.config.AppBackup.export(
+                                settings = s,
+                                subscriptions = repository.subscriptions.value,
+                                profiles = repository.profiles.value,
+                                activeId = repository.activeId.value,
+                            ).encodeToByteArray()
+                        }
+                        platform.saveFile(dev.cluvex.zedsecure.data.config.AppBackup.FILE_NAME, "application/json", bytes)
+                    }
+                },
+            )
+            SettingsActionRow(
+                title = stringResource(Res.string.backup_restore_title),
+                summary = stringResource(Res.string.backup_restore_sum),
+                onClick = {
+                    scope.launch {
+                        val pick = platform.pickFileBytes() ?: return@launch
+                        val text = pick.bytes.decodeToString()
+                        val backup = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+                            dev.cluvex.zedsecure.data.config.AppBackup.read(text)
+                        }
+                        if (backup == null) {
+                            val settingsOnly = dev.cluvex.zedsecure.domain.model.SettingsBackup.read(text)
+                            if (settingsOnly == null) {
+                                platform.toast(invalid)
+                            } else {
+                                onUpdate { settingsOnly }
+                                platform.toast(imported)
+                            }
+                            return@launch
+                        }
+                        val result = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+                            repository.restoreBackup(backup.subscriptions, backup.profiles, backup.activeId)
+                        }
+                        backup.settings?.let { restored -> onUpdate { restored } }
+                        platform.toast(
+                            org.jetbrains.compose.resources.getString(Res.string.backup_restored, result.servers, result.subscriptions),
+                        )
+                    }
+                },
+            )
+        }
         SettingsActionRow(
             title = stringResource(Res.string.settings_export),
             summary = stringResource(Res.string.settings_export_sum),

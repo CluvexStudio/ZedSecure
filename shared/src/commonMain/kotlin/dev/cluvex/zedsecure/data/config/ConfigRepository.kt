@@ -1025,6 +1025,48 @@ class ConfigRepository(private val store: KeyValueStore) {
     fun exportAllPayloads(): String =
         _profiles.value.mapNotNull { it.rawPayload() }.joinToString("\n")
 
+    data class RestoreResult(val subscriptions: Int, val servers: Int)
+
+    fun restoreBackup(subscriptions: List<Subscription>, profiles: List<VpnProfile>, activeId: String?): RestoreResult {
+        val subIds = _subscriptions.value.mapTo(HashSet()) { it.id }
+        val subUrls = _subscriptions.value.mapNotNullTo(HashSet()) { it.url.trim().takeIf(String::isNotEmpty) }
+        val presentFeeds = HashSet<String>()
+        val addedSubs = ArrayList<Subscription>()
+        subscriptions.forEach { sub ->
+            val url = sub.url.trim()
+            when {
+                sub.id in subIds -> if (url.isNotEmpty()) presentFeeds += sub.id
+                url.isNotEmpty() && url in subUrls -> presentFeeds += sub.id
+                else -> {
+                    addedSubs += sub
+                    subIds += sub.id
+                    if (url.isNotEmpty()) subUrls += url
+                }
+            }
+        }
+        val ids = _profiles.value.mapTo(HashSet()) { it.id }
+        val payloads = _profiles.value.mapNotNullTo(HashSet()) { it.rawPayload() }
+        val addedProfiles = ArrayList<VpnProfile>()
+        profiles.forEach { p ->
+            if (p.subscriptionId in presentFeeds || p.id in ids) return@forEach
+            val payload = p.rawPayload()
+            if (payload != null && !p.isLocked && payload in payloads) return@forEach
+            addedProfiles += if (p.subscriptionId.isEmpty() || p.subscriptionId in subIds) p else p.copy(subscriptionId = "")
+            ids += p.id
+            if (payload != null) payloads += payload
+        }
+        if (addedSubs.isNotEmpty()) {
+            _subscriptions.update { it + addedSubs }
+            persistSubscriptions()
+        }
+        if (addedProfiles.isNotEmpty()) {
+            _profiles.update { it + addedProfiles }
+            persistProfiles()
+        }
+        if (activeId != null && !activeExists() && profile(activeId) != null) setActive(activeId)
+        return RestoreResult(addedSubs.size, addedProfiles.size)
+    }
+
     fun setActive(id: String?) {
         _activeId.value = id
         store.putString(KEY_ACTIVE, id)

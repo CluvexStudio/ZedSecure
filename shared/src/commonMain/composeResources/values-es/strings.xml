@@ -531,7 +531,7 @@
     <string name="title_pref_auto_test_after_update">Probar tras actualizar una suscripción</string>
     <string name="title_pref_auto_remove_invalid">Eliminar configuraciones no válidas tras la prueba</string>
     <string name="title_pref_auto_sort_after_test">Ordenar por resultado tras la prueba</string>
-    <string name="settings_backup_group">Copia de seguridad de ajustes</string>
+    <string name="settings_backup_group">Copia de seguridad y restauración</string>
     <string name="settings_export">Exportar ajustes</string>
     <string name="settings_export_sum">Guarda todos los ajustes en un archivo para otro dispositivo. El archivo incluye la contraseña del uso compartido en LAN.</string>
     <string name="settings_import">Importar ajustes</string>
@@ -1825,4 +1825,9 @@
     <string name="glass_slide_disconnect">desliza para desconectar</string>
     <string name="glass_no_results">Sin resultados</string>
     <string name="glass_app_sub">Versión %1$s · Acerca de</string>
+    <string name="backup_all_title">Copia de seguridad completa</string>
+    <string name="backup_all_sum">Guarda los ajustes, las suscripciones y todos los servidores en un archivo para otro dispositivo. Mantenlo en privado: contiene las claves y contraseñas de tus servidores.</string>
+    <string name="backup_restore_title">Restaurar una copia</string>
+    <string name="backup_restore_sum">Añade las suscripciones y los servidores de una copia y aplica sus ajustes. Se omiten los servidores que ya tienes.</string>
+    <string name="backup_restored">Se restauraron %1$d servidores y %2$d suscripciones</string>
 </resources>
