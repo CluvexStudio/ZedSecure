@@ -24,9 +24,11 @@ PLATFORMS = [
         ("-x86.apk", "APK", "x86", "android"),
         ("-x86_64.apk", "APK", "x86_64", "android"),
     ]),
-    ("Windows 10+", None, [
+    ("Windows 10+", "ARM64 is for Snapdragon and other Windows on ARM PCs.", [
         ("-x86_64.msi", "Installer", "x64", WINDOW),
         ("-windows-x86_64.zip", "Portable", "x64", WINDOW),
+        ("-arm64.msi", "Installer", "ARM64", WINDOW),
+        ("-windows-arm64.zip", "Portable", "ARM64", WINDOW),
     ]),
     ("macOS 12+", "Apple Silicon for M-series Macs, Intel for older ones. The first launch needs right-click, then Open.", [
         ("-macos-arm64.dmg", "DMG", "Apple Silicon", "apple"),
@@ -37,6 +39,10 @@ PLATFORMS = [
         ("-amd64.deb", "DEB", "Debian · Ubuntu", "debian"),
         ("-x86_64.rpm", "RPM", "Fedora · RHEL", "fedora"),
         ("-linux-x86_64.tar.gz", "tar.gz", "x64", "linux"),
+        ("-aarch64.AppImage", "AppImage", "ARM64", "appimage"),
+        ("-arm64.deb", "DEB", "Debian · Ubuntu ARM64", "debian"),
+        ("-aarch64.rpm", "RPM", "Fedora · RHEL ARM64", "fedora"),
+        ("-linux-aarch64.tar.gz", "tar.gz", "ARM64", "linux"),
     ]),
 ]
 

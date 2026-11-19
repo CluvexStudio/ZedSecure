@@ -47,8 +47,8 @@ jobs:
           V='${{ needs.version.outputs.name }}'
           ls -l dist
           for f in "ZedSecure-$V-arm64-v8a.apk" "ZedSecure-$V-universal.apk" "ZedSecure-$V-x86.apk" \
-                   "ZedSecure-$V-x86_64.msi" \
-                   "ZedSecure-$V-linux-x86_64.tar.gz" \
+                   "ZedSecure-$V-x86_64.msi" "ZedSecure-$V-arm64.msi" \
+                   "ZedSecure-$V-linux-x86_64.tar.gz" "ZedSecure-$V-linux-aarch64.tar.gz" \
                    "ZedSecure-$V-macos-arm64.dmg" "ZedSecure-$V-macos-x86_64.dmg"; do
             [ -f "dist/$f" ] || { echo "::error::$f is missing"; exit 1; }
           done

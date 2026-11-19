@@ -62,12 +62,12 @@ APK مخصوص دستگاهتان از [Releases](https://github.com/CluvexStudi
 (`arm64-v8a` برای تقریباً همهٔ گوشی‌ها، `armeabi-v7a` برای گوشی‌های قدیمی‌تر، `x86` و `x86_64` برای تبلت‌های اینتلی،
 کروم‌بوک‌ها و شبیه‌سازها).
 
-**لینوکس:** فایل `.deb`، `.rpm`، `.AppImage` یا `.tar.gz` از Releases. روی آرچ لینوکس، بستهٔ
+**لینوکس:** فایل `.deb`، `.rpm`، `.AppImage` یا `.tar.gz` برای x86_64 یا ARM64 از Releases. روی آرچ لینوکس، بستهٔ
 [`zedsecure-bin`](https://aur.archlinux.org/packages/zedsecure-bin) که کاربران ساخته‌اند در AUR هست:
 `yay -S zedsecure-bin`. روی NixOS:
 `nix run github:CluvexStudio/ZedSecure`
 
-**ویندوز:** نصب‌کنندهٔ `.msi`، یا نسخهٔ قابل حمل `.zip`.
+**ویندوز:** نصب‌کنندهٔ `.msi`، یا نسخهٔ قابل حمل `.zip`، برای x64 یا ARM64.
 
 **مک:** فایل `.dmg` برای Apple Silicon یا Intel. برنامه notarize نشده، پس بار اول با راست‌کلیک و
 سپس Open بازش کنید.
@@ -77,7 +77,7 @@ APK مخصوص دستگاهتان از [Releases](https://github.com/CluvexStudi
 <div dir="ltr">
 
 ```sh
-./tools/get-cores.sh android     # or linux, windows, macos-arm64, macos-x86_64
+./tools/get-cores.sh android     # or linux, linux-arm64, windows, windows-arm64, macos-arm64, macos-x86_64
 ./gradlew :app:assembleRelease   # four APKs, one per ABI
 ./gradlew :desktop:packageDeb    # or packageRpm, packageMsi, packageDmg
 ```

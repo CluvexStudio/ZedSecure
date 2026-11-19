@@ -120,7 +120,15 @@ Source: https://gitlab.torproject.org/tpo/core/tor and the anti-censorship proje
 License: BSD-3-Clause
 The Android tor is built from the 0.4.9.13 release with the fake SNI changes from
 Gedsh's tor branch for InviZible Pro (https://gitlab.torproject.org/Gedsh/tor, prod-0.4.9),
-kept as tools/tor-fake-sni.patch. The desktop builds use the official Tor Expert Bundle.
+kept as patches/tor-fake-sni.patch in https://github.com/CluvexStudio/ZedSecure-Cores.
+The desktop builds use the official Tor Expert Bundle, except Linux ARM64, which has none:
+there tor 0.4.9.13 is built unmodified from source, and lyrebird and Conjure from theirs.
+
+OpenSSL, libevent, zlib
+-----------------------
+OpenSSL (Apache-2.0, https://github.com/openssl/openssl) and libevent (BSD-3-Clause,
+https://github.com/libevent/libevent) are linked into the Android tor and the Linux ARM64 tor;
+zlib (zlib License, https://github.com/madler/zlib) into the Linux ARM64 tor.
 
 dnstt
 -----

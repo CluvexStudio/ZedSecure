@@ -60,11 +60,11 @@ APK for your device from [Releases](https://github.com/CluvexStudio/ZedSecure/re
 (`arm64-v8a` for almost every phone, `armeabi-v7a` for older ones, `x86` and `x86_64` for Intel tablets,
 Chromebooks and emulators).
 
-**Linux:** `.deb`, `.rpm`, `.AppImage` or `.tar.gz` from Releases. On Arch Linux, the community
+**Linux:** `.deb`, `.rpm`, `.AppImage` or `.tar.gz` for x86_64 or ARM64 from Releases. On Arch Linux, the community
 package [`zedsecure-bin`](https://aur.archlinux.org/packages/zedsecure-bin) is in the AUR:
 `yay -S zedsecure-bin`. On NixOS, `nix run github:CluvexStudio/ZedSecure`.
 
-**Windows:** the `.msi` installer, or the portable `.zip`.
+**Windows:** the `.msi` installer, or the portable `.zip`, for x64 or ARM64.
 
 **macOS:** the `.dmg` for Apple Silicon or for Intel. The app is not notarized, so open it the
 first time with right-click, then Open.
@@ -72,7 +72,7 @@ first time with right-click, then Open.
 ## Building
 
 ```sh
-./tools/get-cores.sh android     # or linux, windows, macos-arm64, macos-x86_64
+./tools/get-cores.sh android     # or linux, linux-arm64, windows, windows-arm64, macos-arm64, macos-x86_64
 ./gradlew :app:assembleRelease   # four APKs, one per ABI
 ./gradlew :desktop:packageDeb    # or packageRpm, packageMsi, packageDmg
 ```

@@ -52,16 +52,16 @@ Android ではすべてのエンジンを使えます。Linux、Windows、macOS 
 
 **Android:** [Google Play](https://play.google.com/store/apps/details?id=com.zedsecure.vpn)、または [Releases](https://github.com/CluvexStudio/ZedSecure/releases/latest) からお使いのデバイス向けの APK を入手してください（ほぼすべてのスマートフォンは `arm64-v8a`、古い機種は `armeabi-v7a`、Intel 搭載のタブレット、Chromebook、エミュレーターは `x86` と `x86_64`）。
 
-**Linux:** Releases から `.deb`、`.rpm`、`.AppImage`、`.tar.gz` を入手できます。Arch Linux では、コミュニティパッケージ [`zedsecure-bin`](https://aur.archlinux.org/packages/zedsecure-bin) が AUR にあります：`yay -S zedsecure-bin`。NixOS では `nix run github:CluvexStudio/ZedSecure` を実行します。
+**Linux:** Releases から x86_64 用または ARM64 用の `.deb`、`.rpm`、`.AppImage`、`.tar.gz` を入手できます。Arch Linux では、コミュニティパッケージ [`zedsecure-bin`](https://aur.archlinux.org/packages/zedsecure-bin) が AUR にあります：`yay -S zedsecure-bin`。NixOS では `nix run github:CluvexStudio/ZedSecure` を実行します。
 
-**Windows:** `.msi` インストーラー、またはポータブル版の `.zip`。
+**Windows:** x64 用または ARM64 用の `.msi` インストーラー、またはポータブル版の `.zip`。
 
 **macOS:** Apple Silicon 用または Intel 用の `.dmg`。アプリは公証（notarize）されていないため、初回は右クリックして「開く」を選んで起動してください。
 
 ## ビルド
 
 ```sh
-./tools/get-cores.sh android     # or linux, windows, macos-arm64, macos-x86_64
+./tools/get-cores.sh android     # or linux, linux-arm64, windows, windows-arm64, macos-arm64, macos-x86_64
 ./gradlew :app:assembleRelease   # four APKs, one per ABI
 ./gradlew :desktop:packageDeb    # or packageRpm, packageMsi, packageDmg
 ```

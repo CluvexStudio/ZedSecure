@@ -16,7 +16,8 @@ import java.security.MessageDigest
 import kotlin.system.exitProcess
 
 object WindowsUpdater {
-    private const val SUMS = "SHA256SUMS-windows.txt"
+    private val arm64 = System.getProperty("os.arch").orEmpty().lowercase() in setOf("aarch64", "arm64")
+    private val SUMS = if (arm64) "SHA256SUMS-windows-arm64.txt" else "SHA256SUMS-windows.txt"
     private const val CONNECT_TIMEOUT_MS = 15_000
     private const val READ_TIMEOUT_MS = 60_000
     private const val BUFFER = 64 * 1024
@@ -52,7 +53,7 @@ object WindowsUpdater {
             .any { path.startsWith(it) }
     }
 
-    private fun msiName(version: String) = "ZedSecure-$version-x86_64.msi"
+    private fun msiName(version: String) = "ZedSecure-$version-${if (arm64) "arm64" else "x86_64"}.msi"
 
     private fun expectedHash(url: String, name: String): String {
         val lines = withProxyFallback { proxy ->

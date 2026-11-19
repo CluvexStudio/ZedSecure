@@ -1,7 +1,7 @@
 zedcore      CluvexStudio/ZedSecure-Cores   zedcore-r9
-xray         CluvexStudio/ZedSecure-Cores   xray-r7
-dns-tunnels  CluvexStudio/ZedSecure-Cores   dns-tunnels-r2
-psiphon      CluvexStudio/ZedSecure-Cores   psiphon-r2
+xray         CluvexStudio/ZedSecure-Cores   xray-r9
+dns-tunnels  CluvexStudio/ZedSecure-Cores   dns-tunnels-r8
+psiphon      CluvexStudio/ZedSecure-Cores   psiphon-r8
 tor          CluvexStudio/ZedSecure-Cores   tor-r5
 snispoof     CluvexStudio/ZedSecure-Cores   snispoof-r4
 hev          CluvexStudio/ZedSecure-Cores   hev-r4
