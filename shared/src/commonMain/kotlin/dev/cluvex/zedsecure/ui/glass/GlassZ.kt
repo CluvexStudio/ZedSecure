@@ -205,7 +205,9 @@ fun GlassZControl(
     val busy = phase == GlassZPhase.Busy
     val busyAlpha by animateFloatAsState(if (busy) 1f else 0f, tween(300), label = "z-busy")
 
-    val motion = rememberZMotion(animate, busy)
+    val budget = dev.cluvex.zedsecure.ui.theme.LocalMotionBudget.current
+    val ambient = animate && (busy || budget == dev.cluvex.zedsecure.ui.theme.MotionBudget.Full)
+    val motion = rememberZMotion(ambient, busy)
 
     val height = width * (162f / 176f)
     val source = remember { MutableInteractionSource() }

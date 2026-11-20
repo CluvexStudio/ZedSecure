@@ -68,7 +68,7 @@ fun LiveMonitorPage(contentPadding: PaddingValues, modifier: Modifier) {
         }
     }
 
-    androidx.compose.runtime.LaunchedEffect(Unit) {
+    dev.cluvex.zedsecure.ui.components.WhileStarted {
         suspend fun sample(): LiveStats =
             kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) { platform.liveStats() }
         sample()

@@ -15,6 +15,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
@@ -306,7 +307,10 @@ class MainActivity : ComponentActivity() {
                 font = settings.uiFont,
                 uiScale = settings.uiScale,
             ) {
-                CompositionLocalProvider(LocalPlatform provides androidPlatform) {
+                CompositionLocalProvider(
+                    LocalPlatform provides androidPlatform,
+                    dev.cluvex.zedsecure.ui.theme.LocalMotionBudget provides rememberMotionBudget(),
+                ) {
                     val aiBridge = androidx.compose.runtime.remember {
                         dev.cluvex.zedsecure.ai.AndroidAiBridge.create(
                             repository = configRepository,
@@ -477,4 +481,29 @@ class MainActivity : ComponentActivity() {
     private fun toast(message: String) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
     }
+}
+
+@androidx.compose.runtime.Composable
+private fun rememberMotionBudget(): dev.cluvex.zedsecure.ui.theme.MotionBudget {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val power = remember(context) { context.getSystemService(android.os.PowerManager::class.java) }
+    var saver by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(power?.isPowerSaveMode == true) }
+    androidx.compose.runtime.DisposableEffect(context, power) {
+        val receiver = object : android.content.BroadcastReceiver() {
+            override fun onReceive(c: android.content.Context, intent: android.content.Intent) {
+                saver = power?.isPowerSaveMode == true
+            }
+        }
+        val registered = runCatching {
+            androidx.core.content.ContextCompat.registerReceiver(
+                context,
+                receiver,
+                android.content.IntentFilter(android.os.PowerManager.ACTION_POWER_SAVE_MODE_CHANGED),
+                androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED,
+            )
+        }.isSuccess
+        saver = power?.isPowerSaveMode == true
+        onDispose { if (registered) runCatching { context.unregisterReceiver(receiver) } }
+    }
+    return if (saver) dev.cluvex.zedsecure.ui.theme.MotionBudget.Paused else dev.cluvex.zedsecure.ui.theme.MotionBudget.Throttled
 }

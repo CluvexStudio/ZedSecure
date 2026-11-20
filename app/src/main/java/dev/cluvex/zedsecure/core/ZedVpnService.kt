@@ -129,6 +129,7 @@ class ZedVpnService : VpnService() {
         super.onCreate()
         VpnSocketGuard.service = this
         notifications.createChannel()
+        watchScreen()
 
         XrayController.warmUp(this)
         XrayController.onCoreShutdown = { onTunnelFailed(null) }
@@ -1189,7 +1190,7 @@ class ZedVpnService : VpnService() {
         statsJob?.cancel()
         statsJob = scope.launch {
             val startedAt = android.os.SystemClock.elapsedRealtime()
-            var ticks = 0
+            var lastTickAt = startedAt
             var elapsed: Int
             var totalDown = 0L
             var totalUp = 0L
@@ -1197,9 +1198,10 @@ class ZedVpnService : VpnService() {
             var waitMs = dev.cluvex.zedsecure.domain.power.PowerPolicy.cadence(screenOn = true).tickMs
             var lastPollSec = 0
             var lastNotifySec = 0
+            var wasAwake = true
+            var shownKey: String? = null
             while (isActive) {
-                val waited = waitMs
-                delay(waited)
+                kotlinx.coroutines.withTimeoutOrNull(waitMs) { statsWake.receive() }
                 val running = when (kind) {
                     VpnManager.KIND_PSIPHON -> psiphon?.isRunning == true
                     VpnManager.KIND_DNS_TUNNEL -> dnsTunnel?.isRunning == true
@@ -1214,8 +1216,10 @@ class ZedVpnService : VpnService() {
                     else -> swappingCore || XrayController.isRunning
                 }
                 if (!running) { onTunnelFailed(null); break }
-                elapsed = ((android.os.SystemClock.elapsedRealtime() - startedAt) / 1000).toInt()
-                ticks++
+                val now = android.os.SystemClock.elapsedRealtime()
+                val spanMs = (now - lastTickAt).coerceAtLeast(1L)
+                lastTickAt = now
+                elapsed = ((now - startedAt) / 1000).toInt()
                 val awake = runCatching { powerManager.isInteractive }.getOrDefault(true)
                 val cadence = dev.cluvex.zedsecure.domain.power.PowerPolicy.cadence(screenOn = awake)
                 waitMs = cadence.tickMs
@@ -1245,17 +1249,29 @@ class ZedVpnService : VpnService() {
                 totalDown += down
                 totalUp += up
 
-                val seconds = (waited / 1000L).coerceAtLeast(1L)
-                VpnManager.onMetrics(elapsed, down / seconds, up / seconds, totalDown, totalUp)
-                lastDownBps = down / seconds
-                lastUpBps = up / seconds
+                val downBps = down * 1000L / spanMs
+                val upBps = up * 1000L / spanMs
+                VpnManager.onMetrics(elapsed, downBps, upBps, totalDown, totalUp)
+                lastDownBps = downBps
+                lastUpBps = upBps
                 lastTotalDown = totalDown
                 lastTotalUp = totalUp
 
-                val repaint = elapsed - lastNotifySec >= cadence.notifySeconds
-                if (repaint) {
+                if (!awake) {
+                    wasAwake = false
+                    continue
+                }
+                val woke = !wasAwake
+                wasAwake = true
+                if (woke || elapsed - lastNotifySec >= cadence.notifySeconds) {
                     lastNotifySec = elapsed
-                    if (showSpeed) notify(connectedNotification(down / seconds, up / seconds, totalDown, totalUp))
+                    if (showSpeed) {
+                        val key = notificationKey(downBps, upBps, totalDown, totalUp, elapsed)
+                        if (woke || key != shownKey) {
+                            shownKey = key
+                            notify(connectedNotification(downBps, upBps, totalDown, totalUp))
+                        }
+                    }
                     ZedWidgetProvider.refresh(this@ZedVpnService)
                 }
             }
@@ -1271,6 +1287,39 @@ class ZedVpnService : VpnService() {
             getSystemService(NotificationManager::class.java)?.notify(VpnNotifications.NOTIFICATION_ID, notification)
         }
     }
+
+    private val statsWake = kotlinx.coroutines.channels.Channel<Unit>(kotlinx.coroutines.channels.Channel.CONFLATED)
+    private var screenReceiver: android.content.BroadcastReceiver? = null
+
+    private fun watchScreen() {
+        if (screenReceiver != null) return
+        val receiver = object : android.content.BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                statsWake.trySend(Unit)
+            }
+        }
+        val filter = android.content.IntentFilter().apply {
+            addAction(Intent.ACTION_SCREEN_ON)
+            addAction(Intent.ACTION_USER_PRESENT)
+        }
+        runCatching {
+            androidx.core.content.ContextCompat.registerReceiver(
+                this, receiver, filter, androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED,
+            )
+        }.onSuccess { screenReceiver = receiver }
+    }
+
+    private fun unwatchScreen() {
+        screenReceiver?.let { runCatching { unregisterReceiver(it) } }
+        screenReceiver = null
+    }
+
+    private fun notificationKey(downBps: Long, upBps: Long, totalDown: Long, totalUp: Long, elapsed: Int): String =
+        listOf(
+            dev.cluvex.zedsecure.ui.format.formatRate(downBps), dev.cluvex.zedsecure.ui.format.formatRate(upBps),
+            dev.cluvex.zedsecure.ui.format.formatBytes(totalDown), dev.cluvex.zedsecure.ui.format.formatBytes(totalUp),
+            remark, engineName, elapsed / 60,
+        ).joinToString("|")
 
     private fun VpnService.Builder.applyAppRules(settings: AppSettings, selfInTunnel: Boolean = false) {
         val self = packageName
@@ -1682,6 +1731,7 @@ class ZedVpnService : VpnService() {
 
     override fun onDestroy() {
         if (VpnSocketGuard.service === this) VpnSocketGuard.service = null
+        unwatchScreen()
         XrayController.onCoreShutdown = null
         scope.cancel()
         super.onDestroy()

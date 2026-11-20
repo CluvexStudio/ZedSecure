@@ -23,7 +23,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -106,7 +105,7 @@ fun TransitionPicker(
 private fun TransitionPreview(style: ScreenTransition, reduceMotion: Boolean) {
     var step by remember { mutableIntStateOf(0) }
 
-    LaunchedEffect(style) {
+    dev.cluvex.zedsecure.ui.components.WhileStarted(style) {
         step = 0
         while (true) {
             delay(1_700)

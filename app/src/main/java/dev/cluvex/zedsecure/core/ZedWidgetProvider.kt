@@ -27,7 +27,16 @@ import dev.cluvex.zedsecure.ui.format.formatRate
 
 open class ZedWidgetProvider : AppWidgetProvider() {
     override fun onUpdate(ctx: Context, mgr: AppWidgetManager, ids: IntArray) {
+        invalidate()
         push(ctx, mgr, ids, smallByDefault = this is ZedWidgetToggleProvider)
+    }
+
+    override fun onDeleted(ctx: Context, ids: IntArray) {
+        invalidate()
+    }
+
+    override fun onDisabled(ctx: Context) {
+        invalidate()
     }
 
     override fun onAppWidgetOptionsChanged(ctx: Context, mgr: AppWidgetManager, id: Int, options: Bundle) {
@@ -60,22 +69,49 @@ open class ZedWidgetProvider : AppWidgetProvider() {
         private val LARGE = SizeF(240f, 140f)
 
         @Volatile private var lastPush = 0L
+        @Volatile private var lastKey: String? = null
+        @Volatile private var widgetsPresent: Boolean? = null
 
         fun refresh(ctx: Context, force: Boolean = false) {
             val now = SystemClock.elapsedRealtime()
             if (!force && now - lastPush < MIN_INTERVAL_MS) return
+            if (!force && widgetsPresent == false) return
             lastPush = now
-            pushNow(ctx)
+            pushNow(ctx, force)
         }
 
-        private fun pushNow(ctx: Context) {
+        private fun invalidate() {
+            widgetsPresent = null
+            lastKey = null
+        }
+
+        private fun pushNow(ctx: Context, force: Boolean) {
             runCatching {
                 val mgr = AppWidgetManager.getInstance(ctx) ?: return
                 val panel = mgr.getAppWidgetIds(ComponentName(ctx, ZedWidgetProvider::class.java))
                 val toggle = mgr.getAppWidgetIds(ComponentName(ctx, ZedWidgetToggleProvider::class.java))
-                if (panel.isNotEmpty()) push(ctx, mgr, panel, smallByDefault = false)
-                if (toggle.isNotEmpty()) push(ctx, mgr, toggle, smallByDefault = true)
+                widgetsPresent = panel.isNotEmpty() || toggle.isNotEmpty()
+                if (panel.isEmpty() && toggle.isEmpty()) return
+                val local = localized(ctx)
+                val snap = snapshot(local)
+                val key = renderKey(ctx, snap)
+                if (!force && key == lastKey) return
+                lastKey = key
+                val theme = theme(ctx)
+                panel.forEach { id -> mgr.updateAppWidget(id, render(local, snap, theme, mgr, id, smallByDefault = false)) }
+                toggle.forEach { id -> mgr.updateAppWidget(id, render(local, snap, theme, mgr, id, smallByDefault = true)) }
             }
+        }
+
+        private fun renderKey(ctx: Context, snap: Snapshot): String {
+            val settings = runCatching {
+                (ctx.applicationContext as dev.cluvex.zedsecure.ZedSecureApp).container.settingsRepository.settings.value
+            }.getOrNull()
+            val night = ctx.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+            return listOf(
+                snap.state, snap.label, snap.server, snap.flag, snap.engine, snap.down, snap.up, snap.action,
+                snap.on, snap.connected, snap.busy, settings?.let { System.identityHashCode(it) }, night,
+            ).joinToString("|")
         }
 
         private fun push(ctx: Context, mgr: AppWidgetManager, ids: IntArray, smallByDefault: Boolean) {

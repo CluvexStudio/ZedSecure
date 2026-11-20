@@ -84,7 +84,7 @@ fun MapScreen(
     val ownTunnel = status.state.isActive || status.state.isTransitioning
 
     var deviceVpn by remember { mutableStateOf(VpnManager.deviceVpnActive()) }
-    LaunchedEffect(Unit) {
+    dev.cluvex.zedsecure.ui.components.WhileStarted {
         while (true) {
             delay(VPN_POLL_MS)
             deviceVpn = withContext(Dispatchers.Default) { VpnManager.deviceVpnActive() }
