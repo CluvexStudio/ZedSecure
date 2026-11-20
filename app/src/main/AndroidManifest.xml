@@ -124,6 +124,10 @@
         </service>
 
         <receiver
+            android:name=".core.Ikev2StopReceiver"
+            android:exported="false" />
+
+        <receiver
             android:name=".core.Ikev2EventReceiver"
             android:exported="true">
             <intent-filter>

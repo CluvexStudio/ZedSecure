@@ -134,7 +134,9 @@ class VpnNotifications(private val ctx: Context) {
         livePromotion: Boolean = true,
         chip: NotifChip = NotifChip.Speed,
         bentoCard: Boolean = false,
+        stop: PendingIntent? = null,
     ): android.app.Notification {
+        val disconnect = stop ?: stopTunnel()
         val title = BidiText.auto(server.ifBlank { ctx.getString(R.string.app_name) })
         val colors = colors()
         val b = NotificationCompat.Builder(ctx, CHANNEL_ID)
@@ -151,16 +153,19 @@ class VpnNotifications(private val ctx: Context) {
             .setRequestPromotedOngoing(livePromotion && !bentoCard)
 
         return when (phase) {
-            is Phase.Connecting -> b.applyConnecting(phase.stage, protocolLabel, colors).build()
+            is Phase.Connecting -> b.applyConnecting(phase.stage, protocolLabel, colors, disconnect).build()
             Phase.Connected -> if (bentoCard) {
-                b.applyBentoCard(protocolLabel, downBps, upBps, totalDown, totalUp, connectedAt, title.toString(), colors).build()
+                b.applyBentoCard(
+                    protocolLabel, downBps, upBps, totalDown, totalUp, connectedAt, title.toString(), colors,
+                    showSpeed, disconnect,
+                ).build()
             } else {
                 b.applyConnected(
                     protocolLabel, downBps, upBps, totalDown, totalUp, connectedAt, showSpeed, chip,
-                    title,
+                    title, disconnect,
                 ).build()
             }
-            is Phase.Failed -> b.applyFailed(phase, colors).build()
+            is Phase.Failed -> b.applyFailed(phase, colors, disconnect).build()
         }
     }
 
@@ -168,6 +173,7 @@ class VpnNotifications(private val ctx: Context) {
         stage: Stage,
         protocolLabel: String,
         colors: Colors,
+        disconnect: PendingIntent,
     ): NotificationCompat.Builder {
         val step = stage.ordinal.coerceIn(0, STAGE_COUNT)
         val progress = step * SEGMENT_LEN
@@ -194,7 +200,7 @@ class VpnNotifications(private val ctx: Context) {
             .setShortCriticalText(ctx.getString(R.string.notif_chip_connecting))
             .setSubText(protocolLabel.takeIf { it.isNotBlank() }?.let(BidiText::ltr))
             .setShowWhen(false)
-            .addAction(R.drawable.ic_close, ctx.getString(R.string.action_cancel), stopTunnel())
+            .addAction(R.drawable.ic_close, ctx.getString(R.string.action_cancel), disconnect)
     }
 
     private fun NotificationCompat.Builder.applyConnected(
@@ -207,33 +213,31 @@ class VpnNotifications(private val ctx: Context) {
         showSpeed: Boolean,
         chip: NotifChip,
         configName: String,
+        disconnect: PendingIntent,
     ): NotificationCompat.Builder {
         val (dl, dlU) = formatRate(downBps).let { (n, u) -> n.latin() to u }
         val (ul, ulU) = formatRate(upBps).let { (n, u) -> n.latin() to u }
 
-        val speeds = BidiText.ltr(ctx.getString(R.string.notif_speeds, "$dl $dlU", "$ul $ulU"))
+        setShortCriticalText(chipText(chip, showSpeed, "$dl$dlU", totalDown + totalUp, connectedAt, configName))
+            .setSubText(protocolLabel.takeIf { it.isNotBlank() }?.let(BidiText::ltr))
+            .addAction(R.drawable.ic_close, ctx.getString(R.string.action_disconnect), disconnect)
+        if (!showSpeed) {
+            return setContentText(ctx.getString(R.string.state_connected))
+                .setShowWhen(false)
+                .setUsesChronometer(false)
+        }
 
+        val speeds = BidiText.ltr(ctx.getString(R.string.notif_speeds, "$dl $dlU", "$ul $ulU"))
         val totals = ctx.getString(
             R.string.notif_totals,
             BidiText.ltr(formatBytes(totalDown).latin()),
             BidiText.ltr(formatBytes(totalUp).latin()),
         )
-        val headline = if (showSpeed) speeds else ctx.getString(R.string.state_connected)
-
-        val detail = if (showSpeed) "$speeds\n$totals" else totals
-
-        return setContentText(headline)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(detail))
-
-            .setShortCriticalText(
-                chipText(chip, showSpeed, "$dl$dlU", totalDown + totalUp, connectedAt, configName),
-            )
-            .setSubText(protocolLabel.takeIf { it.isNotBlank() }?.let(BidiText::ltr))
-
+        return setContentText(speeds)
+            .setStyle(NotificationCompat.BigTextStyle().bigText("$speeds\n$totals"))
             .setShowWhen(connectedAt > 0)
             .setWhen(connectedAt.takeIf { it > 0 } ?: System.currentTimeMillis())
             .setUsesChronometer(connectedAt > 0)
-            .addAction(R.drawable.ic_close, ctx.getString(R.string.action_disconnect), stopTunnel())
     }
 
     private fun NotificationCompat.Builder.applyBentoCard(
@@ -245,6 +249,8 @@ class VpnNotifications(private val ctx: Context) {
         connectedAt: Long,
         title: String,
         colors: Colors,
+        showSpeed: Boolean,
+        disconnect: PendingIntent,
     ): NotificationCompat.Builder {
         val (dl, dlU) = formatRate(downBps).let { (n, u) -> n.latin() to u }
         val (ul, ulU) = formatRate(upBps).let { (n, u) -> n.latin() to u }
@@ -255,13 +261,15 @@ class VpnNotifications(private val ctx: Context) {
             setInt(R.id.notif_card, "setColorFilter", colors.deep)
             setTextViewText(R.id.notif_title, title)
             setTextColor(R.id.notif_title, colors.onDeep)
-            setChronometer(R.id.notif_timer, base, null, connectedAt > 0)
+            setChronometer(R.id.notif_timer, base, null, showSpeed && connectedAt > 0)
             setTextColor(R.id.notif_timer, colors.onDeep)
+            setViewVisibility(R.id.notif_timer, if (showSpeed) android.view.View.VISIBLE else android.view.View.GONE)
             setTextViewText(R.id.notif_engine, BidiText.ltr(engine))
             if (big) {
                 setInt(R.id.notif_engine_bg, "setColorFilter", colors.accent)
                 setTextColor(R.id.notif_engine, colors.onAccent)
-                setTextViewText(R.id.notif_status, ctx.getString(R.string.state_connected) + " ·")
+                setTextViewText(R.id.notif_status, ctx.getString(R.string.state_connected) + if (showSpeed) " ·" else "")
+                setViewVisibility(R.id.notif_tiles, if (showSpeed) android.view.View.VISIBLE else android.view.View.GONE)
                 setTextColor(R.id.notif_status, colors.onDeep)
                 setInt(R.id.notif_down_bg, "setColorFilter", colors.tileA)
                 setInt(R.id.notif_up_bg, "setColorFilter", colors.tileB)
@@ -275,7 +283,7 @@ class VpnNotifications(private val ctx: Context) {
                 listOf(R.id.notif_up_label, R.id.notif_up, R.id.notif_up_total).forEach { setTextColor(it, colors.onTileB) }
             } else {
                 setTextColor(R.id.notif_engine, colors.onDeep)
-                setTextViewText(R.id.notif_down, BidiText.ltr("↓ $dl $dlU"))
+                setTextViewText(R.id.notif_down, if (showSpeed) BidiText.ltr("↓ $dl $dlU") else ctx.getString(R.string.state_connected))
                 setTextColor(R.id.notif_down, colors.accent)
             }
         }
@@ -283,7 +291,7 @@ class VpnNotifications(private val ctx: Context) {
             .setCustomContentView(card(R.layout.notif_bento_small, false))
             .setCustomBigContentView(card(R.layout.notif_bento_big, true))
             .setShowWhen(false)
-            .addAction(R.drawable.ic_close, ctx.getString(R.string.action_disconnect), stopTunnel())
+            .addAction(R.drawable.ic_close, ctx.getString(R.string.action_disconnect), disconnect)
     }
 
     private fun chipText(
@@ -293,13 +301,12 @@ class VpnNotifications(private val ctx: Context) {
         totalBytes: Long,
         connectedAt: Long,
         configName: String,
-    ): String = when (chip) {
-        NotifChip.Speed ->
-            if (showSpeed) BidiText.ltr("↓ $downRate").toString() else ctx.getString(R.string.notif_chip_on)
-        NotifChip.ConfigName -> BidiText.auto(shorten(configName)).toString()
-        NotifChip.Duration -> BidiText.ltr(elapsedShort(connectedAt)).toString()
-        NotifChip.Total -> BidiText.ltr(formatBytes(totalBytes).latin()).toString()
-        NotifChip.None -> ctx.getString(R.string.notif_chip_on)
+    ): String = when {
+        chip == NotifChip.ConfigName -> BidiText.auto(shorten(configName)).toString()
+        !showSpeed || chip == NotifChip.None -> ctx.getString(R.string.notif_chip_on)
+        chip == NotifChip.Speed -> BidiText.ltr("↓ $downRate").toString()
+        chip == NotifChip.Duration -> BidiText.ltr(elapsedShort(connectedAt)).toString()
+        else -> BidiText.ltr(formatBytes(totalBytes).latin()).toString()
     }
 
     private fun shorten(name: String): String {
@@ -322,6 +329,7 @@ class VpnNotifications(private val ctx: Context) {
     private fun NotificationCompat.Builder.applyFailed(
         phase: Phase.Failed,
         colors: Colors,
+        disconnect: PendingIntent,
     ): NotificationCompat.Builder {
         val reason = BidiText.auto(phase.reason)
         val b = setContentTitle(ctx.getString(R.string.notif_title_disconnected))
@@ -333,7 +341,7 @@ class VpnNotifications(private val ctx: Context) {
         if (phase.retryable) {
             b.addAction(R.drawable.ic_sync, ctx.getString(R.string.action_retry), reconnect())
         }
-        return b.addAction(R.drawable.ic_close, ctx.getString(R.string.action_disconnect), stopTunnel())
+        return b.addAction(R.drawable.ic_close, ctx.getString(R.string.action_disconnect), disconnect)
     }
 
     private fun openApp(): PendingIntent =
@@ -373,6 +381,7 @@ class VpnNotifications(private val ctx: Context) {
 
         const val CHANNEL_ID = "zed_vpn"
         const val NOTIFICATION_ID = 1
+        const val IKEV2_NOTIFICATION_ID = 2
 
         const val ACTION_CONNECT = "dev.cluvex.zedsecure.action.CONNECT"
 

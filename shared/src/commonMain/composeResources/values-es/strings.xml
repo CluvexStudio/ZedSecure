@@ -431,7 +431,7 @@
     <string name="title_mode_settings">Modo</string>
     <string name="summary_mode_settings">VPN o solo proxy local</string>
     <string name="title_pref_speed_enabled">Mostrar la velocidad</string>
-    <string name="summary_pref_speed_enabled">Muestra las velocidades actuales en la notificación</string>
+    <string name="summary_pref_speed_enabled">Velocidad, datos usados y tiempo de conexión en la notificación. Apagado: solo el nombre del servidor, sin actualizaciones</string>
     <string name="title_pref_confirm_remove">Confirmar eliminación de configuraciones</string>
     <string name="summary_pref_confirm_remove">Pregunta antes de eliminar una configuración</string>
     <string name="title_pref_double_column_display">Usar diseño de dos columnas</string>

@@ -1262,8 +1262,14 @@ class ZedVpnService : VpnService() {
         }
     }
 
+    private val notifyLock = Any()
+    @Volatile private var foregroundShown = false
+
     private fun notify(notification: android.app.Notification) {
-        getSystemService(NotificationManager::class.java)?.notify(VpnNotifications.NOTIFICATION_ID, notification)
+        synchronized(notifyLock) {
+            if (!foregroundShown) return
+            getSystemService(NotificationManager::class.java)?.notify(VpnNotifications.NOTIFICATION_ID, notification)
+        }
     }
 
     private fun VpnService.Builder.applyAppRules(settings: AppSettings, selfInTunnel: Boolean = false) {
@@ -1487,7 +1493,10 @@ class ZedVpnService : VpnService() {
         tun = null
         connected = false
         VpnManager.onDisconnected(keepError = !userStop)
+        statsJob?.cancel()
+        synchronized(notifyLock) { foregroundShown = false }
         stopForeground(Service.STOP_FOREGROUND_REMOVE)
+        runCatching { getSystemService(NotificationManager::class.java)?.cancel(VpnNotifications.NOTIFICATION_ID) }
         ZedWidgetProvider.refresh(this, force = true)
 
         if (Looper.myLooper() != Looper.getMainLooper()) {
@@ -1688,6 +1697,7 @@ class ZedVpnService : VpnService() {
 
     private fun startInForeground(notification: android.app.Notification) {
         runCatching { notifications.createChannel() }
+        synchronized(notifyLock) { foregroundShown = true }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             startForeground(VpnNotifications.NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
         } else {

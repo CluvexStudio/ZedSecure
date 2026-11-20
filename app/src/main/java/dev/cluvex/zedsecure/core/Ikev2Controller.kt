@@ -144,7 +144,7 @@ object Ikev2Controller {
             when (currentState(context)) {
                 VpnProfileState.STATE_CONNECTED -> {
                     note("platform reports CONNECTED")
-                    VpnManager.onConnected(remark).also { startMetrics() }
+                    VpnManager.onConnected(remark).also { startMetrics(context) }
                     return
                 }
                 VpnProfileState.STATE_FAILED -> {
@@ -166,7 +166,7 @@ object Ikev2Controller {
             if (activeRemark == null) return
             if (ownVpnNetworkUp(context)) {
                 note("platform VPN network is up")
-                VpnManager.onConnected(remark).also { startMetrics() }
+                VpnManager.onConnected(remark).also { startMetrics(context) }
                 return
             }
             runCatching { Thread.sleep(POLL_INTERVAL_MS) }.onFailure { return }
@@ -194,6 +194,7 @@ object Ikev2Controller {
 
     private fun fail(context: Context, reason: String, cause: Throwable?) {
         note("failed: $reason", cause)
+        stopMetrics()
         activeRemark = null
         runCatching {
             context.getSystemService(android.net.VpnManager::class.java)?.stopProvisionedVpnProfile()
@@ -202,17 +203,27 @@ object Ikev2Controller {
         VpnManager.onError(reason)
     }
 
-    private fun startMetrics() {
+    private fun startMetrics(context: Context) {
         if (metricsJob?.isActive == true) return
+        val app = context.applicationContext
+        notifyContext = app
         val startedAt = System.currentTimeMillis()
         var lastRx = android.net.TrafficStats.getTotalRxBytes()
         var lastTx = android.net.TrafficStats.getTotalTxBytes()
+        var lastAt = android.os.SystemClock.elapsedRealtime()
         var totalDown = 0L
         var totalUp = 0L
+        val power = app.getSystemService(android.os.PowerManager::class.java)
+        synchronized(notifyLock) { notifying = true }
+        showNotification(app, startedAt, 0, 0, 0, 0, force = true)
         metricsJob = metricsScope.launch {
+            var waitMs = dev.cluvex.zedsecure.domain.power.PowerPolicy.cadence(screenOn = true).tickMs
+            var wasAwake = true
             while (isActive) {
-                delay(1_000)
+                delay(waitMs)
                 if (activeRemark == null) break
+                val awake = runCatching { power?.isInteractive }.getOrNull() ?: true
+                waitMs = dev.cluvex.zedsecure.domain.power.PowerPolicy.cadence(screenOn = awake).tickMs
                 val rx = android.net.TrafficStats.getTotalRxBytes()
                 val tx = android.net.TrafficStats.getTotalTxBytes()
 
@@ -222,10 +233,17 @@ object Ikev2Controller {
                 lastTx = tx
                 totalDown += down
                 totalUp += up
+                val now = android.os.SystemClock.elapsedRealtime()
+                val spanMs = (now - lastAt).coerceAtLeast(1L)
+                lastAt = now
+                val downBps = down * 1000L / spanMs
+                val upBps = up * 1000L / spanMs
                 VpnManager.onMetrics(
                     ((System.currentTimeMillis() - startedAt) / 1000).toInt(),
-                    down, up, totalDown, totalUp,
+                    downBps, upBps, totalDown, totalUp,
                 )
+                if (awake) showNotification(app, startedAt, downBps, upBps, totalDown, totalUp, force = !wasAwake)
+                wasAwake = awake
             }
         }
     }
@@ -233,6 +251,72 @@ object Ikev2Controller {
     private fun stopMetrics() {
         metricsJob?.cancel()
         metricsJob = null
+        synchronized(notifyLock) {
+            notifying = false
+            shownKey = null
+            notifyContext?.let { ctx ->
+                runCatching {
+                    ctx.getSystemService(android.app.NotificationManager::class.java)
+                        ?.cancel(VpnNotifications.IKEV2_NOTIFICATION_ID)
+                }
+            }
+        }
+    }
+
+    private val notifyLock = Any()
+    @Volatile private var notifying = false
+    private var shownKey: String? = null
+    private var notifyContext: Context? = null
+
+    private fun showNotification(
+        context: Context,
+        connectedAt: Long,
+        downBps: Long,
+        upBps: Long,
+        totalDown: Long,
+        totalUp: Long,
+        force: Boolean,
+    ) {
+        val remark = activeRemark ?: return
+        val settings = runCatching {
+            (context as dev.cluvex.zedsecure.ZedSecureApp).container.settingsRepository.settings.value
+        }.getOrNull() ?: dev.cluvex.zedsecure.domain.model.AppSettings()
+        val showSpeed = settings.speedInNotification
+        val bentoCard = !settings.liveNotification && settings.notifStyle == dev.cluvex.zedsecure.domain.model.NotifStyle.Bento
+        val live = if (showSpeed) {
+            listOf(
+                dev.cluvex.zedsecure.ui.format.formatRate(downBps), dev.cluvex.zedsecure.ui.format.formatRate(upBps),
+                dev.cluvex.zedsecure.ui.format.formatBytes(totalDown), dev.cluvex.zedsecure.ui.format.formatBytes(totalUp),
+                (System.currentTimeMillis() - connectedAt) / 60_000L,
+            ).joinToString("|")
+        } else ""
+        val key = listOf(remark, live, showSpeed, settings.liveNotification, settings.notifChip, settings.notifStyle).joinToString("|")
+        synchronized(notifyLock) {
+            if (!notifying) return
+            if (!force && key == shownKey) return
+            shownKey = key
+            runCatching {
+                val notifications = VpnNotifications(context)
+                notifications.createChannel()
+                val notification = notifications.build(
+                    server = remark,
+                    phase = VpnNotifications.Phase.Connected,
+                    protocolLabel = "IKEv2",
+                    downBps = downBps,
+                    upBps = upBps,
+                    totalDown = totalDown,
+                    totalUp = totalUp,
+                    connectedAt = connectedAt,
+                    showSpeed = showSpeed,
+                    livePromotion = settings.liveNotification,
+                    chip = settings.notifChip,
+                    bentoCard = bentoCard,
+                    stop = Ikev2StopReceiver.pendingIntent(context),
+                )
+                context.getSystemService(android.app.NotificationManager::class.java)
+                    ?.notify(VpnNotifications.IKEV2_NOTIFICATION_ID, notification)
+            }.onFailure { Log.w(TAG, "could not show the IKEv2 notification", it) }
+        }
     }
 
     private val metricsScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -261,8 +345,8 @@ object Ikev2Controller {
         val remark = activeRemark ?: return
         when {
             reason != null -> fail(context, reason, null)
-            state == VpnProfileState.STATE_CONNECTED -> VpnManager.onConnected(remark).also { startMetrics() }
-            state == VpnProfileState.STATE_DISCONNECTED -> { activeRemark = null; VpnManager.onDisconnected() }
+            state == VpnProfileState.STATE_CONNECTED -> VpnManager.onConnected(remark).also { startMetrics(context) }
+            state == VpnProfileState.STATE_DISCONNECTED -> { stopMetrics(); activeRemark = null; VpnManager.onDisconnected() }
         }
     }
 
@@ -272,9 +356,10 @@ object Ikev2Controller {
         val up = state == VpnProfileState.STATE_CONNECTED || state == VpnProfileState.STATE_CONNECTING
         if (up && activeRemark == null) {
             activeRemark = context.getString(R.string.ikev2_adopted_session)
-            if (state == VpnProfileState.STATE_CONNECTED) VpnManager.onConnected(activeRemark).also { startMetrics() }
+            if (state == VpnProfileState.STATE_CONNECTED) VpnManager.onConnected(activeRemark).also { startMetrics(context) }
             else VpnManager.onStarting(activeRemark!!)
         } else if (!up && activeRemark != null) {
+            stopMetrics()
             activeRemark = null
             VpnManager.onDisconnected()
         }

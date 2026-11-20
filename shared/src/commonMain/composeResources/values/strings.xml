@@ -458,7 +458,7 @@
     <string name="summary_mode_settings">VPN or local proxy only</string>
 
     <string name="title_pref_speed_enabled">Enable speed display</string>
-    <string name="summary_pref_speed_enabled">Show current speeds in the notification</string>
+    <string name="summary_pref_speed_enabled">Speed, data used and connection time in the notification. Off: only the server name, with no updates</string>
     <string name="title_pref_confirm_remove">Delete config confirmation</string>
     <string name="summary_pref_confirm_remove">Ask before deleting a config</string>
     <string name="title_pref_double_column_display">Use two-column layout</string>

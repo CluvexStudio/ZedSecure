@@ -459,7 +459,7 @@
     <string name="summary_mode_settings">VPN или только локальный прокси</string>
 
     <string name="title_pref_speed_enabled">Показывать скорость</string>
-    <string name="summary_pref_speed_enabled">Показывать текущие скорости в уведомлении</string>
+    <string name="summary_pref_speed_enabled">Скорость, трафик и время подключения в уведомлении. Выкл.: только имя сервера, без обновлений</string>
     <string name="title_pref_confirm_remove">Подтверждение удаления конфигурации</string>
     <string name="summary_pref_confirm_remove">Спрашивать перед удалением конфигурации</string>
     <string name="title_pref_double_column_display">Макет в два столбца</string>

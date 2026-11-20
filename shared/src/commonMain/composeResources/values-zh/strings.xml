@@ -459,7 +459,7 @@
     <string name="summary_mode_settings">VPN 或仅本地代理</string>
 
     <string name="title_pref_speed_enabled">启用速度显示</string>
-    <string name="summary_pref_speed_enabled">在通知中显示当前速度</string>
+    <string name="summary_pref_speed_enabled">在通知中显示速度、已用流量和连接时长。关闭后只显示服务器名称，不再刷新</string>
     <string name="title_pref_confirm_remove">删除配置确认</string>
     <string name="summary_pref_confirm_remove">删除配置前询问</string>
     <string name="title_pref_double_column_display">使用双列布局</string>
