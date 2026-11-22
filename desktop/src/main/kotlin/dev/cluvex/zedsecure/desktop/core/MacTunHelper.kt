@@ -185,7 +185,64 @@ internal object MacTunHelper {
         |fi
         |ZP=
         |TUNIF=
+        |# The control loop sleeps for a quarter of a second between checks.
+        |SCOPE_REFRESH_TICKS=20
+        |SCOPE_TICKS=0
         |TUN_DNS=${ZeptunTun.MAC_TUN_DNS}
+        |scoped_gateway() {
+        |  # netstat flags I and 1 mean interface scope and RTF_PROTO1.
+        |  printf '%s\n' "${'$'}1" | awk -v iface="${'$'}2" -v owned="${'$'}3" '
+        |    ${'$'}1 == "default" && ${'$'}3 ~ /I/ && ${'$'}4 == iface && (!owned || ${'$'}3 ~ /1/) { print ${'$'}2; exit }
+        |  '
+        |}
+        |physical_default() {
+        |  printf '%s\n' "${'$'}1" | awk '
+        |    ${'$'}1 == "default" && ${'$'}3 ~ /U/ && ${'$'}3 ~ /G/ && ${'$'}3 !~ /I/ && ${'$'}4 !~ /^(lo|utun)/ { print ${'$'}4, ${'$'}2; exit }
+        |  '
+        |}
+        |remove_scoped_default() {
+        |  local family="${'$'}1" state="${'$'}RUN/scoped-${'$'}1" iface gateway routes attempt
+        |  [ -f "${'$'}state" ] || return 0
+        |  read -r iface gateway < "${'$'}state" || return 1
+        |  for attempt in 1 2 3; do
+        |    routes=${'$'}(netstat -rnW -f "${'$'}family" 2>/dev/null) || continue
+        |    if [ "${'$'}(scoped_gateway "${'$'}routes" "${'$'}iface" 1)" != "${'$'}gateway" ]; then
+        |      rm -f "${'$'}state"
+        |      return
+        |    fi
+        |    [ "${'$'}attempt" -lt 3 ] && route -n delete "-${'$'}family" -ifscope "${'$'}iface" default "${'$'}gateway" >/dev/null 2>&1
+        |  done
+        |  echo "could not remove the ${'$'}family scoped default on ${'$'}iface" >&2
+        |  return 1
+        |}
+        |sync_scoped_default() {
+        |  local family="${'$'}1" state="${'$'}RUN/scoped-${'$'}1" routes physical previous iface gateway error
+        |  routes=${'$'}(netstat -rnW -f "${'$'}family" 2>/dev/null) || return
+        |  physical=${'$'}(physical_default "${'$'}routes")
+        |  if [ -f "${'$'}state" ]; then
+        |    read -r previous < "${'$'}state"
+        |    if [ "${'$'}previous" != "${'$'}physical" ]; then
+        |      remove_scoped_default "${'$'}family" || return
+        |      routes=${'$'}(netstat -rnW -f "${'$'}family" 2>/dev/null) || return
+        |      physical=${'$'}(physical_default "${'$'}routes")
+        |    fi
+        |  fi
+        |  [ -n "${'$'}physical" ] || return 0
+        |  iface=${'$'}{physical%% *}
+        |  gateway=${'$'}{physical#* }
+        |  [ -z "${'$'}(scoped_gateway "${'$'}routes" "${'$'}iface" 0)" ] || return 0
+        |  printf '%s\n' "${'$'}physical" > "${'$'}state" || return
+        |  if ! error=${'$'}(route -n add "-${'$'}family" -ifscope "${'$'}iface" -proto1 default "${'$'}gateway" 2>&1 >/dev/null) || [ -n "${'$'}error" ]; then
+        |    rm -f "${'$'}state"
+        |    echo "could not add an ${'$'}family scoped default on ${'$'}iface: ${'$'}error" >&2
+        |  fi
+        |}
+        |sync_scoped_defaults() {
+        |  # The split default on utun can hide the physical default from
+        |  # interface-bound sockets. Explicit scoped defaults avoid that lookup.
+        |  sync_scoped_default inet
+        |  sync_scoped_default inet6
+        |}
         |restore_dns() {
         |  [ -f "${'$'}1" ] || return 0
         |  while IFS="${'$'}TAB" read -r svc servers; do
@@ -233,16 +290,21 @@ internal object MacTunHelper {
         |  fi
         |  ZP=
         |  TUNIF=
+        |  SCOPE_TICKS=0
+        |  remove_scoped_default inet
+        |  remove_scoped_default inet6
         |  rm -f "${'$'}CTRL/ready"
         |}
         |tun_up() {
         |  tun_down
         |  rm -f "${'$'}CTRL/failed" "${'$'}CTRL/lost"
+        |  sync_scoped_defaults
         |  if [ "${'$'}(cat "${'$'}CTRL/engine" 2>/dev/null)" = hev ]; then
         |    hev_up
         |  else
         |    zeptun_up
         |  fi
+        |  [ -f "${'$'}CTRL/ready" ] || tun_down
         |}
         |hev_up() {
         |  TUN_DNS=${'$'}(cat "${'$'}CTRL/dns" 2>/dev/null)
@@ -342,6 +404,13 @@ internal object MacTunHelper {
         |  if [ -n "${'$'}ZP" ] && ! kill -0 "${'$'}ZP" 2>/dev/null; then
         |    tun_down
         |    echo "zeptun stopped" >"${'$'}CTRL/lost"
+        |  fi
+        |  if [ -n "${'$'}ZP" ]; then
+        |    SCOPE_TICKS=${'$'}((SCOPE_TICKS + 1))
+        |    if [ "${'$'}SCOPE_TICKS" -ge "${'$'}SCOPE_REFRESH_TICKS" ]; then
+        |      SCOPE_TICKS=0
+        |      sync_scoped_defaults
+        |    fi
         |  fi
         |  sleep 0.25
         |done
