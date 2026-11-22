@@ -4,8 +4,12 @@ object PhysicalInterface {
     fun detect(os: Os = Os.current): String? = runCatching {
         when (os) {
             Os.WINDOWS -> WinApi.bestInterfaceAlias(byteArrayOf(1, 1, 1, 1))?.takeIf { it != ZeptunTun.ADAPTER }
-            Os.MACOS -> exec("route", "-n", "get", "default", timeoutSec = 10)
-                .second.let(::macInterface)
+            Os.MACOS -> {
+                val ipv4 = exec("route", "-n", "get", "-inet", "default", timeoutSec = 10).second
+                val route = if (ipv4.lineSequence().any { it.trimStart().startsWith("interface:") }) ipv4
+                else exec("route", "-n", "get", "-inet6", "default", timeoutSec = 10).second
+                macInterface(route)
+            }
             Os.LINUX -> exec("ip", "-o", "route", "get", "1.1.1.1", timeoutSec = 10)
                 .takeIf { it.first == 0 }?.second?.let(::linuxInterface)
             else -> null
